@@ -2,28 +2,50 @@ import Head from 'next/head'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import RecipeCard from '../components/RecipeCard'
+import ErrorDisplay from '../components/ErrorDisplay' // Import our error component
 import styles from '../styles/Recipes.module.css'
 
 export default function UserRecipes() {
   const [searchTerm, setSearchTerm] = useState('')
   const [userRecipes, setUserRecipes] = useState([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const [error, setError] = useState(null) // Changed from string to object
   
   // Charger les recettes depuis l'API au chargement de la page
   useEffect(() => {
     const fetchRecipes = async () => {
       try {
+        setLoading(true);
         const response = await fetch('/api/recipes');
+        
         if (!response.ok) {
-          throw new Error('Erreur lors de la récupération des recettes');
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(
+            errorData.message || 
+            `Erreur lors de la récupération des recettes (${response.status})`
+          );
         }
+        
         const data = await response.json();
         setUserRecipes(data);
         setLoading(false);
+        // Clear any previous errors
+        setError(null);
       } catch (err) {
         console.error('Erreur:', err);
-        setError('Impossible de charger les recettes. Veuillez réessayer plus tard.');
+        
+        // Create a detailed error object
+        setError({
+          message: err.message || 'Impossible de charger les recettes. Veuillez réessayer plus tard.',
+          stack: err.stack,
+          timestamp: new Date().toISOString(),
+          id: `err-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`,
+          details: { 
+            url: '/api/recipes',
+            method: 'GET'
+          }
+        });
+        
         setLoading(false);
       }
     };
@@ -67,7 +89,32 @@ export default function UserRecipes() {
       {loading ? (
         <p className={styles.loading}>Chargement des recettes...</p>
       ) : error ? (
-        <p className={styles.error}>{error}</p>
+        <>
+          <ErrorDisplay error={error} resetError={() => setError(null)} />
+          <button 
+            onClick={() => {
+              setError(null);
+              setLoading(true);
+              fetch('/api/recipes')
+                .then(res => res.json())
+                .then(data => {
+                  setUserRecipes(data);
+                  setLoading(false);
+                })
+                .catch(err => {
+                  setError({
+                    message: err.message || "Erreur lors du rechargement des recettes",
+                    stack: err.stack,
+                    timestamp: new Date().toISOString()
+                  });
+                  setLoading(false);
+                });
+            }}
+            className={styles.retryButton}
+          >
+            Réessayer
+          </button>
+        </>
       ) : filteredRecipes.length > 0 ? (
         <div className={styles.recipeGrid}>
           {filteredRecipes.map(recipe => (

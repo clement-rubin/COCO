@@ -74,6 +74,23 @@
   border-color: var(--primary-color);
 }
 
+.retryButton {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0.8rem 1.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin: 1rem 0;
+  transition: all 0.3s ease;
+}
+
+.retryButton:hover {
+  background-color: #e45050;
+  transform: translateY(-2px);
+}
+
 @media (max-width: 768px) {
   .recipeGrid {
     grid-template-columns: 1fr;

@@ -1,5 +1,6 @@
 import { supabase } from '../../../lib/supabase';
 import { logError, logInfo } from '../../../utils/logger';
+import { createError, handleApiError } from '../../../utils/errorHandler';
 
 export default async function handler(req, res) {
   // Configurer les en-têtes CORS
@@ -15,7 +16,10 @@ export default async function handler(req, res) {
   const { id } = req.query;
 
   if (!id) {
-    return res.status(400).json({ message: 'ID de recette manquant' });
+    return handleApiError(
+      createError('ID de recette manquant', 400), 
+      res
+    );
   }
 
   try {
@@ -36,18 +40,21 @@ export default async function handler(req, res) {
         if (error) throw error;
         
         if (!recipe) {
-          logInfo(`Recette non trouvée: ID=${id}`);
-          return res.status(404).json({ message: 'Recette non trouvée' });
+          return handleApiError(
+            createError(`Recette non trouvée: ID=${id}`, 404),
+            res
+          );
         }
         
         return res.status(200).json(recipe);
       } catch (error) {
         const errorLog = logError(`Erreur lors de la récupération de la recette ${id}`, error, req);
-        return res.status(500).json({ 
-          message: 'Erreur serveur lors de la récupération', 
-          error: error.message,
-          reference: errorLog.timestamp
-        });
+        return handleApiError({
+          ...error,
+          message: 'Erreur serveur lors de la récupération',
+          id: errorLog.id,
+          timestamp: errorLog.timestamp
+        }, res);
       }
     }
     
@@ -68,19 +75,26 @@ export default async function handler(req, res) {
         if (error) throw error;
         
         if (data.length === 0) {
-          logInfo(`Tentative de mise à jour d'une recette inexistante: ID=${id}`);
-          return res.status(404).json({ message: 'Recette non trouvée' });
+          return handleApiError(
+            createError(`Tentative de mise à jour d'une recette inexistante: ID=${id}`, 404),
+            res
+          );
         }
         
         logInfo(`Recette ${id} mise à jour avec succès`);
-        return res.status(200).json({ message: 'Recette mise à jour', id });
+        return res.status(200).json({ message: 'Recette mise à jour', id, data });
       } catch (error) {
         const errorLog = logError(`Erreur lors de la mise à jour de la recette ${id}`, error, req);
-        return res.status(500).json({ 
-          message: 'Erreur serveur lors de la mise à jour', 
-          error: error.message,
-          reference: errorLog.timestamp
-        });
+        return handleApiError({
+          ...error,
+          message: 'Erreur serveur lors de la mise à jour',
+          id: errorLog.id,
+          timestamp: errorLog.timestamp,
+          details: {
+            recipe_id: id,
+            request_body: req.body
+          }
+        }, res);
       }
     }
     
@@ -98,24 +112,26 @@ export default async function handler(req, res) {
         return res.status(200).json({ message: 'Recette supprimée avec succès', id });
       } catch (error) {
         const errorLog = logError(`Erreur lors de la suppression de la recette ${id}`, error, req);
-        return res.status(500).json({ 
-          message: 'Erreur serveur lors de la suppression', 
-          error: error.message,
-          reference: errorLog.timestamp
-        });
+        return handleApiError({
+          ...error,
+          message: 'Erreur serveur lors de la suppression',
+          id: errorLog.id,
+          timestamp: errorLog.timestamp
+        }, res);
       }
     }
     
     // Méthode non prise en charge
     else {
-      return res.status(405).json({ message: 'Méthode non autorisée' });
+      return handleApiError(createError('Méthode non autorisée', 405), res);
     }
   } catch (error) {
     const errorLog = logError(`Erreur API recette ID=${id} générale`, error, req);
-    return res.status(500).json({ 
+    return handleApiError({
+      ...error,
       message: 'Erreur serveur interne',
-      error: error.message,
-      reference: errorLog.timestamp
-    });
+      id: errorLog.id,
+      timestamp: errorLog.timestamp
+    }, res);
   }
 }

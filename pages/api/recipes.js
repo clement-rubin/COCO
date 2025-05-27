@@ -1,17 +1,13 @@
 import { v4 as uuidv4 } from 'uuid';
 import { supabase, initializeRecipesTable } from '../../lib/supabase';
+import { logError, logInfo, logWarning } from '../../utils/logger';
+import { createError, handleApiError } from '../../utils/errorHandler';
 
 // Configuration des en-têtes CORS
 function setCorsHeaders(res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-}
-
-// Fonction de journalisation pour faciliter le débogage
-function logInfo(message, details = null) {
-  console.log(`[${new Date().toISOString()}] ${message}`);
-  if (details) console.log(details);
 }
 
 export const config = {
@@ -49,11 +45,13 @@ export default async function handler(req, res) {
         
         return res.status(200).json(recipes);
       } catch (error) {
-        logInfo('Erreur lors de la récupération des recettes', error);
-        return res.status(500).json({ 
-          message: 'Erreur serveur lors de la récupération des recettes', 
-          error: error.message 
-        });
+        const errorLog = logError('Erreur lors de la récupération des recettes', error, req);
+        return handleApiError({
+          ...error,
+          message: 'Erreur serveur lors de la récupération des recettes',
+          id: errorLog.id,
+          timestamp: errorLog.timestamp
+        }, res);
       }
     }
     
@@ -66,15 +64,17 @@ export default async function handler(req, res) {
         
         // Validation de base
         if (!body) {
-          return res.status(400).json({ 
-            message: 'Corps de requête vide ou invalide'
-          });
+          return handleApiError(
+            createError('Corps de requête vide ou invalide', 400),
+            res
+          );
         }
 
         if (!body.title || !body.description) {
-          return res.status(400).json({ 
-            message: 'Les champs titre et description sont obligatoires'
-          });
+          return handleApiError(
+            createError('Les champs titre et description sont obligatoires', 400),
+            res
+          );
         }
         
         // Préparer la nouvelle recette
@@ -104,11 +104,14 @@ export default async function handler(req, res) {
         logInfo("Recette ajoutée avec succès", { id: newRecipe.id });
         return res.status(201).json(data[0]);
       } catch (error) {
-        logInfo('Erreur lors de l\'ajout d\'une recette', error);
-        return res.status(500).json({ 
-          message: 'Erreur serveur lors de l\'ajout de la recette', 
-          error: error.message
-        });
+        const errorLog = logError('Erreur lors de l\'ajout d\'une recette', error, req);
+        return handleApiError({
+          ...error,
+          message: 'Erreur serveur lors de l\'ajout de la recette',
+          id: errorLog.id,
+          timestamp: errorLog.timestamp,
+          details: { requestBody: req.body }
+        }, res);
       }
     }
     
@@ -167,14 +170,16 @@ export default async function handler(req, res) {
     
     // Méthode non prise en charge
     else {
-      return res.status(405).json({ message: 'Méthode non autorisée' });
+      return handleApiError(createError('Méthode non autorisée', 405), res);
     }
   } catch (error) {
-    logInfo('Erreur API recettes générale', error);
+    const errorLog = logError('Erreur API recettes générale', error, req);
     
-    return res.status(500).json({ 
-      message: 'Erreur serveur interne', 
-      error: error.message
-    });
+    return handleApiError({
+      ...error,
+      message: 'Erreur serveur interne',
+      id: errorLog.id,
+      timestamp: errorLog.timestamp
+    }, res);
   }
 }
