@@ -1,0 +1,44 @@
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 3rem 1rem;
+  text-align: center;
+}
+
+.content {
+  margin: 4rem auto;
+  max-width: 600px;
+}
+
+.content h1 {
+  font-size: 6rem;
+  margin: 0;
+  color: var(--primary-color);
+}
+
+.content h2 {
+  font-size: 2rem;
+  margin-bottom: 1.5rem;
+}
+
+.content p {
+  margin-bottom: 2rem;
+  color: var(--text-light);
+  font-size: 1.1rem;
+}
+
+.button {
+  display: inline-block;
+  background-color: var(--primary-color);
+  color: white;
+  padding: 0.8rem 1.5rem;
+  border-radius: 4px;
+  font-weight: bold;
+  transition: var(--transition);
+}
+
+.button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  opacity: 0.9;
+}
