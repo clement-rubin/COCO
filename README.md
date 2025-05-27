@@ -8,11 +8,14 @@ Un site web culinaire moderne pour partager et découvrir des recettes délicieu
 - Rechercher des recettes
 - Afficher les détails des recettes avec ingrédients et étapes
 - Design responsive pour mobile et desktop
+- Permettre aux utilisateurs de soumettre leurs propres recettes avec images
+- Consulter une page dédiée affichant toutes les recettes créées par les utilisateurs
+- API backend gratuite pour stocker et récupérer les données des recettes
 
 ## Technologies
 
 - Next.js
-- React
+- API Routes de Next.js (backend serverless gratuit)
 - CSS Modules
 - Vercel (déploiement)
 

@@ -1,0 +1,133 @@
+.navbar {
+  background-color: white;
+  box-shadow: var(--shadow);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.navContainer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.logo {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  text-decoration: none;
+}
+
+.navMenu {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.navMenu li {
+  margin-left: 1.5rem;
+}
+
+.navMenu a {
+  text-decoration: none;
+  color: var(--text-color);
+  font-weight: 500;
+  transition: var(--transition);
+  padding: 0.5rem 0;
+  position: relative;
+}
+
+.navMenu a:hover,
+.navMenu a.active {
+  color: var(--primary-color);
+}
+
+.navMenu a.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: var(--primary-color);
+}
+
+.menuButton {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+}
+
+.menuIcon {
+  display: block;
+  position: relative;
+  width: 25px;
+  height: 2px;
+  background-color: var(--text-color);
+  transition: var(--transition);
+}
+
+.menuIcon::before,
+.menuIcon::after {
+  content: '';
+  position: absolute;
+  width: 25px;
+  height: 2px;
+  background-color: var(--text-color);
+  transition: var(--transition);
+}
+
+.menuIcon::before {
+  transform: translateY(-8px);
+}
+
+.menuIcon::after {
+  transform: translateY(8px);
+}
+
+@media (max-width: 768px) {
+  .menuButton {
+    display: block;
+    z-index: 101;
+  }
+  
+  .navMenu {
+    position: fixed;
+    top: 0;
+    right: -100%;
+    width: 70%;
+    height: 100vh;
+    flex-direction: column;
+    background-color: white;
+    box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
+    padding: 5rem 2rem 2rem;
+    transition: 0.3s ease-in-out;
+  }
+  
+  .navMenu.active {
+    right: 0;
+  }
+  
+  .navMenu li {
+    margin: 1.5rem 0;
+  }
+  
+  .menuButton.active .menuIcon {
+    background: transparent;
+  }
+  
+  .menuButton.active .menuIcon::before {
+    transform: rotate(45deg);
+  }
+  
+  .menuButton.active .menuIcon::after {
+    transform: rotate(-45deg);
+  }
+}

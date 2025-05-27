@@ -61,6 +61,10 @@ export default function Home() {
           <Link href="/recipes">
             Voir toutes les recettes
           </Link>
+          {' | '}
+          <Link href="/user-recipes">
+            Voir les recettes de la communauté
+          </Link>
         </div>
       </section>
     </div>

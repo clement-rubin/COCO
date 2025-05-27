@@ -63,6 +63,13 @@
   gap: 0.25rem;
 }
 
+.author {
+  margin-top: 0.5rem;
+  font-style: italic;
+  color: var(--text-light);
+  font-size: 0.9rem;
+}
+
 @media (max-width: 768px) {
   .imageContainer {
     height: 180px;
