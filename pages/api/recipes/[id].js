@@ -1,20 +1,5 @@
 import { supabase } from '../../../lib/supabase';
-
-// Fonction pour journaliser les erreurs
-function logError(message, error) {
-  const errorLog = {
-    timestamp: new Date().toISOString(),
-    message,
-    name: error.name,
-    details: error.message,
-  };
-  
-  console.error('==== ERREUR DÉTAILLÉE ====');
-  console.error(JSON.stringify(errorLog, null, 2));
-  console.error('========================');
-  
-  return errorLog;
-}
+import { logError, logInfo } from '../../../utils/logger';
 
 export default async function handler(req, res) {
   // Configurer les en-têtes CORS
@@ -34,6 +19,11 @@ export default async function handler(req, res) {
   }
 
   try {
+    logInfo(`Traitement de requête ${req.method} pour recette ${id}`, {
+      url: req.url,
+      method: req.method
+    });
+    
     // GET - Récupérer une recette spécifique
     if (req.method === 'GET') {
       try {
@@ -46,14 +36,18 @@ export default async function handler(req, res) {
         if (error) throw error;
         
         if (!recipe) {
-          console.log(`Recette non trouvée: ID=${id}`);
+          logInfo(`Recette non trouvée: ID=${id}`);
           return res.status(404).json({ message: 'Recette non trouvée' });
         }
         
         return res.status(200).json(recipe);
       } catch (error) {
-        logError(`Erreur lors de la récupération de la recette ${id}`, error);
-        return res.status(500).json({ message: 'Erreur serveur lors de la récupération', error: error.message });
+        const errorLog = logError(`Erreur lors de la récupération de la recette ${id}`, error, req);
+        return res.status(500).json({ 
+          message: 'Erreur serveur lors de la récupération', 
+          error: error.message,
+          reference: errorLog.timestamp
+        });
       }
     }
     
@@ -74,14 +68,19 @@ export default async function handler(req, res) {
         if (error) throw error;
         
         if (data.length === 0) {
-          console.log(`Tentative de mise à jour d'une recette inexistante: ID=${id}`);
+          logInfo(`Tentative de mise à jour d'une recette inexistante: ID=${id}`);
           return res.status(404).json({ message: 'Recette non trouvée' });
         }
         
+        logInfo(`Recette ${id} mise à jour avec succès`);
         return res.status(200).json({ message: 'Recette mise à jour', id });
       } catch (error) {
-        logError(`Erreur lors de la mise à jour de la recette ${id}`, error);
-        return res.status(500).json({ message: 'Erreur serveur lors de la mise à jour', error: error.message });
+        const errorLog = logError(`Erreur lors de la mise à jour de la recette ${id}`, error, req);
+        return res.status(500).json({ 
+          message: 'Erreur serveur lors de la mise à jour', 
+          error: error.message,
+          reference: errorLog.timestamp
+        });
       }
     }
     
@@ -95,10 +94,15 @@ export default async function handler(req, res) {
         
         if (error) throw error;
         
+        logInfo(`Recette ${id} supprimée avec succès`);
         return res.status(200).json({ message: 'Recette supprimée avec succès', id });
       } catch (error) {
-        logError(`Erreur lors de la suppression de la recette ${id}`, error);
-        return res.status(500).json({ message: 'Erreur serveur lors de la suppression', error: error.message });
+        const errorLog = logError(`Erreur lors de la suppression de la recette ${id}`, error, req);
+        return res.status(500).json({ 
+          message: 'Erreur serveur lors de la suppression', 
+          error: error.message,
+          reference: errorLog.timestamp
+        });
       }
     }
     
@@ -107,7 +111,7 @@ export default async function handler(req, res) {
       return res.status(405).json({ message: 'Méthode non autorisée' });
     }
   } catch (error) {
-    const errorLog = logError(`Erreur API recette ID=${id} générale`, error);
+    const errorLog = logError(`Erreur API recette ID=${id} générale`, error, req);
     return res.status(500).json({ 
       message: 'Erreur serveur interne',
       error: error.message,
