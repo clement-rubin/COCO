@@ -35,37 +35,54 @@ async function connectToMongoDB() {
     }
   }
 
-  // Vérifier que la variable d'environnement existe
+  // Vérifier que la variable d'environnement existe et a un format correct
   if (!uri) {
     log("MONGODB_URI non définie dans les variables d'environnement!", "error");
     throw new Error('Configuration MongoDB manquante - MONGODB_URI non définie');
   }
   
+  // Vérification du format de l'URI pour aider au diagnostic
+  if (!uri.includes('@') || !uri.includes('mongodb')) {
+    log("Format de MONGODB_URI suspect - vérifiez la syntaxe", "error");
+    log(`Format attendu: mongodb+srv://<username>:<password>@<cluster>/<options>`, "warning");
+  }
+  
   try {
-    log(`Tentative de connexion à MongoDB (${dbName})...`);
+    // Extraction du nom d'utilisateur pour le diagnostic (sans exposer le mot de passe)
+    const uriParts = uri.split('@');
+    const authPart = uriParts[0].split('//')[1];
+    const username = authPart ? authPart.split(':')[0] : 'non-détecté';
+    log(`Tentative de connexion à MongoDB (${dbName}) avec l'utilisateur '${username}'...`);
     
-    // Créer une nouvelle connexion avec des options optimisées pour serverless
+    // Options de connexion avec gestion d'authentification améliorée
     const client = new MongoClient(uri, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
       connectTimeoutMS: 15000,
       socketTimeoutMS: 45000,
       serverSelectionTimeoutMS: 15000,
-      maxPoolSize: 3   // Valeur modérée pour serverless
+      maxPoolSize: 3,
+      authSource: 'admin', // Spécifier explicitement la base d'authentification
+      retryWrites: true,
+      w: 'majority'
     });
     
-    // Connexion explicite et test
+    // Connexion explicite avec un meilleur diagnostic
+    log("Tentative de connexion...");
     await client.connect();
-    log("Connexion établie");
+    log("Connexion TCP établie, vérification de l'authentification...");
     
     const db = client.db(dbName);
     
-    // Vérification rapide
+    // Test plus détaillé de la connexion
     await Promise.race([
-      db.command({ ping: 1 }),
+      db.command({ ping: 1 }).then(() => {
+        log("Authentification réussie et commande ping exécutée");
+      }),
       new Promise((_, reject) => setTimeout(() => reject(new Error('Ping timeout')), 5000))
     ]);
-    log("✅ Connexion MongoDB vérifiée avec succès");
+    
+    log("✅ Connexion MongoDB vérifiée avec succès - Authentification OK");
     
     // Mettre en cache pour les prochaines requêtes
     cachedClient = client;
@@ -73,12 +90,31 @@ async function connectToMongoDB() {
     
     return { client, db };
   } catch (error) {
-    log(`Échec de connexion à MongoDB: ${error.message}`, "error");
-    // Ajouter des détails de diagnostic
+    log(`❌ Échec de connexion à MongoDB: ${error.message}`, "error");
+    
+    // Diagnostic amélioré pour les erreurs d'authentification
+    if (error.message.includes('auth') || error.code === 18 || error.code === 8000) {
+      log("PROBLÈME D'AUTHENTIFICATION DÉTECTÉ", "error");
+      log("Vérifiez les points suivants:", "warning");
+      log("1. Le nom d'utilisateur et mot de passe dans MONGODB_URI sont-ils corrects?", "warning");
+      log("2. L'utilisateur a-t-il les permissions nécessaires?", "warning");
+      log("3. L'utilisateur est-il associé à la bonne base de données?", "warning");
+      log("4. Votre IP est-elle autorisée dans les règles de sécurité MongoDB Atlas?", "warning");
+      
+      // Instructions pour résoudre le problème
+      log("\nÉTAPES POUR RÉSOUDRE:", "info");
+      log("1. Connectez-vous à votre compte MongoDB Atlas", "info");
+      log("2. Vérifiez les paramètres Database Access pour confirmer les informations d'utilisateur", "info");
+      log("3. Vérifiez Network Access pour confirmer que votre IP est autorisée", "info");
+      log("4. Si nécessaire, créez un nouvel utilisateur avec le rôle 'readWriteAnyDatabase'", "info");
+    }
+    
+    // Informations de diagnostic supplémentaires
     if (error.name) log(`Type d'erreur: ${error.name}`, "error");
     if (error.code) log(`Code d'erreur: ${error.code}`, "error");
+    if (error.stack) log(`Premier niveau de stack: ${error.stack.split('\n')[1]}`, "error");
     
-    throw new Error(`Impossible de se connecter à MongoDB: ${error.message}`);
+    throw new Error(`Impossible de se connecter à MongoDB (erreur d'authentification): ${error.message}`);
   }
 }
 
