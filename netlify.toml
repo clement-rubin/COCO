@@ -5,6 +5,16 @@
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
+# Variables d'environnement pour Netlify
+[build.environment]
+  MONGODB_DB = "coco_recipes"
+
+# Traiter les routes API correctement
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
 # Handle client-side routing
 [[redirects]]
   from = "/*"

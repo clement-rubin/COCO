@@ -1,75 +1,73 @@
-// API Routes de Next.js - point de terminaison pour les recettes
-import fs from 'fs';
-import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
+import { MongoClient } from 'mongodb';
 
-// Chemin vers notre "base de données" JSON
-const dataFilePath = path.join(process.cwd(), 'data', 'recipes.json');
+// Configuration de MongoDB Atlas
+const uri = process.env.MONGODB_URI;
+const dbName = process.env.MONGODB_DB || 'coco_recipes';
+let cachedClient = null;
+let cachedDb = null;
 
-// Fonction utilitaire pour lire les données
-function getRecipesData() {
+// Fonction pour se connecter à MongoDB
+async function connectToDatabase() {
+  if (cachedClient && cachedDb) {
+    return { client: cachedClient, db: cachedDb };
+  }
+
+  if (!uri) {
+    throw new Error('Veuillez définir la variable d\'environnement MONGODB_URI');
+  }
+  
+  const client = new MongoClient(uri);
+  await client.connect();
+  const db = client.db(dbName);
+  
+  cachedClient = client;
+  cachedDb = db;
+  
+  // Créer un index sur le champ id pour améliorer les performances
   try {
-    // Vérifie si le fichier existe
-    if (!fs.existsSync(dataFilePath)) {
-      // Créer le répertoire data s'il n'existe pas
-      const dataDir = path.join(process.cwd(), 'data');
-      if (!fs.existsSync(dataDir)) {
-        fs.mkdirSync(dataDir, { recursive: true });
-      }
-      
-      // Données d'exemple pour les recettes initiales
-      const initialRecipes = [
-        {
-          id: "101",
-          title: "Crêpes traditionnelles",
-          description: "Recette facile de crêpes légères et délicieuses",
-          image: "https://images.unsplash.com/photo-1519676867240-f03562e64548?ixlib=rb-4.0.3",
-          prepTime: "10 min",
-          cookTime: "20 min",
-          category: "Dessert",
-          author: "Marie Dupont",
-          createdAt: new Date().toISOString()
-        },
-        {
-          id: "102", 
-          title: "Lasagnes végétariennes",
-          description: "Version végétarienne riche en légumes et en saveurs",
-          image: "https://images.unsplash.com/photo-1574894709920-11b28e7367e3?ixlib=rb-4.0.3",
-          prepTime: "30 min",
-          cookTime: "45 min",
-          category: "Plat principal",
-          author: "Thomas Martin",
-          createdAt: new Date().toISOString()
-        }
-      ];
-      
-      // Créer un fichier avec les données initiales
-      fs.writeFileSync(dataFilePath, JSON.stringify(initialRecipes, null, 2));
-      return initialRecipes;
-    }
-    
-    // Lire le fichier de données
-    const jsonData = fs.readFileSync(dataFilePath);
-    return JSON.parse(jsonData);
+    await db.collection('recipes').createIndex({ id: 1 }, { unique: true });
   } catch (error) {
-    console.error('Erreur lors de la lecture des recettes:', error);
-    return [];
+    console.warn('Index déjà existant ou erreur lors de la création:', error);
+  }
+  
+  return { client, db };
+}
+
+// Fonction pour initialiser la base de données avec des données si elle est vide
+async function initializeDatabase(collection) {
+  const count = await collection.countDocuments();
+  if (count === 0) {
+    console.log('Initialisation de la base de données avec des recettes par défaut');
+    await collection.insertMany(initialRecipes);
   }
 }
 
-// Fonction utilitaire pour écrire les données
-function saveRecipesData(data) {
-  try {
-    const dataDir = path.join(process.cwd(), 'data');
-    if (!fs.existsSync(dataDir)) {
-      fs.mkdirSync(dataDir, { recursive: true });
-    }
-    fs.writeFileSync(dataFilePath, JSON.stringify(data, null, 2));
-  } catch (error) {
-    console.error('Erreur lors de l\'écriture des recettes:', error);
-    throw error;
+// Données initiales pour les recettes (utilisées seulement si la base de données est vide)
+const initialRecipes = [
+  {
+    id: "101",
+    title: "Crêpes traditionnelles",
+    description: "Recette facile de crêpes légères et délicieuses",
+    image: "https://images.unsplash.com/photo-1519676867240-f03562e64548?ixlib=rb-4.0.3",
+    prepTime: "10 min",
+    cookTime: "20 min",
+    category: "Dessert",
+    author: "Marie Dupont",
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: "102", 
+    title: "Lasagnes végétariennes",
+    description: "Version végétarienne riche en légumes et en saveurs",
+    image: "https://images.unsplash.com/photo-1574894709920-11b28e7367e3?ixlib=rb-4.0.3",
+    prepTime: "30 min",
+    cookTime: "45 min",
+    category: "Plat principal",
+    author: "Thomas Martin",
+    createdAt: new Date().toISOString()
   }
-}
+];
 
 export default async function handler(req, res) {
   // Gestion CORS basique
@@ -83,25 +81,70 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Connexion à la base de données
+    const { db } = await connectToDatabase();
+    const collection = db.collection('recipes');
+    
+    // Initialiser la base de données si nécessaire
+    await initializeDatabase(collection);
+    
     // GET - Récupérer toutes les recettes
     if (req.method === 'GET') {
-      const recipes = getRecipesData();
+      const recipes = await collection.find({}).toArray();
       return res.status(200).json(recipes);
     }
     
     // POST - Ajouter une nouvelle recette
     else if (req.method === 'POST') {
-      const recipes = getRecipesData();
       const newRecipe = {
         id: uuidv4(),
         ...req.body,
         createdAt: new Date().toISOString()
       };
       
-      recipes.push(newRecipe);
-      saveRecipesData(recipes);
+      // Ajouter à MongoDB
+      await collection.insertOne(newRecipe);
       
       return res.status(201).json(newRecipe);
+    }
+    
+    // PUT - Mettre à jour une recette existante
+    else if (req.method === 'PUT') {
+      const { id } = req.body;
+      if (!id) {
+        return res.status(400).json({ message: 'ID de recette requis' });
+      }
+      
+      const updateData = { ...req.body, updatedAt: new Date().toISOString() };
+      delete updateData._id; // Retirer le _id pour éviter les erreurs de modification
+      
+      const result = await collection.updateOne(
+        { id: id }, 
+        { $set: updateData }
+      );
+      
+      if (result.matchedCount === 0) {
+        return res.status(404).json({ message: 'Recette non trouvée' });
+      }
+      
+      return res.status(200).json({ message: 'Recette mise à jour', id });
+    }
+    
+    // DELETE - Supprimer une recette
+    else if (req.method === 'DELETE') {
+      const { id } = req.query;
+      
+      if (!id) {
+        return res.status(400).json({ message: 'ID de recette requis' });
+      }
+      
+      const result = await collection.deleteOne({ id: id });
+      
+      if (result.deletedCount === 0) {
+        return res.status(404).json({ message: 'Recette non trouvée' });
+      }
+      
+      return res.status(200).json({ message: 'Recette supprimée', id });
     }
     
     // Méthode non prise en charge
