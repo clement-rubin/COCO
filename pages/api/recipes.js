@@ -7,20 +7,53 @@ const dbName = process.env.MONGODB_DB || 'coco_recipes';
 let cachedClient = null;
 let cachedDb = null;
 
-// Fonction pour journaliser les erreurs de façon simplifiée (réduit la taille du bundle)
+// Fonction pour journaliser les erreurs avec beaucoup plus de détails
 function logError(message, error, req = null) {
-  // Version simplifiée pour réduire la taille
+  // Version détaillée des logs pour faciliter le débogage
   const errorLog = {
     timestamp: new Date().toISOString(),
     message,
     errorName: error.name,
     errorMessage: error.message,
+    stack: error.stack?.split('\n').slice(0, 5).join('\n') || 'No stack trace',
     path: req?.url || 'N/A',
     method: req?.method || 'N/A',
+    query: req?.query || {},
+    body: req?.body ? (
+      typeof req.body === 'object' ? 
+        // Masquer les champs potentiellement sensibles ou volumineux
+        JSON.stringify({
+          ...req.body,
+          image: req.body.image ? (req.body.image.length > 100 ? `${req.body.image.substring(0, 100)}... (tronqué)` : req.body.image) : null
+        }) : 
+        'Non-object body'
+    ) : 'No body',
+    headers: req?.headers ? JSON.stringify({
+      'content-type': req.headers['content-type'],
+      'user-agent': req.headers['user-agent'],
+      'origin': req.headers['origin'],
+      'host': req.headers['host'],
+    }) : 'No headers',
+    serverInfo: {
+      nodeEnv: process.env.NODE_ENV || 'unknown',
+      netlify: !!process.env.NETLIFY,
+      dbConfig: uri ? `MongoDB config: ${uri.split('@')[0].replace(/\/\/.*:/, '//[USERNAME]:')}[PASSWORD]@${uri.split('@')[1] || 'config-error'}` : 'No URI'
+    }
   };
   
-  // Log simplifié
-  console.error(`ERROR [${errorLog.timestamp}] ${message}: ${error.message}`);
+  // Log complet pour le débogage dans la console
+  console.error(`========= ERROR DÉTAILLÉ [${errorLog.timestamp}] =========`);
+  console.error(`Message: ${message}`);
+  console.error(`Type d'erreur: ${error.name}`);
+  console.error(`Message d'erreur: ${error.message}`);
+  console.error(`Stack trace: \n${errorLog.stack}`);
+  console.error(`Route API: ${req?.url || 'N/A'} (${req?.method || 'N/A'})`);
+  if (req?.body && req.body.title) {
+    console.error(`Recette concernée: "${req.body.title}"`);
+  }
+  console.error(`Headers: ${errorLog.headers}`);
+  console.error(`Environnement: ${process.env.NODE_ENV || 'unknown'}, Netlify: ${!!process.env.NETLIFY}`);
+  console.error('=====================================================');
   
   return errorLog;
 }
@@ -193,6 +226,14 @@ export default async function handler(req, res) {
       try {
         console.log("Tentative d'ajout d'une nouvelle recette");
         
+        // Log détaillé du corps de la requête pour le débogage
+        console.log("Corps de la requête reçu:", {
+          title: req.body?.title || 'Non fourni',
+          description: req.body?.description ? `${req.body.description.substring(0, 50)}...` : 'Non fourni',
+          imageProvided: !!req.body?.image,
+          imageLength: req.body?.image ? req.body.image.length : 0
+        });
+        
         // Validation de base
         if (!req.body) {
           return res.status(400).json({ 
@@ -212,27 +253,46 @@ export default async function handler(req, res) {
           });
         }
         
+        // Valider et normaliser l'URL de l'image
+        const imageValidation = validateAndNormalizeImageUrl(req.body.image);
+        console.log(`Validation d'image: ${imageValidation.message}`);
+        
         // Créer la recette avec valeurs par défaut pour champs manquants mais non obligatoires
         const newRecipe = {
           id: uuidv4(),
           title: req.body.title,
           description: req.body.description,
-          image: req.body.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3",
+          image: imageValidation.url, // URL normalisée ou par défaut
+          imageStatus: imageValidation.message, // Stocke le statut de validation de l'image
           prepTime: req.body.prepTime || "N/A",
           cookTime: req.body.cookTime || "N/A",
           category: req.body.category || "Autre",
           author: req.body.author || "Anonyme",
           ingredients: Array.isArray(req.body.ingredients) ? req.body.ingredients : [],
           instructions: Array.isArray(req.body.instructions) ? req.body.instructions : [],
-          createdAt: new Date().toISOString()
+          createdAt: new Date().toISOString(),
+          metadata: {
+            source: req.headers?.origin || 'unknown',
+            userAgent: req.headers?.['user-agent'] || 'unknown',
+            imageOriginal: req.body.image || null // Conserver l'URL originale pour référence
+          }
         };
         
-        console.log("Insertion de la recette dans MongoDB");
+        console.log("Insertion de la recette dans MongoDB avec image:", 
+          newRecipe.image.substring(0, 50) + (newRecipe.image.length > 50 ? '...' : ''));
+        
         const result = await collection.insertOne(newRecipe);
         
         if (result.acknowledged && result.insertedId) {
           console.log("✅ Recette ajoutée avec succès:", newRecipe.id);
-          return res.status(201).json(newRecipe);
+          // Réponse complète avec informations sur l'image
+          return res.status(201).json({
+            ...newRecipe,
+            _dbResult: {
+              success: true,
+              imageStatus: imageValidation.message
+            }
+          });
         } else {
           throw new Error('Échec de l\'insertion: opération non confirmée par MongoDB');
         }
@@ -330,5 +390,62 @@ export default async function handler(req, res) {
       reference: errorLog.timestamp,
       netlifyFunction: true // Marquer comme provenant d'une fonction Netlify
     });
+  }
+}
+
+// Fonction améliorée pour gérer les URLs d'images
+function validateAndNormalizeImageUrl(imageUrl) {
+  if (!imageUrl) {
+    return {
+      valid: false,
+      url: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3",
+      message: "URL d'image non fournie, image par défaut utilisée"
+    };
+  }
+  
+  try {
+    // Vérifier si c'est une URL valide
+    new URL(imageUrl);
+    
+    // Vérifier si c'est une URL d'image commune
+    const isImageUrl = /\.(jpeg|jpg|gif|png|webp|svg)(\?.*)?$/i.test(imageUrl) ||
+      imageUrl.includes('unsplash.com') ||
+      imageUrl.includes('imgur.com') ||
+      imageUrl.includes('pexels.com') ||
+      imageUrl.includes('cloudinary.com') ||
+      imageUrl.includes('googleusercontent.com') ||
+      imageUrl.includes('images.') ||
+      imageUrl.includes('/image/');
+    
+    if (isImageUrl) {
+      // Normaliser les URL Unsplash pour avoir une meilleure qualité
+      if (imageUrl.includes('unsplash.com') && !imageUrl.includes('&q=')) {
+        return {
+          valid: true,
+          url: `${imageUrl}${imageUrl.includes('?') ? '&' : '?'}q=80&w=1080&fit=max`,
+          message: "URL d'image Unsplash optimisée"
+        };
+      }
+      
+      return {
+        valid: true,
+        url: imageUrl,
+        message: "URL d'image valide"
+      };
+    }
+    
+    console.warn(`URL fournie ne semble pas être une image: ${imageUrl}`);
+    return {
+      valid: false,
+      url: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3",
+      message: "URL fournie ne semble pas être une image, image par défaut utilisée"
+    };
+  } catch (error) {
+    console.warn(`URL d'image invalide: ${imageUrl}`, error.message);
+    return {
+      valid: false,
+      url: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3",
+      message: "URL d'image invalide, image par défaut utilisée"
+    };
   }
 }

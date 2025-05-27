@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test d'images - API Recettes</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px;
+      color: #333;
+      background-color: #f7f9fc;
+    }
+    h1, h2 {
+      color: #2c3e50;
+    }
+    .container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .left-panel, .right-panel {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+      color: #34495e;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+      font-family: inherit;
+    }
+    button {
+      background-color: #3498db;
+      color: white;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background-color 0.3s;
+    }
+    button:hover {
+      background-color: #2980b9;
+    }
+    .btn-test {
+      background-color: #27ae60;
+    }
+    .btn-test:hover {
+      background-color: #219653;
+    }
+    .preview-container {
+      margin-top: 20px;
+      text-align: center;
+    }
+    .preview-image {
+      max-width: 100%;
+      max-height: 300px;
+      border-radius: 4px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    .status {
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 4px;
+    }
+    .status.success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .status.error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .status.warning {
+      background-color: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffeeba;
+    }
+    .image-test-result {
+      margin-bottom: 20px;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    .log-container {
+      background: #202020;
+      color: #f0f0f0;
+      padding: 15px;
+      border-radius: 4px;
+      font-family: monospace;
+      white-space: pre-wrap;
+      overflow-x: auto;
+      margin-top: 15px;
+    }
+    .test-image {
+      max-width: 100px;
+      max-height: 100px;
+      margin-right: 10px;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: all 0.2s;
+    }
+    .test-image:hover {
+      transform: scale(1.05);
+      border-color: #3498db;
+    }
+    .test-images {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Test d'images - API Recettes</h1>
+  
+  <div class="container">
+    <div class="left-panel">
+      <h2>Test d'URL d'images</h2>
+      
+      <div class="form-group">
+        <label for="imageUrl">URL de l'image à tester:</label>
+        <input type="text" id="imageUrl" placeholder="https://example.com/image.jpg">
+      </div>
+      
+      <button id="testImage" class="btn-test">Tester l'image</button>
+      
+      <div class="preview-container">
+        <h3>Aperçu de l'image</h3>
+        <img id="previewImage" class="preview-image" src="https://placehold.co/400x300?text=Apercu+Image" alt="Aperçu">
+        <div id="imageStatus" class="status"></div>
+      </div>
+      
+      <h3>Images de test</h3>
+      <div class="test-images">
+        <img src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c" class="test-image" alt="Test 1" onclick="setImageUrl(this.src)">
+        <img src="https://i.imgur.com/3oFtUdU.jpg" class="test-image" alt="Test 2" onclick="setImageUrl(this.src)">
+        <img src="https://cdn.pixabay.com/photo/2014/11/05/15/57/salmon-518032_960_720.jpg" class="test-image" alt="Test 3" onclick="setImageUrl(this.src)">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/6/6d/Good_Food_Display_-_NCI_Visuals_Online.jpg" class="test-image" alt="Test 4" onclick="setImageUrl(this.src)">
+        <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkAQMAAABKLAcXAAAAA1BMVEUAAACnej3aAAAAAXRSTlMAQObYZgAAAAtJREFUGBljGAWDCQAAALQAAaGZKEUAAAAASUVORK5CYII=" class="test-image" alt="Test 5" onclick="setImageUrl(this.src)">
+      </div>
+    </div>
+    
+    <div class="right-panel">
+      <h2>Ajouter une recette avec l'image testée</h2>
+      
+      <form id="recipeForm">
+        <div class="form-group">
+          <label for="title">Titre*</label>
+          <input type="text" id="title" required value="Test Recette Image">
+        </div>
+        
+        <div class="form-group">
+          <label for="description">Description*</label>
+          <textarea id="description" required>Ceci est un test d'ajout de recette avec image.</textarea>
+        </div>
+        
+        <div class="form-group">
+          <label for="category">Catégorie</label>
+          <input type="text" id="category" value="Test">
+        </div>
+        
+        <div class="form-group">
+          <label for="author">Auteur</label>
+          <input type="text" id="author" value="TestUser">
+        </div>
+        
+        <button type="submit">Ajouter la recette</button>
+      </form>
+      
+      <div id="result" class="status" style="display: none;"></div>
+      
+      <div class="log-container" id="logs"></div>
+    </div>
+  </div>
+  
+  <script>
+    // URL de l'API (automatiquement adaptée selon l'environnement)
+    const apiUrl = window.location.hostname === 'localhost' 
+      ? 'http://localhost:3000/api/recipes' 
+      : '/api/recipes';
+    
+    // Logs de l'application
+    const logs = [];
+    
+    // Fonction pour ajouter un log
+    function addLog(message, type = 'info') {
+      const timestamp = new Date().toLocaleTimeString();
+      logs.unshift(`[${timestamp}] [${type.toUpperCase()}] ${message}`);
+      if (logs.length > 50) logs.pop();
+      document.getElementById('logs').textContent = logs.join('\n');
+    }
+    
+    // Fonction pour définir une URL d'image
+    function setImageUrl(url) {
+      document.getElementById('imageUrl').value = url;
+      testImageUrl(url);
+    }
+    
+    // Fonction pour tester une URL d'image
+    async function testImageUrl(url) {
+      const previewImage = document.getElementById('previewImage');
+      const statusElement = document.getElementById('imageStatus');
+      
+      if (!url) {
+        statusElement.className = 'status warning';
+        statusElement.textContent = 'Veuillez entrer une URL d\'image';
+        previewImage.src = 'https://placehold.co/400x300?text=Aucune+Image';
+        return;
+      }
+      
+      addLog(`Test de l'URL d'image: ${url}`);
+      
+      statusElement.className = 'status';
+      statusElement.textContent = 'Chargement de l\'image...';
+      
+      try {
+        // Tester le chargement de l'image
+        return new Promise((resolve) => {
+          previewImage.onload = () => {
+            statusElement.className = 'status success';
+            statusElement.textContent = '✓ L\'image a été chargée avec succès!';
+            addLog('Image chargée avec succès', 'success');
+            resolve(true);
+          };
+          
+          previewImage.onerror = () => {
+            statusElement.className = 'status error';
+            statusElement.textContent = '✗ Erreur lors du chargement de l\'image. Vérifiez l\'URL.';
+            previewImage.src = 'https://placehold.co/400x300?text=Erreur+de+chargement';
+            addLog('Erreur de chargement de l\'image', 'error');
+            resolve(false);
+          };
+          
+          previewImage.src = url;
+        });
+      } catch (error) {
+        statusElement.className = 'status error';
+        statusElement.textContent = `✗ Erreur: ${error.message}`;
+        addLog(`Erreur lors du test d'image: ${error.message}`, 'error');
+        return false;
+      }
+    }
+    
+    // Écouteur pour le bouton de test d'image
+    document.getElementById('testImage').addEventListener('click', () => {
+      const imageUrl = document.getElementById('imageUrl').value.trim();
+      testImageUrl(imageUrl);
+    });
+    
+    // Écouteur pour le formulaire d'ajout de recette
+    document.getElementById('recipeForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const resultElement = document.getElementById('result');
+      resultElement.style.display = 'block';
+      resultElement.className = 'status';
+      resultElement.textContent = 'Envoi de la recette...';
+      
+      const title = document.getElementById('title').value;
+      const description = document.getElementById('description').value;
+      const imageUrl = document.getElementById('imageUrl').value;
+      const category = document.getElementById('category').value;
+      const author = document.getElementById('author').value;
+      
+      addLog(`Tentative d'ajout de recette: ${title}`);
+      
+      if (!title || !description) {
+        resultElement.className = 'status error';
+        resultElement.textContent = 'Le titre et la description sont obligatoires';
+        addLog('Validation échouée: champs obligatoires manquants', 'error');
+        return;
+      }
+      
+      try {
+        addLog(`Envoi de la requête API pour ajouter la recette...`);
+        
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            title,
+            description,
+            image: imageUrl,
+            category,
+            author
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          resultElement.className = 'status success';
+          resultElement.innerHTML = `✓ Recette ajoutée avec succès!<br>ID: ${data.id}`;
+          addLog(`Recette ajoutée avec succès, ID: ${data.id}`, 'success');
+          
+          // Détails sur l'image
+          if (data._dbResult && data._dbResult.imageStatus) {
+            resultElement.innerHTML += `<br>Statut image: ${data._dbResult.imageStatus}`;
+            addLog(`Statut d'image: ${data._dbResult.imageStatus}`);
+          }
+        } else {
+          resultElement.className = 'status error';
+          resultElement.textContent = `✗ Erreur: ${data.message || 'Erreur inconnue'}`;
+          addLog(`Erreur API: ${data.message || 'Erreur inconnue'}`, 'error');
+          
+          if (data.details) {
+            addLog(`Détails: ${data.details}`, 'error');
+          }
+        }
+      } catch (error) {
+        resultElement.className = 'status error';
+        resultElement.textContent = `✗ Erreur réseau: ${error.message}`;
+        addLog(`Erreur réseau: ${error.message}`, 'error');
+      }
+    });
+    
+    // Initialisation
+    addLog('Page d\'outil de test d\'images chargée');
+    addLog(`API configurée: ${apiUrl}`);
+    addLog('Cliquez sur une image de test ou entrez une URL pour commencer');
+  </script>
+</body>
+</html>
