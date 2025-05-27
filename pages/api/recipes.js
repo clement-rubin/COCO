@@ -25,55 +25,72 @@ function logError(message, error, req = null) {
   return errorLog;
 }
 
-// Fonction pour se connecter à MongoDB avec gestion avancée des erreurs de connexion
+// Fonction améliorée pour se connecter à MongoDB avec gestion robuste des erreurs
 async function connectToDatabase() {
   if (cachedClient && cachedDb) {
-    return { client: cachedClient, db: cachedDb };
+    // Vérifier que la connexion est toujours vivante
+    try {
+      await cachedClient.db().admin().ping();
+      console.log("Connexion en cache valide");
+      return { client: cachedClient, db: cachedDb };
+    } catch (e) {
+      console.log("Connexion en cache invalide, reconnexion...");
+      cachedClient = null;
+      cachedDb = null;
+    }
   }
 
   if (!uri) {
+    console.error("ERREUR: Variable MONGODB_URI non définie!");
     throw new Error('MONGODB_URI non définie dans les variables d\'environnement');
   }
+
+  // Afficher une version masquée de l'URI pour le débogage
+  const maskedUri = uri.replace(/:\/\/([^:]+):([^@]+)@/, '://*****:*****@');
+  console.log(`Tentative de connexion à MongoDB: ${maskedUri}`);
   
   try {
-    // Options de connexion optimisées pour environnement serverless
-    const options = {
+    // Options de connexion adaptées pour Netlify Functions
+    const client = new MongoClient(uri, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
-      connectTimeoutMS: 5000, // temps d'attente plus court pour environnement serverless
-      socketTimeoutMS: 30000, // délai d'expiration pour les opérations
-      serverSelectionTimeoutMS: 5000, // délai pour sélection de serveur
-      maxPoolSize: 10, // limite de connexions simultanées
-    };
+      connectTimeoutMS: 15000,
+      socketTimeoutMS: 45000,
+      serverSelectionTimeoutMS: 15000,
+      maxPoolSize: 5,
+      minPoolSize: 1
+    });
     
-    const client = new MongoClient(uri, options);
+    // Connexion explicite
     await client.connect();
+    console.log("Client MongoDB connecté!");
+    
     const db = client.db(dbName);
     
-    // Test de connexion
-    await db.command({ ping: 1 });
-    console.log("✅ Connecté avec succès à MongoDB Atlas");
+    // Test de connexion avec timeout
+    await Promise.race([
+      db.command({ ping: 1 }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Test ping timeout')), 5000))
+    ]);
+    
+    console.log("✅ Connexion MongoDB établie et vérifiée");
     
     cachedClient = client;
     cachedDb = db;
     
-    // Créer un index sur le champ id pour améliorer les performances
-    try {
-      await db.collection('recipes').createIndex({ id: 1 }, { unique: true });
-    } catch (indexError) {
-      console.warn('Index déjà existant ou erreur lors de la création:', indexError.message);
-    }
-    
     return { client, db };
   } catch (error) {
-    console.error("❌ Erreur de connexion à MongoDB:", error);
+    console.error(`❌ Erreur de connexion MongoDB: ${error.message}`);
+    if (error.stack) {
+      console.error(`Stack: ${error.stack.split('\n')[0]}`);
+    }
     
-    // Réinitialiser le cache en cas d'erreur pour forcer une reconnexion
+    // Réinitialiser le cache
     cachedClient = null;
     cachedDb = null;
     
-    // Retransmettre l'erreur pour la gestion appropriée
-    throw new Error(`Impossible de se connecter à MongoDB: ${error.message}`);
+    // Lancer une erreur plus descriptive
+    throw new Error(`Échec de connexion MongoDB: ${error.message}`);
   }
 }
 

@@ -1,17 +1,12 @@
-import fs from 'fs';
-import path from 'path';
 import { MongoClient } from 'mongodb';
 
-// Chemin vers notre "base de données" JSON
-const dataFilePath = path.join(process.cwd(), 'data', 'recipes.json');
-
-// Configuration MongoDB (même fonction que dans recipes.js)
+// Configuration de MongoDB Atlas
 const uri = process.env.MONGODB_URI;
 const dbName = process.env.MONGODB_DB || 'coco_recipes';
 let cachedClient = null;
 let cachedDb = null;
 
-// Fonction pour journaliser les erreurs (même fonction que dans recipes.js)
+// Fonction pour journaliser les erreurs
 function logError(message, error, req = null) {
   const errorLog = {
     timestamp: new Date().toISOString(),
@@ -32,51 +27,55 @@ function logError(message, error, req = null) {
   return errorLog;
 }
 
-// Fonction pour se connecter à MongoDB
+// Fonction améliorée pour se connecter à MongoDB
 async function connectToDatabase() {
   if (cachedClient && cachedDb) {
-    return { client: cachedClient, db: cachedDb };
+    // Vérifier que la connexion est toujours vivante
+    try {
+      await cachedClient.db().admin().ping();
+      return { client: cachedClient, db: cachedDb };
+    } catch (e) {
+      console.log("Connexion en cache invalide, reconnexion...");
+      cachedClient = null;
+      cachedDb = null;
+    }
   }
 
   if (!uri) {
-    throw new Error('Veuillez définir la variable d\'environnement MONGODB_URI');
+    console.error("ERREUR: Variable MONGODB_URI non définie!");
+    throw new Error('MONGODB_URI non définie dans les variables d\'environnement');
   }
   
-  const client = new MongoClient(uri);
-  await client.connect();
-  const db = client.db(dbName);
-  
-  cachedClient = client;
-  cachedDb = db;
-  
-  return { client, db };
-}
-
-// Fonction utilitaire pour lire les données
-function getRecipesData() {
   try {
-    if (!fs.existsSync(dataFilePath)) {
-      return [];
-    }
-    const jsonData = fs.readFileSync(dataFilePath);
-    return JSON.parse(jsonData);
+    // Options de connexion adaptées pour Netlify Functions
+    const client = new MongoClient(uri, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      connectTimeoutMS: 15000,
+      socketTimeoutMS: 45000,
+      serverSelectionTimeoutMS: 15000,
+      maxPoolSize: 5,
+      minPoolSize: 1
+    });
+    
+    await client.connect();
+    const db = client.db(dbName);
+    
+    // Test de connexion
+    await db.command({ ping: 1 });
+    
+    cachedClient = client;
+    cachedDb = db;
+    
+    return { client, db };
   } catch (error) {
-    console.error('Erreur lors de la lecture des recettes:', error);
-    return [];
-  }
-}
-
-// Fonction utilitaire pour écrire les données
-function saveRecipesData(data) {
-  try {
-    const dataDir = path.join(process.cwd(), 'data');
-    if (!fs.existsSync(dataDir)) {
-      fs.mkdirSync(dataDir, { recursive: true });
-    }
-    fs.writeFileSync(dataFilePath, JSON.stringify(data, null, 2));
-  } catch (error) {
-    console.error('Erreur lors de l\'écriture des recettes:', error);
-    throw error;
+    console.error(`❌ Erreur de connexion MongoDB: ${error.message}`);
+    
+    // Réinitialiser le cache
+    cachedClient = null;
+    cachedDb = null;
+    
+    throw new Error(`Échec de connexion MongoDB: ${error.message}`);
   }
 }
 

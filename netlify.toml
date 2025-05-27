@@ -13,24 +13,40 @@
   # Placez ici uniquement les modules réellement externes et volumineux
   external_node_modules = ["mongodb"]
 
-# Augmenter les limites de temps d'exécution pour les fonctions
+# Augmenter les limites de temps d'exécution pour les fonctions API
 [functions."api/*"]
   timeout = 30
 
-# Variables d'environnement pour Netlify
-[build.environment]
-  MONGODB_DB = "coco_recipes"
+# Ajouter une nouvelle fonction spécifique pour la connexion à MongoDB
+[functions."api/recipes"]
+  # Augmenter le timeout pour cette fonction spécifique
+  timeout = 45
+  # Augmenter la mémoire allouée
+  memory = 1024
 
-# Simplifier les redirections (moins de redirections = moins de code)
+[functions."api/recipes/*"]
+  timeout = 45
+  memory = 1024
+
+# Désactiver le minify qui peut causer des problèmes
+[build.processing]
+  skip_processing = false
+
+[build.processing.js]
+  bundle = true
+  minify = false
+
+# Redirections pour les API
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/api/:splat"
   status = 200
 
-# Headers pour permettre CORS (gardons seulement l'essentiel)
+# Headers pour CORS
 [[headers]]
   for = "/api/*"
   [headers.values]
     Access-Control-Allow-Origin = "*"
     Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
     Access-Control-Allow-Headers = "Content-Type, Authorization"
+    Cache-Control = "no-store, no-cache"
