@@ -59,6 +59,7 @@ export default function SubmitRecipe() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [errorDetails, setErrorDetails] = useState(null);
   
   const [formData, setFormData] = useState({
     title: '',
@@ -178,6 +179,7 @@ export default function SubmitRecipe() {
 
     setIsLoading(true);
     setError('');
+    setErrorDetails(null);
 
     try {
       // Préparation des données pour l'API
@@ -196,6 +198,8 @@ export default function SubmitRecipe() {
         author: "Utilisateur" // Dans une vraie app, ce serait le nom de l'utilisateur connecté
       };
       
+      console.log('Envoi de la recette au serveur...');
+      
       // Envoi des données à notre API
       const response = await fetch('/api/recipes', {
         method: 'POST',
@@ -205,12 +209,15 @@ export default function SubmitRecipe() {
         body: JSON.stringify(recipeData)
       });
 
+      const result = await response.json();
+      
+      // Vérifier si la réponse est un succès ou une erreur
       if (!response.ok) {
-        throw new Error('Erreur lors de la soumission de la recette');
+        console.error('Erreur API:', response.status, result);
+        throw new Error(`Erreur ${response.status}: ${result.message || 'Erreur inconnue'}`);
       }
 
       // Traitement de la réponse
-      const result = await response.json();
       console.log('Recette soumise avec succès:', result);
       
       setIsSubmitted(true);
@@ -222,8 +229,33 @@ export default function SubmitRecipe() {
       }, 3000);
       
     } catch (err) {
-      setError('Une erreur est survenue lors de l\'envoi. Veuillez réessayer.');
-      console.error('Erreur de soumission:', err);
+      console.error('Erreur détaillée:', err);
+      
+      // Extraire les détails de l'erreur si disponibles
+      let errorMessage = 'Une erreur est survenue lors de l\'envoi.';
+      let details = null;
+      
+      try {
+        // Essayer d'extraire plus de détails si l'erreur contient des infos JSON
+        if (err.message.includes('{') && err.message.includes('}')) {
+          const jsonStart = err.message.indexOf('{');
+          const jsonPart = err.message.substring(jsonStart);
+          const errorData = JSON.parse(jsonPart);
+          
+          if (errorData.message) {
+            errorMessage += ` ${errorData.message}`;
+          }
+          
+          details = errorData;
+        }
+      } catch (parseErr) {
+        // Si on ne peut pas parser le JSON, utiliser le message d'erreur brut
+        details = { raw: err.message };
+      }
+      
+      // Afficher l'erreur avec plus de détails
+      setError(`${errorMessage} Veuillez réessayer.`);
+      setErrorDetails(details || { message: err.message });
       setIsLoading(false);
     }
   };
@@ -250,7 +282,30 @@ export default function SubmitRecipe() {
             Remplissez le formulaire ci-dessous et partagez votre création culinaire !
           </p>
           
-          {error && <div className={styles.errorMessage}>{error}</div>}
+          {error && (
+            <div className={styles.errorMessage}>
+              <p>{error}</p>
+              {errorDetails && (
+                <details className={styles.errorDetails}>
+                  <summary>Détails techniques de l'erreur (pour le support)</summary>
+                  <pre>{JSON.stringify(errorDetails, null, 2)}</pre>
+                  
+                  {/* Afficher des conseils spécifiques basés sur le type d'erreur */}
+                  {errorDetails.error === 'DuplicateKey' && (
+                    <p className={styles.errorHint}>
+                      Il semble que cette recette existe déjà dans notre système.
+                    </p>
+                  )}
+                  
+                  {errorDetails.reference && (
+                    <p className={styles.errorReference}>
+                      ID de référence: {errorDetails.reference}
+                    </p>
+                  )}
+                </details>
+              )}
+            </div>
+          )}
           
           <form className={styles.form} onSubmit={handleSubmit}>
             <div className={styles.formGroup}>

@@ -181,28 +181,53 @@
 }
 
 .errorMessage {
-  background-color: #fff0f0;
-  color: #e10000;
-  padding: 1rem;
+  background-color: #ffebee;
+  color: #c62828;
+  padding: 15px;
   border-radius: 4px;
-  margin-bottom: 1.5rem;
-  border-left: 4px solid #ff4d4d;
+  margin-bottom: 20px;
+  border-left: 4px solid #c62828;
 }
 
-.successMessage {
-  background-color: #f0fff0;
-  color: #00a056;
-  padding: 2rem;
-  border-radius: 8px;
-  margin: 2rem auto;
-  border-left: 4px solid #00c068;
-  text-align: center;
-  max-width: 600px;
+.errorMessage p {
+  margin: 0 0 10px 0;
+  font-weight: 500;
 }
 
-.successMessage h2 {
-  color: #00a056;
-  margin-bottom: 1rem;
+.errorDetails {
+  margin-top: 10px;
+  font-size: 0.9rem;
+}
+
+.errorDetails summary {
+  cursor: pointer;
+  color: #555;
+  margin-bottom: 10px;
+  font-weight: normal;
+}
+
+.errorDetails pre {
+  background-color: #f8f8f8;
+  padding: 10px;
+  border-radius: 4px;
+  overflow-x: auto;
+  font-size: 0.85rem;
+  border: 1px solid #eee;
+}
+
+.errorHint {
+  background-color: #fff8e1;
+  padding: 8px;
+  border-radius: 4px;
+  margin-top: 10px;
+  font-style: italic;
+  border-left: 2px solid #ffc107;
+}
+
+.errorReference {
+  font-size: 0.8rem;
+  color: #777;
+  margin-top: 10px;
 }
 
 @media (max-width: 768px) {

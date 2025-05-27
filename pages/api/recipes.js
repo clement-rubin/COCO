@@ -178,13 +178,21 @@ export default async function handler(req, res) {
         
         // Validation de base
         if (!req.body) {
-          return res.status(400).json({ message: 'Corps de requête vide ou invalide' });
+          return res.status(400).json({ 
+            message: 'Corps de requête vide ou invalide',
+            error: 'ValidationError',
+            details: 'Le corps de la requête est manquant ou vide' 
+          });
         }
 
         // Valider la recette
         const validation = validateRecipe(req.body);
         if (!validation.valid) {
-          return res.status(400).json({ message: validation.message });
+          return res.status(400).json({ 
+            message: validation.message,
+            error: 'ValidationError',
+            details: `La recette ne contient pas tous les champs obligatoires: ${validation.message}`
+          });
         }
         
         // Créer la recette avec valeurs par défaut pour champs manquants mais non obligatoires
@@ -197,6 +205,8 @@ export default async function handler(req, res) {
           cookTime: req.body.cookTime || "N/A",
           category: req.body.category || "Autre",
           author: req.body.author || "Anonyme",
+          ingredients: Array.isArray(req.body.ingredients) ? req.body.ingredients : [],
+          instructions: Array.isArray(req.body.instructions) ? req.body.instructions : [],
           createdAt: new Date().toISOString()
         };
         
@@ -217,15 +227,19 @@ export default async function handler(req, res) {
         if (error.code === 11000) {
           return res.status(409).json({ 
             message: 'Une recette avec cet identifiant existe déjà',
-            error: 'DuplicateKey', 
+            error: 'DuplicateKey',
+            details: 'Une clé unique existe déjà dans la base de données',
             reference: errorLog.timestamp 
           });
         }
         
         return res.status(500).json({ 
           message: 'Erreur serveur lors de l\'ajout de la recette', 
-          error: error.message,
-          reference: errorLog.timestamp 
+          error: 'ServerError',
+          details: error.message,
+          reference: errorLog.timestamp,
+          // Ne pas exposer la stack trace en production
+          stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
         });
       }
     }
