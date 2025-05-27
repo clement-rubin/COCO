@@ -5,6 +5,16 @@
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
+# Configuration spécifique pour les fonctions Next.js API Routes
+[functions]
+  included_files = ["package.json", "node_modules/**", ".env*"]
+  node_bundler = "esbuild"
+  external_node_modules = ["mongodb"]
+
+# Augmenter les limites de temps d'exécution pour les fonctions
+[functions."api/*"]
+  timeout = 30
+
 # Variables d'environnement pour Netlify
 [build.environment]
   MONGODB_DB = "coco_recipes"
@@ -20,3 +30,12 @@
   from = "/*"
   to = "/index.html"
   status = 200
+
+# Headers pour permettre CORS
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization"
+    Access-Control-Max-Age = "86400"

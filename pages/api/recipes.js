@@ -31,43 +31,89 @@ function logError(message, error, req = null) {
   return errorLog;
 }
 
-// Fonction pour se connecter à MongoDB
+// Fonction pour se connecter à MongoDB avec gestion avancée des erreurs de connexion
 async function connectToDatabase() {
   if (cachedClient && cachedDb) {
     return { client: cachedClient, db: cachedDb };
   }
 
   if (!uri) {
-    throw new Error('Veuillez définir la variable d\'environnement MONGODB_URI');
+    throw new Error('MONGODB_URI non définie dans les variables d\'environnement');
   }
   
-  const client = new MongoClient(uri);
-  await client.connect();
-  const db = client.db(dbName);
-  
-  cachedClient = client;
-  cachedDb = db;
-  
-  // Créer un index sur le champ id pour améliorer les performances
   try {
-    await db.collection('recipes').createIndex({ id: 1 }, { unique: true });
+    // Options de connexion optimisées pour environnement serverless
+    const options = {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      connectTimeoutMS: 5000, // temps d'attente plus court pour environnement serverless
+      socketTimeoutMS: 30000, // délai d'expiration pour les opérations
+      serverSelectionTimeoutMS: 5000, // délai pour sélection de serveur
+      maxPoolSize: 10, // limite de connexions simultanées
+    };
+    
+    const client = new MongoClient(uri, options);
+    await client.connect();
+    const db = client.db(dbName);
+    
+    // Test de connexion
+    await db.command({ ping: 1 });
+    console.log("✅ Connecté avec succès à MongoDB Atlas");
+    
+    cachedClient = client;
+    cachedDb = db;
+    
+    // Créer un index sur le champ id pour améliorer les performances
+    try {
+      await db.collection('recipes').createIndex({ id: 1 }, { unique: true });
+    } catch (indexError) {
+      console.warn('Index déjà existant ou erreur lors de la création:', indexError.message);
+    }
+    
+    return { client, db };
   } catch (error) {
-    console.warn('Index déjà existant ou erreur lors de la création:', error);
+    console.error("❌ Erreur de connexion à MongoDB:", error);
+    
+    // Réinitialiser le cache en cas d'erreur pour forcer une reconnexion
+    cachedClient = null;
+    cachedDb = null;
+    
+    // Retransmettre l'erreur pour la gestion appropriée
+    throw new Error(`Impossible de se connecter à MongoDB: ${error.message}`);
+  }
+}
+
+// Améliorer l'initialisation de la base de données avec gestion d'erreurs
+async function initializeDatabase(collection) {
+  try {
+    const count = await collection.countDocuments();
+    if (count === 0) {
+      console.log('Initialisation de la base de données avec des recettes par défaut');
+      await collection.insertMany(initialRecipes);
+      console.log(`✅ ${initialRecipes.length} recettes initiales insérées avec succès`);
+    }
+  } catch (error) {
+    console.error("❌ Erreur lors de l'initialisation de la base de données:", error.message);
+    // Ne pas faire échouer l'API si l'initialisation échoue
+  }
+}
+
+// Fonction de validation pour les nouvelles recettes
+function validateRecipe(recipe) {
+  const requiredFields = ['title', 'description'];
+  const missingFields = requiredFields.filter(field => !recipe[field]);
+  
+  if (missingFields.length > 0) {
+    return {
+      valid: false,
+      message: `Champs obligatoires manquants: ${missingFields.join(', ')}`
+    };
   }
   
-  return { client, db };
+  return { valid: true };
 }
 
 // Fonction pour initialiser la base de données avec des données si elle est vide
-async function initializeDatabase(collection) {
-  const count = await collection.countDocuments();
-  if (count === 0) {
-    console.log('Initialisation de la base de données avec des recettes par défaut');
-    await collection.insertMany(initialRecipes);
-  }
-}
-
-// Données initiales pour les recettes (utilisées seulement si la base de données est vide)
 const initialRecipes = [
   {
     id: "101",
@@ -97,7 +143,8 @@ export default async function handler(req, res) {
   // Gestion CORS basique
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Max-Age', '86400'); // 24 heures de cache pour preflight
 
   // Méthode OPTIONS pour le preflight CORS
   if (req.method === 'OPTIONS') {
@@ -105,8 +152,15 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Connexion à la base de données
-    const { db } = await connectToDatabase();
+    // Connexion à la base de données avec un délai d'attente raisonnable
+    console.log("Tentative de connexion à MongoDB...");
+    const { db } = await Promise.race([
+      connectToDatabase(),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Délai de connexion à MongoDB dépassé')), 10000)
+      )
+    ]);
+    
     const collection = db.collection('recipes');
     
     // Initialiser la base de données si nécessaire
@@ -123,22 +177,62 @@ export default async function handler(req, res) {
       }
     }
     
-    // POST - Ajouter une nouvelle recette
+    // POST - Ajouter une nouvelle recette avec validation
     else if (req.method === 'POST') {
       try {
+        console.log("Tentative d'ajout d'une nouvelle recette");
+        
+        // Validation de base
+        if (!req.body) {
+          return res.status(400).json({ message: 'Corps de requête vide ou invalide' });
+        }
+
+        // Valider la recette
+        const validation = validateRecipe(req.body);
+        if (!validation.valid) {
+          return res.status(400).json({ message: validation.message });
+        }
+        
+        // Créer la recette avec valeurs par défaut pour champs manquants mais non obligatoires
         const newRecipe = {
           id: uuidv4(),
-          ...req.body,
+          title: req.body.title,
+          description: req.body.description,
+          image: req.body.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3",
+          prepTime: req.body.prepTime || "N/A",
+          cookTime: req.body.cookTime || "N/A",
+          category: req.body.category || "Autre",
+          author: req.body.author || "Anonyme",
           createdAt: new Date().toISOString()
         };
         
-        // Ajouter à MongoDB
-        await collection.insertOne(newRecipe);
+        console.log("Insertion de la recette dans MongoDB");
+        const result = await collection.insertOne(newRecipe);
         
-        return res.status(201).json(newRecipe);
+        if (result.acknowledged && result.insertedId) {
+          console.log("✅ Recette ajoutée avec succès:", newRecipe.id);
+          return res.status(201).json(newRecipe);
+        } else {
+          throw new Error('Échec de l\'insertion: opération non confirmée par MongoDB');
+        }
       } catch (error) {
-        logError('Erreur lors de l\'ajout d\'une recette', error, req);
-        return res.status(500).json({ message: 'Erreur serveur lors de l\'ajout d\'une recette', error: error.message });
+        const errorLog = logError('Erreur lors de l\'ajout d\'une recette', error, req);
+        console.error("❌ Échec de l'ajout de recette:", error.message);
+        
+        // Vérifier les erreurs de duplication (code 11000)
+        if (error.code === 11000) {
+          return res.status(409).json({ 
+            message: 'Une recette avec cet identifiant existe déjà',
+            error: 'DuplicateKey', 
+            reference: errorLog.timestamp 
+          });
+        }
+        
+        return res.status(500).json({ 
+          message: 'Erreur serveur lors de l\'ajout de la recette', 
+          error: error.message,
+          reference: errorLog.timestamp 
+        });
       }
     }
     
@@ -197,6 +291,19 @@ export default async function handler(req, res) {
     }
   } catch (error) {
     const errorLog = logError('Erreur API recettes générale', error, req);
-    return res.status(500).json({ message: 'Erreur serveur interne', error: error.message, reference: errorLog.timestamp });
+    console.error("❌ Erreur API générale:", error.message);
+    
+    // Message adapté en fonction de l'erreur
+    let message = 'Erreur serveur interne';
+    if (error.message.includes('MongoDB')) {
+      message = 'Erreur de connexion à la base de données';
+    }
+    
+    return res.status(500).json({ 
+      message, 
+      error: error.message, 
+      reference: errorLog.timestamp,
+      netlifyFunction: true // Marquer comme provenant d'une fonction Netlify
+    });
   }
 }

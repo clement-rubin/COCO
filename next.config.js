@@ -12,11 +12,11 @@ const nextConfig = {
       ? { exclude: ['error', 'warn'] }
       : false,
   },
-  // Ajoute des variables d'environnement publiques pour le suivi côté client
+  // Fournir des valeurs par défaut pour les variables d'environnement en développement
   env: {
-    NEXT_PUBLIC_NETLIFY_COMMIT_REF: process.env.NETLIFY_COMMIT_REF,
-    NEXT_PUBLIC_NETLIFY_DEPLOY_ID: process.env.NETLIFY_DEPLOY_ID,
-    NEXT_PUBLIC_NETLIFY_SITE_NAME: process.env.NETLIFY_SITE_NAME,
+    NEXT_PUBLIC_NETLIFY_COMMIT_REF: process.env.NETLIFY_COMMIT_REF || 'development',
+    NEXT_PUBLIC_NETLIFY_DEPLOY_ID: process.env.NETLIFY_DEPLOY_ID || 'dev-local',
+    NEXT_PUBLIC_NETLIFY_SITE_NAME: process.env.NETLIFY_SITE_NAME || 'coco-local-dev',
   }
 }
 

@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test API Recettes</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    h1 {
+      color: #333;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    input, textarea, select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background-color: #f9f9f9;
+      white-space: pre-wrap;
+    }
+    .success {
+      border-color: #4CAF50;
+      background-color: #e7f7e7;
+    }
+    .error {
+      border-color: #f44336;
+      background-color: #ffebee;
+    }
+    .recipes-list {
+      margin-top: 30px;
+    }
+    .recipe-card {
+      padding: 15px;
+      margin-bottom: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background-color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <h1>Test API Recettes</h1>
+  
+  <h2>Ajouter une nouvelle recette</h2>
+  <form id="recipeForm">
+    <div class="form-group">
+      <label for="title">Titre*</label>
+      <input type="text" id="title" required placeholder="Titre de la recette">
+    </div>
+    
+    <div class="form-group">
+      <label for="description">Description*</label>
+      <textarea id="description" required placeholder="Description de la recette"></textarea>
+    </div>
+    
+    <div class="form-group">
+      <label for="image">URL de l'image</label>
+      <input type="url" id="image" placeholder="https://example.com/image.jpg">
+    </div>
+    
+    <div class="form-group">
+      <label for="prepTime">Temps de préparation</label>
+      <input type="text" id="prepTime" placeholder="10 min">
+    </div>
+    
+    <div class="form-group">
+      <label for="cookTime">Temps de cuisson</label>
+      <input type="text" id="cookTime" placeholder="20 min">
+    </div>
+    
+    <div class="form-group">
+      <label for="category">Catégorie</label>
+      <select id="category">
+        <option value="Entrée">Entrée</option>
+        <option value="Plat principal">Plat principal</option>
+        <option value="Dessert">Dessert</option>
+        <option value="Boisson">Boisson</option>
+        <option value="Autre">Autre</option>
+      </select>
+    </div>
+    
+    <div class="form-group">
+      <label for="author">Auteur</label>
+      <input type="text" id="author" placeholder="Votre nom">
+    </div>
+    
+    <button type="submit">Ajouter la recette</button>
+  </form>
+  
+  <div id="result" class="result" style="display: none;"></div>
+  
+  <h2>Recettes existantes</h2>
+  <button id="loadRecipes">Charger les recettes</button>
+  <div id="recipesList" class="recipes-list"></div>
+  
+  <script>
+    // URL de l'API (automatiquement adaptée selon l'environnement)
+    const apiUrl = window.location.hostname === 'localhost' 
+      ? 'http://localhost:3000/api/recipes' 
+      : '/api/recipes';
+    
+    document.getElementById('recipeForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const result = document.getElementById('result');
+      result.style.display = 'block';
+      result.textContent = 'Envoi en cours...';
+      result.className = 'result';
+      
+      const recipe = {
+        title: document.getElementById('title').value,
+        description: document.getElementById('description').value,
+        image: document.getElementById('image').value || undefined,
+        prepTime: document.getElementById('prepTime').value || undefined,
+        cookTime: document.getElementById('cookTime').value || undefined,
+        category: document.getElementById('category').value,
+        author: document.getElementById('author').value || undefined
+      };
+      
+      try {
+        // Option de débogage avec timeout plus long
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 secondes timeout
+        
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(recipe),
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          result.className = 'result success';
+          result.textContent = `✅ Recette ajoutée avec succès!\n\nID: ${data.id}\n\nRéponse API:\n${JSON.stringify(data, null, 2)}`;
+          document.getElementById('recipeForm').reset();
+          loadRecipes(); // Recharger la liste
+        } else {
+          result.className = 'result error';
+          result.textContent = `❌ Erreur: ${data.message}\n\nRéponse API:\n${JSON.stringify(data, null, 2)}`;
+        }
+      } catch (error) {
+        result.className = 'result error';
+        if (error.name === 'AbortError') {
+          result.textContent = `❌ La requête a expiré après 20 secondes. Le serveur ne répond pas ou est trop lent.`;
+        } else {
+          result.textContent = `❌ Erreur: ${error.message}`;
+        }
+      }
+    });
+    
+    document.getElementById('loadRecipes').addEventListener('click', loadRecipes);
+    
+    async function loadRecipes() {
+      const recipesListElement = document.getElementById('recipesList');
+      recipesListElement.innerHTML = 'Chargement...';
+      
+      try {
+        const response = await fetch(apiUrl);
+        
+        if (!response.ok) {
+          throw new Error(`Erreur HTTP: ${response.status}`);
+        }
+        
+        const recipes = await response.json();
+        
+        if (recipes.length === 0) {
+          recipesListElement.innerHTML = '<p>Aucune recette trouvée.</p>';
+          return;
+        }
+        
+        recipesListElement.innerHTML = '';
+        recipes.forEach(recipe => {
+          const recipeCard = document.createElement('div');
+          recipeCard.className = 'recipe-card';
+          recipeCard.innerHTML = `
+            <h3>${recipe.title}</h3>
+            <p>${recipe.description}</p>
+            <p><strong>Catégorie:</strong> ${recipe.category}</p>
+            <p><strong>Auteur:</strong> ${recipe.author}</p>
+            <p><strong>ID:</strong> ${recipe.id}</p>
+          `;
+          recipesListElement.appendChild(recipeCard);
+        });
+      } catch (error) {
+        recipesListElement.innerHTML = `<p>Erreur lors du chargement des recettes: ${error.message}</p>`;
+      }
+    }
+  </script>
+</body>
+</html>
