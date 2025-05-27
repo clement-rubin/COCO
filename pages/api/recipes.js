@@ -7,27 +7,21 @@ const dbName = process.env.MONGODB_DB || 'coco_recipes';
 let cachedClient = null;
 let cachedDb = null;
 
-// Fonction pour journaliser les erreurs
+// Fonction pour journaliser les erreurs de façon simplifiée (réduit la taille du bundle)
 function logError(message, error, req = null) {
-  // Construction d'un objet d'erreur détaillé
+  // Version simplifiée pour réduire la taille
   const errorLog = {
     timestamp: new Date().toISOString(),
     message,
-    stack: error.stack,
-    name: error.name,
-    path: req?.url || 'Non disponible',
-    method: req?.method || 'Non disponible',
-    query: req?.query || {},
-    body: req?.body ? (typeof req.body === 'object' ? 'Objet trop volumineux pour log' : req.body) : null,
-    environment: process.env.NODE_ENV || 'development',
+    errorName: error.name,
+    errorMessage: error.message,
+    path: req?.url || 'N/A',
+    method: req?.method || 'N/A',
   };
   
-  // Afficher l'erreur détaillée pour Netlify
-  console.error('==== ERREUR DÉTAILLÉE ====');
-  console.error(JSON.stringify(errorLog, null, 2));
-  console.error('========================');
+  // Log simplifié
+  console.error(`ERROR [${errorLog.timestamp}] ${message}: ${error.message}`);
   
-  // Ici vous pourriez également envoyer l'erreur à un service de suivi d'erreurs
   return errorLog;
 }
 

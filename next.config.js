@@ -6,11 +6,18 @@ const nextConfig = {
   },
   swcMinify: true,
   poweredByHeader: false,
+  // Options d'optimisation pour réduire la taille du bundle
   compiler: {
-    // En production, conservons les console.error pour la journalisation
+    // En production, retirons tous les console.log mais gardons les erreurs
     removeConsole: process.env.NODE_ENV === 'production' 
-      ? { exclude: ['error', 'warn'] }
+      ? { exclude: ['error'] }
       : false,
+  },
+  // Optimiser pour Netlify serverless
+  output: 'standalone',
+  // Exclusions pour réduire la taille
+  experimental: {
+    serverMinification: true,
   },
   // Fournir des valeurs par défaut pour les variables d'environnement en développement
   env: {

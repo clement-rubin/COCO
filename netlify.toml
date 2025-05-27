@@ -7,8 +7,10 @@
 
 # Configuration spécifique pour les fonctions Next.js API Routes
 [functions]
-  included_files = ["package.json", "node_modules/**", ".env*"]
+  # Ne pas inclure tous les node_modules, seulement ceux nécessaires
+  included_files = ["package.json"]
   node_bundler = "esbuild"
+  # Placez ici uniquement les modules réellement externes et volumineux
   external_node_modules = ["mongodb"]
 
 # Augmenter les limites de temps d'exécution pour les fonctions
@@ -19,23 +21,16 @@
 [build.environment]
   MONGODB_DB = "coco_recipes"
 
-# Traiter les routes API correctement
+# Simplifier les redirections (moins de redirections = moins de code)
 [[redirects]]
   from = "/api/*"
-  to = "/.netlify/functions/:splat"
+  to = "/.netlify/functions/api/:splat"
   status = 200
 
-# Handle client-side routing
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-
-# Headers pour permettre CORS
+# Headers pour permettre CORS (gardons seulement l'essentiel)
 [[headers]]
   for = "/api/*"
   [headers.values]
     Access-Control-Allow-Origin = "*"
     Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
     Access-Control-Allow-Headers = "Content-Type, Authorization"
-    Access-Control-Max-Age = "86400"
