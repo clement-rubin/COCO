@@ -5,28 +5,14 @@
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
-# Configuration spécifique pour les fonctions Next.js API Routes
+# Configuration pour les fonctions Next.js API Routes
 [functions]
-  # Ne pas inclure tous les node_modules, seulement ceux nécessaires
   included_files = ["package.json"]
   node_bundler = "esbuild"
-  # Placez ici uniquement les modules réellement externes et volumineux
-  external_node_modules = ["mongodb"]
 
 # Augmenter les limites de temps d'exécution pour les fonctions API
 [functions."api/*"]
-  timeout = 30
-
-# Ajouter une nouvelle fonction spécifique pour la connexion à MongoDB
-[functions."api/recipes"]
-  # Augmenter le timeout pour cette fonction spécifique
-  timeout = 45
-  # Augmenter la mémoire allouée
-  memory = 1024
-
-[functions."api/recipes/*"]
-  timeout = 45
-  memory = 1024
+  timeout = 10
 
 # Désactiver le minify qui peut causer des problèmes
 [build.processing]

@@ -10,14 +10,15 @@ Un site web culinaire moderne pour partager et découvrir des recettes délicieu
 - Design responsive pour mobile et desktop
 - Permettre aux utilisateurs de soumettre leurs propres recettes avec images
 - Consulter une page dédiée affichant toutes les recettes créées par les utilisateurs
-- API backend gratuite pour stocker et récupérer les données des recettes
+- API backend utilisant Supabase pour stocker et récupérer les données des recettes
 
 ## Technologies
 
 - Next.js
-- API Routes de Next.js (backend serverless gratuit)
+- API Routes de Next.js (backend serverless)
+- Supabase (base de données PostgreSQL)
 - CSS Modules
-- Vercel (déploiement)
+- Vercel ou Netlify (déploiement)
 
 ## Structure du projet
 
@@ -46,6 +47,24 @@ npm run dev
 2. Connectez votre dépôt GitHub
 3. Importez ce projet
 4. Vercel détectera automatiquement les configurations Next.js et déploiera votre site
+
+## Déploiement sur Netlify
+
+1. Créez un compte sur [Netlify](https://netlify.com)
+2. Connectez votre dépôt GitHub
+3. Importez ce projet
+4. Netlify détectera automatiquement les configurations Next.js et déploiera votre site
+
+## Configuration de Supabase
+
+1. Créez un compte sur [Supabase](https://supabase.io)
+2. Créez un nouveau projet
+3. Copiez l'URL de votre projet et la clé API
+4. Remplissez le fichier `.env.local` à la racine du projet avec vos informations Supabase :
+    ```bash
+    NEXT_PUBLIC_SUPABASE_URL=votre_url_supabase
+    NEXT_PUBLIC_SUPABASE_ANON_KEY=votre_cle_api_supabase
+    ```
 
 ## Licence
 
