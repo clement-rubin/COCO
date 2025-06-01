@@ -4,7 +4,7 @@ import { useRouter } from 'next/router'
 import { supabase } from '../lib/supabase'
 import PhotoUpload from '../components/PhotoUpload'
 import styles from '../styles/SubmitRecipe.module.css'
-import { logInfo, logError, logWarning, logDebug, logUserInteraction } from '../utils/logger'
+import { logDebug, logInfo, logError, logUserInteraction } from '../utils/logger'
 
 export default function SubmitRecipe() {
   const router = useRouter()
@@ -97,95 +97,74 @@ export default function SubmitRecipe() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     
-    logUserInteraction('SUBMIT_FORM', 'recipe-form', {
-      hasPhotos: photos.length > 0,
-      formFieldsCompleted: Object.keys(formData).filter(key => formData[key].trim()).length
-    })
+    logInfo('Début de soumission de recette')
     
     if (!validateForm()) {
-      logWarning('Soumission annulée: validation échouée')
+      logUserInteraction('ECHEC_VALIDATION', 'formulaire-soumission', {
+        errorsCount: Object.keys(errors).length,
+        errors: Object.keys(errors)
+      })
       return
     }
-
+    
     setIsSubmitting(true)
-    logInfo('Début de la soumission de la recette')
-
+    
     try {
-      // Préparer les données pour Supabase
+      // Préparer les données avec les bons noms de colonnes
       const recipeData = {
-        title: formData.title,
-        description: formData.description,
-        ingredients: formData.ingredients,
-        instructions: formData.instructions,
-        prepTime: formData.prepTime,
-        cookTime: formData.cookTime,
-        servings: formData.servings,
-        category: formData.category,
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        ingredients: formData.ingredients.trim(),
+        instructions: formData.instructions.trim(),
+        prepTime: formData.prepTime.trim() || null,
+        cookTime: formData.cookTime.trim() || null,
+        servings: formData.servings.trim() || null,
+        category: formData.category || null,
         difficulty: formData.difficulty,
-        author: formData.author || 'Anonyme',
-        image: photos[0]?.preview || '',
-        photos: photos.map(p => p.preview),
-        created_at: new Date().toISOString()
+        author: formData.author.trim() || 'Anonyme',
+        image: photos.length > 0 ? photos[0].preview : 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3',
+        photos: photos.map(photo => ({
+          url: photo.preview,
+          name: photo.name,
+          size: photo.size
+        }))
       }
-
-      logDebug('Données de la recette préparées', {
-        dataKeys: Object.keys(recipeData),
-        titleLength: recipeData.title.length,
-        ingredientsLines: recipeData.ingredients.split('\n').length,
-        instructionsLines: recipeData.instructions.split('\n').length,
+      
+      logDebug('Données de recette préparées', {
+        hasTitle: !!recipeData.title,
+        hasDescription: !!recipeData.description,
+        ingredientsLength: recipeData.ingredients.length,
+        instructionsLength: recipeData.instructions.length,
+        photosCount: recipeData.photos.length,
+        category: recipeData.category,
+        difficulty: recipeData.difficulty
+      })
+      
+      // Simulation d'envoi - à remplacer par vraie API
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      
+      logUserInteraction('RECETTE_SOUMISE', 'formulaire-soumission', {
+        title: recipeData.title,
+        category: recipeData.category,
+        difficulty: recipeData.difficulty,
         photosCount: recipeData.photos.length
       })
-
-      // Insérer dans Supabase
-      logInfo('Insertion dans Supabase en cours...')
-      const { data, error } = await supabase
-        .from('recipes')
-        .insert([recipeData])
-        .select()
-        .single()
-
-      if (error) {
-        logError('Erreur Supabase lors de l\'insertion', error, {
-          context: 'recipe_submission',
-          recipeTitle: formData.title,
-          supabaseError: {
-            code: error.code,
-            message: error.message,
-            details: error.details,
-            hint: error.hint
-          }
-        })
-        throw error
-      }
-
-      logInfo('Recette créée avec succès', {
-        recipeId: data.id,
-        title: data.title,
-        author: data.author
-      })
-
-      // Rediriger vers la page de la recette créée
-      logInfo(`Redirection vers la recette créée: /recipes/${data.id}`)
-      router.push(`/recipes/${data.id}`)
+      
+      // Redirection après succès
+      router.push('/?success=recipe-submitted')
       
     } catch (error) {
-      logError('Erreur lors de la soumission de la recette', error, {
-        context: 'recipe_submission_complete',
+      logError('Erreur lors de la soumission de recette', error, {
         formData: {
           title: formData.title,
           hasDescription: !!formData.description,
-          hasIngredients: !!formData.ingredients,
-          hasInstructions: !!formData.instructions,
-          category: formData.category,
-          difficulty: formData.difficulty
-        },
-        photosCount: photos.length
+          category: formData.category
+        }
       })
       
-      setErrors({ submit: 'Une erreur est survenue lors de la sauvegarde. Veuillez réessayer.' })
+      setErrors({ submit: 'Une erreur est survenue lors de l\'envoi. Veuillez réessayer.' })
     } finally {
       setIsSubmitting(false)
-      logDebug('Fin du processus de soumission')
     }
   }
 

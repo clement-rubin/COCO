@@ -119,10 +119,10 @@ exports.handler = async (event, context) => {
         description: data.description || '',
         ingredients: Array.isArray(data.ingredients) ? data.ingredients.join('\n') : (data.ingredients || ''),
         instructions: Array.isArray(data.instructions) ? data.instructions.join('\n') : (data.instructions || ''),
-        prepTime: data.prepTime || "Non spécifié",
-        cookTime: data.cookTime || "Non spécifié",
-        servings: data.servings || "Non spécifié",
-        category: data.category || "Autre",
+        prepTime: data.prepTime || null,
+        cookTime: data.cookTime || null,
+        servings: data.servings || null,
+        category: data.category || null,
         difficulty: data.difficulty || "Facile",
         author: data.author || "Anonyme",
         image: data.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3",
@@ -132,7 +132,8 @@ exports.handler = async (event, context) => {
       log(`Tentative d'insertion d'une nouvelle recette: ${newRecipe.title}`, "info", {
         hasTitle: !!newRecipe.title,
         hasIngredients: !!newRecipe.ingredients,
-        hasInstructions: !!newRecipe.instructions
+        hasInstructions: !!newRecipe.instructions,
+        photosCount: newRecipe.photos.length
       });
       
       const { data: insertedData, error } = await supabase
@@ -143,11 +144,11 @@ exports.handler = async (event, context) => {
       if (error) {
         log(`Erreur lors de l'insertion de la recette`, "error", {
           supabaseError: error,
-          recipeData: newRecipe
+          recipeTitle: newRecipe.title
         });
         
         // Si c'est une erreur de colonne manquante, donner des instructions
-        if (error.code === 'PGRST204') {
+        if (error.code === 'PGRST204' || error.code === '42703') {
           return {
             statusCode: 500,
             headers,
@@ -155,7 +156,8 @@ exports.handler = async (event, context) => {
               message: 'Erreur de structure de base de données',
               details: 'La table recipes semble incomplète. Veuillez vérifier que toutes les colonnes nécessaires existent.',
               error: error.message,
-              solution: 'Consultez les logs ou la page de test pour les instructions SQL de création de table.'
+              solution: 'Consultez les logs ou la page de test pour les instructions SQL de création de table.',
+              sqlRequired: 'CREATE TABLE recipes avec les colonnes : id, title, description, ingredients, instructions, prepTime, cookTime, servings, category, difficulty, author, image, photos, created_at, updated_at'
             })
           };
         }
@@ -164,7 +166,8 @@ exports.handler = async (event, context) => {
       }
       
       log(`Recette créée avec succès: ${insertedData[0]?.title}`, "info", {
-        recipeId: insertedData[0]?.id
+        recipeId: insertedData[0]?.id,
+        recipeTitle: insertedData[0]?.title
       });
       
       return {
