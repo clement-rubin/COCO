@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
+import { supabase } from '../lib/supabase'
 import PhotoUpload from '../components/PhotoUpload'
 import styles from '../styles/SubmitRecipe.module.css'
 
@@ -68,31 +69,39 @@ export default function SubmitRecipe() {
     setIsSubmitting(true)
 
     try {
-      // Préparer les données avec la première photo comme image principale
-      const submissionData = {
-        ...formData,
+      // Préparer les données pour Supabase
+      const recipeData = {
+        title: formData.title,
+        description: formData.description,
+        ingredients: formData.ingredients,
+        instructions: formData.instructions,
+        prep_time: formData.prepTime,
+        cook_time: formData.cookTime,
+        servings: formData.servings,
+        category: formData.category,
+        difficulty: formData.difficulty,
+        author: formData.author || 'Anonyme',
         image: photos[0]?.preview || '',
         photos: photos.map(p => p.preview),
-        createdAt: new Date().toISOString()
+        created_at: new Date().toISOString()
       }
 
-      const response = await fetch('/api/recipes', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(submissionData)
-      })
+      // Insérer dans Supabase
+      const { data, error } = await supabase
+        .from('recipes')
+        .insert([recipeData])
+        .select()
+        .single()
 
-      if (response.ok) {
-        const result = await response.json()
-        router.push(`/recipes/user/${result.id}`)
-      } else {
-        throw new Error('Erreur lors de l\'envoi de la recette')
+      if (error) {
+        throw error
       }
+
+      // Rediriger vers la page de la recette créée
+      router.push(`/recipes/${data.id}`)
     } catch (error) {
-      console.error('Erreur:', error)
-      setErrors({ submit: 'Une erreur est survenue. Veuillez réessayer.' })
+      console.error('Erreur lors de l\'envoi de la recette:', error)
+      setErrors({ submit: 'Une erreur est survenue lors de la sauvegarde. Veuillez réessayer.' })
     } finally {
       setIsSubmitting(false)
     }
