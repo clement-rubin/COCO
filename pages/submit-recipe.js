@@ -4,6 +4,7 @@ import { useRouter } from 'next/router'
 import { supabase } from '../lib/supabase'
 import PhotoUpload from '../components/PhotoUpload'
 import styles from '../styles/SubmitRecipe.module.css'
+import { logInfo, logError, logWarning, logDebug, logUserInteraction } from '../utils/logger'
 
 export default function SubmitRecipe() {
   const router = useRouter()
@@ -32,6 +33,13 @@ export default function SubmitRecipe() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
+    
+    logDebug(`Changement de champ: ${name}`, { 
+      fieldName: name, 
+      valueLength: value.length,
+      isEmpty: !value.trim()
+    })
+    
     setFormData(prev => ({
       ...prev,
       [name]: value
@@ -39,6 +47,7 @@ export default function SubmitRecipe() {
     
     // Clear error when user starts typing
     if (errors[name]) {
+      logDebug(`Effacement d'erreur pour le champ: ${name}`)
       setErrors(prev => ({
         ...prev,
         [name]: ''
@@ -47,26 +56,59 @@ export default function SubmitRecipe() {
   }
 
   const validateForm = () => {
+    logInfo('Début de la validation du formulaire')
     const newErrors = {}
     
-    if (!formData.title.trim()) newErrors.title = 'Le titre est obligatoire'
-    if (!formData.description.trim()) newErrors.description = 'La description est obligatoire'
-    if (!formData.ingredients.trim()) newErrors.ingredients = 'Les ingrédients sont obligatoires'
-    if (!formData.instructions.trim()) newErrors.instructions = 'Les instructions sont obligatoires'
-    if (photos.length === 0) newErrors.photos = 'Au moins une photo est obligatoire'
+    if (!formData.title.trim()) {
+      newErrors.title = 'Le titre est obligatoire'
+      logWarning('Validation échouée: titre manquant')
+    }
+    if (!formData.description.trim()) {
+      newErrors.description = 'La description est obligatoire'
+      logWarning('Validation échouée: description manquante')
+    }
+    if (!formData.ingredients.trim()) {
+      newErrors.ingredients = 'Les ingrédients sont obligatoires'
+      logWarning('Validation échouée: ingrédients manquants')
+    }
+    if (!formData.instructions.trim()) {
+      newErrors.instructions = 'Les instructions sont obligatoires'
+      logWarning('Validation échouée: instructions manquantes')
+    }
+    if (photos.length === 0) {
+      newErrors.photos = 'Au moins une photo est obligatoire'
+      logWarning('Validation échouée: aucune photo')
+    }
+    
+    const isValid = Object.keys(newErrors).length === 0
+    
+    logInfo('Résultat de la validation', {
+      isValid,
+      errorsCount: Object.keys(newErrors).length,
+      errors: Object.keys(newErrors),
+      formDataKeys: Object.keys(formData).filter(key => formData[key].trim()),
+      photosCount: photos.length
+    })
     
     setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
+    return isValid
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     
+    logUserInteraction('SUBMIT_FORM', 'recipe-form', {
+      hasPhotos: photos.length > 0,
+      formFieldsCompleted: Object.keys(formData).filter(key => formData[key].trim()).length
+    })
+    
     if (!validateForm()) {
+      logWarning('Soumission annulée: validation échouée')
       return
     }
 
     setIsSubmitting(true)
+    logInfo('Début de la soumission de la recette')
 
     try {
       // Préparer les données pour Supabase
@@ -86,7 +128,16 @@ export default function SubmitRecipe() {
         created_at: new Date().toISOString()
       }
 
+      logDebug('Données de la recette préparées', {
+        dataKeys: Object.keys(recipeData),
+        titleLength: recipeData.title.length,
+        ingredientsLines: recipeData.ingredients.split('\n').length,
+        instructionsLines: recipeData.instructions.split('\n').length,
+        photosCount: recipeData.photos.length
+      })
+
       // Insérer dans Supabase
+      logInfo('Insertion dans Supabase en cours...')
       const { data, error } = await supabase
         .from('recipes')
         .insert([recipeData])
@@ -94,16 +145,47 @@ export default function SubmitRecipe() {
         .single()
 
       if (error) {
+        logError('Erreur Supabase lors de l\'insertion', error, {
+          context: 'recipe_submission',
+          recipeTitle: formData.title,
+          supabaseError: {
+            code: error.code,
+            message: error.message,
+            details: error.details,
+            hint: error.hint
+          }
+        })
         throw error
       }
 
+      logInfo('Recette créée avec succès', {
+        recipeId: data.id,
+        title: data.title,
+        author: data.author
+      })
+
       // Rediriger vers la page de la recette créée
+      logInfo(`Redirection vers la recette créée: /recipes/${data.id}`)
       router.push(`/recipes/${data.id}`)
+      
     } catch (error) {
-      console.error('Erreur lors de l\'envoi de la recette:', error)
+      logError('Erreur lors de la soumission de la recette', error, {
+        context: 'recipe_submission_complete',
+        formData: {
+          title: formData.title,
+          hasDescription: !!formData.description,
+          hasIngredients: !!formData.ingredients,
+          hasInstructions: !!formData.instructions,
+          category: formData.category,
+          difficulty: formData.difficulty
+        },
+        photosCount: photos.length
+      })
+      
       setErrors({ submit: 'Une erreur est survenue lors de la sauvegarde. Veuillez réessayer.' })
     } finally {
       setIsSubmitting(false)
+      logDebug('Fin du processus de soumission')
     }
   }
 
