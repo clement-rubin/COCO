@@ -241,6 +241,51 @@ export default function TestRecipes() {
     logInfo('✅ Tests automatiques terminés')
   }
 
+  const displaySQLInstructions = () => {
+    logInfo('📋 Affichage des instructions SQL pour la création de table')
+    
+    const sqlInstructions = `
+=== SQL POUR CRÉER LA TABLE RECIPES ===
+
+1. Allez dans votre dashboard Supabase
+2. Cliquez sur "SQL Editor" 
+3. Exécutez ce code SQL :
+
+CREATE TABLE recipes (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  title TEXT NOT NULL,
+  description TEXT,
+  ingredients TEXT NOT NULL,
+  instructions TEXT NOT NULL,
+  "prepTime" TEXT,
+  "cookTime" TEXT,
+  servings TEXT,
+  category TEXT,
+  difficulty TEXT DEFAULT 'Facile',
+  author TEXT DEFAULT 'Anonyme',
+  image TEXT,
+  photos JSONB DEFAULT '[]'::jsonb,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX idx_recipes_created_at ON recipes(created_at DESC);
+CREATE INDEX idx_recipes_category ON recipes(category);
+
+ALTER TABLE recipes ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Enable read access for all users" ON recipes FOR SELECT USING (true);
+CREATE POLICY "Enable insert for all users" ON recipes FOR INSERT WITH CHECK (true);
+CREATE POLICY "Enable update for all users" ON recipes FOR UPDATE USING (true);
+CREATE POLICY "Enable delete for all users" ON recipes FOR DELETE USING (true);
+
+=== FIN DU SQL ===
+    `
+    
+    console.log(sqlInstructions)
+    alert('Instructions SQL affichées dans la console. Consultez les logs pour voir le code complet.')
+  }
+
   return (
     <>
       <Head>
@@ -265,6 +310,12 @@ export default function TestRecipes() {
               </button>
               <button onClick={testSupabaseConnection} disabled={isLoading}>
                 🔍 Test Connexion
+              </button>
+              <button onClick={testTableCreation} disabled={isLoading}>
+                🏗️ Test Table
+              </button>
+              <button onClick={displaySQLInstructions}>
+                📋 SQL Instructions
               </button>
               <button onClick={loadRecipes} disabled={isLoading}>
                 📖 Charger Recettes

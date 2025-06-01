@@ -101,34 +101,76 @@ exports.handler = async (event, context) => {
     // POST - Ajout d'une nouvelle recette
     if (event.httpMethod === 'POST') {
       const data = JSON.parse(event.body);
+      
+      // Validation des champs obligatoires
+      if (!data.title || !data.ingredients || !data.instructions) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ 
+            message: 'Champs obligatoires manquants',
+            required: ['title', 'ingredients', 'instructions']
+          })
+        };
+      }
+      
       const newRecipe = {
-        id: uuidv4(),
-        title: data.title || 'Sans titre',
+        title: data.title,
         description: data.description || '',
-        image: data.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3",
-        prepTime: data.prepTime || "N/A",
-        cookTime: data.cookTime || "N/A",
+        ingredients: Array.isArray(data.ingredients) ? data.ingredients.join('\n') : (data.ingredients || ''),
+        instructions: Array.isArray(data.instructions) ? data.instructions.join('\n') : (data.instructions || ''),
+        prepTime: data.prepTime || "Non spécifié",
+        cookTime: data.cookTime || "Non spécifié",
+        servings: data.servings || "Non spécifié",
         category: data.category || "Autre",
-        author: data.author || "Anonyme",
-        ingredients: Array.isArray(data.ingredients) ? data.ingredients : (data.ingredients || ''),
-        instructions: Array.isArray(data.instructions) ? data.instructions : (data.instructions || ''),
-        servings: data.servings || "N/A",
         difficulty: data.difficulty || "Facile",
-        photos: Array.isArray(data.photos) ? data.photos : [],
-        created_at: new Date().toISOString()
+        author: data.author || "Anonyme",
+        image: data.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3",
+        photos: Array.isArray(data.photos) ? data.photos : []
       };
+      
+      log(`Tentative d'insertion d'une nouvelle recette: ${newRecipe.title}`, "info", {
+        hasTitle: !!newRecipe.title,
+        hasIngredients: !!newRecipe.ingredients,
+        hasInstructions: !!newRecipe.instructions
+      });
       
       const { data: insertedData, error } = await supabase
         .from('recipes')
         .insert([newRecipe])
         .select();
       
-      if (error) throw error;
+      if (error) {
+        log(`Erreur lors de l'insertion de la recette`, "error", {
+          supabaseError: error,
+          recipeData: newRecipe
+        });
+        
+        // Si c'est une erreur de colonne manquante, donner des instructions
+        if (error.code === 'PGRST204') {
+          return {
+            statusCode: 500,
+            headers,
+            body: JSON.stringify({ 
+              message: 'Erreur de structure de base de données',
+              details: 'La table recipes semble incomplète. Veuillez vérifier que toutes les colonnes nécessaires existent.',
+              error: error.message,
+              solution: 'Consultez les logs ou la page de test pour les instructions SQL de création de table.'
+            })
+          };
+        }
+        
+        throw error;
+      }
+      
+      log(`Recette créée avec succès: ${insertedData[0]?.title}`, "info", {
+        recipeId: insertedData[0]?.id
+      });
       
       return {
         statusCode: 201,
         headers,
-        body: JSON.stringify(insertedData[0] || newRecipe)
+        body: JSON.stringify(insertedData[0])
       };
     }
 
