@@ -1,5 +1,6 @@
 import Head from 'next/head'
 import { useState } from 'react'
+import Link from 'next/link'
 
 export default function Home() {
   const [showAddRecipe, setShowAddRecipe] = useState(false);
@@ -96,19 +97,25 @@ export default function Home() {
             <div style={{ fontWeight: '600' }}>Ajouter recette</div>
           </button>
           
-          <button 
+          <Link 
+            href="/explorer"
             className="card" 
             style={{ 
               border: 'none', 
               cursor: 'pointer',
               background: 'linear-gradient(135deg, var(--secondary-mint) 0%, var(--secondary-mint-dark) 100%)',
               color: 'white',
-              padding: 'var(--spacing-lg)'
+              padding: 'var(--spacing-lg)',
+              textDecoration: 'none',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center'
             }}
           >
             <div style={{ fontSize: '2rem', marginBottom: 'var(--spacing-sm)' }}>🔍</div>
             <div style={{ fontWeight: '600' }}>Explorer</div>
-          </button>
+          </Link>
         </div>
       </section>
 
@@ -121,15 +128,16 @@ export default function Home() {
           marginBottom: 'var(--spacing-lg)'
         }}>
           <h2 style={{ fontSize: '1.3rem', margin: 0 }}>Tendances</h2>
-          <button style={{ 
+          <Link href="/explorer" style={{ 
             background: 'none', 
             border: 'none', 
             color: 'var(--primary-coral)', 
             fontWeight: '600',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            textDecoration: 'none'
           }}>
             Voir tout
-          </button>
+          </Link>
         </div>
         
         <div style={{ display: 'flex', gap: 'var(--spacing-md)', overflowX: 'auto', paddingBottom: 'var(--spacing-sm)' }}>

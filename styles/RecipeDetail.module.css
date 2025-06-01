@@ -191,7 +191,10 @@
 
 .actions {
   margin-top: var(--spacing-2xl);
-  text-align: center;
+  display: flex;
+  gap: var(--spacing-md);
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
 .backButton {
@@ -216,6 +219,31 @@
 .backButton::before {
   content: "←";
   font-size: 1.2rem;
+}
+
+.favoriteButton {
+  background: linear-gradient(135deg, var(--primary-orange) 0%, var(--primary-orange-dark) 100%);
+  color: white;
+  border: none;
+  padding: var(--spacing-md) var(--spacing-xl);
+  border-radius: var(--border-radius-medium);
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  transition: all 0.3s ease;
+  box-shadow: var(--shadow-light);
+  font-family: 'Poppins', sans-serif;
+}
+
+.favoriteButton:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-medium);
+}
+
+.favoriteButton.active {
+  background: linear-gradient(135deg, #ff4757 0%, #ff3742 100%);
 }
 
 .loading,

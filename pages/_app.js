@@ -3,9 +3,12 @@ import Footer from '../components/Footer'
 import { useEffect, useState } from 'react'
 import ErrorBoundary from '../components/ErrorBoundary'
 import ErrorDisplay from '../components/ErrorDisplay'
+import Link from 'next/link'
+import { useRouter } from 'next/router'
 
 function MyApp({ Component, pageProps }) {
   const [globalError, setGlobalError] = useState(null);
+  const router = useRouter();
   
   // Gestionnaire d'erreurs global pour le frontend
   useEffect(() => {
@@ -49,6 +52,10 @@ function MyApp({ Component, pageProps }) {
 
   const resetGlobalError = () => setGlobalError(null);
 
+  const getNavItemClass = (path) => {
+    return router.pathname === path ? 'nav-item active' : 'nav-item';
+  };
+
   return (
     <ErrorBoundary>
       <div className="mobile-app">
@@ -73,25 +80,25 @@ function MyApp({ Component, pageProps }) {
         
         {/* Bottom Navigation */}
         <nav className="bottom-nav">
-          <button className="nav-item active">
+          <Link href="/" className={getNavItemClass('/')}>
             <span className="nav-icon">🏠</span>
             <span className="nav-label">Accueil</span>
-          </button>
-          <button className="nav-item">
+          </Link>
+          <Link href="/explorer" className={getNavItemClass('/explorer')}>
             <span className="nav-icon">🔍</span>
             <span className="nav-label">Explorer</span>
-          </button>
-          <button className="nav-item add-button">
-            <span className="nav-icon">➕</span>
-          </button>
-          <button className="nav-item">
+          </Link>
+          <Link href="/recherche" className="nav-item add-button">
+            <span className="nav-icon">🔍</span>
+          </Link>
+          <Link href="/favoris" className={getNavItemClass('/favoris')}>
             <span className="nav-icon">❤️</span>
             <span className="nav-label">Favoris</span>
-          </button>
-          <button className="nav-item">
+          </Link>
+          <Link href="/profil" className={getNavItemClass('/profil')}>
             <span className="nav-icon">👤</span>
             <span className="nav-label">Profil</span>
-          </button>
+          </Link>
         </nav>
       </div>
     </ErrorBoundary>
