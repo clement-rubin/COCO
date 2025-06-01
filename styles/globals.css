@@ -129,6 +129,14 @@ body {
   height: 56px;
   margin-top: -20px;
   box-shadow: var(--shadow-md);
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.nav-item.add-button:hover {
+  transform: scale(1.1);
+  background: var(--primary-coral-dark);
 }
 
 .nav-item.add-button .nav-icon {

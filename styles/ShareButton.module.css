@@ -18,15 +18,38 @@
   box-shadow: var(--shadow-light);
   min-height: 48px;
   font-family: 'Poppins', sans-serif;
+  position: relative;
+  overflow: hidden;
+}
+
+.shareButton::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  transition: left 0.5s;
+}
+
+.shareButton:hover::before {
+  left: 100%;
 }
 
 .shareButton:hover {
-  transform: translateY(-2px);
+  transform: translateY(-2px) scale(1.02);
   box-shadow: var(--shadow-medium);
 }
 
 .shareIcon {
   font-size: 1.2rem;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
 }
 
 .shareMenu {
@@ -47,8 +70,8 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
 }
 
 .sharePanel {
@@ -56,20 +79,22 @@
   border-radius: var(--border-radius-large) var(--border-radius-large) 0 0;
   max-width: 100%;
   width: 100%;
-  max-height: 80vh;
+  max-height: 85vh;
   overflow-y: auto;
   position: relative;
   z-index: 1001;
-  animation: slideUp 0.3s ease-out;
+  animation: slideUp 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   box-shadow: var(--shadow-heavy);
 }
 
 @keyframes slideUp {
   from {
     transform: translateY(100%);
+    opacity: 0;
   }
   to {
     transform: translateY(0);
+    opacity: 1;
   }
 }
 
@@ -79,34 +104,42 @@
   align-items: center;
   padding: var(--spacing-lg) var(--spacing-lg) var(--spacing-md);
   border-bottom: 1px solid rgba(255, 107, 53, 0.1);
+  background: linear-gradient(135deg, var(--warm-cream) 0%, white 100%);
 }
 
 .shareHeader h3 {
   margin: 0;
   font-family: 'Playfair Display', serif;
   color: var(--primary-orange);
-  font-size: 1.3rem;
+  font-size: 1.4rem;
+  font-weight: 600;
 }
 
 .closeButton {
-  background: none;
+  background: rgba(255, 107, 53, 0.1);
   border: none;
   font-size: 1.5rem;
   color: var(--text-medium);
   cursor: pointer;
-  padding: var(--spacing-xs);
-  border-radius: var(--border-radius-small);
+  padding: var(--spacing-sm);
+  border-radius: 50%;
   transition: all 0.3s ease;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .closeButton:hover {
-  background: var(--warm-cream);
-  color: var(--primary-orange);
+  background: var(--primary-orange);
+  color: white;
+  transform: rotate(90deg);
 }
 
 .shareOptions {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: var(--spacing-md);
   padding: var(--spacing-lg);
 }
@@ -114,30 +147,58 @@
 .shareOption {
   background: var(--background-card);
   border: 2px solid rgba(255, 107, 53, 0.1);
-  border-radius: var(--border-radius-medium);
+  border-radius: var(--border-radius-large);
   padding: var(--spacing-lg);
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: var(--spacing-sm);
   font-family: 'Poppins', sans-serif;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-dark);
-  min-height: 80px;
+  min-height: 100px;
+  position: relative;
+  overflow: hidden;
+}
+
+.shareOption::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, var(--primary-orange), var(--secondary-green));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.shareOption:hover::before {
+  opacity: 0.1;
 }
 
 .shareOption:hover {
   border-color: var(--primary-orange);
-  background: var(--warm-cream);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-light);
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 8px 25px rgba(255, 107, 53, 0.3);
+}
+
+.shareOption:active {
+  transform: translateY(-2px) scale(0.98);
 }
 
 .optionIcon {
-  font-size: 2rem;
+  font-size: 2.5rem;
   margin-bottom: var(--spacing-xs);
+  position: relative;
+  z-index: 1;
+  transition: transform 0.3s ease;
+}
+
+.shareOption:hover .optionIcon {
+  transform: scale(1.2) rotate(5deg);
 }
 
 .sharePreview {
@@ -145,15 +206,16 @@
   border-top: 1px solid rgba(255, 107, 53, 0.1);
   display: flex;
   gap: var(--spacing-md);
-  background: var(--warm-cream);
+  background: linear-gradient(135deg, var(--warm-cream) 0%, rgba(255, 247, 237, 0.5) 100%);
 }
 
 .previewImage {
-  width: 80px;
-  height: 80px;
-  border-radius: var(--border-radius-medium);
+  width: 100px;
+  height: 100px;
+  border-radius: var(--border-radius-large);
   object-fit: cover;
   flex-shrink: 0;
+  box-shadow: var(--shadow-light);
 }
 
 .previewContent {
@@ -161,21 +223,65 @@
 }
 
 .previewContent h4 {
-  margin: 0 0 var(--spacing-xs) 0;
+  margin: 0 0 var(--spacing-sm) 0;
   font-family: 'Playfair Display', serif;
   color: var(--primary-orange);
-  font-size: 1.1rem;
+  font-size: 1.2rem;
+  font-weight: 600;
 }
 
 .previewContent p {
   margin: 0;
   color: var(--text-medium);
-  font-size: 0.9rem;
-  line-height: 1.4;
+  font-size: 0.95rem;
+  line-height: 1.5;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.socialStats {
+  display: flex;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-sm);
+  font-size: 0.9rem;
+  color: var(--text-light);
+}
+
+.socialStats span {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.quickShare {
+  display: flex;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-top: 1px solid rgba(255, 107, 53, 0.1);
+  background: white;
+}
+
+.quickShareBtn {
+  flex: 1;
+  background: linear-gradient(135deg, var(--secondary-green) 0%, var(--secondary-green-light) 100%);
+  color: white;
+  border: none;
+  padding: var(--spacing-md);
+  border-radius: var(--border-radius-medium);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+}
+
+.quickShareBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-medium);
 }
 
 @media (min-width: 768px) {
@@ -184,9 +290,9 @@
   }
 
   .sharePanel {
-    max-width: 500px;
+    max-width: 550px;
     border-radius: var(--border-radius-large);
-    animation: scaleIn 0.3s ease-out;
+    animation: scaleIn 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   }
 
   @keyframes scaleIn {
@@ -201,6 +307,6 @@
   }
 
   .shareOptions {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
   }
 }

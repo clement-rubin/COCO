@@ -1,0 +1,318 @@
+.feed {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: var(--spacing-md);
+}
+
+.feedHeader {
+  text-align: center;
+  margin-bottom: var(--spacing-xl);
+  padding: var(--spacing-lg);
+  background: linear-gradient(135deg, var(--warm-cream) 0%, white 100%);
+  border-radius: var(--border-radius-large);
+}
+
+.feedHeader h2 {
+  margin: 0 0 var(--spacing-sm) 0;
+  font-family: 'Playfair Display', serif;
+  color: var(--primary-orange);
+  font-size: 1.8rem;
+}
+
+.feedHeader p {
+  margin: 0;
+  color: var(--text-medium);
+  font-size: 1rem;
+}
+
+.post {
+  background: var(--background-card);
+  border-radius: var(--border-radius-large);
+  margin-bottom: var(--spacing-xl);
+  box-shadow: var(--shadow-medium);
+  overflow: hidden;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 107, 53, 0.1);
+}
+
+.post:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-heavy);
+}
+
+.postHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-lg);
+  border-bottom: 1px solid rgba(255, 107, 53, 0.1);
+}
+
+.userInfo {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary-orange) 0%, var(--secondary-green) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  box-shadow: var(--shadow-light);
+}
+
+.userName {
+  font-weight: 600;
+  color: var(--text-dark);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: 1rem;
+}
+
+.verified {
+  font-size: 0.8rem;
+}
+
+.timeAgo {
+  font-size: 0.8rem;
+  color: var(--text-light);
+}
+
+.followBtn {
+  background: linear-gradient(135deg, var(--secondary-green) 0%, var(--secondary-green-light) 100%);
+  color: white;
+  border: none;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-radius: var(--border-radius-medium);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+}
+
+.followBtn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-light);
+}
+
+.recipeContent {
+  position: relative;
+}
+
+.imageContainer {
+  position: relative;
+  width: 100%;
+  height: 300px;
+  overflow: hidden;
+}
+
+.recipeImage {
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.post:hover .recipeImage {
+  transform: scale(1.02);
+}
+
+.imageOverlay {
+  position: absolute;
+  top: var(--spacing-md);
+  right: var(--spacing-md);
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.likeBtn {
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  font-size: 1.5rem;
+}
+
+.likeBtn:hover {
+  background: white;
+  transform: scale(1.1);
+}
+
+.likeBtn.liked {
+  background: rgba(255, 107, 53, 0.9);
+  animation: likeAnimation 0.3s ease;
+}
+
+@keyframes likeAnimation {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}
+
+.recipeInfo {
+  padding: var(--spacing-lg);
+}
+
+.recipeInfo h3 {
+  margin: 0 0 var(--spacing-sm) 0;
+  font-family: 'Playfair Display', serif;
+  color: var(--primary-orange);
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+.recipeInfo p {
+  margin: 0 0 var(--spacing-md) 0;
+  color: var(--text-medium);
+  line-height: 1.5;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+}
+
+.tag {
+  background: var(--warm-cream);
+  color: var(--primary-orange);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius-small);
+  font-size: 0.8rem;
+  font-weight: 500;
+  border: 1px solid rgba(255, 107, 53, 0.2);
+}
+
+.postStats {
+  display: flex;
+  gap: var(--spacing-lg);
+  padding: 0 var(--spacing-lg);
+  font-size: 0.9rem;
+  color: var(--text-light);
+  border-bottom: 1px solid rgba(255, 107, 53, 0.1);
+  padding-bottom: var(--spacing-md);
+}
+
+.postActions {
+  display: flex;
+  padding: var(--spacing-md) var(--spacing-lg);
+  gap: var(--spacing-md);
+}
+
+.actionBtn {
+  flex: 1;
+  background: var(--background-light);
+  border: 1px solid rgba(255, 107, 53, 0.2);
+  padding: var(--spacing-md);
+  border-radius: var(--border-radius-medium);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 500;
+  color: var(--text-medium);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+}
+
+.actionBtn:hover {
+  background: var(--warm-cream);
+  border-color: var(--primary-orange);
+  color: var(--primary-orange);
+}
+
+.actionBtn.active {
+  background: linear-gradient(135deg, var(--primary-orange) 0%, var(--primary-orange-dark) 100%);
+  color: white;
+  border-color: var(--primary-orange);
+}
+
+.commentsSection {
+  border-top: 1px solid rgba(255, 107, 53, 0.1);
+  background: var(--warm-cream);
+}
+
+.comments {
+  max-height: 200px;
+  overflow-y: auto;
+  padding: var(--spacing-md) var(--spacing-lg);
+}
+
+.comment {
+  margin-bottom: var(--spacing-md);
+  padding: var(--spacing-sm);
+  background: white;
+  border-radius: var(--border-radius-small);
+  font-size: 0.9rem;
+}
+
+.commentTime {
+  font-size: 0.7rem;
+  color: var(--text-light);
+  margin-left: var(--spacing-sm);
+}
+
+.addComment {
+  display: flex;
+  padding: var(--spacing-md) var(--spacing-lg);
+  gap: var(--spacing-sm);
+}
+
+.commentInput {
+  flex: 1;
+  border: 1px solid rgba(255, 107, 53, 0.2);
+  border-radius: var(--border-radius-medium);
+  padding: var(--spacing-md);
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.3s ease;
+}
+
+.commentInput:focus {
+  border-color: var(--primary-orange);
+}
+
+.sendComment {
+  background: var(--primary-orange);
+  color: white;
+  border: none;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--border-radius-medium);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 1rem;
+}
+
+.sendComment:hover {
+  background: var(--primary-orange-dark);
+  transform: translateX(2px);
+}
+
+@media (max-width: 768px) {
+  .feed {
+    padding: var(--spacing-sm);
+  }
+  
+  .postActions {
+    flex-direction: column;
+  }
+  
+  .actionBtn {
+    flex: none;
+  }
+  
+  .postStats {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+}

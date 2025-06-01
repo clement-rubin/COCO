@@ -4,12 +4,13 @@ Une application web moderne et mobile-first pour partager et découvrir des rece
 
 ## 🍴 Fonctionnalités Principales
 
-- **Partage de recettes** - Partagez vos créations culinaires avec la communauté
+- **Partage de recettes avec photos** - Partagez vos créations culinaires avec photos de vos plats
 - **Navigation des recettes** - Explorez les recettes partagées par d'autres utilisateurs
 - **Recherche intelligente** - Trouvez des recettes par titre, description ou auteur
 - **Design mobile-first** - Interface optimisée pour smartphone et tablette
-- **Upload d'images** - Ajoutez des photos alléchantes à vos recettes
+- **Upload multiple d'images** - Ajoutez jusqu'à 5 photos de vos plats
 - **Détails complets** - Ingrédients, instructions étape par étape, temps de préparation
+- **Bouton de partage intégré** - Accès rapide à la page de soumission de recette
 
 ## 🎨 Design Mobile-First
 
@@ -37,15 +38,17 @@ COCO/
 ├── pages/
 │   ├── index.js                    # Page d'accueil
 │   ├── user-recipes.js            # Liste des recettes partagées
-│   ├── submit-recipe.js           # Formulaire d'ajout de recette
+│   ├── submit-recipe.js           # Page de partage de recette avec photos
 │   └── recipes/
 │       └── user/[id].js           # Détail d'une recette utilisateur
 ├── components/
 │   ├── Navbar.tsx                 # Navigation responsive
-│   └── RecipeCard.js             # Carte de recette
+│   ├── RecipeCard.js             # Carte de recette
+│   ├── ShareButton.js            # Bouton de partage vers submit-recipe
+│   └── PhotoUpload.js            # Composant d'upload de photos
 ├── styles/
 │   ├── globals.css               # Design system global
-│   ├── SubmitRecipe.module.css   # Styles du formulaire
+│   ├── SubmitRecipe.module.css   # Styles du formulaire de partage
 │   └── RecipeDetail.module.css   # Styles des détails
 └── api/
     └── recipes/                  # API de gestion des recettes
@@ -99,7 +102,8 @@ vercel --prod
 - [ ] Catégories avancées
 - [ ] Mode hors ligne (PWA)
 - [ ] Notifications push
-- [ ] Partage social
+- [ ] Partage social direct des recettes
+- [ ] Stories de cuisine éphémères
 
 ## 📄 Licence
 
