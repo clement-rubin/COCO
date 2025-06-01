@@ -110,8 +110,11 @@ exports.handler = async (event, context) => {
         cookTime: data.cookTime || "N/A",
         category: data.category || "Autre",
         author: data.author || "Anonyme",
-        ingredients: Array.isArray(data.ingredients) ? data.ingredients : [],
-        instructions: Array.isArray(data.instructions) ? data.instructions : [],
+        ingredients: Array.isArray(data.ingredients) ? data.ingredients : (data.ingredients || ''),
+        instructions: Array.isArray(data.instructions) ? data.instructions : (data.instructions || ''),
+        servings: data.servings || "N/A",
+        difficulty: data.difficulty || "Facile",
+        photos: Array.isArray(data.photos) ? data.photos : [],
         created_at: new Date().toISOString()
       };
       
