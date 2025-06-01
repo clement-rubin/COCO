@@ -1,5 +1,4 @@
 import '../styles/globals.css'
-import Navigation from '../components/Navigation'
 import Footer from '../components/Footer'
 import { useEffect, useState } from 'react'
 import ErrorBoundary from '../components/ErrorBoundary'
@@ -52,16 +51,49 @@ function MyApp({ Component, pageProps }) {
 
   return (
     <ErrorBoundary>
-      <Navigation />
-      <main>
-        {globalError && (
-          <div style={{ maxWidth: '1200px', margin: '1rem auto', padding: '0 1rem' }}>
-            <ErrorDisplay error={globalError} resetError={resetGlobalError} />
+      <div className="mobile-app">
+        {/* Mobile Status Bar */}
+        <div className="status-bar">
+          <span>9:41</span>
+          <div className="status-icons">
+            <span>📶</span>
+            <span>📱</span>
+            <span>🔋</span>
           </div>
-        )}
-        <Component {...pageProps} />
-      </main>
-      <Footer />
+        </div>
+        
+        <main className="app-content">
+          {globalError && (
+            <div style={{ maxWidth: '1200px', margin: '1rem auto', padding: '0 1rem' }}>
+              <ErrorDisplay error={globalError} resetError={resetGlobalError} />
+            </div>
+          )}
+          <Component {...pageProps} />
+        </main>
+        
+        {/* Bottom Navigation */}
+        <nav className="bottom-nav">
+          <button className="nav-item active">
+            <span className="nav-icon">🏠</span>
+            <span className="nav-label">Accueil</span>
+          </button>
+          <button className="nav-item">
+            <span className="nav-icon">🔍</span>
+            <span className="nav-label">Explorer</span>
+          </button>
+          <button className="nav-item add-button">
+            <span className="nav-icon">➕</span>
+          </button>
+          <button className="nav-item">
+            <span className="nav-icon">❤️</span>
+            <span className="nav-label">Favoris</span>
+          </button>
+          <button className="nav-item">
+            <span className="nav-icon">👤</span>
+            <span className="nav-label">Profil</span>
+          </button>
+        </nav>
+      </div>
     </ErrorBoundary>
   )
 }

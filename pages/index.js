@@ -16,313 +16,225 @@ export default function Home() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      {/* Hero Section */}
+      {/* Hero Section Mobile */}
       <section style={{
-        background: 'linear-gradient(135deg, var(--warm-cream) 0%, var(--warm-beige) 100%)',
-        padding: 'var(--spacing-2xl) 0',
+        background: 'var(--bg-gradient)',
+        padding: 'var(--spacing-xl) var(--spacing-md)',
         textAlign: 'center',
-        position: 'relative',
-        overflow: 'hidden',
-        minHeight: '80vh',
-        display: 'flex',
-        alignItems: 'center'
+        borderRadius: '0 0 var(--radius-xl) var(--radius-xl)',
+        margin: '0 0 var(--spacing-lg) 0'
       }}>
-        <div className="container">
-          <div className="fade-in-up">
-            <div style={{
-              fontSize: '4rem',
-              marginBottom: 'var(--spacing-lg)',
-              filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))'
-            }}>🍴</div>
-            
-            <h1 style={{ 
-              marginBottom: 'var(--spacing-lg)',
-              background: 'linear-gradient(135deg, var(--primary-orange) 0%, var(--primary-orange-dark) 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text'
-            }}>
-              COCO - Partagez vos recettes
-            </h1>
-            
-            <p style={{ 
-              fontSize: '1.3rem', 
-              marginBottom: 'var(--spacing-xl)',
-              maxWidth: '700px',
-              margin: '0 auto var(--spacing-xl) auto',
-              color: 'var(--text-medium)',
-              lineHeight: '1.6'
-            }}>
-              Rejoignez notre communauté de passionnés de cuisine et partagez vos créations culinaires avec le monde entier.
-            </p>
-            
-            <div style={{ 
-              display: 'flex', 
-              gap: 'var(--spacing-lg)', 
-              justifyContent: 'center',
-              flexWrap: 'wrap',
-              marginBottom: 'var(--spacing-xl)'
-            }}>
-              <button 
-                onClick={handleAddRecipe}
-                className="btn btn-primary" 
-                style={{ border: 'none', fontSize: '1.1rem' }}
-              >
-                ➕ Partager ma recette
-              </button>
-              <button 
-                className="btn btn-secondary" 
-                style={{ border: 'none', fontSize: '1.1rem' }}
-                onClick={() => document.getElementById('recipes-section').scrollIntoView({ behavior: 'smooth' })}
-              >
-                🍽️ Découvrir les recettes
-              </button>
-            </div>
-            
-            {/* Stats de la communauté */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-              gap: 'var(--spacing-lg)',
-              maxWidth: '600px',
-              margin: '0 auto',
-              marginTop: 'var(--spacing-2xl)'
-            }}>
-              <div style={{
-                background: 'rgba(255,255,255,0.8)',
-                padding: 'var(--spacing-lg)',
-                borderRadius: 'var(--border-radius-large)',
-                backdropFilter: 'blur(10px)'
-              }}>
-                <div style={{ fontSize: '2rem', color: 'var(--primary-orange)' }}>🍽️</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--text-dark)' }}>Recettes</div>
-                <div style={{ color: 'var(--text-medium)' }}>Partagées</div>
-              </div>
-              <div style={{
-                background: 'rgba(255,255,255,0.8)',
-                padding: 'var(--spacing-lg)',
-                borderRadius: 'var(--border-radius-large)',
-                backdropFilter: 'blur(10px)'
-              }}>
-                <div style={{ fontSize: '2rem', color: 'var(--secondary-green)' }}>👨‍🍳</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--text-dark)' }}>Chefs</div>
-                <div style={{ color: 'var(--text-medium)' }}>Passionnés</div>
-              </div>
-              <div style={{
-                background: 'rgba(255,255,255,0.8)',
-                padding: 'var(--spacing-lg)',
-                borderRadius: 'var(--border-radius-large)',
-                backdropFilter: 'blur(10px)'
-              }}>
-                <div style={{ fontSize: '2rem', color: 'var(--primary-orange)' }}>❤️</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--text-dark)' }}>Saveurs</div>
-                <div style={{ color: 'var(--text-medium)' }}>Authentiques</div>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        {/* Decorative elements */}
-        <div style={{
-          position: 'absolute',
-          top: '15%',
-          right: '5%',
-          fontSize: '3rem',
-          opacity: 0.1,
-          transform: 'rotate(15deg)',
-          display: 'none'
-        }} className="hidden-mobile">🥘</div>
-        <div style={{
-          position: 'absolute',
-          bottom: '15%',
-          left: '5%',
-          fontSize: '2.5rem',
-          opacity: 0.1,
-          transform: 'rotate(-15deg)',
-          display: 'none'
-        }} className="hidden-mobile">🍳</div>
-      </section>
-
-      {/* Comment ça marche */}
-      <section style={{ padding: 'var(--spacing-2xl) 0' }}>
-        <div className="container">
-          <h2 className="text-center mb-xl">Comment ça marche ?</h2>
-          <div className="grid grid-3">
-            <div className="card text-center fade-in-up">
-              <div style={{ 
-                fontSize: '4rem', 
-                marginBottom: 'var(--spacing-lg)',
-                color: 'var(--primary-orange)'
-              }}>📝</div>
-              <h3>1. Créez</h3>
-              <p>Ajoutez votre recette avec des photos, ingrédients et instructions détaillées</p>
-            </div>
-            <div className="card text-center fade-in-up">
-              <div style={{ 
-                fontSize: '4rem', 
-                marginBottom: 'var(--spacing-lg)',
-                color: 'var(--secondary-green)'
-              }}>🌍</div>
-              <h3>2. Partagez</h3>
-              <p>Votre recette devient immédiatement visible par toute la communauté</p>
-            </div>
-            <div className="card text-center fade-in-up">
-              <div style={{ 
-                fontSize: '4rem', 
-                marginBottom: 'var(--spacing-lg)',
-                color: 'var(--primary-orange)'
-              }}>👨‍🍳</div>
-              <h3>3. Inspirez</h3>
-              <p>Aidez d'autres passionnés à découvrir de nouvelles saveurs</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Section recettes d'exemple */}
-      <section id="recipes-section" style={{ 
-        background: 'var(--background-secondary)', 
-        padding: 'var(--spacing-2xl) 0' 
-      }}>
-        <div className="container">
-          <h2 className="text-center mb-xl">Exemples de recettes</h2>
+        <div className="fade-in-up">
+          <div style={{
+            fontSize: '3.5rem',
+            marginBottom: 'var(--spacing-md)',
+            filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))'
+          }}>🥥</div>
           
-          <div className="grid grid-2">
-            {/* Recipe Card Example 1 */}
-            <div className="card fade-in-up">
-              <div style={{
-                width: '100%',
-                height: '200px',
-                background: 'linear-gradient(45deg, var(--primary-orange-light), var(--secondary-green-light))',
-                borderRadius: 'var(--border-radius-medium)',
-                marginBottom: 'var(--spacing-md)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '4rem'
-              }}>🍝</div>
-              <h3 style={{ marginBottom: 'var(--spacing-sm)' }}>Pâtes à la carbonara</h3>
-              <p style={{ marginBottom: 'var(--spacing-md)' }}>Une recette authentique et crémeuse qui ravira toute la famille</p>
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-                marginBottom: 'var(--spacing-md)'
-              }}>
-                <span style={{ 
-                  background: 'var(--warm-cream)', 
-                  padding: 'var(--spacing-xs) var(--spacing-sm)',
-                  borderRadius: 'var(--border-radius-small)',
-                  fontSize: '0.9rem',
-                  color: 'var(--primary-orange)',
-                  fontWeight: '500'
-                }}>⏱️ 20 min</span>
-                <span style={{ 
-                  color: 'var(--text-light)',
-                  fontSize: '0.9rem'
-                }}>⭐ 4.8 (24 avis)</span>
-              </div>
-              <button 
-                className="btn btn-primary" 
-                style={{ width: '100%', border: 'none' }}
-                onClick={() => alert('Fonctionnalité à venir !')}
-              >
-                Voir la recette
-              </button>
+          <h1 style={{ 
+            marginBottom: 'var(--spacing-md)',
+            background: 'linear-gradient(135deg, var(--primary-coral) 0%, var(--secondary-mint-dark) 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            fontSize: '2.2rem'
+          }}>
+            COCO
+          </h1>
+          
+          <p style={{ 
+            fontSize: '1rem', 
+            marginBottom: 'var(--spacing-lg)',
+            color: 'var(--text-secondary)',
+            lineHeight: '1.5'
+          }}>
+            Partagez vos recettes favorites avec une communauté passionnée
+          </p>
+          
+          {/* Stats Cards */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: 'var(--spacing-sm)',
+            marginTop: 'var(--spacing-xl)'
+          }}>
+            <div className="card" style={{ padding: 'var(--spacing-md)', textAlign: 'center' }}>
+              <div style={{ fontSize: '1.5rem', marginBottom: 'var(--spacing-xs)' }}>🍽️</div>
+              <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--primary-coral)' }}>2.4k</div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-light)' }}>Recettes</div>
             </div>
-
-            {/* Recipe Card Example 2 */}
-            <div className="card fade-in-up">
-              <div style={{
-                width: '100%',
-                height: '200px',
-                background: 'linear-gradient(45deg, var(--secondary-green-light), var(--primary-orange-light))',
-                borderRadius: 'var(--border-radius-medium)',
-                marginBottom: 'var(--spacing-md)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '4rem'
-              }}>🥗</div>
-              <h3 style={{ marginBottom: 'var(--spacing-sm)' }}>Salade César</h3>
-              <p style={{ marginBottom: 'var(--spacing-md)' }}>Fraîche et croquante, parfaite pour un déjeuner léger</p>
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-                marginBottom: 'var(--spacing-md)'
-              }}>
-                <span style={{ 
-                  background: 'var(--warm-cream)', 
-                  padding: 'var(--spacing-xs) var(--spacing-sm)',
-                  borderRadius: 'var(--border-radius-small)',
-                  fontSize: '0.9rem',
-                  color: 'var(--primary-orange)',
-                  fontWeight: '500'
-                }}>⏱️ 15 min</span>
-                <span style={{ 
-                  color: 'var(--text-light)',
-                  fontSize: '0.9rem'
-                }}>⭐ 4.6 (18 avis)</span>
-              </div>
-              <button 
-                className="btn btn-primary" 
-                style={{ width: '100%', border: 'none' }}
-                onClick={() => alert('Fonctionnalité à venir !')}
-              >
-                Voir la recette
-              </button>
+            <div className="card" style={{ padding: 'var(--spacing-md)', textAlign: 'center' }}>
+              <div style={{ fontSize: '1.5rem', marginBottom: 'var(--spacing-xs)' }}>👨‍🍳</div>
+              <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--secondary-mint)' }}>850</div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-light)' }}>Chefs</div>
+            </div>
+            <div className="card" style={{ padding: 'var(--spacing-md)', textAlign: 'center' }}>
+              <div style={{ fontSize: '1.5rem', marginBottom: 'var(--spacing-xs)' }}>❤️</div>
+              <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--primary-coral)' }}>12k</div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-light)' }}>Likes</div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section style={{ 
-        background: 'linear-gradient(135deg, var(--primary-orange) 0%, var(--primary-orange-dark) 100%)',
-        padding: 'var(--spacing-2xl) 0',
-        color: 'white',
-        textAlign: 'center'
-      }}>
-        <div className="container">
-          <div style={{ fontSize: '3rem', marginBottom: 'var(--spacing-lg)' }}>🚀</div>
-          <h2 style={{ color: 'white', marginBottom: 'var(--spacing-lg)' }}>
-            Prêt à partager votre passion ?
-          </h2>
-          <p style={{ 
-            fontSize: '1.2rem', 
-            marginBottom: 'var(--spacing-xl)',
-            opacity: 0.9,
-            maxWidth: '600px',
-            margin: '0 auto var(--spacing-xl) auto'
-          }}>
-            Rejoignez des milliers de passionnés de cuisine qui partagent déjà leurs recettes favorites
-          </p>
+      {/* Quick Actions */}
+      <section style={{ padding: '0 var(--spacing-md) var(--spacing-xl)' }}>
+        <h2 style={{ fontSize: '1.3rem', marginBottom: 'var(--spacing-md)' }}>Actions rapides</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--spacing-md)' }}>
           <button 
             onClick={handleAddRecipe}
-            className="btn" 
+            className="card" 
             style={{ 
-              background: 'white',
-              color: 'var(--primary-orange)',
-              fontWeight: '600',
-              fontSize: '1.1rem',
-              padding: 'var(--spacing-lg) var(--spacing-2xl)',
-              border: 'none'
+              border: 'none', 
+              cursor: 'pointer',
+              background: 'linear-gradient(135deg, var(--primary-coral) 0%, var(--primary-coral-dark) 100%)',
+              color: 'white',
+              padding: 'var(--spacing-lg)'
             }}
           >
-            ➕ Ajouter ma première recette
+            <div style={{ fontSize: '2rem', marginBottom: 'var(--spacing-sm)' }}>➕</div>
+            <div style={{ fontWeight: '600' }}>Ajouter recette</div>
+          </button>
+          
+          <button 
+            className="card" 
+            style={{ 
+              border: 'none', 
+              cursor: 'pointer',
+              background: 'linear-gradient(135deg, var(--secondary-mint) 0%, var(--secondary-mint-dark) 100%)',
+              color: 'white',
+              padding: 'var(--spacing-lg)'
+            }}
+          >
+            <div style={{ fontSize: '2rem', marginBottom: 'var(--spacing-sm)' }}>🔍</div>
+            <div style={{ fontWeight: '600' }}>Explorer</div>
           </button>
         </div>
       </section>
 
-      {/* Floating Action Button */}
-      <button 
-        onClick={handleAddRecipe}
-        className="fab" 
-        style={{ border: 'none' }}
-      >
-        ➕
-      </button>
+      {/* Trending Recipes */}
+      <section style={{ padding: '0 var(--spacing-md) var(--spacing-xl)' }}>
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          marginBottom: 'var(--spacing-lg)'
+        }}>
+          <h2 style={{ fontSize: '1.3rem', margin: 0 }}>Tendances</h2>
+          <button style={{ 
+            background: 'none', 
+            border: 'none', 
+            color: 'var(--primary-coral)', 
+            fontWeight: '600',
+            cursor: 'pointer'
+          }}>
+            Voir tout
+          </button>
+        </div>
+        
+        <div style={{ display: 'flex', gap: 'var(--spacing-md)', overflowX: 'auto', paddingBottom: 'var(--spacing-sm)' }}>
+          {/* Recipe Card 1 */}
+          <div className="card" style={{ minWidth: '280px', padding: 0 }}>
+            <div style={{
+              width: '100%',
+              height: '150px',
+              background: 'linear-gradient(45deg, var(--primary-coral-light), var(--accent-yellow))',
+              borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '3rem'
+            }}>🍝</div>
+            <div style={{ padding: 'var(--spacing-md)' }}>
+              <h3 style={{ fontSize: '1rem', marginBottom: 'var(--spacing-xs)' }}>Pâtes Carbonara</h3>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: 'var(--spacing-sm)' }}>
+                Authentique et crémeuse
+              </p>
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                fontSize: '0.7rem'
+              }}>
+                <span style={{ 
+                  background: 'var(--primary-coral-light)', 
+                  padding: 'var(--spacing-xs) var(--spacing-sm)',
+                  borderRadius: 'var(--radius-sm)',
+                  color: 'var(--primary-coral)'
+                }}>⏱️ 20 min</span>
+                <span style={{ color: 'var(--text-light)' }}>⭐ 4.8</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Recipe Card 2 */}
+          <div className="card" style={{ minWidth: '280px', padding: 0 }}>
+            <div style={{
+              width: '100%',
+              height: '150px',
+              background: 'linear-gradient(45deg, var(--secondary-mint-light), var(--accent-purple))',
+              borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '3rem'
+            }}>🥗</div>
+            <div style={{ padding: 'var(--spacing-md)' }}>
+              <h3 style={{ fontSize: '1rem', marginBottom: 'var(--spacing-xs)' }}>Salade César</h3>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: 'var(--spacing-sm)' }}>
+                Fraîche et croquante
+              </p>
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                fontSize: '0.7rem'
+              }}>
+                <span style={{ 
+                  background: 'var(--secondary-mint-light)', 
+                  padding: 'var(--spacing-xs) var(--spacing-sm)',
+                  borderRadius: 'var(--radius-sm)',
+                  color: 'var(--secondary-mint)'
+                }}>⏱️ 15 min</span>
+                <span style={{ color: 'var(--text-light)' }}>⭐ 4.6</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Categories */}
+      <section style={{ padding: '0 var(--spacing-md) var(--spacing-xl)' }}>
+        <h2 style={{ fontSize: '1.3rem', marginBottom: 'var(--spacing-lg)' }}>Catégories</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--spacing-sm)' }}>
+          {/*
+            { emoji: '🍝', name: 'Pâtes' },
+            { emoji: '🥗', name: 'Salades' },
+            { emoji: '🍰', name: 'Desserts' },
+            { emoji: '🍲', name: 'Soupes' }
+          */}
+          { [
+            { emoji: '🍝', name: 'Pâtes' },
+            { emoji: '🥗', name: 'Salades' },
+            { emoji: '🍰', name: 'Desserts' },
+            { emoji: '🍲', name: 'Soupes' }
+          ].map((category, index) => (
+            <button key={index} className="card" style={{ 
+              border: 'none', 
+              cursor: 'pointer',
+              padding: 'var(--spacing-md)',
+              textAlign: 'center'
+            }}>
+              <div style={{ fontSize: '2rem', marginBottom: 'var(--spacing-xs)' }}>
+                {category.emoji}
+              </div>
+              <div style={{ fontSize: '0.8rem', fontWeight: '500' }}>
+                {category.name}
+              </div>
+            </button>
+          )) }
+        </div>
+      </section>
     </div>
   );
 }
