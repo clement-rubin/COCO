@@ -1,13 +1,18 @@
 import Head from 'next/head'
-import Link from 'next/link'
-import styles from '../styles/Home.module.css'
+import { useState } from 'react'
 
 export default function Home() {
+  const [showAddRecipe, setShowAddRecipe] = useState(false);
+
+  const handleAddRecipe = () => {
+    alert('Fonctionnalité d\'ajout de recette - À venir prochainement !');
+  };
+
   return (
     <div>
       <Head>
         <title>COCO - Cuisine & Saveurs</title>
-        <meta name="description" content="Découvrez les meilleures recettes de cuisine" />
+        <meta name="description" content="Découvrez et partagez les meilleures recettes de cuisine" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
@@ -58,12 +63,20 @@ export default function Home() {
               flexWrap: 'wrap',
               marginBottom: 'var(--spacing-xl)'
             }}>
-              <Link href="/submit-recipe" className="btn btn-primary" style={{ textDecoration: 'none' }}>
+              <button 
+                onClick={handleAddRecipe}
+                className="btn btn-primary" 
+                style={{ border: 'none', fontSize: '1.1rem' }}
+              >
                 ➕ Partager ma recette
-              </Link>
-              <Link href="/user-recipes" className="btn btn-secondary" style={{ textDecoration: 'none' }}>
+              </button>
+              <button 
+                className="btn btn-secondary" 
+                style={{ border: 'none', fontSize: '1.1rem' }}
+                onClick={() => document.getElementById('recipes-section').scrollIntoView({ behavior: 'smooth' })}
+              >
                 🍽️ Découvrir les recettes
-              </Link>
+              </button>
             </div>
             
             {/* Stats de la communauté */}
@@ -166,6 +179,104 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Section recettes d'exemple */}
+      <section id="recipes-section" style={{ 
+        background: 'var(--background-secondary)', 
+        padding: 'var(--spacing-2xl) 0' 
+      }}>
+        <div className="container">
+          <h2 className="text-center mb-xl">Exemples de recettes</h2>
+          
+          <div className="grid grid-2">
+            {/* Recipe Card Example 1 */}
+            <div className="card fade-in-up">
+              <div style={{
+                width: '100%',
+                height: '200px',
+                background: 'linear-gradient(45deg, var(--primary-orange-light), var(--secondary-green-light))',
+                borderRadius: 'var(--border-radius-medium)',
+                marginBottom: 'var(--spacing-md)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '4rem'
+              }}>🍝</div>
+              <h3 style={{ marginBottom: 'var(--spacing-sm)' }}>Pâtes à la carbonara</h3>
+              <p style={{ marginBottom: 'var(--spacing-md)' }}>Une recette authentique et crémeuse qui ravira toute la famille</p>
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                marginBottom: 'var(--spacing-md)'
+              }}>
+                <span style={{ 
+                  background: 'var(--warm-cream)', 
+                  padding: 'var(--spacing-xs) var(--spacing-sm)',
+                  borderRadius: 'var(--border-radius-small)',
+                  fontSize: '0.9rem',
+                  color: 'var(--primary-orange)',
+                  fontWeight: '500'
+                }}>⏱️ 20 min</span>
+                <span style={{ 
+                  color: 'var(--text-light)',
+                  fontSize: '0.9rem'
+                }}>⭐ 4.8 (24 avis)</span>
+              </div>
+              <button 
+                className="btn btn-primary" 
+                style={{ width: '100%', border: 'none' }}
+                onClick={() => alert('Fonctionnalité à venir !')}
+              >
+                Voir la recette
+              </button>
+            </div>
+
+            {/* Recipe Card Example 2 */}
+            <div className="card fade-in-up">
+              <div style={{
+                width: '100%',
+                height: '200px',
+                background: 'linear-gradient(45deg, var(--secondary-green-light), var(--primary-orange-light))',
+                borderRadius: 'var(--border-radius-medium)',
+                marginBottom: 'var(--spacing-md)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '4rem'
+              }}>🥗</div>
+              <h3 style={{ marginBottom: 'var(--spacing-sm)' }}>Salade César</h3>
+              <p style={{ marginBottom: 'var(--spacing-md)' }}>Fraîche et croquante, parfaite pour un déjeuner léger</p>
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                marginBottom: 'var(--spacing-md)'
+              }}>
+                <span style={{ 
+                  background: 'var(--warm-cream)', 
+                  padding: 'var(--spacing-xs) var(--spacing-sm)',
+                  borderRadius: 'var(--border-radius-small)',
+                  fontSize: '0.9rem',
+                  color: 'var(--primary-orange)',
+                  fontWeight: '500'
+                }}>⏱️ 15 min</span>
+                <span style={{ 
+                  color: 'var(--text-light)',
+                  fontSize: '0.9rem'
+                }}>⭐ 4.6 (18 avis)</span>
+              </div>
+              <button 
+                className="btn btn-primary" 
+                style={{ width: '100%', border: 'none' }}
+                onClick={() => alert('Fonctionnalité à venir !')}
+              >
+                Voir la recette
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section style={{ 
         background: 'linear-gradient(135deg, var(--primary-orange) 0%, var(--primary-orange-dark) 100%)',
@@ -187,27 +298,31 @@ export default function Home() {
           }}>
             Rejoignez des milliers de passionnés de cuisine qui partagent déjà leurs recettes favorites
           </p>
-          <Link 
-            href="/submit-recipe" 
+          <button 
+            onClick={handleAddRecipe}
             className="btn" 
             style={{ 
               background: 'white',
               color: 'var(--primary-orange)',
-              textDecoration: 'none',
               fontWeight: '600',
               fontSize: '1.1rem',
-              padding: 'var(--spacing-lg) var(--spacing-2xl)'
+              padding: 'var(--spacing-lg) var(--spacing-2xl)',
+              border: 'none'
             }}
           >
             ➕ Ajouter ma première recette
-          </Link>
+          </button>
         </div>
       </section>
 
       {/* Floating Action Button */}
-      <Link href="/submit-recipe" className="fab" style={{ textDecoration: 'none' }}>
+      <button 
+        onClick={handleAddRecipe}
+        className="fab" 
+        style={{ border: 'none' }}
+      >
         ➕
-      </Link>
+      </button>
     </div>
   );
 }

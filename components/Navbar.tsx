@@ -1,4 +1,5 @@
-// ...existing imports...
+import React, { useState } from 'react';
+import Link from 'next/link';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -51,12 +52,12 @@ const Navbar = () => {
             gap: 'var(--spacing-lg)', 
             alignItems: 'center' 
           }}>
-            <Link href="/user-recipes" className="nav-link">
-              🍽️ Recettes
+            <Link href="/" className="nav-link">
+              Accueil
             </Link>
-            <Link href="/submit-recipe" className="btn btn-primary" style={{ textDecoration: 'none' }}>
-              ➕ Partager
-            </Link>
+            <button className="btn btn-primary" style={{ border: 'none' }}>
+              ➕ Ajouter une recette
+            </button>
           </div>
 
           {/* Mobile Menu Button */}
@@ -95,18 +96,56 @@ const Navbar = () => {
               flexDirection: 'column', 
               gap: 'var(--spacing-md)' 
             }}>
-              <Link href="/user-recipes" className="mobile-nav-link">
-                🍽️ Découvrir les recettes
+              <Link href="/" className="mobile-nav-link">
+                🏠 Accueil
               </Link>
-              <Link href="/submit-recipe" className="mobile-nav-link">
-                ➕ Partager ma recette
-              </Link>
+              <button className="mobile-nav-link" style={{ 
+                border: 'none', 
+                background: 'none', 
+                textAlign: 'left',
+                cursor: 'pointer'
+              }}>
+                ➕ Ajouter une recette
+              </button>
             </div>
           </div>
         )}
       </div>
 
-      {/* ...existing styles... */}
+      <style jsx>{`
+        .nav-link {
+          text-decoration: none;
+          color: var(--text-medium);
+          font-weight: 500;
+          padding: var(--spacing-sm) var(--spacing-md);
+          border-radius: var(--border-radius-small);
+          transition: all 0.3s ease;
+        }
+
+        .nav-link:hover {
+          color: var(--primary-orange);
+          background: rgba(255, 107, 53, 0.1);
+        }
+
+        .mobile-nav-link {
+          text-decoration: none;
+          color: var(--text-dark);
+          font-weight: 500;
+          padding: var(--spacing-md);
+          border-radius: var(--border-radius-medium);
+          transition: all 0.3s ease;
+          display: flex;
+          align-items: center;
+          gap: var(--spacing-sm);
+          font-size: 1.1rem;
+          font-family: 'Poppins', sans-serif;
+        }
+
+        .mobile-nav-link:hover {
+          background: var(--warm-cream);
+          color: var(--primary-orange);
+        }
+      `}</style>
     </nav>
   );
 };
