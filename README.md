@@ -1,91 +1,110 @@
-# COCO - Cuisine & Saveurs
+# COCO - Application Mobile de Partage de Recettes
 
-Un site web culinaire moderne pour partager et découvrir des recettes délicieuses.
+Une application web moderne et mobile-first pour partager et découvrir des recettes délicieuses au sein d'une communauté passionnée de cuisine.
 
-## Fonctionnalités
+## 🍴 Fonctionnalités Principales
 
-- Parcourir des recettes par catégorie
-- Rechercher des recettes
-- Afficher les détails des recettes avec ingrédients et étapes
-- Design responsive pour mobile et desktop
-- Permettre aux utilisateurs de soumettre leurs propres recettes avec images
-- Consulter une page dédiée affichant toutes les recettes créées par les utilisateurs
-- API backend utilisant Supabase pour stocker et récupérer les données des recettes
+- **Partage de recettes** - Partagez vos créations culinaires avec la communauté
+- **Navigation des recettes** - Explorez les recettes partagées par d'autres utilisateurs
+- **Recherche intelligente** - Trouvez des recettes par titre, description ou auteur
+- **Design mobile-first** - Interface optimisée pour smartphone et tablette
+- **Upload d'images** - Ajoutez des photos alléchantes à vos recettes
+- **Détails complets** - Ingrédients, instructions étape par étape, temps de préparation
 
-## Technologies
+## 🎨 Design Mobile-First
 
-- Next.js
-- API Routes de Next.js (backend serverless)
-- Supabase (base de données PostgreSQL)
-- CSS Modules
-- Vercel ou Netlify (déploiement)
+L'application adopte un design moderne inspiré des meilleures applications mobiles de cuisine :
+- **Palette de couleurs chaleureuses** (orange, vert, crème)
+- **Typographie élégante** (Poppins + Playfair Display)
+- **Interactions tactiles optimisées**
+- **Animations fluides** et transitions
+- **Composants cards** avec ombres modernes
+- **Navigation intuitive** avec menu hamburger
 
-## Structure du projet
+## 🛠 Technologies
+
+- **Frontend**: Next.js 13+ avec React
+- **Styling**: CSS Modules avec variables CSS modernes
+- **Backend**: API Routes Next.js (serverless)
+- **Base de données**: Supabase (PostgreSQL)
+- **Upload d'images**: Compression automatique côté client
+- **Déploiement**: Vercel ou Netlify
+
+## 📱 Structure de l'Application
 
 ```
 COCO/
-├── components/     # Composants réutilisables
-├── pages/          # Routes de l'application
-├── public/         # Fichiers statiques
-├── styles/         # Feuilles de style CSS modules
-└── ...
+├── pages/
+│   ├── index.js                    # Page d'accueil
+│   ├── user-recipes.js            # Liste des recettes partagées
+│   ├── submit-recipe.js           # Formulaire d'ajout de recette
+│   └── recipes/
+│       └── user/[id].js           # Détail d'une recette utilisateur
+├── components/
+│   ├── Navbar.tsx                 # Navigation responsive
+│   └── RecipeCard.js             # Carte de recette
+├── styles/
+│   ├── globals.css               # Design system global
+│   ├── SubmitRecipe.module.css   # Styles du formulaire
+│   └── RecipeDetail.module.css   # Styles des détails
+└── api/
+    └── recipes/                  # API de gestion des recettes
 ```
 
-## Installation
+## 🚀 Installation et Démarrage
 
 ```bash
+# Cloner le projet
+git clone [votre-repo]
+cd COCO
+
 # Installer les dépendances
 npm install
 
-# Lancer le serveur de développement
+# Configurer l'environnement
+cp .env.example .env.local
+
+# Lancer en développement
 npm run dev
 ```
 
-## Déploiement sur Vercel
-
-1. Créez un compte sur [Vercel](https://vercel.com)
-2. Connectez votre dépôt GitHub
-3. Importez ce projet
-4. Vercel détectera automatiquement les configurations Next.js et déploiera votre site
-
-## Déploiement sur Netlify
-
-1. Créez un compte sur [Netlify](https://netlify.com)
-2. Connectez votre dépôt GitHub
-3. Importez ce projet
-4. Netlify détectera automatiquement les configurations Next.js et déploiera votre site
-
-## Configuration de Supabase
+## ⚙️ Configuration Supabase
 
 1. Créez un compte sur [Supabase](https://supabase.io)
 2. Créez un nouveau projet
-3. Copiez l'URL de votre projet et la clé API
-4. Remplissez le fichier `.env.local` à la racine du projet avec vos informations Supabase :
-    ```bash
-    NEXT_PUBLIC_SUPABASE_URL=votre_url_supabase
-    NEXT_PUBLIC_SUPABASE_ANON_KEY=votre_cle_api_supabase
-    ```
+3. Configurez vos variables d'environnement dans `.env.local` :
 
-## Licence
+```bash
+NEXT_PUBLIC_SUPABASE_URL=votre_url_supabase
+NEXT_PUBLIC_SUPABASE_ANON_KEY=votre_cle_api_supabase
+```
 
-MIT License
+## 🌐 Déploiement
 
-Copyright (c) 2023 COCO - Cuisine & Saveurs
+### Vercel (Recommandé)
+```bash
+npm install -g vercel
+vercel --prod
+```
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+### Netlify
+1. Connectez votre repository GitHub à Netlify
+2. Configurez les variables d'environnement
+3. Déployez automatiquement
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+## 🎯 Fonctionnalités à Venir
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+- [ ] Système de favoris
+- [ ] Notation des recettes
+- [ ] Catégories avancées
+- [ ] Mode hors ligne (PWA)
+- [ ] Notifications push
+- [ ] Partage social
+
+## 📄 Licence
+
+MIT License - Voir le fichier LICENSE pour plus de détails.
+
+---
+
+**COCO** - *Où chaque recette raconte une histoire* 🍴✨
