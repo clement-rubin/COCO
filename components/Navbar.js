@@ -8,47 +8,48 @@ export default function Navbar() {
   return (
     <nav className={styles.navbar}>
       <div className={styles.container}>
-        <div className={styles.logo}>
-          <Link href="/">
+        {/* Logo */}
+        <Link href="/" className={styles.logoContainer}>
+          <div className={styles.logoIcon}>
+            🍴
+          </div>
+          <h2 className={styles.logo}>
             COCO
+          </h2>
+        </Link>
+        
+        {/* Desktop Navigation */}
+        <div className={styles.desktopNav}>
+          <Link href="/" className={styles.navLink}>
+            Accueil
+          </Link>
+          <Link href="/add-recipe" className={styles.addButton}>
+            ➕ Ajouter une recette
           </Link>
         </div>
         
+        {/* Mobile Menu Button */}
         <button 
           className={styles.mobileMenuButton}
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           aria-label="Menu"
         >
-          ☰
+          {mobileMenuOpen ? '✕' : '☰'}
         </button>
         
-        <ul className={`${styles.navLinks} ${mobileMenuOpen ? styles.active : ''}`}>
-          <li>
-            <Link href="/" className={styles.navLink}>
-              Accueil
-            </Link>
-          </li>
-          <li>
-            <Link href="/recipes" className={styles.navLink}>
-              Recettes
-            </Link>
-          </li>
-          <li>
-            <Link href="/categories" className={styles.navLink}>
-              Catégories
-            </Link>
-          </li>
-          <li>
-            <Link href="/about" className={styles.navLink}>
-              À propos
-            </Link>
-          </li>
-          <li>
-            <Link href="/contact" className={styles.navLink}>
-              Contact
-            </Link>
-          </li>
-        </ul>
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className={styles.mobileMenu}>
+            <div className={styles.mobileNavLinks}>
+              <Link href="/" className={styles.mobileNavLink}>
+                🏠 Accueil
+              </Link>
+              <button className={styles.mobileNavLink}>
+                ➕ Ajouter une recette
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </nav>
   )
