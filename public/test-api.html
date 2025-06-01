@@ -137,19 +137,36 @@
       result.className = 'result';
       
       const recipe = {
-        title: document.getElementById('title').value,
-        description: document.getElementById('description').value,
-        image: document.getElementById('image').value || undefined,
-        prepTime: document.getElementById('prepTime').value || undefined,
-        cookTime: document.getElementById('cookTime').value || undefined,
+        title: document.getElementById('title').value.trim(),
+        description: document.getElementById('description').value.trim(),
+        ingredients: '',
+        instructions: '',
+        image: document.getElementById('image').value.trim() || undefined,
+        prepTime: document.getElementById('prepTime').value.trim() || undefined,
+        cookTime: document.getElementById('cookTime').value.trim() || undefined,
         category: document.getElementById('category').value,
-        author: document.getElementById('author').value || undefined
+        author: document.getElementById('author').value.trim() || undefined
       };
+      
+      // Validation côté client
+      if (!recipe.title) {
+        result.className = 'result error';
+        result.textContent = '❌ Le titre est obligatoire';
+        return;
+      }
+      
+      if (!recipe.description) {
+        result.className = 'result error';
+        result.textContent = '❌ La description est obligatoire';
+        return;
+      }
       
       try {
         // Option de débogage avec timeout plus long
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 secondes timeout
+        
+        console.log('Envoi de la recette:', recipe);
         
         const response = await fetch(apiUrl, {
           method: 'POST',
@@ -179,6 +196,7 @@
           result.textContent = `❌ La requête a expiré après 20 secondes. Le serveur ne répond pas ou est trop lent.`;
         } else {
           result.textContent = `❌ Erreur: ${error.message}`;
+          console.error('Erreur détaillée:', error);
         }
       }
     });

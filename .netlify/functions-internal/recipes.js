@@ -103,37 +103,40 @@ exports.handler = async (event, context) => {
       const data = JSON.parse(event.body);
       
       // Validation des champs obligatoires
-      if (!data.title || !data.ingredients || !data.instructions) {
+      if (!data.title || !data.description) {
         return {
           statusCode: 400,
           headers,
           body: JSON.stringify({ 
             message: 'Champs obligatoires manquants',
-            required: ['title', 'ingredients', 'instructions']
+            required: ['title', 'description'],
+            received: Object.keys(data)
           })
         };
       }
       
       const newRecipe = {
-        title: data.title,
-        description: data.description || '',
-        ingredients: Array.isArray(data.ingredients) ? data.ingredients.join('\n') : (data.ingredients || ''),
-        instructions: Array.isArray(data.instructions) ? data.instructions.join('\n') : (data.instructions || ''),
-        prepTime: data.prepTime || null,
-        cookTime: data.cookTime || null,
-        servings: data.servings || null,
-        category: data.category || null,
+        title: data.title.trim(),
+        description: data.description?.trim() || '',
+        ingredients: data.ingredients?.trim() || '',
+        instructions: data.instructions?.trim() || '',
+        prepTime: data.prepTime?.trim() || null,
+        cookTime: data.cookTime?.trim() || null,
+        servings: data.servings?.trim() || null,
+        category: data.category?.trim() || null,
         difficulty: data.difficulty || "Facile",
-        author: data.author || "Anonyme",
+        author: data.author?.trim() || "Anonyme",
         image: data.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3",
         photos: Array.isArray(data.photos) ? data.photos : []
       };
       
       log(`Tentative d'insertion d'une nouvelle recette: ${newRecipe.title}`, "info", {
         hasTitle: !!newRecipe.title,
+        hasDescription: !!newRecipe.description,
         hasIngredients: !!newRecipe.ingredients,
         hasInstructions: !!newRecipe.instructions,
-        photosCount: newRecipe.photos.length
+        photosCount: newRecipe.photos.length,
+        category: newRecipe.category
       });
       
       const { data: insertedData, error } = await supabase
@@ -143,8 +146,12 @@ exports.handler = async (event, context) => {
       
       if (error) {
         log(`Erreur lors de l'insertion de la recette`, "error", {
-          supabaseError: error,
-          recipeTitle: newRecipe.title
+          errorMessage: error.message,
+          errorCode: error.code,
+          errorDetails: error.details,
+          errorHint: error.hint,
+          recipeTitle: newRecipe.title,
+          recipeData: newRecipe
         });
         
         // Si c'est une erreur de colonne manquante, donner des instructions
@@ -162,7 +169,17 @@ exports.handler = async (event, context) => {
           };
         }
         
-        throw error;
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({
+            message: 'Erreur lors de la création de la recette',
+            error: error.message,
+            code: error.code,
+            details: error.details,
+            hint: error.hint
+          })
+        };
       }
       
       log(`Recette créée avec succès: ${insertedData[0]?.title}`, "info", {

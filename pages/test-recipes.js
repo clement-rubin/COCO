@@ -133,12 +133,11 @@ export default function TestRecipes() {
       difficulty: 'Facile',
       author: 'Testeur Automatique',
       image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3',
-      photos: ['https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3'],
-      created_at: new Date().toISOString()
+      photos: []
     }
 
     try {
-      logDebug('Données de la recette de test', testRecipe)
+      logDebug('Données de la recette de test', JSON.stringify(testRecipe, null, 2))
       
       const { data, error } = await supabase
         .from('recipes')
@@ -147,19 +146,29 @@ export default function TestRecipes() {
         .single()
 
       if (error) {
-        logError('❌ Erreur lors de la création de la recette de test', error)
+        logError('❌ Erreur lors de la création de la recette de test', JSON.stringify({
+          error: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint
+        }, null, 2))
         setTestResults(prev => ({ ...prev, createRecipe: 'ERREUR' }))
       } else {
-        logInfo('✅ Recette de test créée avec succès', {
+        logInfo('✅ Recette de test créée avec succès', JSON.stringify({
           id: data.id,
-          title: data.title
-        })
+          title: data.title,
+          created_at: data.created_at
+        }, null, 2))
         setTestResults(prev => ({ ...prev, createRecipe: 'OK' }))
         // Recharger les recettes
         await loadRecipes()
       }
     } catch (error) {
-      logError('❌ Erreur critique lors de la création', error)
+      logError('❌ Erreur critique lors de la création', JSON.stringify({
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      }, null, 2))
       setTestResults(prev => ({ ...prev, createRecipe: 'CRITIQUE' }))
     } finally {
       setIsLoading(false)
