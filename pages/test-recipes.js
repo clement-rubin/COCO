@@ -3,6 +3,7 @@ import Head from 'next/head'
 import { useRouter } from 'next/router'
 import { supabase } from '../lib/supabase'
 import { logInfo, logError, logWarning, logDebug } from '../utils/logger'
+import { createRecipesTableIfNotExists, initializeRecipesTable } from '../lib/supabase'
 
 export default function TestRecipes() {
   const router = useRouter()
@@ -192,8 +193,48 @@ export default function TestRecipes() {
     }
   }
 
+  const testTableCreation = async () => {
+    setIsLoading(true)
+    logInfo('🏗️ Test de création/vérification de la table...')
+    
+    try {
+      const success = await createRecipesTableIfNotExists()
+      
+      if (success) {
+        logInfo('✅ Table recipes créée/vérifiée avec succès')
+        setTestResults(prev => ({ ...prev, tableCreation: 'OK' }))
+      } else {
+        logWarning('⚠️ Problème lors de la création de la table')
+        setTestResults(prev => ({ ...prev, tableCreation: 'ATTENTION' }))
+      }
+    } catch (error) {
+      logError('❌ Erreur lors de la création de la table', error)
+      setTestResults(prev => ({ ...prev, tableCreation: 'ERREUR' }))
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const initializeDatabase = async () => {
+    setIsLoading(true)
+    logInfo('🚀 Initialisation complète de la base de données...')
+    
+    try {
+      await initializeRecipesTable()
+      logInfo('✅ Base de données initialisée')
+      setTestResults(prev => ({ ...prev, dbInit: 'OK' }))
+      await loadRecipes()
+    } catch (error) {
+      logError('❌ Erreur lors de l\'initialisation', error)
+      setTestResults(prev => ({ ...prev, dbInit: 'ERREUR' }))
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const runAllTests = async () => {
     logInfo('🚀 Début des tests automatiques...')
+    await testTableCreation()
     await testSupabaseConnection()
     await loadRecipes()
     await createTestRecipe()
