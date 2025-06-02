@@ -16,11 +16,35 @@ export default function SharePhoto() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errors, setErrors] = useState({})
   const [showSuccessMessage, setShowSuccessMessage] = useState(false)
+  const [showLogs, setShowLogs] = useState(false)
+  const [logs, setLogs] = useState([])
+
+  // Logger hook to capture logs
+  const addLog = (level, message, data = null) => {
+    const timestamp = new Date().toLocaleTimeString()
+    const logEntry = {
+      id: Date.now() + Math.random(),
+      timestamp,
+      level,
+      message,
+      data: data ? JSON.stringify(data, null, 2) : null
+    }
+    setLogs(prev => [logEntry, ...prev].slice(0, 100)) // Keep last 100 logs
+    
+    // Call original logger
+    switch(level) {
+      case 'debug': logDebug(message, data); break;
+      case 'info': logInfo(message, data); break;
+      case 'warning': logWarning(message, data); break;
+      case 'error': logError(message, null, data); break;
+      case 'interaction': logUserInteraction(message, 'share-photo', data); break;
+    }
+  }
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
     
-    logDebug(`Changement de champ: ${name}`, { 
+    addLog('debug', `Changement de champ: ${name}`, { 
       fieldName: name, 
       valueLength: value.length,
       isEmpty: !value.trim()
@@ -41,20 +65,20 @@ export default function SharePhoto() {
   }
 
   const validateForm = () => {
-    logInfo('Début de la validation du formulaire photo')
+    addLog('info', 'Début de la validation du formulaire photo')
     const newErrors = {}
     
     if (!formData.title.trim()) {
       newErrors.title = 'Le nom du plat est obligatoire'
-      logWarning('Validation échouée: nom du plat manquant')
+      addLog('warning', 'Validation échouée: nom du plat manquant')
     }
     if (!formData.description.trim()) {
       newErrors.description = 'La description est obligatoire'
-      logWarning('Validation échouée: description manquante')
+      addLog('warning', 'Validation échouée: description manquante')
     }
     if (photos.length === 0) {
       newErrors.photos = 'Au moins une photo est obligatoire'
-      logWarning('Validation échouée: aucune photo')
+      addLog('warning', 'Validation échouée: aucune photo')
     }
     
     // Validation des photos traitées
@@ -79,7 +103,7 @@ export default function SharePhoto() {
     
     const isValid = Object.keys(newErrors).length === 0
     
-    logInfo('Résultat de la validation', {
+    addLog('info', 'Résultat de la validation', {
       isValid,
       errorsCount: Object.keys(newErrors).length,
       errors: Object.keys(newErrors),
@@ -94,10 +118,10 @@ export default function SharePhoto() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     
-    logInfo('Début de soumission de photo de recette')
+    addLog('info', 'Début de soumission de photo de recette')
     
     if (!validateForm()) {
-      logUserInteraction('ECHEC_VALIDATION', 'formulaire-photo', {
+      addLog('interaction', 'ECHEC_VALIDATION', {
         errorsCount: Object.keys(errors).length,
         errors: Object.keys(errors)
       })
@@ -197,7 +221,7 @@ export default function SharePhoto() {
         throw new Error(errorMessage)
       }
       
-      logUserInteraction('PHOTO_SOUMISE', 'formulaire-photo', {
+      addLog('interaction', 'PHOTO_SOUMISE', {
         title: recipeData.title,
         photosCount: validPhotos.length,
         recipeId: result.id,
@@ -213,7 +237,7 @@ export default function SharePhoto() {
       }, 3000)
       
     } catch (error) {
-      logError('Erreur lors de la soumission de photo', error, {
+      addLog('error', 'Erreur lors de la soumission de photo', {
         errorName: error.constructor.name,
         errorMessage: error.message,
         errorStack: error.stack,
@@ -271,6 +295,47 @@ export default function SharePhoto() {
     )
   }
 
+  // Logs component
+  const LogsDisplay = () => (
+    <div className={styles.logsContainer}>
+      <div className={styles.logsHeader}>
+        <h3>📋 Logs en temps réel</h3>
+        <div className={styles.logsControls}>
+          <button 
+            onClick={() => setLogs([])} 
+            className={styles.clearLogsBtn}
+          >
+            🗑️ Vider
+          </button>
+          <button 
+            onClick={() => setShowLogs(false)} 
+            className={styles.closeLogsBtn}
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+      <div className={styles.logsList}>
+        {logs.length === 0 ? (
+          <div className={styles.noLogs}>Aucun log pour le moment</div>
+        ) : (
+          logs.map(log => (
+            <div key={log.id} className={`${styles.logEntry} ${styles[`log${log.level.charAt(0).toUpperCase() + log.level.slice(1)}`]}`}>
+              <div className={styles.logMeta}>
+                <span className={styles.logTime}>{log.timestamp}</span>
+                <span className={styles.logLevel}>{log.level.toUpperCase()}</span>
+              </div>
+              <div className={styles.logMessage}>{log.message}</div>
+              {log.data && (
+                <pre className={styles.logData}>{log.data}</pre>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  )
+
   return (
     <>
       <Head>
@@ -283,11 +348,22 @@ export default function SharePhoto() {
           <button onClick={() => router.back()} className={styles.backBtn}>
             ← Retour
           </button>
-          <h1>📸 Partager une photo</h1>
+          <div className={styles.headerTop}>
+            <h1>📸 Partager une photo</h1>
+            <button 
+              onClick={() => setShowLogs(!showLogs)} 
+              className={styles.debugBtn}
+              title="Afficher/Masquer les logs"
+            >
+              {showLogs ? '📋' : '🔍'} Debug
+            </button>
+          </div>
           <p className={styles.subtitle}>
             Partagez rapidement une photo de votre création culinaire
           </p>
         </div>
+
+        {showLogs && <LogsDisplay />}
 
         <form onSubmit={handleSubmit} className={styles.form}>
           {/* Section Photos */}

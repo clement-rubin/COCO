@@ -297,3 +297,156 @@
     padding: var(--spacing-md) var(--spacing-lg);
   }
 }
+
+/* Debug and Logs Styles */
+.headerTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.debugBtn {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.debugBtn:hover {
+  background: #5a6268;
+}
+
+.logsContainer {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  max-height: 400px;
+  overflow: hidden;
+}
+
+.logsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #e9ecef;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.logsHeader h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #495057;
+}
+
+.logsControls {
+  display: flex;
+  gap: 8px;
+}
+
+.clearLogsBtn, .closeLogsBtn {
+  background: transparent;
+  border: 1px solid #6c757d;
+  color: #6c757d;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+
+.clearLogsBtn:hover, .closeLogsBtn:hover {
+  background: #6c757d;
+  color: white;
+}
+
+.logsList {
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.noLogs {
+  text-align: center;
+  color: #6c757d;
+  font-style: italic;
+  padding: 20px;
+}
+
+.logEntry {
+  margin-bottom: 8px;
+  padding: 8px 12px;
+  border-radius: 4px;
+  border-left: 4px solid #dee2e6;
+  background: white;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+}
+
+.logDebug {
+  border-left-color: #6c757d;
+  background: #f8f9fa;
+}
+
+.logInfo {
+  border-left-color: #0d6efd;
+  background: #e7f3ff;
+}
+
+.logWarning {
+  border-left-color: #ffc107;
+  background: #fff3cd;
+}
+
+.logError {
+  border-left-color: #dc3545;
+  background: #f8d7da;
+}
+
+.logInteraction {
+  border-left-color: #198754;
+  background: #d1e7dd;
+}
+
+.logMeta {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+  font-weight: bold;
+}
+
+.logTime {
+  color: #6c757d;
+}
+
+.logLevel {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: #e9ecef;
+  color: #495057;
+}
+
+.logMessage {
+  margin-bottom: 4px;
+  color: #212529;
+}
+
+.logData {
+  background: #f1f3f4;
+  padding: 8px;
+  border-radius: 3px;
+  margin: 4px 0 0 0;
+  font-size: 11px;
+  color: #495057;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 150px;
+  overflow-y: auto;
+}
