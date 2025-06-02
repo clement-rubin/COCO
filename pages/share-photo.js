@@ -57,23 +57,23 @@ export default function SharePhoto() {
       logWarning('Validation échouée: aucune photo')
     }
     
-    // Validation des photos uploadées
+    // Validation des photos traitées (pas uploadées vers Supabase)
     if (photos.length > 0) {
-      const uploadingPhotos = photos.filter(photo => photo.uploading)
+      const processingPhotos = photos.filter(photo => photo.processing)
       const errorPhotos = photos.filter(photo => photo.error)
-      const uploadedPhotos = photos.filter(photo => 
-        photo.uploaded && 
-        photo.supabaseUrl && 
-        photo.supabasePath &&
-        photo.supabaseUrl.includes('supabase')
+      const processedPhotos = photos.filter(photo => 
+        photo.processed && 
+        photo.imageBytes && 
+        Array.isArray(photo.imageBytes) &&
+        photo.imageBytes.length > 0
       )
       
-      if (uploadingPhotos.length > 0) {
-        newErrors.photos = `Attendez que ${uploadingPhotos.length} photo(s) finissent d'être uploadées`
+      if (processingPhotos.length > 0) {
+        newErrors.photos = `Attendez que ${processingPhotos.length} photo(s) finissent d'être traitées`
       } else if (errorPhotos.length > 0) {
         newErrors.photos = `${errorPhotos.length} photo(s) ont échoué. Supprimez-les et réessayez.`
-      } else if (uploadedPhotos.length === 0) {
-        newErrors.photos = 'Aucune photo n\'a été correctement uploadée vers Supabase. Veuillez réessayer.'
+      } else if (processedPhotos.length === 0) {
+        newErrors.photos = 'Aucune photo n\'a été correctement traitée. Veuillez réessayer.'
       }
     }
     
@@ -84,7 +84,7 @@ export default function SharePhoto() {
       errorsCount: Object.keys(newErrors).length,
       errors: Object.keys(newErrors),
       photosCount: photos.length,
-      uploadedPhotosCount: photos.filter(p => p.uploaded).length
+      processedPhotosCount: photos.filter(p => p.processed).length
     })
     
     setErrors(newErrors)
@@ -120,7 +120,7 @@ export default function SharePhoto() {
         throw new Error('Aucune photo valide trouvée. Veuillez réessayer le traitement.')
       }
       
-      // Préparer les données selon le nouveau schéma
+      // Préparer les données selon le schéma bytes
       const recipeData = {
         title: formData.title.trim(),
         description: formData.description.trim(),

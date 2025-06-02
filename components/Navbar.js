@@ -23,7 +23,7 @@ export default function Navbar() {
           <Link href="/" className={styles.navLink}>
             Accueil
           </Link>
-          <Link href="/explorer" className={styles.navLink}>
+            <Link href="/explorer" className={styles.navLink}>
             Explorer
           </Link>
           <Link href="/recherche" className={styles.navLink}>

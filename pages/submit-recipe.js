@@ -100,21 +100,21 @@ export default function SubmitRecipe() {
       logWarning('Validation échouée: aucune photo')
     }
     
-    // Validation améliorée des photos avec vérification des URLs Supabase
+    // Validation améliorée des photos avec vérification des bytes (pas des URLs Supabase)
     if (photos.length > 0) {
-      const uploadingPhotos = photos.filter(photo => photo.uploading)
+      const processingPhotos = photos.filter(photo => photo.processing)
       const errorPhotos = photos.filter(photo => photo.error)
-      const uploadedPhotos = photos.filter(photo => 
-        photo.uploaded && 
-        photo.supabaseUrl && 
-        photo.supabasePath &&
-        photo.supabaseUrl.includes('supabase')
+      const processedPhotos = photos.filter(photo => 
+        photo.processed && 
+        photo.imageBytes && 
+        Array.isArray(photo.imageBytes) &&
+        photo.imageBytes.length > 0
       )
       
-      if (uploadingPhotos.length > 0) {
-        newErrors.photos = `Attendez que ${uploadingPhotos.length} photo(s) finissent d'être uploadées`
-        logWarning('Validation échouée: uploads en cours', { 
-          uploadingCount: uploadingPhotos.length,
+      if (processingPhotos.length > 0) {
+        newErrors.photos = `Attendez que ${processingPhotos.length} photo(s) finissent d'être traitées`
+        logWarning('Validation échouée: traitement en cours', { 
+          processingCount: processingPhotos.length,
           totalPhotos: photos.length 
         })
       } else if (errorPhotos.length > 0) {
@@ -124,12 +124,12 @@ export default function SubmitRecipe() {
           totalPhotos: photos.length,
           errorMessages: errorPhotos.map(p => p.errorMessage)
         })
-      } else if (uploadedPhotos.length === 0) {
-        newErrors.photos = 'Aucune photo n\'a été correctement uploadée vers Supabase. Veuillez réessayer.'
-        logWarning('Validation échouée: aucune photo uploadée vers Supabase', {
+      } else if (processedPhotos.length === 0) {
+        newErrors.photos = 'Aucune photo n\'a été correctement traitée. Veuillez réessayer.'
+        logWarning('Validation échouée: aucune photo traitée', {
           totalPhotos: photos.length,
-          photosWithUrls: photos.filter(p => p.supabaseUrl).length,
-          photosWithPaths: photos.filter(p => p.supabasePath).length
+          photosWithBytes: photos.filter(p => p.imageBytes).length,
+          processedPhotos: photos.filter(p => p.processed).length
         })
       }
     }
@@ -141,8 +141,8 @@ export default function SubmitRecipe() {
       errorsCount: Object.keys(newErrors).length,
       errors: Object.keys(newErrors),
       photosCount: photos.length,
-      uploadedPhotosCount: photos.filter(p => p.uploaded).length,
-      validSupabaseUrls: photos.filter(p => p.supabaseUrl?.includes('supabase')).length
+      processedPhotosCount: photos.filter(p => p.processed).length,
+      photosWithBytes: photos.filter(p => p.imageBytes?.length > 0).length
     })
     
     setErrors(newErrors)
@@ -169,30 +169,27 @@ export default function SubmitRecipe() {
       const ingredientsArray = parseIngredients(formData.ingredients)
       const instructionsArray = parseInstructions(formData.instructions)
       
-      // Préparer les URLs des images avec validation renforcée
+      // Préparer les photos validées (avec bytes) - pas d'URLs Supabase nécessaires
       const validPhotos = photos.filter(photo => 
-        photo.uploaded && 
-        photo.supabaseUrl && 
-        photo.supabasePath &&
-        photo.supabaseUrl.includes('supabase') &&
+        photo.processed && 
+        photo.imageBytes && 
+        Array.isArray(photo.imageBytes) &&
+        photo.imageBytes.length > 0 &&
         !photo.error
       )
       
-      const imageUrls = validPhotos.map(photo => photo.supabaseUrl)
-      
-      if (imageUrls.length === 0) {
-        throw new Error('Aucune photo valide trouvée dans Supabase. Veuillez réessayer l\'upload.')
+      if (validPhotos.length === 0) {
+        throw new Error('Aucune photo valide trouvée. Veuillez réessayer le traitement.')
       }
       
       logDebug('Photos validées pour soumission', {
         totalPhotos: photos.length,
         validPhotos: validPhotos.length,
-        imageUrls: imageUrls.length,
-        firstImageUrl: imageUrls[0],
-        allUrls: imageUrls
+        firstImageBytesLength: validPhotos[0].imageBytes.length,
+        allImageSizes: validPhotos.map(p => p.imageBytes.length)
       })
       
-      // Préparer les données selon le schéma de la base
+      // Préparer les données selon le schéma bytes
       const recipeData = {
         title: formData.title.trim(),
         description: formData.description.trim(),
@@ -202,8 +199,8 @@ export default function SubmitRecipe() {
         cookTime: formData.cookTime.trim() || null,
         category: formData.category || null,
         author: formData.author.trim() || 'Anonyme',
-        image: imageUrls[0], // Image principale obligatoire
-        photos: imageUrls // Toutes les photos
+        image: validPhotos[0].imageBytes, // Image principale en bytes
+        photos: validPhotos.map(p => p.imageBytes) // Toutes les photos en bytes
       }
       
       logDebug('Données de recette préparées', {
@@ -212,7 +209,7 @@ export default function SubmitRecipe() {
         ingredientsCount: recipeData.ingredients.length,
         instructionsCount: recipeData.instructions.length,
         photosCount: photos.length,
-        imageUrlsCount: imageUrls.length,
+        imageUrlsCount: validPhotos.length,
         category: recipeData.category,
         mainImageUrl: recipeData.image
       })
@@ -237,7 +234,7 @@ export default function SubmitRecipe() {
         category: recipeData.category,
         ingredientsCount: recipeData.ingredients.length,
         instructionsCount: recipeData.instructions.length,
-        photosCount: imageUrls.length,
+        photosCount: validPhotos.length,
         recipeId: result.id
       })
       
@@ -269,14 +266,14 @@ export default function SubmitRecipe() {
     }
   }
 
-  // Calculer l'état des uploads pour l'affichage
-  const uploadingPhotosCount = photos.filter(photo => photo.uploading).length
+  // Calculer l'état des traitements pour l'affichage (pas uploads)
+  const processingPhotosCount = photos.filter(photo => photo.processing).length
   const errorPhotosCount = photos.filter(photo => photo.error).length
-  const uploadedPhotosCount = photos.filter(photo => photo.uploaded && photo.supabaseUrl).length
-  const allPhotosUploaded = photos.length > 0 && photos.every(photo => 
-    photo.uploaded && 
-    photo.supabaseUrl && 
-    photo.supabaseUrl.includes('supabase')
+  const processedPhotosCount = photos.filter(photo => photo.processed && photo.imageBytes).length
+  const allPhotosProcessed = photos.length > 0 && photos.every(photo => 
+    photo.processed && 
+    photo.imageBytes && 
+    Array.isArray(photo.imageBytes)
   )
 
   // Message de confirmation de soumission
@@ -322,10 +319,10 @@ export default function SubmitRecipe() {
             />
             {errors.photos && <span className={styles.error}>{errors.photos}</span>}
             
-            {/* Status des uploads */}
-            {uploadingPhotosCount > 0 && (
+            {/* Status des traitements */}
+            {processingPhotosCount > 0 && (
               <div className={styles.uploadStatus}>
-                ⏳ {uploadingPhotosCount} photo(s) en cours d'upload...
+                ⏳ {processingPhotosCount} photo(s) en cours de traitement...
               </div>
             )}
             
@@ -335,15 +332,15 @@ export default function SubmitRecipe() {
               </div>
             )}
             
-            {allPhotosUploaded && photos.length > 0 && (
+            {allPhotosProcessed && photos.length > 0 && (
               <div className={styles.uploadSuccess}>
                 ✅ Toutes les photos sont prêtes !
               </div>
             )}
             
             <small className={styles.helpText}>
-              Les images sont automatiquement optimisées et sauvegardées. 
-              Attendez que l'upload soit terminé avant de soumettre.
+              Les images sont automatiquement optimisées et traitées. 
+              Attendez que le traitement soit terminé avant de soumettre.
             </small>
           </div>
 
@@ -489,16 +486,16 @@ export default function SubmitRecipe() {
             <button 
               type="submit" 
               className={styles.submitBtn}
-              disabled={isSubmitting || uploadingPhotosCount > 0}
+              disabled={isSubmitting || processingPhotosCount > 0}
             >
               {isSubmitting ? (
                 <>
                   <span className={styles.spinner}></span>
                   Partage en cours...
                 </>
-              ) : uploadingPhotosCount > 0 ? (
+              ) : processingPhotosCount > 0 ? (
                 <>
-                  ⏳ Upload en cours ({uploadingPhotosCount} photo(s))
+                  ⏳ Traitement en cours ({processingPhotosCount} photo(s))
                 </>
               ) : (
                 <>
