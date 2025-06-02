@@ -1,35 +1,47 @@
 import Head from 'next/head'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/router'
+import { useAuth } from '../components/AuthContext'
 
 export default function Profil() {
-  const [user, setUser] = useState({
-    name: 'Chef Dupont',
-    email: 'chef.dupont@example.com',
-    avatar: '👨‍🍳',
-    joinDate: '2023-06-15',
-    bio: 'Passionné de cuisine depuis 15 ans. J\'adore partager mes recettes familiales et découvrir de nouvelles saveurs !',
+  const { user, signOut } = useAuth()
+  const router = useRouter()
+  
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!user) {
+      router.push('/login?redirect=' + encodeURIComponent('/profil'))
+    }
+  }, [user, router])
+
+  const [userProfile, setUserProfile] = useState({
+    name: user?.user_metadata?.display_name || 'Chef Anonyme',
+    email: user?.email || '',
+    avatar: user?.user_metadata?.display_name ? 
+      user.user_metadata.display_name.charAt(0).toUpperCase() : '👨‍🍳',
+    joinDate: user?.created_at || '2023-06-15',
+    bio: user?.user_metadata?.bio || 'Passionné de cuisine et membre de la communauté COCO !',
     stats: {
-      recipesCreated: 12,
-      recipesLiked: 89,
-      followers: 234,
-      following: 67
+      recipesCreated: 0,
+      recipesLiked: 0,
+      followers: 0,
+      following: 0
     }
   });
 
   const [activeTab, setActiveTab] = useState('stats');
 
+  // Mock data - à remplacer par de vraies données
   const userRecipes = [
-    { id: 1, name: 'Ma Bolognaise secrète', likes: 156, emoji: '🍝' },
-    { id: 2, name: 'Tarte tatin de grand-mère', likes: 89, emoji: '🥧' },
-    { id: 3, name: 'Soupe de légumes réconfortante', likes: 67, emoji: '🍲' }
+    { id: 1, name: 'Ma première recette COCO', likes: 12, emoji: '🍝' },
+    { id: 2, name: 'Dessert du dimanche', likes: 8, emoji: '🥧' },
   ];
 
   const achievements = [
-    { id: 1, title: 'Premier pas', description: 'Première recette publiée', emoji: '🏆', unlocked: true },
-    { id: 2, title: 'Chef populaire', description: '100 likes reçus', emoji: '⭐', unlocked: true },
-    { id: 3, title: 'Gourmand', description: '50 recettes aimées', emoji: '❤️', unlocked: true },
-    { id: 4, title: 'Maître cuisinier', description: '10 recettes publiées', emoji: '👑', unlocked: true },
-    { id: 5, title: 'Influenceur', description: '500 likes reçus', emoji: '🌟', unlocked: false }
+    { id: 1, title: 'Bienvenue !', description: 'Compte créé avec succès', emoji: '🎉', unlocked: true },
+    { id: 2, title: 'Premier partage', description: 'Première recette publiée', emoji: '📝', unlocked: false },
+    { id: 3, title: 'Chef populaire', description: '10 likes reçus', emoji: '⭐', unlocked: false },
+    { id: 4, title: 'Gourmand', description: '5 recettes aimées', emoji: '❤️', unlocked: false },
   ];
 
   const formatDate = (dateString) => {
@@ -39,6 +51,28 @@ export default function Profil() {
       year: 'numeric' 
     });
   };
+
+  const handleSignOut = async () => {
+    await signOut()
+    router.push('/')
+  }
+
+  if (!user) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--bg-gradient)'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '2rem', marginBottom: 'var(--spacing-md)' }}>🔄</div>
+          <p style={{ color: 'var(--text-medium)' }}>Chargement...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div>
@@ -56,16 +90,18 @@ export default function Profil() {
         <div style={{
           width: '100px',
           height: '100px',
-          background: 'white',
+          background: 'linear-gradient(135deg, var(--primary-orange) 0%, var(--primary-orange-dark) 100%)',
           borderRadius: '50%',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontSize: '3rem',
+          fontSize: '2.5rem',
+          color: 'white',
+          fontWeight: 'bold',
           margin: '0 auto var(--spacing-md)',
-          boxShadow: 'var(--shadow)'
+          boxShadow: 'var(--shadow-medium)'
         }}>
-          {user.avatar}
+          {userProfile.avatar}
         </div>
         
         <h1 style={{ 
@@ -73,7 +109,7 @@ export default function Profil() {
           marginBottom: 'var(--spacing-xs)',
           color: 'var(--text-dark)'
         }}>
-          {user.name}
+          {userProfile.name}
         </h1>
         
         <p style={{ 
@@ -81,18 +117,42 @@ export default function Profil() {
           fontSize: '0.9rem',
           marginBottom: 'var(--spacing-sm)'
         }}>
-          Membre depuis {formatDate(user.joinDate)}
+          {userProfile.email}
+        </p>
+
+        <p style={{ 
+          color: 'var(--text-secondary)', 
+          fontSize: '0.8rem',
+          marginBottom: 'var(--spacing-sm)'
+        }}>
+          Membre depuis {formatDate(userProfile.joinDate)}
         </p>
 
         <p style={{ 
           color: 'var(--text-medium)', 
           fontSize: '0.9rem',
           lineHeight: '1.5',
-          margin: '0 auto',
+          margin: '0 auto var(--spacing-lg)',
           maxWidth: '300px'
         }}>
-          {user.bio}
+          {userProfile.bio}
         </p>
+
+        <button
+          onClick={handleSignOut}
+          style={{
+            padding: 'var(--spacing-sm) var(--spacing-md)',
+            background: 'rgba(255, 255, 255, 0.2)',
+            border: '1px solid rgba(255, 255, 255, 0.3)',
+            borderRadius: 'var(--border-radius-medium)',
+            color: 'var(--text-dark)',
+            fontSize: '0.9rem',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease'
+          }}
+        >
+          🚪 Se déconnecter
+        </button>
       </section>
 
       {/* Stats Cards */}
@@ -104,8 +164,8 @@ export default function Profil() {
         }}>
           <div className="card" style={{ padding: 'var(--spacing-md)', textAlign: 'center' }}>
             <div style={{ fontSize: '1.5rem', marginBottom: 'var(--spacing-xs)' }}>📝</div>
-            <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--primary-coral)' }}>
-              {user.stats.recipesCreated}
+            <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--primary-orange)' }}>
+              {userProfile.stats.recipesCreated}
             </div>
             <div style={{ fontSize: '0.7rem', color: 'var(--text-light)' }}>Recettes</div>
           </div>
@@ -113,7 +173,7 @@ export default function Profil() {
           <div className="card" style={{ padding: 'var(--spacing-md)', textAlign: 'center' }}>
             <div style={{ fontSize: '1.5rem', marginBottom: 'var(--spacing-xs)' }}>❤️</div>
             <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--secondary-mint)' }}>
-              {user.stats.recipesLiked}
+              {userProfile.stats.recipesLiked}
             </div>
             <div style={{ fontSize: '0.7rem', color: 'var(--text-light)' }}>Likes</div>
           </div>
@@ -121,7 +181,7 @@ export default function Profil() {
           <div className="card" style={{ padding: 'var(--spacing-md)', textAlign: 'center' }}>
             <div style={{ fontSize: '1.5rem', marginBottom: 'var(--spacing-xs)' }}>👥</div>
             <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--accent-yellow)' }}>
-              {user.stats.followers}
+              {userProfile.stats.followers}
             </div>
             <div style={{ fontSize: '0.7rem', color: 'var(--text-light)' }}>Abonnés</div>
           </div>
@@ -129,7 +189,7 @@ export default function Profil() {
           <div className="card" style={{ padding: 'var(--spacing-md)', textAlign: 'center' }}>
             <div style={{ fontSize: '1.5rem', marginBottom: 'var(--spacing-xs)' }}>👤</div>
             <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--accent-purple)' }}>
-              {user.stats.following}
+              {userProfile.stats.following}
             </div>
             <div style={{ fontSize: '0.7rem', color: 'var(--text-light)' }}>Suivis</div>
           </div>

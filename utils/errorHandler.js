@@ -141,13 +141,10 @@ export const handleError = (error, context = null, options = {}) => {
 
 // Créer une action de récupération
 const createRecoveryAction = (error, options = {}) => {
-  const { allowRetry, maxRetries } = options;
-  
+  const { allowRetry = true } = options
   const baseRecovery = {
-    strategy: error.recoveryStrategy,
-    title: 'Que souhaitez-vous faire ?',
     actions: []
-  };
+  }
   
   switch (error.recoveryStrategy) {
     case 'retry':
@@ -205,16 +202,45 @@ const createRecoveryAction = (error, options = {}) => {
         primary: false
       });
       break;
+
+    case 'auth_required':
+      baseRecovery.actions.push({
+        label: 'Se connecter',
+        action: 'redirect',
+        url: '/login',
+        primary: true
+      });
+      baseRecovery.actions.push({
+        label: 'Créer un compte',
+        action: 'redirect',
+        url: '/signup',
+        primary: false
+      });
+      break;
+
+    case 'invalid_credentials':
+      baseRecovery.actions.push({
+        label: 'Réessayer',
+        action: 'retry',
+        primary: true
+      });
+      baseRecovery.actions.push({
+        label: 'Mot de passe oublié',
+        action: 'redirect',
+        url: '/forgot-password',
+        primary: false
+      });
+      break;
       
     default:
       baseRecovery.actions.push({
-        label: 'OK',
+        label: 'Fermer',
         action: 'dismiss',
         primary: true
       });
   }
-  
-  return baseRecovery;
+
+  return baseRecovery
 };
 
 // Gestionnaire d'erreurs pour les requêtes API

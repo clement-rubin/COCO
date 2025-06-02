@@ -5,12 +5,135 @@ import ErrorBoundary from '../components/ErrorBoundary'
 import ErrorDisplay from '../components/ErrorDisplay'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
+import { AuthProvider, useAuth } from '../components/AuthContext'
 import { logFrontendError, logComponentEvent, logUserInteraction, logInfo, logDebug } from '../utils/logger'
 
-function MyApp({ Component, pageProps }) {
+function AuthenticatedNav({ user, signOut }) {
+  const [showUserMenu, setShowUserMenu] = useState(false)
+  const router = useRouter()
+
+  const handleSignOut = async () => {
+    await signOut()
+    setShowUserMenu(false)
+    router.push('/')
+  }
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <button
+        onClick={() => setShowUserMenu(!showUserMenu)}
+        className="nav-item"
+        style={{
+          background: 'none',
+          border: 'none',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          cursor: 'pointer'
+        }}
+      >
+        <span className="nav-icon">
+          {user?.user_metadata?.display_name ? 
+            user.user_metadata.display_name.charAt(0).toUpperCase() : 
+            '👤'}
+        </span>
+        <span className="nav-label">
+          {user?.user_metadata?.display_name || 'Profil'}
+        </span>
+      </button>
+
+      {showUserMenu && (
+        <div style={{
+          position: 'absolute',
+          bottom: '100%',
+          right: '0',
+          background: 'white',
+          border: '1px solid var(--border-light)',
+          borderRadius: 'var(--border-radius-medium)',
+          padding: 'var(--spacing-sm)',
+          minWidth: '200px',
+          boxShadow: 'var(--shadow-medium)',
+          zIndex: 1000
+        }}>
+          <div style={{
+            padding: 'var(--spacing-sm)',
+            borderBottom: '1px solid var(--border-light)',
+            marginBottom: 'var(--spacing-sm)'
+          }}>
+            <p style={{ 
+              margin: 0, 
+              fontWeight: '600',
+              color: 'var(--text-dark)',
+              fontSize: '0.9rem'
+            }}>
+              {user?.user_metadata?.display_name || 'Utilisateur'}
+            </p>
+            <p style={{ 
+              margin: 0, 
+              color: 'var(--text-medium)',
+              fontSize: '0.8rem'
+            }}>
+              {user?.email}
+            </p>
+          </div>
+
+          <Link 
+            href="/profil" 
+            style={{
+              display: 'block',
+              padding: 'var(--spacing-sm)',
+              color: 'var(--text-dark)',
+              textDecoration: 'none',
+              borderRadius: 'var(--border-radius-small)',
+              fontSize: '0.9rem'
+            }}
+            onClick={() => setShowUserMenu(false)}
+          >
+            👤 Mon profil
+          </Link>
+
+          <Link 
+            href="/mes-recettes" 
+            style={{
+              display: 'block',
+              padding: 'var(--spacing-sm)',
+              color: 'var(--text-dark)',
+              textDecoration: 'none',
+              borderRadius: 'var(--border-radius-small)',
+              fontSize: '0.9rem'
+            }}
+            onClick={() => setShowUserMenu(false)}
+          >
+            📝 Mes recettes
+          </Link>
+
+          <button
+            onClick={handleSignOut}
+            style={{
+              width: '100%',
+              padding: 'var(--spacing-sm)',
+              background: 'none',
+              border: 'none',
+              color: 'var(--primary-orange)',
+              textAlign: 'left',
+              cursor: 'pointer',
+              borderRadius: 'var(--border-radius-small)',
+              fontSize: '0.9rem'
+            }}
+          >
+            🚪 Se déconnecter
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function AppContent({ Component, pageProps }) {
   const [globalError, setGlobalError] = useState(null);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const router = useRouter();
+  const { user, signOut } = useAuth()
   
   // Log le montage de l'application
   useEffect(() => {
@@ -120,11 +243,16 @@ function MyApp({ Component, pageProps }) {
   };
 
   const handleShare = async () => {
+    if (!user) {
+      router.push('/login?redirect=' + encodeURIComponent('/submit-recipe'))
+      return
+    }
+    
     logUserInteraction('OPEN_SHARE_MENU', 'bouton-partage', {
-      currentPath: router.pathname
+      currentPath: router.pathname,
+      isAuthenticated: !!user
     });
     
-    // Rediriger vers la page de soumission de recette
     router.push('/submit-recipe')
   };
 
@@ -151,200 +279,213 @@ function MyApp({ Component, pageProps }) {
   };
 
   return (
-    <ErrorBoundary>
-      <div className="mobile-app">
-        {/* Mobile Status Bar */}
-        <div className="status-bar">
-          <span>9:41</span>
-          <div className="status-icons">
-            <span>📶</span>
-            <span>📱</span>
-            <span>🔋</span>
-          </div>
+    <div className="mobile-app">
+      {/* Mobile Status Bar */}
+      <div className="status-bar">
+        <span>9:41</span>
+        <div className="status-icons">
+          <span>📶</span>
+          <span>📱</span>
+          <span>🔋</span>
         </div>
-        
-        <main className="app-content">
-          {globalError && (
-            <div style={{ maxWidth: '1200px', margin: '1rem auto', padding: '0 1rem' }}>
-              <ErrorDisplay error={globalError} resetError={resetGlobalError} />
-            </div>
-          )}
-          <Component {...pageProps} />
-        </main>
-        
-        {/* Bottom Navigation */}
-        <nav className="bottom-nav">
-          <Link href="/" className={getNavItemClass('/')}>
-            <span className="nav-icon">🏠</span>
-            <span className="nav-label">Accueil</span>
-          </Link>
-          <Link href="/explorer" className={getNavItemClass('/explorer')}>
-            <span className="nav-icon">🔍</span>
-            <span className="nav-label">Explorer</span>
-          </Link>
-          <button onClick={handleShare} className="nav-item add-button">
-            <span className="nav-icon">📤</span>
-          </button>
-          <Link href="/favoris" className={getNavItemClass('/favoris')}>
-            <span className="nav-icon">❤️</span>
-            <span className="nav-label">Favoris</span>
-          </Link>
-          <Link href="/profil" className={getNavItemClass('/profil')}>
-            <span className="nav-icon">👤</span>
-            <span className="nav-label">Profil</span>
-          </Link>
-        </nav>
-
-        {/* Share Menu Overlay */}
-        {showShareMenu && (
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0, 0, 0, 0.6)',
-            display: 'flex',
-            alignItems: 'flex-end',
-            justifyContent: 'center',
-            zIndex: 1000,
-            maxWidth: '430px',
-            margin: '0 auto'
-          }}>
-            <div style={{
-              background: 'var(--bg-card)',
-              borderRadius: 'var(--radius-xl) var(--radius-xl) 0 0',
-              width: '100%',
-              padding: 'var(--spacing-lg)',
-              animation: 'slideUp 0.3s ease'
-            }}>
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: 'var(--spacing-lg)'
-              }}>
-                <h3 style={{
-                  margin: 0,
-                  color: 'var(--primary-coral)',
-                  fontSize: '1.3rem',
-                  fontWeight: '600'
-                }}>
-                  Partager COCO
-                </h3>
-                <button
-                  onClick={() => setShowShareMenu(false)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    fontSize: '1.5rem',
-                    color: 'var(--text-secondary)',
-                    cursor: 'pointer',
-                    padding: 'var(--spacing-sm)',
-                    borderRadius: '50%'
-                  }}
-                >
-                  ✕
-                </button>
-              </div>
-
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
-                gap: 'var(--spacing-md)',
-                marginBottom: 'var(--spacing-lg)'
-              }}>
-                <button
-                  onClick={shareToWhatsApp}
-                  className="card"
-                  style={{
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: 'var(--spacing-md)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: 'var(--spacing-sm)',
-                    background: 'var(--bg-card)',
-                    transition: 'all 0.3s ease'
-                  }}
-                >
-                  <span style={{ fontSize: '2rem' }}>💬</span>
-                  <span style={{ fontSize: '0.8rem', fontWeight: '500' }}>WhatsApp</span>
-                </button>
-
-                <button
-                  onClick={shareToFacebook}
-                  className="card"
-                  style={{
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: 'var(--spacing-md)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: 'var(--spacing-sm)',
-                    background: 'var(--bg-card)',
-                    transition: 'all 0.3s ease'
-                  }}
-                >
-                  <span style={{ fontSize: '2rem' }}>📘</span>
-                  <span style={{ fontSize: '0.8rem', fontWeight: '500' }}>Facebook</span>
-                </button>
-
-                <button
-                  onClick={copyToClipboard}
-                  className="card"
-                  style={{
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: 'var(--spacing-md)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: 'var(--spacing-sm)',
-                    background: 'var(--bg-card)',
-                    transition: 'all 0.3s ease'
-                  }}
-                >
-                  <span style={{ fontSize: '2rem' }}>🔗</span>
-                  <span style={{ fontSize: '0.8rem', fontWeight: '500' }}>Copier</span>
-                </button>
-              </div>
-
-              <div style={{
-                background: 'var(--bg-gradient)',
-                borderRadius: 'var(--radius-lg)',
-                padding: 'var(--spacing-md)',
-                textAlign: 'center'
-              }}>
-                <p style={{
-                  margin: 0,
-                  fontSize: '0.9rem',
-                  color: 'var(--text-secondary)'
-                }}>
-                  🍴 Partagez COCO avec vos amis et découvrez ensemble de délicieuses recettes !
-                </p>
-              </div>
-            </div>
+      </div>
+      
+      <main className="app-content">
+        {globalError && (
+          <div style={{ maxWidth: '1200px', margin: '1rem auto', padding: '0 1rem' }}>
+            <ErrorDisplay error={globalError} resetError={resetGlobalError} />
           </div>
         )}
-      </div>
+        <Component {...pageProps} />
+      </main>
+      
+      {/* Bottom Navigation */}
+      <nav className="bottom-nav">
+        <Link href="/" className={getNavItemClass('/')}>
+          <span className="nav-icon">🏠</span>
+          <span className="nav-label">Accueil</span>
+        </Link>
+        <Link href="/explorer" className={getNavItemClass('/explorer')}>
+          <span className="nav-icon">🔍</span>
+          <span className="nav-label">Explorer</span>
+        </Link>
+        <button onClick={handleShare} className="nav-item add-button">
+          <span className="nav-icon">📤</span>
+        </button>
+        <Link href="/favoris" className={getNavItemClass('/favoris')}>
+          <span className="nav-icon">❤️</span>
+          <span className="nav-label">Favoris</span>
+        </Link>
+        
+        {user ? (
+          <AuthenticatedNav user={user} signOut={signOut} />
+        ) : (
+          <Link href="/login" className={getNavItemClass('/login')}>
+            <span className="nav-icon">👤</span>
+            <span className="nav-label">Connexion</span>
+          </Link>
+        )}
+      </nav>
 
-      <style jsx>{`
-        @keyframes slideUp {
-          from {
-            transform: translateY(100%);
-            opacity: 0;
-          }
-          to {
-            transform: translateY(0);
-            opacity: 1;
-          }
-        }
-      `}</style>
+      {/* Share Menu Overlay */}
+      {showShareMenu && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.6)',
+          display: 'flex',
+          alignItems: 'flex-end',
+          justifyContent: 'center',
+          zIndex: 1000,
+          maxWidth: '430px',
+          margin: '0 auto'
+        }}>
+          <div style={{
+            background: 'var(--bg-card)',
+            borderRadius: 'var(--radius-xl) var(--radius-xl) 0 0',
+            width: '100%',
+            padding: 'var(--spacing-lg)',
+            animation: 'slideUp 0.3s ease'
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 'var(--spacing-lg)'
+            }}>
+              <h3 style={{
+                margin: 0,
+                color: 'var(--primary-coral)',
+                fontSize: '1.3rem',
+                fontWeight: '600'
+              }}>
+                Partager COCO
+              </h3>
+              <button
+                onClick={() => setShowShareMenu(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '1.5rem',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  padding: 'var(--spacing-sm)',
+                  borderRadius: '50%'
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: 'var(--spacing-md)',
+              marginBottom: 'var(--spacing-lg)'
+            }}>
+              <button
+                onClick={shareToWhatsApp}
+                className="card"
+                style={{
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: 'var(--spacing-md)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 'var(--spacing-sm)',
+                  background: 'var(--bg-card)',
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                <span style={{ fontSize: '2rem' }}>💬</span>
+                <span style={{ fontSize: '0.8rem', fontWeight: '500' }}>WhatsApp</span>
+              </button>
+
+              <button
+                onClick={shareToFacebook}
+                className="card"
+                style={{
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: 'var(--spacing-md)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 'var(--spacing-sm)',
+                  background: 'var(--bg-card)',
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                <span style={{ fontSize: '2rem' }}>📘</span>
+                <span style={{ fontSize: '0.8rem', fontWeight: '500' }}>Facebook</span>
+              </button>
+
+              <button
+                onClick={copyToClipboard}
+                className="card"
+                style={{
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: 'var(--spacing-md)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 'var(--spacing-sm)',
+                  background: 'var(--bg-card)',
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                <span style={{ fontSize: '2rem' }}>🔗</span>
+                <span style={{ fontSize: '0.8rem', fontWeight: '500' }}>Copier</span>
+              </button>
+            </div>
+
+            <div style={{
+              background: 'var(--bg-gradient)',
+              borderRadius: 'var(--radius-lg)',
+              padding: 'var(--spacing-md)',
+              textAlign: 'center'
+            }}>
+              <p style={{
+                margin: 0,
+                fontSize: '0.9rem',
+                color: 'var(--text-secondary)'
+              }}>
+                🍴 Partagez COCO avec vos amis et découvrez ensemble de délicieuses recettes !
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function MyApp({ Component, pageProps }) {
+  return (
+    <ErrorBoundary>
+      <AuthProvider>
+        <AppContent Component={Component} pageProps={pageProps} />
+      </AuthProvider>
     </ErrorBoundary>
   )
 }
 
 export default MyApp
+
+<style jsx>{`
+  @keyframes slideUp {
+    from {
+      transform: translateY(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+`}</style>
