@@ -80,9 +80,9 @@ export default function RecipeCard({ recipe, isUserRecipe = true }) {
             <button 
               className={`${styles.favoriteBtn} ${isFavorite ? styles.active : ''}`}
               onClick={toggleFavorite}
-              aria-label="Ajouter aux favoris"
+              aria-label="Partager avec des amis"
             >
-              {isFavorite ? '❤️' : '🤍'}
+              {isFavorite ? '📤' : '👥'}
             </button>
           </div>
         </div>

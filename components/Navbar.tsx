@@ -55,6 +55,9 @@ const Navbar = () => {
             <Link href="/" className="nav-link">
               Accueil
             </Link>
+            <Link href="/favoris" className="nav-link">
+              Amis
+            </Link>
             <button className="btn btn-primary" style={{ border: 'none' }}>
               ➕ Ajouter une recette
             </button>
@@ -98,6 +101,9 @@ const Navbar = () => {
             }}>
               <Link href="/" className="mobile-nav-link">
                 🏠 Accueil
+              </Link>
+              <Link href="/favoris" className="mobile-nav-link">
+                👥 Mes amis
               </Link>
               <button className="mobile-nav-link" style={{ 
                 border: 'none', 

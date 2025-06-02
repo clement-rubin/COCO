@@ -90,7 +90,7 @@ COCO/
 │   ├── social.js                  # Feed social complet
 │   ├── test-upload.js             # Page de test d'upload (debug)
 │   ├── test-recipes.js            # Page de test de la base de données
-│   ├── favoris.js                 # Page des favoris
+│   ├── favoris.js                 # Page de gestion des amis
 │   ├── explorer.js                # Page d'exploration des recettes
 │   ├── profil.js                  # Page de profil utilisateur
 │   ├── login.js                   # Page de connexion

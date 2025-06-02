@@ -100,7 +100,7 @@ export default function Navigation() {
               className={router.pathname === "/favoris" ? styles.active : ""}
               onClick={closeMenu}
             >
-              Favoris
+              Amis
             </Link>
           </li>
         </ul>

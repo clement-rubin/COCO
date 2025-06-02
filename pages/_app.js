@@ -312,8 +312,8 @@ function AppContent({ Component, pageProps }) {
             <span className="nav-icon">📤</span>
           </button>
           <Link href="/favoris" className={getNavItemClass('/favoris')}>
-            <span className="nav-icon">❤️</span>
-            <span className="nav-label">Favoris</span>
+            <span className="nav-icon">👥</span>
+            <span className="nav-label">Amis</span>
           </Link>
           
           {user ? (
