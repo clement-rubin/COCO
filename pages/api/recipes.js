@@ -56,35 +56,41 @@ export default async function handler(req, res) {
     if (req.method === 'POST') {
       const data = req.body
       
-      logDebug('[API] Données reçues pour nouvelle recette', {
+      logDebug('[API] Données brutes reçues pour nouvelle recette', {
+        dataKeys: Object.keys(data),
         hasTitle: !!data.title,
         hasDescription: !!data.description,
         hasIngredients: !!data.ingredients,
         hasInstructions: !!data.instructions,
         hasImage: !!data.image,
+        hasPrepTime: !!data.prepTime,
+        hasCookTime: !!data.cookTime,
+        hasCategory: !!data.category,
+        hasAuthor: !!data.author,
+        hasDifficulty: !!data.difficulty,
         imageType: Array.isArray(data.image) ? 'bytes' : typeof data.image,
-        imageBytesLength: Array.isArray(data.image) ? data.image.length : 'N/A'
+        imageBytesLength: Array.isArray(data.image) ? data.image.length : 'N/A',
+        dataSize: JSON.stringify(data).length
       })
       
-      // Validation des champs obligatoires
-      if (!data.title || !data.description) {
-        logWarning('[API] Champs obligatoires manquants', {
-          hasTitle: !!data.title,
-          hasDescription: !!data.description,
-          receivedFields: Object.keys(data)
+      // Validation des champs obligatoires selon le schéma
+      if (!data.title) {
+        logWarning('[API] Champ title obligatoire manquant', {
+          receivedFields: Object.keys(data),
+          titleValue: data.title
         })
         
         res.status(400).json({ 
-          message: 'Champs obligatoires manquants',
-          required: ['title', 'description'],
+          message: 'Le champ title est obligatoire',
+          required: ['title'],
           received: Object.keys(data)
         })
         return
       }
       
-      // Validation de l'image - make it optional and handle safely
+      // Validation de l'image si fournie
       if (data.image && (!Array.isArray(data.image) || data.image.length === 0)) {
-        logWarning('[API] Image invalide', {
+        logWarning('[API] Image invalide fournie', {
           hasImage: !!data.image,
           imageType: typeof data.image,
           isArray: Array.isArray(data.image),
@@ -92,7 +98,7 @@ export default async function handler(req, res) {
         })
         
         res.status(400).json({ 
-          message: 'Si une image est fournie, elle doit être un tableau de bytes',
+          message: 'Si une image est fournie, elle doit être un tableau de bytes valide',
           imageReceived: {
             type: typeof data.image,
             isArray: Array.isArray(data.image),
@@ -102,94 +108,143 @@ export default async function handler(req, res) {
         return
       }
 
-      // Test de structure de la table avant insertion
+      // Test de structure de la table selon le schéma exact
       try {
-        logInfo('[API] Test de structure de la table recipes')
+        logInfo('[API] Vérification de la structure de la table recipes selon le schéma')
         const { data: tableTest, error: tableError } = await supabase
           .from('recipes')
-          .select('id, difficulty')
+          .select('id, title, description, image, prepTime, cookTime, category, author, ingredients, instructions, created_at, updated_at, difficulty')
           .limit(1)
         
         if (tableError) {
-          logError('[API] Erreur lors du test de la table', tableError)
-          
-          // Erreur spécifique pour colonne difficulty manquante
-          if (tableError.code === 'PGRST204' && tableError.message.includes('difficulty')) {
-            res.status(500).json({
-              message: 'Colonne difficulty manquante dans la table recipes',
-              details: 'La colonne "difficulty" n\'existe pas dans votre table recipes.',
-              error: tableError.message,
-              solution: 'Exécutez ce SQL dans votre dashboard Supabase : ALTER TABLE recipes ADD COLUMN IF NOT EXISTS difficulty TEXT DEFAULT \'Facile\';',
-              sqlCommand: 'ALTER TABLE recipes ADD COLUMN IF NOT EXISTS difficulty TEXT DEFAULT \'Facile\';'
-            })
-            return
-          }
+          logError('[API] Erreur lors de la vérification de structure', tableError, {
+            errorCode: tableError.code,
+            errorMessage: tableError.message,
+            errorDetails: tableError.details
+          })
           
           res.status(500).json({
             message: 'Erreur de configuration de la base de données',
-            details: 'La table recipes n\'est pas accessible ou n\'existe pas.',
+            details: 'La table recipes n\'est pas conforme au schéma attendu.',
             error: tableError.message,
-            solution: 'Vérifiez que la table recipes existe dans Supabase avec toutes les colonnes requises.'
+            expectedColumns: ['id', 'title', 'description', 'image', 'prepTime', 'cookTime', 'category', 'author', 'ingredients', 'instructions', 'created_at', 'updated_at', 'difficulty']
           })
           return
         }
         
-        logDebug('[API] Test de structure réussi', { 
-          canAccessTable: true,
-          testResultCount: tableTest?.length || 0
+        logDebug('[API] Structure de table validée', { 
+          canAccessAllColumns: true,
+          testResultCount: tableTest?.length || 0,
+          schemaCompliant: true
         })
       } catch (tableTestError) {
-        logError('[API] Erreur critique lors du test de table', tableTestError)
+        logError('[API] Erreur critique lors de la vérification de schéma', tableTestError)
         res.status(500).json({
           message: 'Erreur critique de base de données',
-          details: 'Impossible d\'accéder à la table recipes.',
-          error: tableTestError.message,
-          solution: 'Vérifiez la configuration Supabase et les variables d\'environnement.'
+          details: 'Impossible de vérifier la conformité au schéma.',
+          error: tableTestError.message
         })
         return
       }
       
-      // Préparer les ingrédients et instructions avec protection contre undefined
-      const ingredients = Array.isArray(data.ingredients) ? data.ingredients : 
-                         typeof data.ingredients === 'string' ? data.ingredients.split('\n').filter(i => i.trim()) :
-                         []
+      // Préparation des ingrédients avec validation et logging détaillé
+      let processedIngredients = []
+      try {
+        if (Array.isArray(data.ingredients)) {
+          processedIngredients = data.ingredients.filter(i => i && typeof i === 'string' && i.trim())
+          logDebug('[API] Ingrédients traités depuis array', {
+            originalCount: data.ingredients.length,
+            processedCount: processedIngredients.length,
+            filteredOut: data.ingredients.length - processedIngredients.length
+          })
+        } else if (typeof data.ingredients === 'string') {
+          processedIngredients = data.ingredients.split('\n').filter(i => i.trim())
+          logDebug('[API] Ingrédients traités depuis string', {
+            originalLength: data.ingredients.length,
+            processedCount: processedIngredients.length,
+            splitBy: 'newline'
+          })
+        } else {
+          logWarning('[API] Format d\'ingrédients non reconnu', {
+            ingredientsType: typeof data.ingredients,
+            ingredientsValue: data.ingredients
+          })
+        }
+      } catch (ingredientsError) {
+        logError('[API] Erreur lors du traitement des ingrédients', ingredientsError)
+        processedIngredients = []
+      }
       
-      const instructions = Array.isArray(data.instructions) ? data.instructions :
-                          typeof data.instructions === 'string' ? 
-                            data.instructions.split('\n').filter(i => i.trim()).map((inst, index) => ({
-                              step: index + 1,
-                              instruction: inst.trim()
-                            })) :
-                          []
+      // Préparation des instructions avec validation et logging détaillé
+      let processedInstructions = []
+      try {
+        if (Array.isArray(data.instructions)) {
+          processedInstructions = data.instructions
+            .filter(inst => inst && (typeof inst === 'string' || typeof inst === 'object'))
+            .map((inst, index) => {
+              if (typeof inst === 'string') {
+                return { step: index + 1, instruction: inst.trim() }
+              }
+              return inst
+            })
+          logDebug('[API] Instructions traitées depuis array', {
+            originalCount: data.instructions.length,
+            processedCount: processedInstructions.length
+          })
+        } else if (typeof data.instructions === 'string') {
+          processedInstructions = data.instructions
+            .split('\n')
+            .filter(i => i.trim())
+            .map((inst, index) => ({
+              step: index + 1,
+              instruction: inst.trim()
+            }))
+          logDebug('[API] Instructions traitées depuis string', {
+            originalLength: data.instructions.length,
+            processedCount: processedInstructions.length,
+            splitBy: 'newline'
+          })
+        } else {
+          logWarning('[API] Format d\'instructions non reconnu', {
+            instructionsType: typeof data.instructions,
+            instructionsValue: data.instructions
+          })
+        }
+      } catch (instructionsError) {
+        logError('[API] Erreur lors du traitement des instructions', instructionsError)
+        processedInstructions = []
+      }
       
-      // Préparer les données avec validation des champs requis
+      // Création de l'objet recette strictement conforme au schéma
       const newRecipe = {
+        // id sera généré automatiquement par gen_random_uuid()
         title: data.title.trim(),
-        description: data.description?.trim() || '',
-        ingredients: JSON.stringify(ingredients),
-        instructions: JSON.stringify(instructions),
+        description: data.description?.trim() || null,
+        image: data.image || null,
         prepTime: data.prepTime?.trim() || null,
         cookTime: data.cookTime?.trim() || null,
-        servings: data.servings?.trim() || null,
         category: data.category?.trim() || null,
+        author: data.author?.trim() || null,
+        ingredients: processedIngredients,
+        instructions: processedInstructions,
         difficulty: data.difficulty?.trim() || 'Facile',
-        author: data.author?.trim() || 'Anonyme',
-        image: data.image || null // Allow null images
+        // created_at et updated_at seront gérés automatiquement
       }
 
-      // Ajouter photos seulement si la colonne existe
-      if (data.photos) {
-        newRecipe.photos = JSON.stringify(data.photos)
-      }
-      
-      logInfo('[API] Tentative d\'insertion de nouvelle recette', {
+      logInfo('[API] Recette préparée pour insertion conforme au schéma', {
         title: newRecipe.title,
-        ingredientsCount: ingredients.length,
-        instructionsCount: instructions.length,
-        imageBytesLength: newRecipe.image ? newRecipe.image.length : 'N/A',
-        category: newRecipe.category,
-        author: newRecipe.author,
-        hasPhotos: !!newRecipe.photos
+        hasDescription: !!newRecipe.description,
+        hasImage: !!newRecipe.image,
+        imageBytesLength: newRecipe.image ? newRecipe.image.length : null,
+        hasPrepTime: !!newRecipe.prepTime,
+        hasCookTime: !!newRecipe.cookTime,
+        hasCategory: !!newRecipe.category,
+        hasAuthor: !!newRecipe.author,
+        ingredientsCount: newRecipe.ingredients.length,
+        instructionsCount: newRecipe.instructions.length,
+        difficulty: newRecipe.difficulty,
+        schemaCompliant: true,
+        estimatedSize: JSON.stringify(newRecipe).length
       })
       
       const { data: insertedData, error } = await supabase
@@ -203,43 +258,42 @@ export default async function handler(req, res) {
           errorCode: error.code,
           errorMessage: error.message,
           errorDetails: error.details,
-          errorHint: error.hint
+          errorHint: error.hint,
+          dataSize: JSON.stringify(newRecipe).length,
+          schemaColumns: Object.keys(newRecipe)
         })
         
-        // Messages d'erreur spécifiques améliorés
+        // Messages d'erreur spécifiques selon le schéma UUID
         if (error.code === 'PGRST204' || error.code === '42703') {
           res.status(500).json({ 
             message: 'Erreur de structure de base de données',
-            details: 'Une ou plusieurs colonnes nécessaires sont manquantes dans la table recipes.',
+            details: 'La table recipes ne correspond pas au schéma attendu.',
             error: error.message,
-            requiredColumns: ['id', 'title', 'description', 'ingredients', 'instructions', 'image', 'author', 'created_at'],
-            solution: 'Consultez la documentation pour créer la table avec toutes les colonnes requises.',
-            sqlHelp: `
-CREATE TABLE recipes (
-  id SERIAL PRIMARY KEY,
-  title VARCHAR(255) NOT NULL,
-  description TEXT,
-  ingredients TEXT,
-  instructions TEXT,
-  prep_time VARCHAR(50),
-  cook_time VARCHAR(50),
-  category VARCHAR(100),
-  author VARCHAR(255) DEFAULT 'Anonyme',
-  image BYTEA,
-  photos TEXT,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);`
+            expectedSchema: {
+              id: 'uuid PRIMARY KEY DEFAULT gen_random_uuid()',
+              title: 'text NOT NULL',
+              description: 'text',
+              image: 'bytea',
+              prepTime: 'text',
+              cookTime: 'text',
+              category: 'text',
+              author: 'text',
+              ingredients: 'json',
+              instructions: 'json',
+              created_at: 'timestamp with time zone',
+              updated_at: 'timestamp with time zone',
+              difficulty: 'text DEFAULT \'Facile\''
+            }
           })
           return
         }
 
         if (error.code === '23502') {
           res.status(400).json({
-            message: 'Données manquantes pour la base de données',
-            details: 'Un champ obligatoire est manquant ou null.',
+            message: 'Champ obligatoire manquant',
+            details: 'Le champ title est requis et ne peut pas être null.',
             error: error.message,
-            hint: 'Vérifiez que tous les champs obligatoires sont remplis.'
+            requiredFields: ['title']
           })
           return
         }
@@ -249,7 +303,7 @@ CREATE TABLE recipes (
             message: 'Données trop longues',
             details: 'Une des valeurs dépasse la taille maximale autorisée.',
             error: error.message,
-            hint: 'Réduisez la taille du titre, de la description ou des autres champs.'
+            dataSize: JSON.stringify(newRecipe).length
           })
           return
         }
@@ -264,15 +318,20 @@ CREATE TABLE recipes (
         return
       }
       
-      logInfo('[API] Recette créée avec succès', {
+      logInfo('[API] Recette créée avec succès dans la base', {
         recipeId: insertedData[0]?.id,
-        recipeTitle: insertedData[0]?.title
+        recipeTitle: insertedData[0]?.title,
+        createdAt: insertedData[0]?.created_at,
+        isUUID: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(insertedData[0]?.id),
+        schemaCompliant: true,
+        insertedFields: Object.keys(insertedData[0] || {})
       })
       
       res.status(201).json({
         message: 'Recette créée avec succès',
         id: insertedData[0]?.id,
-        title: insertedData[0]?.title
+        title: insertedData[0]?.title,
+        created_at: insertedData[0]?.created_at
       })
       return
     }
