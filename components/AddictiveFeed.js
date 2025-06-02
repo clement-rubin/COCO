@@ -5,164 +5,281 @@ import { useAuth } from './AuthContext'
 import { logUserInteraction } from '../utils/logger'
 import styles from '../styles/AddictiveFeed.module.css'
 
+// Générateur de contenu varié
+const generateRandomPosts = (startIndex = 0, count = 10) => {
+  const users = [
+    { id: 'marie123', name: 'Marie Dubois', avatar: '👩‍🍳', verified: true, followers: 2400 },
+    { id: 'chef_pierre', name: 'Chef Pierre', avatar: '👨‍🍳', verified: true, followers: 15600 },
+    { id: 'emma_healthy', name: 'Emma Green', avatar: '🌱', verified: false, followers: 890 },
+    { id: 'lucas_baker', name: 'Lucas Baker', avatar: '🧑‍🍳', verified: true, followers: 5200 },
+    { id: 'sophie_patiss', name: 'Sophie Patiss', avatar: '👩‍🦳', verified: true, followers: 8900 },
+    { id: 'tom_bbq', name: 'Tom BBQ', avatar: '🔥', verified: false, followers: 3400 },
+    { id: 'nina_vegan', name: 'Nina Vegan', avatar: '🥬', verified: true, followers: 12000 },
+    { id: 'alex_fusion', name: 'Alex Fusion', avatar: '🌍', verified: false, followers: 1800 }
+  ]
+
+  const recipeTemplates = [
+    {
+      titles: ['Pasta Carbonara Authentique', 'Spaghetti Aglio e Olio', 'Risotto aux Champignons', 'Lasagnes Maison'],
+      category: 'Italien',
+      tags: ['#italien', '#pasta', '#authentique', '#fait-maison'],
+      images: [
+        'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5',
+        'https://images.unsplash.com/photo-1551183053-bf91a1d81141',
+        'https://images.unsplash.com/photo-1579952363873-27d3bfad9c0d',
+        'https://images.unsplash.com/photo-1555949258-eb67b1ef0ceb'
+      ]
+    },
+    {
+      titles: ['Tarte aux Fraises', 'Tiramisu Classique', 'Éclair au Chocolat', 'Crème Brûlée'],
+      category: 'Dessert',
+      tags: ['#dessert', '#sucré', '#pâtisserie', '#french'],
+      images: [
+        'https://images.unsplash.com/photo-1565958011703-44f9829ba187',
+        'https://images.unsplash.com/photo-1571115764595-644a1f56a55c',
+        'https://images.unsplash.com/photo-1578985545062-69928b1d9587',
+        'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3'
+      ]
+    },
+    {
+      titles: ['Buddha Bowl Coloré', 'Smoothie Bowl Tropical', 'Salade Quinoa Avocat', 'Wrap Végétarien'],
+      category: 'Healthy',
+      tags: ['#healthy', '#végétarien', '#coloré', '#équilibré'],
+      images: [
+        'https://images.unsplash.com/photo-1511690743698-d9d85f2fbf38',
+        'https://images.unsplash.com/photo-1512621776951-a57141f2eefd',
+        'https://images.unsplash.com/photo-1540420773420-3366772f4999',
+        'https://images.unsplash.com/photo-1547592180-85f173990554'
+      ]
+    },
+    {
+      titles: ['Ramen Épicé Maison', 'Pad Thaï Authentique', 'Sushi Rolls', 'Curry Vert Thaï'],
+      category: 'Asiatique',
+      tags: ['#asiatique', '#épicé', '#authentique', '#umami'],
+      images: [
+        'https://images.unsplash.com/photo-1569718212165-3a8278d5f624',
+        'https://images.unsplash.com/photo-1559181567-c3190ca9959b',
+        'https://images.unsplash.com/photo-1579584425555-c3ce17fd4351',
+        'https://images.unsplash.com/photo-1504674900247-0877df9cc836'
+      ]
+    },
+    {
+      titles: ['Burger Gourmet BBQ', 'Côtes de Porc Laquées', 'Pulled Pork Sandwich', 'Ribs Fumés'],
+      category: 'BBQ',
+      tags: ['#bbq', '#grillé', '#fumé', '#carnivore'],
+      images: [
+        'https://images.unsplash.com/photo-1568901346375-23c9450c58cd',
+        'https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5',
+        'https://images.unsplash.com/photo-1586190848861-99aa4a171e90',
+        'https://images.unsplash.com/photo-1561758033-d89a9ad46330'
+      ]
+    }
+  ]
+
+  const descriptions = [
+    "Ma recette secrète transmise par ma grand-mère ! 👵✨",
+    "Premier essai et c'est un succès total ! 🎉",
+    "La technique qui change tout, vous allez adorer ! 💫",
+    "Recette healthy et délicieuse, parfaite pour l'été ! ☀️",
+    "Mon nouveau plat préféré, addictif ! 😍",
+    "Technique de chef à la maison ! 👨‍🍳",
+    "Comfort food qui réchauffe le cœur ! ❤️",
+    "Explosion de saveurs garantie ! 💥"
+  ]
+
+  return Array.from({ length: count }, (_, i) => {
+    const index = startIndex + i
+    const user = users[index % users.length]
+    const template = recipeTemplates[index % recipeTemplates.length]
+    const title = template.titles[index % template.titles.length]
+    const description = descriptions[index % descriptions.length]
+    
+    // Sélectionner 2-4 images aléatoires du template
+    const imageCount = 2 + (index % 3) // 2, 3, ou 4 images
+    const shuffledImages = [...template.images].sort(() => Math.random() - 0.5)
+    const selectedImages = shuffledImages.slice(0, imageCount)
+
+    return {
+      id: `post_${index}`,
+      type: index % 5 === 0 ? 'challenge' : 'recipe',
+      user: {
+        ...user,
+        isFollowing: Math.random() > 0.7
+      },
+      recipe: {
+        id: `recipe_${index}`,
+        title,
+        description,
+        media: selectedImages.map((url, mediaIndex) => ({
+          type: mediaIndex === 0 && Math.random() > 0.7 ? 'video' : 'image',
+          url,
+          duration: mediaIndex === 0 ? 15 : 5
+        })),
+        tags: [...template.tags],
+        difficulty: ['Facile', 'Moyen', 'Difficile'][index % 3],
+        prepTime: `${10 + (index % 20)} min`,
+        cookTime: `${15 + (index % 30)} min`,
+        portions: 2 + (index % 6),
+        likes: 50 + Math.floor(Math.random() * 2000),
+        comments: 5 + Math.floor(Math.random() * 200),
+        saves: 10 + Math.floor(Math.random() * 500),
+        shares: Math.floor(Math.random() * 100),
+        category: template.category
+      },
+      timeAgo: ['5min', '15min', '1h', '2h', '4h', '1j'][index % 6],
+      location: ['Paris, France', 'Lyon, France', 'Marseille, France', 'Toulouse, France'][index % 4],
+      music: [
+        'Cooking Vibes - Lofi Hip Hop',
+        'Kitchen Beats - Chill Mix',
+        'Food Mood - Jazz Café',
+        'Cooking Time - Acoustic'
+      ][index % 4]
+    }
+  })
+}
+
 export default function AddictiveFeed() {
   const router = useRouter()
   const { user } = useAuth()
   const [posts, setPosts] = useState([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(true)
+  const [page, setPage] = useState(0)
   const [userActions, setUserActions] = useState({
     likes: new Set(),
     saves: new Set(),
     follows: new Set()
   })
-  const [showComments, setShowComments] = useState(null)
-  const [comments, setComments] = useState({})
-  const [newComment, setNewComment] = useState('')
+  const [currentMediaIndex, setCurrentMediaIndex] = useState({})
   
   const containerRef = useRef(null)
   const videoRefs = useRef({})
   const intersectionObserver = useRef(null)
+  const mediaIntervalRefs = useRef({})
 
-  // Données simulées pour le feed addictif
-  const mockPosts = [
-    {
-      id: 1,
-      type: 'recipe',
-      user: {
-        id: 'marie123',
-        name: 'Marie Dubois',
-        avatar: '👩‍🍳',
-        verified: true,
-        followers: 2400,
-        isFollowing: false
-      },
-      recipe: {
-        id: 'rec1',
-        title: 'Pasta Carbonara Authentique',
-        description: 'La vraie recette italienne de ma nonna ! Aucune crème, juste des œufs, du pecorino et beaucoup d\'amour 🇮🇹✨',
-        media: [
-          { type: 'image', url: 'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5', duration: 5 },
-          { type: 'video', url: '/videos/carbonara-cooking.mp4', duration: 15 },
-          { type: 'image', url: 'https://images.unsplash.com/photo-1551183053-bf91a1d81141', duration: 5 }
-        ],
-        tags: ['#italien', '#authentique', '#pasta', '#carbonara'],
-        difficulty: 'Moyen',
-        prepTime: '15 min',
-        cookTime: '10 min',
-        portions: 4,
-        likes: 1247,
-        comments: 89,
-        saves: 342,
-        shares: 67
-      },
-      timeAgo: '2h',
-      location: 'Rome, Italie',
-      music: 'Italian Vibes - Cooking Playlist'
-    },
-    {
-      id: 2,
-      type: 'challenge',
-      user: {
-        id: 'chef_pierre',
-        name: 'Chef Pierre',
-        avatar: '👨‍🍳',
-        verified: true,
-        followers: 15600,
-        isFollowing: true
-      },
-      challenge: {
-        id: 'challenge_weekly_1',
-        title: 'Défi Soufflé Parfait',
-        description: 'Relevez le défi de la semaine : réalisez un soufflé qui ne retombe pas ! 🥧⬆️',
-        rewardPoints: 500,
-        participants: 1203,
-        timeLeft: '3j 12h',
-        media: [
-          { type: 'video', url: '/videos/souffle-challenge.mp4', duration: 30 }
-        ]
-      },
-      timeAgo: '4h'
-    },
-    {
-      id: 3,
-      type: 'story',
-      user: {
-        id: 'emma_healthy',
-        name: 'Emma Green',
-        avatar: '🌱',
-        verified: false,
-        followers: 890,
-        isFollowing: false
-      },
-      story: {
-        id: 'story_1',
-        title: 'Mon petit-déj healthy',
-        description: 'Smoothie bowl avocat-banane pour bien commencer la journée ! 💚',
-        media: [
-          { type: 'image', url: 'https://images.unsplash.com/photo-1511690743698-d9d85f2fbf38', duration: 3 }
-        ],
-        expiresIn: '16h'
-      },
-      timeAgo: '30min'
-    }
-  ]
-
-  // Charger les posts
+  // Chargement initial
   useEffect(() => {
-    const loadPosts = async () => {
-      setLoading(true)
-      // Simuler un appel API
-      setTimeout(() => {
-        setPosts(mockPosts)
-        setLoading(false)
-      }, 1000)
-    }
-    
-    loadPosts()
+    loadInitialPosts()
   }, [])
 
-  // Observer d'intersection pour l'autoplay et les métriques
+  const loadInitialPosts = async () => {
+    setLoading(true)
+    // Simuler un délai de chargement
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    const initialPosts = generateRandomPosts(0, 10)
+    setPosts(initialPosts)
+    setPage(1)
+    setLoading(false)
+  }
+
+  const loadMorePosts = async () => {
+    if (loadingMore || !hasMore) return
+    
+    setLoadingMore(true)
+    // Simuler un délai de chargement
+    await new Promise(resolve => setTimeout(resolve, 800))
+    
+    const newPosts = generateRandomPosts(page * 10, 10)
+    setPosts(prev => [...prev, ...newPosts])
+    setPage(prev => prev + 1)
+    setLoadingMore(false)
+    
+    // Simuler une fin éventuelle (très lointaine)
+    if (page > 50) {
+      setHasMore(false)
+    }
+  }
+
+  // Rotation automatique des médias pour chaque post
+  const startMediaRotation = useCallback((postId, mediaCount) => {
+    if (mediaCount <= 1) return
+    
+    const interval = setInterval(() => {
+      setCurrentMediaIndex(prev => ({
+        ...prev,
+        [postId]: ((prev[postId] || 0) + 1) % mediaCount
+      }))
+    }, 5000) // Change d'image toutes les 5 secondes
+    
+    mediaIntervalRefs.current[postId] = interval
+  }, [])
+
+  const stopMediaRotation = useCallback((postId) => {
+    if (mediaIntervalRefs.current[postId]) {
+      clearInterval(mediaIntervalRefs.current[postId])
+      delete mediaIntervalRefs.current[postId]
+    }
+  }, [])
+
+  // Observer d'intersection amélioré
   useEffect(() => {
     intersectionObserver.current = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           const index = parseInt(entry.target.dataset.index)
+          const post = posts[index]
           
           if (entry.isIntersecting) {
             setCurrentIndex(index)
             
-            // Autoplay vidéo
-            const video = videoRefs.current[index]
-            if (video) {
-              video.play().catch(() => {})
+            // Démarrer la rotation des médias
+            if (post?.recipe?.media?.length > 1) {
+              startMediaRotation(post.id, post.recipe.media.length)
             }
             
-            // Log vue
+            // Autoplay vidéo si c'est le média actuel
+            const currentMedia = currentMediaIndex[post?.id] || 0
+            if (post?.recipe?.media?.[currentMedia]?.type === 'video') {
+              const video = videoRefs.current[`${post.id}_${currentMedia}`]
+              if (video) {
+                video.play().catch(() => {})
+              }
+            }
+            
+            // Précharger le post suivant
+            if (index >= posts.length - 3 && hasMore && !loadingMore) {
+              loadMorePosts()
+            }
+            
             logUserInteraction('VIEW_POST', 'addictive-feed', {
-              postId: posts[index]?.id,
-              postType: posts[index]?.type,
+              postId: post?.id,
+              postType: post?.type,
               index,
-              viewDuration: 0
+              mediaCount: post?.recipe?.media?.length || 0
             })
           } else {
-            // Pause vidéo
-            const video = videoRefs.current[index]
-            if (video) {
-              video.pause()
+            // Arrêter la rotation des médias
+            if (post) {
+              stopMediaRotation(post.id)
             }
+            
+            // Pause toutes les vidéos du post
+            post?.recipe?.media?.forEach((_, mediaIndex) => {
+              const video = videoRefs.current[`${post.id}_${mediaIndex}`]
+              if (video) {
+                video.pause()
+              }
+            })
           }
         })
       },
-      { threshold: 0.7 }
+      { 
+        threshold: 0.7,
+        rootMargin: '50px 0px' // Précharger un peu avant
+      }
     )
 
     return () => {
       if (intersectionObserver.current) {
         intersectionObserver.current.disconnect()
       }
+      // Nettoyer tous les intervalles
+      Object.values(mediaIntervalRefs.current).forEach(clearInterval)
     }
-  }, [posts])
+  }, [posts, currentMediaIndex, hasMore, loadingMore])
 
   // Actions utilisateur
   const toggleLike = useCallback(async (postId) => {
@@ -173,45 +290,43 @@ export default function AddictiveFeed() {
       } else {
         newLikes.add(postId)
         
-        // Animation de like explosive
-        const hearts = ['❤️', '💖', '💕', '💓', '💗']
-        for (let i = 0; i < 5; i++) {
+        // Animation de like explosive améliorée
+        const hearts = ['❤️', '💖', '💕', '💓', '💗', '🧡', '💛']
+        for (let i = 0; i < 8; i++) {
           setTimeout(() => {
             const heart = document.createElement('div')
             heart.innerHTML = hearts[Math.floor(Math.random() * hearts.length)]
             heart.style.cssText = `
               position: fixed;
-              font-size: ${1.5 + Math.random()}rem;
+              font-size: ${1.2 + Math.random() * 0.8}rem;
               z-index: 10000;
               pointer-events: none;
-              animation: heartExplode ${0.8 + Math.random() * 0.4}s ease-out forwards;
-              left: ${Math.random() * window.innerWidth}px;
-              top: ${window.innerHeight * 0.3 + Math.random() * window.innerHeight * 0.4}px;
+              animation: heartExplode ${0.8 + Math.random() * 0.6}s ease-out forwards;
+              left: ${window.innerWidth * 0.8 + Math.random() * 60 - 30}px;
+              top: ${window.innerHeight * 0.4 + Math.random() * 200}px;
             `
             document.body.appendChild(heart)
-            setTimeout(() => heart.remove(), 1200)
-          }, i * 100)
+            setTimeout(() => heart.remove(), 1400)
+          }, i * 80)
         }
         
-        // Vibration
         if (navigator.vibrate) {
-          navigator.vibrate([50, 30, 50])
+          navigator.vibrate([30, 20, 30])
         }
       }
       
       return { ...prev, likes: newLikes }
     })
     
-    // Mettre à jour le compteur dans le post
     setPosts(prev => prev.map(post => {
       if (post.id === postId) {
         const isLiked = userActions.likes.has(postId)
         return {
           ...post,
-          recipe: post.recipe ? {
+          recipe: {
             ...post.recipe,
             likes: post.recipe.likes + (isLiked ? -1 : 1)
-          } : post.recipe
+          }
         }
       }
       return post
@@ -221,12 +336,13 @@ export default function AddictiveFeed() {
   const toggleSave = useCallback((postId) => {
     setUserActions(prev => {
       const newSaves = new Set(prev.saves)
-      if (newSaves.has(postId)) {
+      const wasSaved = newSaves.has(postId)
+      
+      if (wasSaved) {
         newSaves.delete(postId)
       } else {
         newSaves.add(postId)
         
-        // Toast de confirmation
         const toast = document.createElement('div')
         toast.innerHTML = '⭐ Recette sauvegardée !'
         toast.style.cssText = `
@@ -234,16 +350,20 @@ export default function AddictiveFeed() {
           bottom: 120px;
           left: 50%;
           transform: translateX(-50%);
-          background: linear-gradient(135deg, var(--primary-coral), var(--primary-coral-dark));
+          background: linear-gradient(135deg, #FF6B35, #F7931E);
           color: white;
-          padding: 12px 20px;
+          padding: 12px 24px;
           border-radius: 25px;
           z-index: 10000;
-          animation: bounceIn 0.5s ease;
-          box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+          animation: bounceIn 0.6s ease;
+          box-shadow: 0 6px 25px rgba(255, 107, 53, 0.4);
+          font-weight: 600;
         `
         document.body.appendChild(toast)
-        setTimeout(() => toast.remove(), 2000)
+        setTimeout(() => {
+          toast.style.animation = 'bounceOut 0.4s ease forwards'
+          setTimeout(() => toast.remove(), 400)
+        }, 2000)
       }
       
       return { ...prev, saves: newSaves }
@@ -258,24 +378,26 @@ export default function AddictiveFeed() {
       } else {
         newFollows.add(userId)
       }
-      
       return { ...prev, follows: newFollows }
     })
+    
+    setPosts(prev => prev.map(post => {
+      if (post.user.id === userId) {
+        return {
+          ...post,
+          user: {
+            ...post.user,
+            isFollowing: !post.user.isFollowing
+          }
+        }
+      }
+      return post
+    }))
   }, [])
 
   const openRecipe = useCallback((recipeId) => {
     router.push(`/recipe/${recipeId}`)
   }, [router])
-
-  const sharePost = useCallback((post) => {
-    if (navigator.share) {
-      navigator.share({
-        title: post.recipe?.title || post.challenge?.title,
-        text: post.recipe?.description || post.challenge?.description,
-        url: window.location.href
-      })
-    }
-  }, [])
 
   if (loading) {
     return (
@@ -284,70 +406,98 @@ export default function AddictiveFeed() {
           <div className={styles.chef}>👨‍🍳</div>
           <div className={styles.sparkles}>✨✨✨</div>
         </div>
-        <p>Préparation du festin...</p>
+        <p>Préparation du festin culinaire...</p>
+        <div className={styles.loadingTips}>
+          <span>🔥 Contenu personnalisé</span>
+          <span>📱 Défilement infini</span>
+          <span>🎬 Médias optimisés</span>
+        </div>
       </div>
     )
   }
 
   return (
     <div className={styles.feedContainer} ref={containerRef}>
-      {posts.map((post, index) => (
-        <div
-          key={post.id}
-          className={styles.postContainer}
-          data-index={index}
-          ref={(el) => {
-            if (el && intersectionObserver.current) {
-              intersectionObserver.current.observe(el)
-            }
-          }}
-        >
-          {/* Media Container */}
-          <div className={styles.mediaContainer}>
-            {post.recipe?.media?.[0]?.type === 'video' ? (
-              <video
-                ref={(el) => { videoRefs.current[index] = el }}
-                className={styles.media}
-                src={post.recipe.media[0].url}
-                loop
-                muted
-                playsInline
-              />
-            ) : (
-              <Image
-                src={post.recipe?.media?.[0]?.url || post.challenge?.media?.[0]?.url || post.story?.media?.[0]?.url}
-                alt={post.recipe?.title || post.challenge?.title || post.story?.title}
-                fill
-                className={styles.media}
-                priority={index < 2}
-              />
-            )}
-            
-            {/* Gradient overlay */}
-            <div className={styles.gradientOverlay} />
-          </div>
-
-          {/* User info */}
-          <div className={styles.userInfo}>
-            <div className={styles.userAvatar}>
-              {post.user.avatar}
-              {post.user.verified && <span className={styles.verified}>✅</span>}
+      {posts.map((post, index) => {
+        const currentMedia = currentMediaIndex[post.id] || 0
+        const media = post.recipe?.media?.[currentMedia]
+        
+        return (
+          <div
+            key={post.id}
+            className={styles.postContainer}
+            data-index={index}
+            ref={(el) => {
+              if (el && intersectionObserver.current) {
+                intersectionObserver.current.observe(el)
+              }
+            }}
+          >
+            {/* Media Container avec rotation */}
+            <div className={styles.mediaContainer}>
+              {post.recipe?.media?.map((mediaItem, mediaIndex) => (
+                <div
+                  key={mediaIndex}
+                  className={`${styles.mediaItem} ${mediaIndex === currentMedia ? styles.active : ''}`}
+                >
+                  {mediaItem.type === 'video' ? (
+                    <video
+                      ref={(el) => { videoRefs.current[`${post.id}_${mediaIndex}`] = el }}
+                      className={styles.media}
+                      src={mediaItem.url}
+                      loop
+                      muted
+                      playsInline
+                      preload="metadata"
+                    />
+                  ) : (
+                    <Image
+                      src={mediaItem.url}
+                      alt={post.recipe?.title}
+                      fill
+                      className={styles.media}
+                      priority={index < 3 && mediaIndex === 0}
+                      sizes="(max-width: 768px) 100vw, 430px"
+                    />
+                  )}
+                </div>
+              ))}
+              
+              <div className={styles.gradientOverlay} />
+              
+              {/* Indicateurs de média */}
+              {post.recipe?.media?.length > 1 && (
+                <div className={styles.mediaIndicators}>
+                  {post.recipe.media.map((_, idx) => (
+                    <div
+                      key={idx}
+                      className={`${styles.indicator} ${idx === currentMedia ? styles.active : ''}`}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
-            <div className={styles.userDetails}>
-              <h3>{post.user.name}</h3>
-              <p>{post.user.followers.toLocaleString()} followers</p>
-            </div>
-            <button
-              onClick={() => toggleFollow(post.user.id)}
-              className={`${styles.followBtn} ${userActions.follows.has(post.user.id) ? styles.following : ''}`}
-            >
-              {userActions.follows.has(post.user.id) ? 'Suivi ✓' : '+ Suivre'}
-            </button>
-          </div>
 
-          {/* Content */}
-          <div className={styles.content}>
-            {post.type === 'recipe' && (
+            {/* User info */}
+            <div className={styles.userInfo}>
+              <div className={styles.userAvatar}>
+                {post.user.avatar}
+                {post.user.verified && <span className={styles.verified}>✅</span>}
+              </div>
+              <div className={styles.userDetails}>
+                <h3>{post.user.name}</h3>
+                <p>{post.user.followers.toLocaleString()} followers</p>
+              </div>
+              <button
+                onClick={() => toggleFollow(post.user.id)}
+                className={`${styles.followBtn} ${userActions.follows.has(post.user.id) || post.user.isFollowing ? styles.following : ''}`}
+              >
+                {userActions.follows.has(post.user.id) || post.user.isFollowing ? 'Suivi ✓' : '+ Suivre'}
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className={styles.content}>
               <div className={styles.recipeContent}>
                 <h2>{post.recipe.title}</h2>
                 <p>{post.recipe.description}</p>
@@ -355,6 +505,7 @@ export default function AddictiveFeed() {
                   <span>⏱️ {post.recipe.prepTime}</span>
                   <span>🔥 {post.recipe.difficulty}</span>
                   <span>👥 {post.recipe.portions}</span>
+                  <span>📂 {post.recipe.category}</span>
                 </div>
                 <div className={styles.tags}>
                   {post.recipe.tags.map(tag => (
@@ -362,63 +513,42 @@ export default function AddictiveFeed() {
                   ))}
                 </div>
               </div>
-            )}
+            </div>
 
-            {post.type === 'challenge' && (
-              <div className={styles.challengeContent}>
-                <div className={styles.challengeBadge}>🏆 DÉFI</div>
-                <h2>{post.challenge.title}</h2>
-                <p>{post.challenge.description}</p>
-                <div className={styles.challengeStats}>
-                  <span>🎯 {post.challenge.rewardPoints} points</span>
-                  <span>👥 {post.challenge.participants} participants</span>
-                  <span>⏰ {post.challenge.timeLeft}</span>
-                </div>
-              </div>
-            )}
-          </div>
+            {/* Actions sidebar */}
+            <div className={styles.actionsSidebar}>
+              <button
+                onClick={() => toggleLike(post.id)}
+                className={`${styles.actionBtn} ${userActions.likes.has(post.id) ? styles.liked : ''}`}
+              >
+                <span className={styles.actionIcon}>
+                  {userActions.likes.has(post.id) ? '❤️' : '🤍'}
+                </span>
+                <span className={styles.actionCount}>
+                  {post.recipe?.likes?.toLocaleString() || '0'}
+                </span>
+              </button>
 
-          {/* Actions sidebar */}
-          <div className={styles.actionsSidebar}>
-            <button
-              onClick={() => toggleLike(post.id)}
-              className={`${styles.actionBtn} ${userActions.likes.has(post.id) ? styles.liked : ''}`}
-            >
-              <span className={styles.actionIcon}>
-                {userActions.likes.has(post.id) ? '❤️' : '🤍'}
-              </span>
-              <span className={styles.actionCount}>
-                {post.recipe?.likes || '0'}
-              </span>
-            </button>
+              <button className={styles.actionBtn}>
+                <span className={styles.actionIcon}>💬</span>
+                <span className={styles.actionCount}>
+                  {post.recipe?.comments || '0'}
+                </span>
+              </button>
 
-            <button
-              onClick={() => setShowComments(post.id)}
-              className={styles.actionBtn}
-            >
-              <span className={styles.actionIcon}>💬</span>
-              <span className={styles.actionCount}>
-                {post.recipe?.comments || '0'}
-              </span>
-            </button>
+              <button
+                onClick={() => toggleSave(post.id)}
+                className={`${styles.actionBtn} ${userActions.saves.has(post.id) ? styles.saved : ''}`}
+              >
+                <span className={styles.actionIcon}>
+                  {userActions.saves.has(post.id) ? '⭐' : '🤍'}
+                </span>
+              </button>
 
-            <button
-              onClick={() => toggleSave(post.id)}
-              className={`${styles.actionBtn} ${userActions.saves.has(post.id) ? styles.saved : ''}`}
-            >
-              <span className={styles.actionIcon}>
-                {userActions.saves.has(post.id) ? '⭐' : '🤍'}
-              </span>
-            </button>
+              <button className={styles.actionBtn}>
+                <span className={styles.actionIcon}>📤</span>
+              </button>
 
-            <button
-              onClick={() => sharePost(post)}
-              className={styles.actionBtn}
-            >
-              <span className={styles.actionIcon}>📤</span>
-            </button>
-
-            {post.type === 'recipe' && (
               <button
                 onClick={() => openRecipe(post.recipe.id)}
                 className={styles.recipeBtn}
@@ -426,50 +556,68 @@ export default function AddictiveFeed() {
                 <span className={styles.actionIcon}>📝</span>
                 <span className={styles.actionLabel}>Recette</span>
               </button>
+            </div>
+
+            {/* Music info */}
+            {post.music && (
+              <div className={styles.musicInfo}>
+                <span className={styles.musicIcon}>🎵</span>
+                <span className={styles.musicText}>{post.music}</span>
+              </div>
             )}
           </div>
-
-          {/* Music info */}
-          {post.music && (
-            <div className={styles.musicInfo}>
-              <span className={styles.musicIcon}>🎵</span>
-              <span className={styles.musicText}>{post.music}</span>
-            </div>
-          )}
+        )
+      })}
+      
+      {/* Loading more indicator */}
+      {loadingMore && (
+        <div className={styles.loadingMore}>
+          <div className={styles.spinner}></div>
+          <p>Chargement de nouvelles recettes...</p>
         </div>
-      ))}
+      )}
 
-      {/* Styles CSS pour les animations */}
       <style jsx>{`
         @keyframes heartExplode {
           0% {
             transform: scale(0) rotate(0deg);
             opacity: 1;
           }
-          50% {
-            transform: scale(1.2) rotate(180deg);
+          30% {
+            transform: scale(1.3) rotate(120deg);
             opacity: 1;
           }
           100% {
-            transform: scale(0.8) rotate(360deg) translateY(-100px);
+            transform: scale(0.6) rotate(360deg) translateY(-120px) translateX(${Math.random() * 40 - 20}px);
             opacity: 0;
           }
         }
         
         @keyframes bounceIn {
           0% {
-            transform: translateX(-50%) scale(0.3);
+            transform: translateX(-50%) scale(0.3) translateY(50px);
             opacity: 0;
           }
           50% {
-            transform: translateX(-50%) scale(1.05);
+            transform: translateX(-50%) scale(1.1) translateY(-10px);
           }
           70% {
-            transform: translateX(-50%) scale(0.9);
+            transform: translateX(-50%) scale(0.9) translateY(5px);
           }
           100% {
-            transform: translateX(-50%) scale(1);
+            transform: translateX(-50%) scale(1) translateY(0);
             opacity: 1;
+          }
+        }
+        
+        @keyframes bounceOut {
+          0% {
+            transform: translateX(-50%) scale(1) translateY(0);
+            opacity: 1;
+          }
+          100% {
+            transform: translateX(-50%) scale(0.3) translateY(-50px);
+            opacity: 0;
           }
         }
       `}</style>

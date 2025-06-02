@@ -475,3 +475,145 @@
     border: 2px solid white;
   }
 }
+
+.loadingTips {
+  display: flex;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-lg);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.loadingTips span {
+  background: rgba(255, 107, 53, 0.1);
+  color: var(--primary-orange);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius-medium);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.mediaItem {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 0.8s ease-in-out;
+}
+
+.mediaItem.active {
+  opacity: 1;
+}
+
+.mediaIndicators {
+  position: absolute;
+  top: var(--spacing-md);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: var(--spacing-xs);
+  z-index: 3;
+}
+
+.indicator {
+  width: 20px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 2px;
+  transition: all 0.3s ease;
+}
+
+.indicator.active {
+  background: white;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
+}
+
+.loadingMore {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: linear-gradient(135deg, var(--warm-cream) 0%, white 100%);
+  color: var(--primary-orange);
+}
+
+.loadingMore .spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255, 107, 53, 0.2);
+  border-top: 3px solid var(--primary-orange);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: var(--spacing-md);
+}
+
+.loadingMore p {
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+/* Performance optimizations */
+.media {
+  will-change: transform;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+
+.postContainer {
+  contain: layout style paint;
+}
+
+.actionBtn {
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Smooth scrolling improvements */
+.feedContainer {
+  scroll-behavior: smooth;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .mediaItem,
+  .indicator,
+  .actionBtn,
+  .media {
+    transition: none;
+    animation: none;
+  }
+  
+  .post:hover .recipeImage {
+    transform: none;
+  }
+}
+
+/* Enhanced mobile optimizations */
+@media (max-width: 768px) {
+  .mediaIndicators {
+    top: var(--spacing-sm);
+  }
+  
+  .indicator {
+    width: 15px;
+    height: 2px;
+  }
+  
+  .loadingMore {
+    padding: var(--spacing-md);
+  }
+  
+  .loadingTips {
+    gap: var(--spacing-sm);
+  }
+  
+  .loadingTips span {
+    font-size: 0.75rem;
+    padding: var(--spacing-xs);
+  }
+}
