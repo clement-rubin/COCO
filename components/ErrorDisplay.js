@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import styles from '../styles/ErrorDisplay.module.css';
 import { logComponentEvent, logUserInteraction, logDebug } from '../utils/logger';
 
-export default function ErrorDisplay({ error, resetError = null }) {
+export default function ErrorDisplay({ error, resetError = null, onRetry = null }) {
   const [showDetails, setShowDetails] = useState(false);
   
   // Log le montage du composant et les détails de l'erreur
@@ -75,6 +75,17 @@ export default function ErrorDisplay({ error, resetError = null }) {
       resetError();
     }
   };
+
+  const handleRetry = () => {
+    logUserInteraction('RETRY_ERROR', 'bouton-retry', {
+      errorId: id,
+      recoveryStrategy: error?.recoveryStrategy
+    });
+    
+    if (onRetry) {
+      onRetry();
+    }
+  };
   
   // Log le rendu du composant
   logDebug('ErrorDisplay - Rendu du composant', {
@@ -139,7 +150,7 @@ export default function ErrorDisplay({ error, resetError = null }) {
             </h4>
             
             <button
-              onClick={resetError}
+              onClick={handleReset}
               style={{
                 background: 'none',
                 border: 'none',
@@ -167,7 +178,7 @@ export default function ErrorDisplay({ error, resetError = null }) {
             gap: 'var(--spacing-sm)',
             alignItems: 'center'
           }} className={styles.recoveryActions}>
-            {error.recoveryStrategy && (
+            {error.recoveryStrategy && onRetry && (
               <button
                 onClick={handleRetry}
                 style={{
@@ -181,13 +192,13 @@ export default function ErrorDisplay({ error, resetError = null }) {
                   fontWeight: '500'
                 }}
               >
-                {getRecoveryText(error.recoveryStrategy)}
+                {getRecoveryAction(error.recoveryStrategy)}
               </button>
             )}
             
-            {error.details && (
+            {hasDetails && (
               <button
-                onClick={toggleDetails}
+                onClick={handleToggleDetails}
                 style={{
                   padding: 'var(--spacing-sm) var(--spacing-md)',
                   background: 'transparent',
@@ -203,7 +214,7 @@ export default function ErrorDisplay({ error, resetError = null }) {
             )}
           </div>
           
-          {showDetails && error.details && (
+          {showDetails && hasDetails && (
             <div style={{
               marginTop: 'var(--spacing-md)',
               padding: 'var(--spacing-md)',
@@ -219,7 +230,7 @@ export default function ErrorDisplay({ error, resetError = null }) {
                 overflow: 'auto',
                 maxHeight: '100px'
               }}>
-                {JSON.stringify(error.details, null, 2)}
+                {stack || JSON.stringify(details, null, 2)}
               </pre>
             </div>
           )}

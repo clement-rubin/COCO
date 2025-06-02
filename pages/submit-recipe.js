@@ -325,6 +325,8 @@ export default function SubmitRecipe() {
   const handleRetry = () => {
     if (currentError && currentError.recoveryStrategy === 'retry') {
       retryLastAction(() => submitRecipe())
+    } else if (lastError && lastError.error.recoveryStrategy === 'retry') {
+      retryLastAction(() => submitRecipe())
     }
   }
 
@@ -437,7 +439,9 @@ export default function SubmitRecipe() {
             error={{
               message: displayError.userMessage || displayError.message,
               type: displayError.type,
-              recoveryStrategy: displayError.recoveryStrategy
+              recoveryStrategy: displayError.recoveryStrategy,
+              details: displayError.details || displayError.context,
+              stack: displayError.stack
             }} 
             resetError={resetError}
             onRetry={displayError.recoveryStrategy === 'retry' ? handleRetry : undefined}
