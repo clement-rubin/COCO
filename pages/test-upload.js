@@ -119,51 +119,53 @@ export default function TestUpload() {
         unique: uniqueFileName 
       });
 
-      // Test 1: Upload simple
-      addLog('info', 'Test 1: Upload simple');
+      // Test 1: Upload simple (conversion en bytes)
+      addLog('info', 'Test 1: Conversion en bytes');
       let uploadResult;
       try {
-        uploadResult = await uploadImageAsBytes(file, uniqueFileName);
-        addLog('info', 'Upload simple réussi', uploadResult);
+        uploadResult = await uploadImageAsBytes(file);
+        addLog('info', 'Conversion en bytes réussie', uploadResult);
       } catch (error) {
-        addLog('error', 'Upload simple échoué', {
+        addLog('error', 'Conversion en bytes échouée', {
           error: error.message,
           stack: error.stack
         });
         
-        // Test 2: Upload avec retry si le premier échoue
-        addLog('info', 'Test 2: Upload avec retry');
-        const retryFileName = generateUniqueFileName(file.name, `${source}_retry`);
-        uploadResult = await uploadImageWithRetry(file, retryFileName);
-        addLog('info', 'Upload avec retry réussi', uploadResult);
+        // Test 2: Retry simple
+        addLog('info', 'Test 2: Retry de conversion');
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Attendre 1 seconde
+        uploadResult = await uploadImageAsBytes(file);
+        addLog('info', 'Retry réussi', uploadResult);
       }
 
-      // Obtenir l'URL publique
-      const publicUrl = getImageUrl(uploadResult.path);
-      addLog('info', 'URL publique générée', { url: publicUrl });
+      // Créer une URL de prévisualisation depuis le fichier original
+      const previewUrl = URL.createObjectURL(file);
+      addLog('info', 'URL de prévisualisation créée', { url: 'blob:// URL créée' });
 
       // Ajouter à la liste des images uploadées
       const imageInfo = {
         id: testId,
-        path: uploadResult.path,
-        url: publicUrl,
-        fileName: uploadResult.path.split('/').pop(),
+        path: `bytes_${uniqueFileName}`,
+        url: previewUrl,
+        fileName: uniqueFileName,
         source,
         uploadedAt: new Date().toISOString(),
         fileSize: file.size,
-        fileType: file.type
+        fileType: file.type,
+        bytesLength: uploadResult.bytes.length,
+        processedSize: uploadResult.processedSize
       };
 
       setUploadedImages(prev => [imageInfo, ...prev]);
-      setUploadStatus(`✅ Upload réussi (${source})`);
+      setUploadStatus(`✅ Conversion réussie (${source})`);
       
-      addLog('info', 'Test d\'upload terminé avec succès', imageInfo);
+      addLog('info', 'Test de conversion terminé avec succès', imageInfo);
 
     } catch (error) {
-      const errorMsg = `❌ Erreur lors de l'upload: ${error.message}`;
+      const errorMsg = `❌ Erreur lors de la conversion: ${error.message}`;
       setUploadStatus(errorMsg);
       
-      addLog('error', 'Échec du test d\'upload', {
+      addLog('error', 'Échec du test de conversion', {
         testId,
         source,
         error: error.message,
@@ -332,97 +334,97 @@ export default function TestUpload() {
             </div>
           </div>
 
-          {uploadStatus && (
             <div className={`mt-4 p-3 rounded ${
-              uploadStatus.includes('✅') ? 'bg-green-100 text-green-800' : 
-              uploadStatus.includes('❌') ? 'bg-red-100 text-red-800' : 
-              'bg-blue-100 text-blue-800'
+              uploadStatus.includes('✅') ? 'bg-green-100 text-green-800' : ' : 
+              uploadStatus.includes('❌') ? 'bg-red-100 text-red-800' : ? 'bg-red-100 text-red-800' : 
+              'bg-blue-100 text-blue-800'g-blue-100 text-blue-800'
             }`}>
-              {uploadStatus}
-            </div>
+              {uploadStatus}oadStatus}
+            </div></div>
           )}
-        </div>
+        </div>        </div>
 
         {/* Images uploadées */}
         {uploadedImages.length > 0 && (
           <div className="bg-white rounded-lg shadow-md p-6 mb-6">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Images Uploadées ({uploadedImages.length})</h2>
+              <h2 className="text-xl font-semibold">Images Uploadées ({uploadedImages.length})</h2>ssName="text-xl font-semibold">Images Uploadées ({uploadedImages.length})</h2>
               <button
                 onClick={clearImages}
-                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600" className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
               >
                 Effacer
-              </button>
-            </div>
+              </button>tton>
+            </div></div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">d:grid-cols-2 gap-4">
               {uploadedImages.map((image) => (
-                <div key={image.id} className="border rounded-lg p-4">
+                <div key={image.id} className="border rounded-lg p-4">ey={image.id} className="border rounded-lg p-4">
                   <img
                     src={image.url}
                     alt={`Upload ${image.source}`}
-                    className="w-full h-48 object-cover rounded mb-2"
+                    className="w-full h-48 object-cover rounded mb-2"className="w-full h-48 object-cover rounded mb-2"
                   />
                   <div className="text-sm text-gray-600">
                     <p><strong>Source:</strong> {image.source}</p>
                     <p><strong>Fichier:</strong> {image.fileName}</p>
                     <p><strong>Taille:</strong> {(image.fileSize / 1024).toFixed(1)} KB</p>
-                    <p><strong>Uploadé:</strong> {new Date(image.uploadedAt).toLocaleString()}</p>
-                  </div>
-                </div>
+                    <p><strong>Uploadé:</strong> {new Date(image.uploadedAt).toLocaleString()}</p>strong>Uploadé:</strong> {new Date(image.uploadedAt).toLocaleString()}</p>
+                  </div>v>
+                </div>/div>
               ))}
-            </div>
-          </div>
-        )}
+            </div>v>
+          </div></div>
+        )}        )}
 
         {/* Logs */}
         <div className="bg-white rounded-lg shadow-md p-6">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">Logs de Debug ({logs.length})</h2>
+            <h2 className="text-xl font-semibold">Logs de Debug ({logs.length})</h2>ssName="text-xl font-semibold">Logs de Debug ({logs.length})</h2>
             <button
               onClick={clearLogs}
-              className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+              className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600" className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
             >
-              Effacer Logs
-            </button>
-          </div>
+              Effacer Logs Logs
+            </button>tton>
+          </div></div>
           
-          <div className="max-h-96 overflow-y-auto space-y-2">
-            {logs.map((log) => (
+          <div className="max-h-96 overflow-y-auto space-y-2">96 overflow-y-auto space-y-2">
+            {logs.map((log) => (map((log) => (
               <div
                 key={log.id}
                 className={`p-3 rounded text-sm ${
                   log.type === 'error' ? 'bg-red-50 border-l-4 border-red-500' :
-                  log.type === 'info' ? 'bg-blue-50 border-l-4 border-blue-500' :
-                  'bg-gray-50 border-l-4 border-gray-500'
-                }`}
+                  log.type === 'info' ? 'bg-blue-50 border-l-4 border-blue-500' :r-l-4 border-blue-500' :
+                  'bg-gray-50 border-l-4 border-gray-500'bg-gray-50 border-l-4 border-gray-500'
+                }`} }`}
               >
                 <div className="flex justify-between items-start">
-                  <span className="font-mono text-xs text-gray-500">{log.timestamp}</span>
+                  <span className="font-mono text-xs text-gray-500">{log.timestamp}</span>00">{log.timestamp}</span>
                   <span className={`px-2 py-1 rounded text-xs ${
                     log.type === 'error' ? 'bg-red-200 text-red-800' :
-                    log.type === 'info' ? 'bg-blue-200 text-blue-800' :
-                    'bg-gray-200 text-gray-800'
+                    log.type === 'info' ? 'bg-blue-200 text-blue-800' :lue-200 text-blue-800' :
+                    'bg-gray-200 text-gray-800'g-gray-200 text-gray-800'
                   }`}>
-                    {log.type.toUpperCase()}
-                  </span>
+                    {log.type.toUpperCase()}type.toUpperCase()}
+                  </span>an>
                 </div>
-                <p className="mt-1 font-medium">{log.message}</p>
+                <p className="mt-1 font-medium">{log.message}</p>mt-1 font-medium">{log.message}</p>
                 {log.data && (
-                  <pre className="mt-2 text-xs bg-gray-100 p-2 rounded overflow-x-auto">
-                    {log.data}
-                  </pre>
+                  <pre className="mt-2 text-xs bg-gray-100 p-2 rounded overflow-x-auto">me="mt-2 text-xs bg-gray-100 p-2 rounded overflow-x-auto">
+                    {log.data}.data}
+                  </pre></pre>
                 )}
-              </div>
+              </div>/div>
             ))}
-          </div>
+          </div></div>
           
           {logs.length === 0 && (
-            <p className="text-gray-500 text-center py-8">Aucun log disponible</p>
+            <p className="text-gray-500 text-center py-8">Aucun log disponible</p><p className="text-gray-500 text-center py-8">Aucun log disponible</p>
           )}
-        </div>
-      </div>
-    </div>
-  );
-}
+        </div>v>
+      </div>v>
+    </div></div>
+  ); );
+}}
+
