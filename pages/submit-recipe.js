@@ -241,10 +241,34 @@ export default function SubmitRecipe() {
       logDebug('Réponse de l\'API reçue', {
         status: response.status,
         statusText: response.statusText,
-        ok: response.ok
+        ok: response.ok,
+        contentType: response.headers.get('content-type')
       })
       
-      const result = await response.json()
+      // Check if response is JSON before parsing
+      const contentType = response.headers.get('content-type')
+      let result
+      
+      if (contentType && contentType.includes('application/json')) {
+        result = await response.json()
+      } else {
+        // Server returned HTML or other content - likely an error page
+        const textContent = await response.text()
+        logError('API a retourné du contenu non-JSON', null, {
+          status: response.status,
+          statusText: response.statusText,
+          contentType,
+          contentPreview: textContent.substring(0, 500)
+        })
+        
+        if (response.status === 500) {
+          throw new Error('Erreur serveur interne. Vérifiez la configuration de la base de données et les variables d\'environnement.')
+        } else if (response.status === 404) {
+          throw new Error('API non trouvée. Vérifiez que le fichier /api/recipes.js existe.')
+        } else {
+          throw new Error(`Erreur serveur (${response.status}): Le serveur a retourné une page d'erreur au lieu d'une réponse JSON.`)
+        }
+      }
       
       logDebug('Contenu de la réponse API', {
         hasResult: !!result,
@@ -255,7 +279,7 @@ export default function SubmitRecipe() {
       })
       
       if (!response.ok) {
-        const errorMessage = result.message || result.error || `Erreur HTTP ${response.status}: ${response.statusText}`
+        const errorMessage = result?.message || result?.error || `Erreur HTTP ${response.status}: ${response.statusText}`
         logError('Erreur de l\'API lors de la soumission', null, {
           status: response.status,
           statusText: response.statusText,
@@ -305,12 +329,16 @@ export default function SubmitRecipe() {
       // Fournir un message d'erreur plus spécifique
       let errorMessage = 'Une erreur est survenue lors de l\'envoi. Veuillez réessayer.'
       
-      if (error.message.includes('photo')) {
+      if (error.message.includes('JSON')) {
+        errorMessage = 'Erreur serveur: Le serveur a retourné une réponse invalide. Vérifiez la configuration du serveur et de la base de données.'
+      } else if (error.message.includes('serveur interne')) {
+        errorMessage = 'Erreur de base de données. Vérifiez la configuration Supabase dans les variables d\'environnement.'
+      } else if (error.message.includes('API non trouvée')) {
+        errorMessage = 'Configuration manquante: L\'API de recettes n\'est pas configurée correctement.'
+      } else if (error.message.includes('photo')) {
         errorMessage = 'Problème avec les photos. Veuillez les recharger et réessayer.'
       } else if (error.message.includes('fetch')) {
         errorMessage = 'Problème de connexion. Vérifiez votre connexion internet et réessayez.'
-      } else if (error.message.includes('JSON')) {
-        errorMessage = 'Erreur de format des données. Veuillez recharger la page et réessayer.'
       } else if (error.message) {
         errorMessage = `Erreur: ${error.message}`
       }
