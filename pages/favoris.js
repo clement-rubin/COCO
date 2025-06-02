@@ -1,7 +1,10 @@
 import Head from 'next/head'
 import { useState } from 'react'
+import { useRouter } from 'next/router'
 
 export default function Favoris() {
+  const router = useRouter();
+
   const [favorites, setFavorites] = useState([
     { id: 1, name: 'Pâtes Carbonara', time: '20 min', rating: 4.8, emoji: '🍝', dateAdded: '2024-01-15' },
     { id: 3, name: 'Tiramisu', time: '45 min', rating: 4.9, emoji: '🍰', dateAdded: '2024-01-10' },
@@ -77,6 +80,7 @@ export default function Favoris() {
           </p>
           <button 
             className="card"
+            onClick={() => router.push('/explorer')}
             style={{
               border: 'none',
               cursor: 'pointer',

@@ -85,6 +85,24 @@ export default function Navigation() {
               Contact
             </Link>
           </li>
+          <li>
+            <Link 
+              href="/explorer" 
+              className={router.pathname === "/explorer" ? styles.active : ""}
+              onClick={closeMenu}
+            >
+              Explorer
+            </Link>
+          </li>
+          <li>
+            <Link 
+              href="/favoris" 
+              className={router.pathname === "/favoris" ? styles.active : ""}
+              onClick={closeMenu}
+            >
+              Favoris
+            </Link>
+          </li>
         </ul>
       </div>
     </nav>

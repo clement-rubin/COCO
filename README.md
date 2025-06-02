@@ -41,20 +41,38 @@ COCO/
 │   ├── share-photo.js             # Page de partage rapide de photo
 │   ├── submit-recipe.js           # Page de partage de recette complète
 │   ├── test-upload.js             # Page de test d'upload (debug)
+│   ├── test-recipes.js            # Page de test de la base de données
+│   ├── favoris.js                 # Page des favoris
+│   ├── explorer.js                # Page d'exploration des recettes
+│   ├── profil.js                  # Page de profil utilisateur
+│   ├── _app.js                    # Application wrapper avec navigation
+│   ├── api/
+│   │   └── recipes.js             # API de gestion des recettes
 │   └── recipes/
 │       └── user/[id].js           # Détail d'une recette utilisateur
 ├── components/
-│   ├── Navbar.tsx                 # Navigation responsive
+│   ├── Navigation.js              # Navigation de l'ancien système
 │   ├── RecipeCard.js             # Carte de recette
 │   ├── ShareButton.js            # Bouton de partage vers share-photo
-│   └── PhotoUpload.js            # Composant d'upload de photos
+│   ├── PhotoUpload.js            # Composant d'upload de photos
+│   ├── ErrorBoundary.js          # Gestion d'erreurs React
+│   ├── ErrorDisplay.js           # Affichage des erreurs
+│   └── Footer.js                 # Pied de page
 ├── styles/
 │   ├── globals.css               # Design system global
 │   ├── SharePhoto.module.css     # Styles du partage de photo
 │   ├── SubmitRecipe.module.css   # Styles du formulaire de recette
-│   └── RecipeDetail.module.css   # Styles des détails
-└── api/
-    └── recipes/                  # API de gestion des recettes
+│   ├── RecipeDetail.module.css   # Styles des détails
+│   └── Navigation.module.css     # Styles de navigation
+├── lib/
+│   └── supabase.js               # Configuration et utilitaires Supabase
+├── utils/
+│   └── logger.js                 # Système de logging centralisé
+├── public/
+│   └── test-api.html             # Page de test API (standalone)
+└── .netlify/
+    └── functions-internal/
+        └── recipes.js            # Version Netlify de l'API (pour déploiement)
 ```
 
 ## 🚀 Installation et Démarrage
@@ -125,18 +143,24 @@ Accédez à `/test-upload` pour :
 - Voir les logs détaillés en temps réel
 - Identifier les problèmes de configuration
 
-### Test de Conversion d'Images
-Accédez à `/test-upload` pour :
-- Tester la conversion d'images en données binaires
-- Tester la prise de photo avec caméra
-- Voir les logs détaillés en temps réel
-- Identifier les problèmes de configuration
-
 ### Test de la Base de Données
 Accédez à `/test-recipes` pour :
 - Vérifier la configuration de la table
 - Obtenir le SQL de création automatique
-- Tester les opérations CRUD
+- Tester les opérations CRUD sur les recettes
+- Afficher les logs en temps réel
+
+### Test de l'API
+Accédez à `/api/recipes` pour :
+- Tester les endpoints GET, POST, PUT, DELETE
+- Vérifier la communication avec Supabase
+- Valider le format des données
+
+### Test HTML Standalone
+Ouvrez `/test-api.html` dans votre navigateur pour :
+- Tester l'API sans Next.js
+- Interface de test simple et rapide
+- Debug des problèmes de CORS
 
 ## 📸 Gestion des Images
 

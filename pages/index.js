@@ -1,12 +1,14 @@
 import Head from 'next/head'
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/router'
 
 export default function Home() {
   const [showAddRecipe, setShowAddRecipe] = useState(false);
+  const router = useRouter();
 
   const handleAddRecipe = () => {
-    alert('Fonctionnalité d\'ajout de recette - À venir prochainement !');
+    router.push('/submit-recipe');
   };
 
   return (
