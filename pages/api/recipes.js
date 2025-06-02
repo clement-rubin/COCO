@@ -71,9 +71,9 @@ export default async function handler(req, res) {
         return
       }
       
-      // Validation de l'image (doit être un array de bytes)
-      if (!data.image || !Array.isArray(data.image) || data.image.length === 0) {
-        logWarning('[API] Image manquante ou invalide', {
+      // Validation de l'image - make it optional and handle safely
+      if (data.image && (!Array.isArray(data.image) || data.image.length === 0)) {
+        logWarning('[API] Image invalide', {
           hasImage: !!data.image,
           imageType: typeof data.image,
           isArray: Array.isArray(data.image),
@@ -81,7 +81,7 @@ export default async function handler(req, res) {
         })
         
         res.status(400).json({ 
-          message: 'Image obligatoire et doit être un tableau de bytes',
+          message: 'Si une image est fournie, elle doit être un tableau de bytes',
           imageReceived: {
             type: typeof data.image,
             isArray: Array.isArray(data.image),
@@ -138,7 +138,7 @@ export default async function handler(req, res) {
         return
       }
       
-      // Préparer les ingrédients et instructions
+      // Préparer les ingrédients et instructions avec protection contre undefined
       const ingredients = Array.isArray(data.ingredients) ? data.ingredients : 
                          typeof data.ingredients === 'string' ? data.ingredients.split('\n').filter(i => i.trim()) :
                          []
@@ -161,9 +161,9 @@ export default async function handler(req, res) {
         cookTime: data.cookTime?.trim() || null,
         servings: data.servings?.trim() || null,
         category: data.category?.trim() || null,
-        difficulty: data.difficulty?.trim() || 'Facile', // Ajout avec valeur par défaut
+        difficulty: data.difficulty?.trim() || 'Facile',
         author: data.author?.trim() || 'Anonyme',
-        image: data.image // Array de bytes pour stockage en bytea
+        image: data.image || null // Allow null images
       }
 
       // Ajouter photos seulement si la colonne existe

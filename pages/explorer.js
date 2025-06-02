@@ -18,11 +18,17 @@ export default function Explorer() {
     { id: 8, name: 'Tarte aux pommes', category: 'Desserts', time: '60 min', rating: 4.5, emoji: '🥧', difficulty: 'Difficile' }
   ];
 
+  // Safe filtering with null checks
   const filteredRecipes = recipes.filter(recipe => {
+    if (!recipe) return false;
+    
     const matchesFilter = activeFilter === 'Tous' || recipe.category === activeFilter;
-    const matchesSearch = recipe.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = recipe.name?.toLowerCase()?.includes(searchTerm.toLowerCase()) || false;
     return matchesFilter && matchesSearch;
   });
+
+  // Ensure filteredRecipes is always an array
+  const safeFilteredRecipes = Array.isArray(filteredRecipes) ? filteredRecipes : [];
 
   const getDifficultyColor = (difficulty) => {
     switch(difficulty) {
@@ -123,7 +129,7 @@ export default function Explorer() {
           fontSize: '0.9rem',
           margin: 0
         }}>
-          {filteredRecipes.length} recette{filteredRecipes.length > 1 ? 's' : ''} trouvée{filteredRecipes.length > 1 ? 's' : ''}
+          {safeFilteredRecipes.length} recette{safeFilteredRecipes.length > 1 ? 's' : ''} trouvée{safeFilteredRecipes.length > 1 ? 's' : ''}
         </p>
       </section>
 
@@ -134,7 +140,7 @@ export default function Explorer() {
           gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
           gap: 'var(--spacing-md)' 
         }}>
-          {filteredRecipes.map(recipe => (
+          {safeFilteredRecipes.map(recipe => (
             <div key={recipe.id} className="card" style={{ padding: 0, cursor: 'pointer' }}>
               <div style={{
                 width: '100%',
@@ -147,7 +153,7 @@ export default function Explorer() {
                 fontSize: '3rem',
                 position: 'relative'
               }}>
-                {recipe.emoji}
+                {recipe.emoji || '🍽️'}
                 <div style={{
                   position: 'absolute',
                   top: 'var(--spacing-sm)',
@@ -170,7 +176,7 @@ export default function Explorer() {
                   marginBottom: 'var(--spacing-xs)',
                   margin: '0 0 var(--spacing-xs) 0'
                 }}>
-                  {recipe.name}
+                  {recipe.name || 'Recette sans nom'}
                 </h3>
                 <div style={{ 
                   display: 'flex', 
@@ -185,16 +191,16 @@ export default function Explorer() {
                     borderRadius: 'var(--radius-sm)',
                     color: 'var(--text-medium)'
                   }}>
-                    ⏱️ {recipe.time}
+                    ⏱️ {recipe.time || 'Non spécifié'}
                   </span>
-                  <span style={{ color: 'var(--text-light)' }}>⭐ {recipe.rating}</span>
+                  <span style={{ color: 'var(--text-light)' }}>⭐ {recipe.rating || 'N/A'}</span>
                 </div>
                 <div style={{
                   fontSize: '0.8rem',
                   color: getDifficultyColor(recipe.difficulty),
                   fontWeight: '500'
                 }}>
-                  {recipe.difficulty}
+                  {recipe.difficulty || 'Non spécifié'}
                 </div>
               </div>
             </div>
