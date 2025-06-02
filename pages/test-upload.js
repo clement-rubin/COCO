@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react';
-import { uploadImage, uploadImageWithRetry, getImageUrl } from '../lib/supabase';
+import { useState, useRef, useEffect } from 'react';
+import { uploadImage, uploadImageWithRetry, getImageUrl, createImageStorageBucket } from '../lib/supabase';
 import { logInfo, logError, logDebug } from '../utils/logger';
 
 export default function TestUpload() {
@@ -7,8 +7,34 @@ export default function TestUpload() {
   const [uploadedImages, setUploadedImages] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
   const [logs, setLogs] = useState([]);
+  const [bucketStatus, setBucketStatus] = useState('checking'); // checking, available, error
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
+
+  // Vérifier le bucket au chargement de la page
+  useEffect(() => {
+    checkBucketStatus();
+  }, []);
+
+  const checkBucketStatus = async () => {
+    try {
+      addLog('info', 'Vérification du bucket de stockage au chargement...');
+      setBucketStatus('checking');
+      
+      const isAvailable = await createImageStorageBucket();
+      
+      if (isAvailable) {
+        setBucketStatus('available');
+        addLog('info', '✅ Bucket recipe-images disponible et configuré');
+      } else {
+        setBucketStatus('error');
+        addLog('error', '❌ Bucket recipe-images non disponible - configuration requise');
+      }
+    } catch (error) {
+      setBucketStatus('error');
+      addLog('error', '❌ Erreur lors de la vérification du bucket', error);
+    }
+  };
 
   const addLog = (type, message, data = null) => {
     const timestamp = new Date().toLocaleTimeString();
@@ -65,8 +91,20 @@ export default function TestUpload() {
       addLog('info', `Début du test d'upload (${source})`, {
         testId,
         fileName: file.name,
-        source
+        source,
+        bucketStatus
       });
+
+      // Vérifier que le bucket est disponible avant de commencer
+      if (bucketStatus !== 'available') {
+        addLog('warning', 'Revérification du bucket avant upload...');
+        const bucketAvailable = await createImageStorageBucket();
+        if (!bucketAvailable) {
+          throw new Error('Le bucket de stockage n\'est pas disponible. Veuillez configurer Supabase Storage.');
+        }
+        setBucketStatus('available');
+        addLog('info', 'Bucket vérifié et disponible');
+      }
 
       setIsUploading(true);
       setUploadStatus(`Upload en cours... (${source})`);
@@ -180,6 +218,50 @@ export default function TestUpload() {
       <div className="max-w-4xl mx-auto px-4">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">Test Upload d'Images</h1>
         
+        {/* Status du bucket */}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <h2 className="text-xl font-semibold mb-4">État du Bucket Supabase Storage</h2>
+          
+          <div className={`p-4 rounded-lg ${
+            bucketStatus === 'available' ? 'bg-green-100 border border-green-300' :
+            bucketStatus === 'error' ? 'bg-red-100 border border-red-300' :
+            'bg-yellow-100 border border-yellow-300'
+          }`}>
+            {bucketStatus === 'checking' && (
+              <div className="flex items-center">
+                <div className="animate-spin w-5 h-5 border-2 border-yellow-600 border-t-transparent rounded-full mr-3"></div>
+                <span className="text-yellow-800">Vérification du bucket en cours...</span>
+              </div>
+            )}
+            
+            {bucketStatus === 'available' && (
+              <div className="flex items-center">
+                <span className="text-green-600 text-xl mr-3">✅</span>
+                <div>
+                  <p className="text-green-800 font-medium">Bucket recipe-images disponible</p>
+                  <p className="text-green-600 text-sm">Upload d'images possible</p>
+                </div>
+              </div>
+            )}
+            
+            {bucketStatus === 'error' && (
+              <div className="flex items-center">
+                <span className="text-red-600 text-xl mr-3">❌</span>
+                <div>
+                  <p className="text-red-800 font-medium">Problème avec le bucket recipe-images</p>
+                  <p className="text-red-600 text-sm">Consultez les logs ci-dessous pour plus d'informations</p>
+                  <button
+                    onClick={checkBucketStatus}
+                    className="mt-2 px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
+                  >
+                    Revérifier
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Boutons de test */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <h2 className="text-xl font-semibold mb-4">Tests d'Upload</h2>
@@ -194,8 +276,8 @@ export default function TestUpload() {
                 type="file"
                 accept="image/*"
                 onChange={handleGalleryUpload}
-                disabled={isUploading}
-                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                disabled={isUploading || bucketStatus !== 'available'}
+                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 disabled:opacity-50"
               />
             </div>
 
@@ -209,8 +291,8 @@ export default function TestUpload() {
                 accept="image/*"
                 capture="environment"
                 onChange={handleCameraUpload}
-                disabled={isUploading}
-                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
+                disabled={isUploading || bucketStatus !== 'available'}
+                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100 disabled:opacity-50"
               />
             </div>
           </div>

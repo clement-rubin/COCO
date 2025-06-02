@@ -40,6 +40,7 @@ COCO/
 │   ├── user-recipes.js            # Liste des recettes partagées
 │   ├── share-photo.js             # Page de partage rapide de photo
 │   ├── submit-recipe.js           # Page de partage de recette complète
+│   ├── test-upload.js             # Page de test d'upload (debug)
 │   └── recipes/
 │       └── user/[id].js           # Détail d'une recette utilisateur
 ├── components/
@@ -80,8 +81,8 @@ npm run dev
 3. Configurez vos variables d'environnement dans `.env.local` :
 
 ```bash
-NEXT_PUBLIC_SUPABASE_URL=votre_url_supabase
-NEXT_PUBLIC_SUPABASE_ANON_KEY=votre_cle_api_supabase
+NEXT_PUBLIC_SUPABASE_URL=https://bokfmtmbngwifgliliqc.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJva2ZtdG1ibmd3aWZnbGlsaXFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgzNzk0MTAsImV4cCI6MjA2Mzk1NTQxMH0.p-cRnf9OC4PoNyq397HUf3iZ4pZ1Q4GwKp8GCA17wAk
 ```
 
 4. **Configuration Storage pour les images :**
@@ -90,11 +91,28 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=votre_cle_api_supabase
    - Cochez "Public bucket"
    - Configurez les restrictions :
      - Types de fichiers : `image/jpeg`, `image/png`, `image/webp`
-     - Taille max : 5MB
+     - Taille max : 6MB
+   - **URL Storage disponible :** `https://bokfmtmbngwifgliliqc.supabase.co/storage/v1/s3`
 
 5. **Création de la table recipes :**
+   - Utilisez la page `/test-upload` pour tester l'upload d'images
    - Utilisez la page `/test-recipes` pour obtenir le SQL de création
    - Ou exécutez le SQL fourni dans le dashboard Supabase
+
+## 🔧 Tests et Debug
+
+### Test d'Upload d'Images
+Accédez à `/test-upload` pour :
+- Tester l'upload depuis la galerie
+- Tester la prise de photo avec caméra
+- Voir les logs détaillés en temps réel
+- Identifier les problèmes de configuration
+
+### Test de la Base de Données
+Accédez à `/test-recipes` pour :
+- Vérifier la configuration de la table
+- Obtenir le SQL de création automatique
+- Tester les opérations CRUD
 
 ## 📸 Gestion des Images
 
@@ -104,6 +122,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=votre_cle_api_supabase
 - **Support multi-images** (jusqu'à 3 photos par recette)
 - **Validation** avant soumission du formulaire
 - **Partage rapide** de photos avec description simple
+- **Logs détaillés** pour troubleshooting
 
 ## 🌐 Déploiement
 
