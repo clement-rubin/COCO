@@ -124,16 +124,17 @@ export default function TestRecipes() {
     const testRecipe = {
       title: `Test Recipe ${Date.now()}`,
       description: 'Recette créée automatiquement pour les tests',
-      ingredients: '- Ingrédient test 1\n- Ingrédient test 2\n- Ingrédient test 3',
-      instructions: '1. Étape de test 1\n2. Étape de test 2\n3. Étape de test 3',
+      ingredients: ['Ingrédient test 1', 'Ingrédient test 2', 'Ingrédient test 3'],
+      instructions: [
+        { step: 1, instruction: 'Étape de test 1' },
+        { step: 2, instruction: 'Étape de test 2' },
+        { step: 3, instruction: 'Étape de test 3' }
+      ],
       prepTime: '10 min',
       cookTime: '15 min',
-      servings: '2 personnes',
       category: 'Test',
-      difficulty: 'Facile',
       author: 'Testeur Automatique',
-      image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3',
-      photos: []
+      image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3'
     }
 
     try {

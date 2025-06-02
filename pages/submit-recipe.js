@@ -15,9 +15,7 @@ export default function SubmitRecipe() {
     instructions: '',
     prepTime: '',
     cookTime: '',
-    servings: '',
     category: '',
-    difficulty: 'Facile',
     author: ''
   })
   const [photos, setPhotos] = useState([])
@@ -28,8 +26,6 @@ export default function SubmitRecipe() {
     'Entrées', 'Plats principaux', 'Desserts', 'Apéritifs', 
     'Soupes', 'Salades', 'Végétarien', 'Vegan', 'Sans gluten'
   ]
-
-  const difficulties = ['Facile', 'Moyen', 'Difficile']
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
@@ -53,6 +49,29 @@ export default function SubmitRecipe() {
         [name]: ''
       }))
     }
+  }
+
+  const parseIngredients = (text) => {
+    if (!text.trim()) return []
+    return text.split('\n')
+      .map(line => line.trim())
+      .filter(line => line.length > 0)
+      .map(line => line.replace(/^[-•*]\s*/, ''))
+  }
+
+  const parseInstructions = (text) => {
+    if (!text.trim()) return []
+    return text.split('\n')
+      .map(line => line.trim())
+      .filter(line => line.length > 0)
+      .map((line, index) => {
+        // Remove existing numbers at start
+        const cleanLine = line.replace(/^\d+\.\s*/, '')
+        return {
+          step: index + 1,
+          instruction: cleanLine
+        }
+      })
   }
 
   const validateForm = () => {
@@ -110,44 +129,52 @@ export default function SubmitRecipe() {
     setIsSubmitting(true)
     
     try {
-      // Préparer les données avec les bons noms de colonnes
+      // Parse ingredients and instructions to JSON format
+      const ingredientsArray = parseIngredients(formData.ingredients)
+      const instructionsArray = parseInstructions(formData.instructions)
+      
+      // Préparer les données selon le schéma de la base
       const recipeData = {
         title: formData.title.trim(),
         description: formData.description.trim(),
-        ingredients: formData.ingredients.trim(),
-        instructions: formData.instructions.trim(),
+        ingredients: ingredientsArray,
+        instructions: instructionsArray,
         prepTime: formData.prepTime.trim() || null,
         cookTime: formData.cookTime.trim() || null,
-        servings: formData.servings.trim() || null,
         category: formData.category || null,
-        difficulty: formData.difficulty,
         author: formData.author.trim() || 'Anonyme',
-        image: photos.length > 0 ? photos[0].preview : 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3',
-        photos: photos.map(photo => ({
-          url: photo.preview,
-          name: photo.name,
-          size: photo.size
-        }))
+        image: photos.length > 0 ? photos[0].preview : 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3'
       }
       
       logDebug('Données de recette préparées', {
         hasTitle: !!recipeData.title,
         hasDescription: !!recipeData.description,
-        ingredientsLength: recipeData.ingredients.length,
-        instructionsLength: recipeData.instructions.length,
-        photosCount: recipeData.photos.length,
-        category: recipeData.category,
-        difficulty: recipeData.difficulty
+        ingredientsCount: recipeData.ingredients.length,
+        instructionsCount: recipeData.instructions.length,
+        photosCount: photos.length,
+        category: recipeData.category
       })
       
-      // Simulation d'envoi - à remplacer par vraie API
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      // Call API to submit recipe
+      const response = await fetch('/api/recipes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(recipeData)
+      })
+      
+      const result = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(result.message || 'Erreur lors de la soumission')
+      }
       
       logUserInteraction('RECETTE_SOUMISE', 'formulaire-soumission', {
         title: recipeData.title,
         category: recipeData.category,
-        difficulty: recipeData.difficulty,
-        photosCount: recipeData.photos.length
+        ingredientsCount: recipeData.ingredients.length,
+        instructionsCount: recipeData.instructions.length
       })
       
       // Redirection après succès
@@ -192,7 +219,7 @@ export default function SubmitRecipe() {
             <h2>📷 Photos de votre plat</h2>
             <PhotoUpload 
               onPhotoSelect={setPhotos}
-              maxFiles={5}
+              maxFiles={1}
             />
             {errors.photos && <span className={styles.error}>{errors.photos}</span>}
           </div>
@@ -246,22 +273,6 @@ export default function SubmitRecipe() {
               </div>
 
               <div className={styles.formGroup}>
-                <label htmlFor="difficulty">Difficulté</label>
-                <select
-                  id="difficulty"
-                  name="difficulty"
-                  value={formData.difficulty}
-                  onChange={handleInputChange}
-                >
-                  {difficulties.map(diff => (
-                    <option key={diff} value={diff}>{diff}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className={styles.formRow}>
-              <div className={styles.formGroup}>
                 <label htmlFor="prepTime">Temps de préparation</label>
                 <input
                   type="text"
@@ -284,18 +295,6 @@ export default function SubmitRecipe() {
                   placeholder="45 min"
                 />
               </div>
-
-              <div className={styles.formGroup}>
-                <label htmlFor="servings">Portions</label>
-                <input
-                  type="text"
-                  id="servings"
-                  name="servings"
-                  value={formData.servings}
-                  onChange={handleInputChange}
-                  placeholder="4 personnes"
-                />
-              </div>
             </div>
           </div>
 
@@ -303,16 +302,20 @@ export default function SubmitRecipe() {
           <div className={styles.section}>
             <h2>🛒 Ingrédients</h2>
             <div className={styles.formGroup}>
+              <label htmlFor="ingredients">Liste des ingrédients *</label>
               <textarea
                 id="ingredients"
                 name="ingredients"
                 value={formData.ingredients}
                 onChange={handleInputChange}
-                placeholder="Listez vos ingrédients (un par ligne)&#10;Ex:&#10;- 3 pommes&#10;- 200g de farine&#10;- 2 œufs"
+                placeholder="Listez vos ingrédients (un par ligne)&#10;Ex:&#10;3 pommes&#10;200g de farine&#10;2 œufs&#10;1 cuillère à soupe de sucre"
                 rows={8}
                 className={errors.ingredients ? styles.inputError : ''}
               />
               {errors.ingredients && <span className={styles.error}>{errors.ingredients}</span>}
+              <small className={styles.helpText}>
+                Entrez un ingrédient par ligne. Les tirets et puces seront supprimés automatiquement.
+              </small>
             </div>
           </div>
 
@@ -320,16 +323,20 @@ export default function SubmitRecipe() {
           <div className={styles.section}>
             <h2>👨‍🍳 Instructions</h2>
             <div className={styles.formGroup}>
+              <label htmlFor="instructions">Étapes de préparation *</label>
               <textarea
                 id="instructions"
                 name="instructions"
                 value={formData.instructions}
                 onChange={handleInputChange}
-                placeholder="Décrivez les étapes de préparation (une par ligne)&#10;Ex:&#10;1. Préchauffer le four à 180°C&#10;2. Éplucher et couper les pommes&#10;3. Mélanger la farine et les œufs"
+                placeholder="Décrivez les étapes de préparation (une par ligne)&#10;Ex:&#10;Préchauffer le four à 180°C&#10;Éplucher et couper les pommes&#10;Mélanger la farine et les œufs&#10;Cuire pendant 45 minutes"
                 rows={10}
                 className={errors.instructions ? styles.inputError : ''}
               />
               {errors.instructions && <span className={styles.error}>{errors.instructions}</span>}
+              <small className={styles.helpText}>
+                Entrez une étape par ligne. Les numéros seront ajoutés automatiquement.
+              </small>
             </div>
           </div>
 

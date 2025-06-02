@@ -115,27 +115,36 @@ exports.handler = async (event, context) => {
         };
       }
       
+      // Ensure ingredients and instructions are arrays
+      const ingredients = Array.isArray(data.ingredients) ? data.ingredients : 
+                         typeof data.ingredients === 'string' ? data.ingredients.split('\n').filter(i => i.trim()) :
+                         [];
+      
+      const instructions = Array.isArray(data.instructions) ? data.instructions :
+                          typeof data.instructions === 'string' ? 
+                            data.instructions.split('\n').filter(i => i.trim()).map((inst, index) => ({
+                              step: index + 1,
+                              instruction: inst.trim()
+                            })) :
+                          [];
+      
       const newRecipe = {
         title: data.title.trim(),
         description: data.description?.trim() || '',
-        ingredients: data.ingredients?.trim() || '',
-        instructions: data.instructions?.trim() || '',
+        ingredients: ingredients,
+        instructions: instructions,
         prepTime: data.prepTime?.trim() || null,
         cookTime: data.cookTime?.trim() || null,
-        servings: data.servings?.trim() || null,
         category: data.category?.trim() || null,
-        difficulty: data.difficulty || "Facile",
         author: data.author?.trim() || "Anonyme",
-        image: data.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3",
-        photos: Array.isArray(data.photos) ? data.photos : []
+        image: data.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3"
       };
       
       log(`Tentative d'insertion d'une nouvelle recette: ${newRecipe.title}`, "info", {
         hasTitle: !!newRecipe.title,
         hasDescription: !!newRecipe.description,
-        hasIngredients: !!newRecipe.ingredients,
-        hasInstructions: !!newRecipe.instructions,
-        photosCount: newRecipe.photos.length,
+        ingredientsCount: newRecipe.ingredients.length,
+        instructionsCount: newRecipe.instructions.length,
         category: newRecipe.category
       });
       

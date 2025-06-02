@@ -23,7 +23,16 @@ export default function Navbar() {
           <Link href="/" className={styles.navLink}>
             Accueil
           </Link>
-          <Link href="/add-recipe" className={styles.addButton}>
+          <Link href="/explorer" className={styles.navLink}>
+            Explorer
+          </Link>
+          <Link href="/recherche" className={styles.navLink}>
+            Recherche
+          </Link>
+          <Link href="/favoris" className={styles.navLink}>
+            Favoris
+          </Link>
+          <Link href="/submit-recipe" className={styles.addButton}>
             ➕ Ajouter une recette
           </Link>
         </div>
@@ -44,9 +53,18 @@ export default function Navbar() {
               <Link href="/" className={styles.mobileNavLink}>
                 🏠 Accueil
               </Link>
-              <button className={styles.mobileNavLink}>
+              <Link href="/explorer" className={styles.mobileNavLink}>
+                🔍 Explorer
+              </Link>
+              <Link href="/recherche" className={styles.mobileNavLink}>
+                🔎 Recherche
+              </Link>
+              <Link href="/favoris" className={styles.mobileNavLink}>
+                ❤️ Favoris
+              </Link>
+              <Link href="/submit-recipe" className={styles.mobileNavLink}>
                 ➕ Ajouter une recette
-              </button>
+              </Link>
             </div>
           </div>
         )}

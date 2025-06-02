@@ -211,6 +211,15 @@
   margin-bottom: var(--spacing-lg);
 }
 
+.helpText {
+  display: block;
+  color: var(--text-light);
+  font-size: 0.85rem;
+  margin-top: var(--spacing-xs);
+  font-style: italic;
+  line-height: 1.4;
+}
+
 /* Mobile optimizations */
 @media (max-width: 768px) {
   .container {
