@@ -285,189 +285,204 @@ function AppContent({ Component, pageProps }) {
   };
 
   return (
-    <div className="mobile-app">
-      {/* Mobile Status Bar */}
-      <div className="status-bar">
-        <span>9:41</span>
-        <div className="status-icons">
-          <span>📶</span>
-          <span>📱</span>
-          <span>🔋</span>
-        </div>
-      </div>
-      
-      <main className="app-content">
-        {globalError && (
-          <div style={{ maxWidth: '1200px', margin: '1rem auto', padding: '0 1rem' }}>
-            <ErrorDisplay error={globalError} resetError={resetGlobalError} />
+    <>
+      <div className="mobile-app">
+        {/* Mobile Status Bar */}
+        <div className="status-bar">
+          <span>9:41</span>
+          <div className="status-icons">
+            <span>📶</span>
+            <span>📱</span>
+            <span>🔋</span>
           </div>
-        )}
-        <Component {...pageProps} />
-      </main>
-      
-      {/* Bottom Navigation */}
-      <nav className="bottom-nav">
-        <Link href="/" className={getNavItemClass('/')}>
-          <span className="nav-icon">🏠</span>
-          <span className="nav-label">Accueil</span>
-        </Link>
-        <Link href="/explorer" className={getNavItemClass('/explorer')}>
-          <span className="nav-icon">🔍</span>
-          <span className="nav-label">Explorer</span>
-        </Link>
-        <button onClick={handleShare} className="nav-item add-button">
-          <span className="nav-icon">📤</span>
-        </button>
-        <Link href="/favoris" className={getNavItemClass('/favoris')}>
-          <span className="nav-icon">❤️</span>
-          <span className="nav-label">Favoris</span>
-        </Link>
+        </div>
         
-        {user ? (
-          <AuthenticatedNav user={user} signOut={signOut} />
-        ) : (
-          <Link href="/login" className={getNavItemClass('/login')}>
-            <span className="nav-icon">👤</span>
-            <span className="nav-label">Connexion</span>
+        <main className="app-content">
+          {globalError && (
+            <div style={{ maxWidth: '1200px', margin: '1rem auto', padding: '0 1rem' }}>
+              <ErrorDisplay error={globalError} resetError={resetGlobalError} />
+            </div>
+          )}
+          <Component {...pageProps} />
+        </main>
+        
+        {/* Bottom Navigation */}
+        <nav className="bottom-nav">
+          <Link href="/" className={getNavItemClass('/')}>
+            <span className="nav-icon">🏠</span>
+            <span className="nav-label">Accueil</span>
           </Link>
-        )}
-      </nav>
+          <Link href="/explorer" className={getNavItemClass('/explorer')}>
+            <span className="nav-icon">🔍</span>
+            <span className="nav-label">Explorer</span>
+          </Link>
+          <button onClick={handleShare} className="nav-item add-button">
+            <span className="nav-icon">📤</span>
+          </button>
+          <Link href="/favoris" className={getNavItemClass('/favoris')}>
+            <span className="nav-icon">❤️</span>
+            <span className="nav-label">Favoris</span>
+          </Link>
+          
+          {user ? (
+            <AuthenticatedNav user={user} signOut={signOut} />
+          ) : (
+            <Link href="/login" className={getNavItemClass('/login')}>
+              <span className="nav-icon">👤</span>
+              <span className="nav-label">Connexion</span>
+            </Link>
+          )}
+        </nav>
 
-      {/* Share Menu Overlay */}
-      {showShareMenu && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0, 0, 0, 0.6)',
-          display: 'flex',
-          alignItems: 'flex-end',
-          justifyContent: 'center',
-          zIndex: 1000,
-          maxWidth: '430px',
-          margin: '0 auto'
-        }}>
+        {/* Share Menu Overlay */}
+        {showShareMenu && (
           <div style={{
-            background: 'var(--bg-card)',
-            borderRadius: 'var(--radius-xl) var(--radius-xl) 0 0',
-            width: '100%',
-            padding: 'var(--spacing-lg)',
-            animation: 'slideUp 0.3s ease'
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.6)',
+            display: 'flex',
+            alignItems: 'flex-end',
+            justifyContent: 'center',
+            zIndex: 1000,
+            maxWidth: '430px',
+            margin: '0 auto'
           }}>
             <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: 'var(--spacing-lg)'
+              background: 'var(--bg-card)',
+              borderRadius: 'var(--radius-xl) var(--radius-xl) 0 0',
+              width: '100%',
+              padding: 'var(--spacing-lg)',
+              animation: 'slideUp 0.3s ease'
             }}>
-              <h3 style={{
-                margin: 0,
-                color: 'var(--primary-coral)',
-                fontSize: '1.3rem',
-                fontWeight: '600'
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 'var(--spacing-lg)'
               }}>
-                Partager COCO
-              </h3>
-              <button
-                onClick={() => setShowShareMenu(false)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: '1.5rem',
-                  color: 'var(--text-secondary)',
-                  cursor: 'pointer',
-                  padding: 'var(--spacing-sm)',
-                  borderRadius: '50%'
-                }}
-              >
-                ✕
-              </button>
-            </div>
+                <h3 style={{
+                  margin: 0,
+                  color: 'var(--primary-coral)',
+                  fontSize: '1.3rem',
+                  fontWeight: '600'
+                }}>
+                  Partager COCO
+                </h3>
+                <button
+                  onClick={() => setShowShareMenu(false)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    fontSize: '1.5rem',
+                    color: 'var(--text-secondary)',
+                    cursor: 'pointer',
+                    padding: 'var(--spacing-sm)',
+                    borderRadius: '50%'
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
 
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: 'var(--spacing-md)',
-              marginBottom: 'var(--spacing-lg)'
-            }}>
-              <button
-                onClick={shareToWhatsApp}
-                className="card"
-                style={{
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: 'var(--spacing-md)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: 'var(--spacing-sm)',
-                  background: 'var(--bg-card)',
-                  transition: 'all 0.3s ease'
-                }}
-              >
-                <span style={{ fontSize: '2rem' }}>💬</span>
-                <span style={{ fontSize: '0.8rem', fontWeight: '500' }}>WhatsApp</span>
-              </button>
-
-              <button
-                onClick={shareToFacebook}
-                className="card"
-                style={{
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: 'var(--spacing-md)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: 'var(--spacing-sm)',
-                  background: 'var(--bg-card)',
-                  transition: 'all 0.3s ease'
-                }}
-              >
-                <span style={{ fontSize: '2rem' }}>📘</span>
-                <span style={{ fontSize: '0.8rem', fontWeight: '500' }}>Facebook</span>
-              </button>
-
-              <button
-                onClick={copyToClipboard}
-                className="card"
-                style={{
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: 'var(--spacing-md)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: 'var(--spacing-sm)',
-                  background: 'var(--bg-card)',
-                  transition: 'all 0.3s ease'
-                }}
-              >
-                <span style={{ fontSize: '2rem' }}>🔗</span>
-                <span style={{ fontSize: '0.8rem', fontWeight: '500' }}>Copier</span>
-              </button>
-            </div>
-
-            <div style={{
-              background: 'var(--bg-gradient)',
-              borderRadius: 'var(--radius-lg)',
-              padding: 'var(--spacing-md)',
-              textAlign: 'center'
-            }}>
-              <p style={{
-                margin: 0,
-                fontSize: '0.9rem',
-                color: 'var(--text-secondary)'
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: 'var(--spacing-md)',
+                marginBottom: 'var(--spacing-lg)'
               }}>
-                🍴 Partagez COCO avec vos amis et découvrez ensemble de délicieuses recettes !
-              </p>
+                <button
+                  onClick={shareToWhatsApp}
+                  className="card"
+                  style={{
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: 'var(--spacing-md)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 'var(--spacing-sm)',
+                    background: 'var(--bg-card)',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  <span style={{ fontSize: '2rem' }}>💬</span>
+                  <span style={{ fontSize: '0.8rem', fontWeight: '500' }}>WhatsApp</span>
+                </button>
+
+                <button
+                  onClick={shareToFacebook}
+                  className="card"
+                  style={{
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: 'var(--spacing-md)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 'var(--spacing-sm)',
+                    background: 'var(--bg-card)',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  <span style={{ fontSize: '2rem' }}>📘</span>
+                  <span style={{ fontSize: '0.8rem', fontWeight: '500' }}>Facebook</span>
+                </button>
+
+                <button
+                  onClick={copyToClipboard}
+                  className="card"
+                  style={{
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: 'var(--spacing-md)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 'var(--spacing-sm)',
+                    background: 'var(--bg-card)',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  <span style={{ fontSize: '2rem' }}>🔗</span>
+                  <span style={{ fontSize: '0.8rem', fontWeight: '500' }}>Copier</span>
+                </button>
+              </div>
+
+              <div style={{
+                background: 'var(--bg-gradient)',
+                borderRadius: 'var(--radius-lg)',
+                padding: 'var(--spacing-md)',
+                textAlign: 'center'
+              }}>
+                <p style={{
+                  margin: 0,
+                  fontSize: '0.9rem',
+                  color: 'var(--text-secondary)'
+                }}>
+                  🍴 Partagez COCO avec vos amis et découvrez ensemble de délicieuses recettes !
+                </p>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+
+      <style jsx>{`
+        @keyframes slideUp {
+          from {
+            transform: translateY(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0);
+            opacity: 1;
+          }
+        }
+      `}</style>
+    </>
   )
 }
 
@@ -482,16 +497,3 @@ function MyApp({ Component, pageProps }) {
 }
 
 export default MyApp
-
-<style jsx>{`
-  @keyframes slideUp {
-    from {
-      transform: translateY(100%);
-      opacity: 0;
-    }
-    to {
-      transform: translateY(0);
-      opacity: 1;
-    }
-  }
-`}</style>
