@@ -67,14 +67,33 @@ export default function TestRecipes() {
     logInfo('🔍 Test de connexion Supabase...')
     
     try {
+      // Test avec toutes les colonnes requises incluant difficulty
       const { data, error } = await supabase
         .from('recipes')
-        .select('count')
+        .select('id, title, description, ingredients, instructions, difficulty, category, author, created_at')
         .limit(1)
 
       if (error) {
         logError('❌ Connexion Supabase échouée', error)
-        setTestResults(prev => ({ ...prev, supabase: 'ERREUR' }))
+        
+        // Si c'est une erreur de colonne manquante, donner des instructions spécifiques
+        if (error.code === 'PGRST204' && error.message.includes('difficulty')) {
+          logError('❌ Colonne difficulty manquante dans la table recipes', error)
+          setTestResults(prev => ({ ...prev, supabase: 'COLONNE_MANQUANTE' }))
+          
+          console.log(`
+=== COLONNE DIFFICULTY MANQUANTE ===
+
+La colonne 'difficulty' n'existe pas dans votre table recipes.
+Exécutez ce SQL dans votre dashboard Supabase :
+
+ALTER TABLE recipes ADD COLUMN IF NOT EXISTS difficulty TEXT DEFAULT 'Facile';
+
+Puis rafraîchissez cette page.
+          `)
+        } else {
+          setTestResults(prev => ({ ...prev, supabase: 'ERREUR' }))
+        }
       } else {
         logInfo('✅ Connexion Supabase réussie')
         setTestResults(prev => ({ ...prev, supabase: 'OK' }))

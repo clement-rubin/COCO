@@ -103,7 +103,51 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=votre_cle_anonyme_ici
 
 **⚠️ Important** : Remplacez les valeurs ci-dessus par celles de votre projet Supabase.
 
-4. **Configuration Storage pour les images :**
+4. **Configuration de la table `recipes` :**
+   
+   **Étape 1 : Créer/Mettre à jour la table**
+   - Allez dans **SQL Editor** dans votre dashboard Supabase
+   - Exécutez le SQL suivant :
+
+```sql
+-- Création ou mise à jour de la table recipes avec la structure correcte
+CREATE TABLE IF NOT EXISTS public.recipes (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  title TEXT NOT NULL,
+  description TEXT,
+  image BYTEA,
+  prepTime TEXT,
+  cookTime TEXT,
+  category TEXT,
+  author TEXT,
+  ingredients JSON,
+  instructions JSON,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  difficulty TEXT DEFAULT 'Facile'
+);
+
+-- Créer les index pour de meilleures performances
+CREATE INDEX IF NOT EXISTS idx_recipes_created_at ON recipes(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_recipes_category ON recipes(category);
+CREATE INDEX IF NOT EXISTS idx_recipes_difficulty ON recipes(difficulty);
+
+-- Activer Row Level Security
+ALTER TABLE recipes ENABLE ROW LEVEL SECURITY;
+
+-- Créer les politiques pour l'accès public
+DROP POLICY IF EXISTS "Permettre lecture publique" ON recipes;
+DROP POLICY IF EXISTS "Permettre insertion publique" ON recipes;
+DROP POLICY IF EXISTS "Permettre mise à jour publique" ON recipes;
+DROP POLICY IF EXISTS "Permettre suppression publique" ON recipes;
+
+CREATE POLICY "Permettre lecture publique" ON recipes FOR SELECT USING (true);
+CREATE POLICY "Permettre insertion publique" ON recipes FOR INSERT WITH CHECK (true);
+CREATE POLICY "Permettre mise à jour publique" ON recipes FOR UPDATE USING (true);
+CREATE POLICY "Permettre suppression publique" ON recipes FOR DELETE USING (true);
+```
+
+5. **Configuration Storage pour les images :**
    
    **Étape 1 : Créer le bucket**
    - Allez dans **Storage > Buckets** dans votre dashboard Supabase
@@ -131,6 +175,7 @@ CREATE POLICY IF NOT EXISTS "Permettre suppression publique" ON storage.objects
    **Étape 3 : Vérifier la configuration**
    - Utilisez la page `/test-upload` pour vérifier que tout fonctionne
    - Le statut du bucket doit afficher "✅ Bucket recipe-images disponible"
+   - Utilisez la page `/test-recipes` pour vérifier la structure de la table
 
 ## 🔧 Tests et Debug
 

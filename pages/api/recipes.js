@@ -96,11 +96,24 @@ export default async function handler(req, res) {
         logInfo('[API] Test de structure de la table recipes')
         const { data: tableTest, error: tableError } = await supabase
           .from('recipes')
-          .select('id')
+          .select('id, difficulty')
           .limit(1)
         
         if (tableError) {
           logError('[API] Erreur lors du test de la table', tableError)
+          
+          // Erreur spécifique pour colonne difficulty manquante
+          if (tableError.code === 'PGRST204' && tableError.message.includes('difficulty')) {
+            res.status(500).json({
+              message: 'Colonne difficulty manquante dans la table recipes',
+              details: 'La colonne "difficulty" n\'existe pas dans votre table recipes.',
+              error: tableError.message,
+              solution: 'Exécutez ce SQL dans votre dashboard Supabase : ALTER TABLE recipes ADD COLUMN IF NOT EXISTS difficulty TEXT DEFAULT \'Facile\';',
+              sqlCommand: 'ALTER TABLE recipes ADD COLUMN IF NOT EXISTS difficulty TEXT DEFAULT \'Facile\';'
+            })
+            return
+          }
+          
           res.status(500).json({
             message: 'Erreur de configuration de la base de données',
             details: 'La table recipes n\'est pas accessible ou n\'existe pas.',
@@ -146,7 +159,9 @@ export default async function handler(req, res) {
         instructions: JSON.stringify(instructions),
         prepTime: data.prepTime?.trim() || null,
         cookTime: data.cookTime?.trim() || null,
+        servings: data.servings?.trim() || null,
         category: data.category?.trim() || null,
+        difficulty: data.difficulty?.trim() || 'Facile', // Ajout avec valeur par défaut
         author: data.author?.trim() || 'Anonyme',
         image: data.image // Array de bytes pour stockage en bytea
       }

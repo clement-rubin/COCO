@@ -135,7 +135,9 @@ exports.handler = async (event, context) => {
         instructions: instructions,
         prepTime: data.prepTime?.trim() || null,
         cookTime: data.cookTime?.trim() || null,
+        servings: data.servings?.trim() || null,
         category: data.category?.trim() || null,
+        difficulty: data.difficulty?.trim() || 'Facile', // Ajout avec valeur par défaut
         author: data.author?.trim() || "Anonyme",
         image: data.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3",
         photos: data.photos || [] // Support pour les multiples photos
@@ -146,7 +148,8 @@ exports.handler = async (event, context) => {
         hasDescription: !!newRecipe.description,
         ingredientsCount: newRecipe.ingredients.length,
         instructionsCount: newRecipe.instructions.length,
-        category: newRecipe.category
+        category: newRecipe.category,
+        difficulty: newRecipe.difficulty
       });
       
       const { data: insertedData, error } = await supabase
@@ -166,15 +169,22 @@ exports.handler = async (event, context) => {
         
         // Si c'est une erreur de colonne manquante, donner des instructions
         if (error.code === 'PGRST204' || error.code === '42703') {
+          let missingColumn = '';
+          if (error.message.includes('difficulty')) {
+            missingColumn = 'difficulty';
+          }
+          
           return {
             statusCode: 500,
             headers,
             body: JSON.stringify({ 
               message: 'Erreur de structure de base de données',
-              details: 'La table recipes semble incomplète. Veuillez vérifier que toutes les colonnes nécessaires existent.',
+              details: `La colonne '${missingColumn}' est manquante dans la table recipes.`,
               error: error.message,
               solution: 'Consultez les logs ou la page de test pour les instructions SQL de création de table.',
-              sqlRequired: 'CREATE TABLE recipes avec les colonnes : id, title, description, ingredients, instructions, prepTime, cookTime, servings, category, difficulty, author, image, photos, created_at, updated_at'
+              sqlRequired: missingColumn === 'difficulty' 
+                ? `ALTER TABLE recipes ADD COLUMN IF NOT EXISTS difficulty TEXT DEFAULT 'Facile';`
+                : 'CREATE TABLE recipes avec les colonnes : id, title, description, ingredients, instructions, prepTime, cookTime, servings, category, difficulty, author, image, photos, created_at, updated_at'
             })
           };
         }

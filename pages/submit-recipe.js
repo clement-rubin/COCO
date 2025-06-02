@@ -21,13 +21,11 @@ export default function SubmitRecipe() {
     instructions: [''],
     prepTime: '',
     cookTime: '',
-    servings: '',
     category: '',
     difficulty: 'Facile',
-    author: '',
-    tags: []
+    author: ''
   })
-  const [photos, setPhotos] = useState([])
+  const [selectedImage, setSelectedImage] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errors, setErrors] = useState({})
   const [showSuccessMessage, setShowSuccessMessage] = useState(false)
@@ -83,19 +81,8 @@ export default function SubmitRecipe() {
       }
 
       if (stepNumber === 3) {
-        if (photos.length === 0) {
-          newErrors.photos = 'Au moins une photo est requise'
-        }
-
-        const hasProcessingPhotos = photos.some(photo => photo.processing)
-        const hasErrorPhotos = photos.some(photo => photo.error)
-
-        if (hasProcessingPhotos) {
-          newErrors.photos = 'Attendez que toutes les photos soient traitées'
-        }
-
-        if (hasErrorPhotos) {
-          newErrors.photos = 'Certaines photos contiennent des erreurs'
+        if (!selectedImage) {
+          newErrors.image = 'Une photo est requise'
         }
       }
 
@@ -210,24 +197,23 @@ export default function SubmitRecipe() {
     }
   }
 
-  const handlePhotoSelect = (selectedPhotos) => {
+  const handleImageSelect = (imageData) => {
     try {
-      setPhotos(selectedPhotos)
-      logDebug('Photos sélectionnées', { photosCount: selectedPhotos.length })
+      setSelectedImage(imageData)
+      logDebug('Image sélectionnée', { hasImage: !!imageData })
       
-      // Effacer l'erreur photos si elle existe
-      if (errors.photos) {
+      // Effacer l'erreur image si elle existe
+      if (errors.image) {
         setErrors(prev => {
           const newErrors = { ...prev }
-          delete newErrors.photos
+          delete newErrors.image
           return newErrors
         })
       }
     } catch (error) {
       const errorResult = handleComponentError(error, { 
         component: 'SubmitRecipe', 
-        action: 'handle_photo_select',
-        photosCount: selectedPhotos?.length 
+        action: 'handle_image_select'
       })
       setCurrentError(errorResult.error)
     }
@@ -242,7 +228,7 @@ export default function SubmitRecipe() {
     try {
       logInfo('Début de soumission de recette', {
         title: formData.title,
-        photosCount: photos.length,
+        hasImage: !!selectedImage,
         ingredientsCount: formData.ingredients.filter(i => i.trim()).length
       })
 
@@ -250,40 +236,26 @@ export default function SubmitRecipe() {
       const validIngredients = formData.ingredients.filter(ing => ing.trim())
       const validInstructions = formData.instructions.filter(inst => inst.trim())
 
-      // Utiliser la première photo comme image principale
-      const mainPhoto = photos.find(photo => photo.processed && !photo.error)
-      if (!mainPhoto) {
-        throw new Error('Aucune photo valide trouvée')
+      if (!selectedImage) {
+        throw new Error('Aucune image sélectionnée')
       }
 
       const submissionData = {
         title: formData.title.trim(),
         description: formData.description.trim(),
         ingredients: validIngredients,
-        instructions: validInstructions.map((instruction, index) => ({
-          step: index + 1,
-          instruction: instruction.trim()
-        })),
+        instructions: validInstructions,
         prepTime: formData.prepTime.trim() || null,
         cookTime: formData.cookTime.trim() || null,
-        servings: formData.servings.trim() || null,
         category: formData.category,
-        difficulty: formData.difficulty,
+        difficulty: formData.difficulty || 'Facile',
         author: formData.author.trim() || 'Chef Anonyme',
-        image: mainPhoto.imageBytes,
-        photos: photos
-          .filter(photo => photo.processed && !photo.error)
-          .map(photo => ({
-            bytes: photo.imageBytes,
-            name: photo.name,
-            mimeType: photo.mimeType
-          }))
+        image: selectedImage.imageBytes
       }
 
       logDebug('Données préparées pour envoi', {
         ...submissionData,
-        image: `[${submissionData.image.length} bytes]`,
-        photos: submissionData.photos.map(p => ({ name: p.name, bytes: `[${p.bytes.length} bytes]` }))
+        image: `[${submissionData.image.length} bytes]`
       })
 
       // Envoi avec retry automatique
@@ -466,6 +438,7 @@ export default function SubmitRecipe() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-lg)' }}>
+              {/* Title field */}
               <div>
                 <label style={{ display: 'block', marginBottom: 'var(--spacing-sm)', fontWeight: '500' }}>
                   Titre de la recette *
@@ -490,6 +463,7 @@ export default function SubmitRecipe() {
                 )}
               </div>
 
+              {/* Description field */}
               <div>
                 <label style={{ display: 'block', marginBottom: 'var(--spacing-sm)', fontWeight: '500' }}>
                   Description *
@@ -565,7 +539,7 @@ export default function SubmitRecipe() {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--spacing-md)' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)' }}>
                 <div>
                   <label style={{ display: 'block', marginBottom: 'var(--spacing-sm)', fontWeight: '500' }}>
                     Temps de préparation
@@ -594,25 +568,6 @@ export default function SubmitRecipe() {
                     value={formData.cookTime}
                     onChange={(e) => handleInputChange('cookTime', e.target.value)}
                     placeholder="30 min"
-                    style={{
-                      width: '100%',
-                      padding: 'var(--spacing-md)',
-                      border: '1px solid var(--bg-light)',
-                      borderRadius: 'var(--radius-md)',
-                      fontSize: '1rem'
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', marginBottom: 'var(--spacing-sm)', fontWeight: '500' }}>
-                    Portions
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.servings}
-                    onChange={(e) => handleInputChange('servings', e.target.value)}
-                    placeholder="4 pers."
                     style={{
                       width: '100%',
                       padding: 'var(--spacing-md)',
@@ -799,27 +754,28 @@ export default function SubmitRecipe() {
           </div>
         )}
 
-        {/* Step 3: Photos */}
+        {/* Step 3: Single Photo */}
         {step === 3 && (
           <div>
             <div style={{ textAlign: 'center', marginBottom: 'var(--spacing-xl)' }}>
               <div style={{ fontSize: '3rem', marginBottom: 'var(--spacing-md)' }}>📸</div>
               <h1 style={{ fontSize: '1.5rem', marginBottom: 'var(--spacing-sm)' }}>
-                Photos de votre plat
+                Photo de votre plat
               </h1>
               <p style={{ color: 'var(--text-secondary)' }}>
-                Ajoutez des photos appetissantes de votre création
+                Ajoutez une photo appétissante de votre création
               </p>
             </div>
 
             <PhotoUpload 
-              onPhotoSelect={handlePhotoSelect}
-              maxFiles={5}
+              onPhotoSelect={handleImageSelect}
+              maxFiles={1}
+              single={true}
             />
             
-            {errors.photos && (
+            {errors.image && (
               <p style={{ color: '#ff4444', fontSize: '0.8rem', marginTop: 'var(--spacing-md)' }}>
-                {errors.photos}
+                {errors.image}
               </p>
             )}
           </div>
