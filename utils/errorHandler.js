@@ -3,276 +3,266 @@
  */
 
 import { useState, useCallback } from 'react'
-import { logError, logWarning, logInfo } from './logger'
+import { logError, logWarning } from './logger'
 
-// Types d'erreurs
 export const ERROR_TYPES = {
+  NETWORK: 'network_error',
   VALIDATION: 'validation_error',
   AUTH: 'auth_error',
-  NETWORK: 'network_error',
-  CAPTCHA: 'captcha_error',
-  SERVER: 'server_error',
   UPLOAD: 'upload_error',
-  UNKNOWN: 'unknown_error'
+  NOT_FOUND: 'not_found_error',
+  SERVER: 'server_error',
+  PERMISSION: 'permission_error'
 }
 
-// Stratégies de récupération
 export const RECOVERY_STRATEGIES = {
   RETRY: 'retry',
-  REFRESH: 'refresh',
-  REDIRECT: 'redirect',
-  MANUAL: 'manual',
-  CAPTCHA: 'captcha',
-  RESEND_EMAIL: 'resend_email'
+  RELOAD: 'reload',
+  LOGIN: 'login',
+  CONTACT_SUPPORT: 'contact_support',
+  RESEND_EMAIL: 'resend_email',
+  CHECK_CONNECTION: 'check_connection',
+  WAIT: 'wait'
 }
 
-// Hook pour gérer les erreurs dans les composants
-export const useErrorHandler = () => {
-  const [lastError, setLastError] = useState(null)
-  const [lastAction, setLastAction] = useState(null)
-
-  const handleError = useCallback((error, context = {}) => {
-    const errorResult = processError(error, context)
-    setLastError(errorResult)
-    setLastAction(context.action || null)
-    return errorResult
-  }, [])
-
-  const clearError = useCallback(() => {
-    setLastError(null)
-    setLastAction(null)
-  }, [])
-
-  const retryLastAction = useCallback((actionCallback) => {
-    if (lastAction && actionCallback) {
-      clearError()
-      actionCallback()
-    }
-  }, [lastAction, clearError])
-
-  return {
-    lastError,
-    handleError,
-    clearError,
-    retryLastAction
-  }
+/**
+ * Messages d'erreur conviviaux pour l'utilisateur
+ */
+const USER_FRIENDLY_MESSAGES = {
+  // Erreurs réseau
+  'Failed to fetch': 'Problème de connexion. Vérifiez votre internet.',
+  'Network Error': 'Connexion interrompue. Réessayez dans un moment.',
+  'ERR_NETWORK': 'Impossible de joindre le serveur. Vérifiez votre connexion.',
+  
+  // Erreurs d'authentification
+  'Invalid login credentials': 'Email ou mot de passe incorrect.',
+  'Email not confirmed': 'Veuillez confirmer votre email avant de vous connecter.',
+  'User not found': 'Aucun compte associé à cet email.',
+  'Password is too weak': 'Le mot de passe doit contenir au moins 8 caractères.',
+  
+  // Erreurs de validation
+  'Title is required': 'Le titre de la recette est obligatoire.',
+  'Email is required': 'L\'adresse email est requise.',
+  'Invalid email format': 'Format d\'email invalide.',
+  
+  // Erreurs de téléchargement
+  'File too large': 'Fichier trop volumineux (max 6MB).',
+  'Invalid file type': 'Type de fichier non supporté.',
+  
+  // Erreurs serveur
+  'Internal Server Error': 'Erreur temporaire du serveur. Réessayez dans quelques instants.',
+  'Service Unavailable': 'Service temporairement indisponible.',
+  'Too Many Requests': 'Trop de tentatives. Attendez avant de réessayer.'
 }
 
-// Traitement principal des erreurs
-export const processError = (error, context = {}) => {
-  const errorInfo = {
-    timestamp: new Date().toISOString(),
-    context,
-    originalError: error
+/**
+ * Détermine la stratégie de récupération appropriée
+ */
+function getRecoveryStrategy(error, context = {}) {
+  // Erreurs réseau
+  if (error.name === 'NetworkError' || error.message.includes('fetch')) {
+    return RECOVERY_STRATEGIES.RETRY
+  }
+  
+  // Erreurs d'authentification
+  if (error.message.includes('login credentials') || error.status === 401) {
+    return RECOVERY_STRATEGIES.LOGIN
+  }
+  
+  if (error.message.includes('Email not confirmed')) {
+    return RECOVERY_STRATEGIES.RESEND_EMAIL
+  }
+  
+  // Erreurs de validation
+  if (error.status === 400 || error.message.includes('required')) {
+    return null // Pas de stratégie automatique, l'utilisateur doit corriger
+  }
+  
+  // Erreurs de permissions
+  if (error.status === 403) {
+    return RECOVERY_STRATEGIES.LOGIN
+  }
+  
+  // Erreurs 404
+  if (error.status === 404) {
+    return RECOVERY_STRATEGIES.RELOAD
+  }
+  
+  // Erreurs serveur
+  if (error.status >= 500) {
+    return RECOVERY_STRATEGIES.RETRY
+  }
+  
+  // Rate limiting
+  if (error.status === 429) {
+    return RECOVERY_STRATEGIES.WAIT
+  }
+  
+  return RECOVERY_STRATEGIES.CONTACT_SUPPORT
+}
+
+/**
+ * Obtient des suggestions d'actions pour l'utilisateur
+ */
+function getActionSuggestions(error, recoveryStrategy) {
+  const suggestions = []
+  
+  switch (recoveryStrategy) {
+    case RECOVERY_STRATEGIES.RETRY:
+      suggestions.push('Réessayez dans quelques instants')
+      suggestions.push('Vérifiez votre connexion internet')
+      break
+      
+    case RECOVERY_STRATEGIES.LOGIN:
+      suggestions.push('Reconnectez-vous à votre compte')
+      suggestions.push('Vérifiez vos identifiants')
+      break
+      
+    case RECOVERY_STRATEGIES.RESEND_EMAIL:
+      suggestions.push('Vérifiez votre boîte mail (et les spams)')
+      suggestions.push('Demandez un nouvel email de confirmation')
+      break
+      
+    case RECOVERY_STRATEGIES.CHECK_CONNECTION:
+      suggestions.push('Vérifiez votre connexion internet')
+      suggestions.push('Essayez de recharger la page')
+      break
+      
+    case RECOVERY_STRATEGIES.WAIT:
+      suggestions.push('Attendez quelques minutes avant de réessayer')
+      suggestions.push('Vous avez effectué trop d\'actions récemment')
+      break
+      
+    case RECOVERY_STRATEGIES.CONTACT_SUPPORT:
+      suggestions.push('Contactez notre équipe si le problème persiste')
+      suggestions.push('Notez le code d\'erreur ci-dessous')
+      break
+  }
+  
+  return suggestions
+}
+
+/**
+ * Transforme une erreur technique en erreur conviviale
+ */
+export function createUserFriendlyError(error, context = {}) {
+  const errorMessage = error?.message || error?.toString() || 'Erreur inconnue'
+  const userMessage = USER_FRIENDLY_MESSAGES[errorMessage] || 
+                     USER_FRIENDLY_MESSAGES[error?.code] ||
+                     'Une erreur inattendue s\'est produite'
+  
+  const recoveryStrategy = getRecoveryStrategy(error, context)
+  const suggestions = getActionSuggestions(error, recoveryStrategy)
+  
+  // Détermine le type d'erreur
+  let errorType = ERROR_TYPES.SERVER
+  if (error?.status) {
+    if (error.status === 401 || error.status === 403) errorType = ERROR_TYPES.AUTH
+    else if (error.status === 404) errorType = ERROR_TYPES.NOT_FOUND
+    else if (error.status === 400) errorType = ERROR_TYPES.VALIDATION
+    else if (error.status >= 500) errorType = ERROR_TYPES.SERVER
+  } else if (error?.name === 'NetworkError') {
+    errorType = ERROR_TYPES.NETWORK
   }
 
-  // Déterminer le type d'erreur
-  const errorType = determineErrorType(error)
-  const userMessage = getUserMessage(error, errorType)
-  const recoveryStrategy = getRecoveryStrategy(error, errorType)
-
-  const processedError = {
+  const friendlyError = {
+    id: `error_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
+    message: userMessage,
+    originalMessage: errorMessage,
     type: errorType,
-    message: error.message || 'Une erreur inconnue est survenue',
+    status: error?.status,
+    code: error?.code,
+    timestamp: new Date().toISOString(),
+    recoveryStrategy,
+    suggestions,
+    context,
+    canRetry: recoveryStrategy === RECOVERY_STRATEGIES.RETRY,
+    requiresAction: recoveryStrategy !== null,
+    severity: error?.status >= 500 ? 'high' : error?.status >= 400 ? 'medium' : 'low'
+  }
+  
+  logError('Erreur transformée pour l\'utilisateur', error, {
+    friendlyErrorId: friendlyError.id,
     userMessage,
     recoveryStrategy,
-    details: extractErrorDetails(error),
-    stack: error.stack,
-    context: errorInfo.context,
-    timestamp: errorInfo.timestamp
-  }
-
-  // Logger l'erreur
-  logError('Erreur traitée par errorHandler', error, {
-    processedError,
     context
   })
-
-  return {
-    error: processedError,
-    shouldShowToUser: true,
-    shouldLog: true
-  }
-}
-
-// Déterminer le type d'erreur
-const determineErrorType = (error) => {
-  if (!error) return ERROR_TYPES.UNKNOWN
-
-  const message = error.message?.toLowerCase() || ''
-  const code = error.code?.toLowerCase() || ''
-
-  // Erreurs de captcha
-  if (message.includes('captcha') || code.includes('captcha')) {
-    return ERROR_TYPES.CAPTCHA
-  }
-
-  // Erreurs d'authentification
-  if (code.includes('auth') || message.includes('invalid_credentials') || 
-      message.includes('email not confirmed') || message.includes('weak_password')) {
-    return ERROR_TYPES.AUTH
-  }
-
-  // Erreurs de validation
-  if (message.includes('validation') || message.includes('required') || 
-      message.includes('invalid format') || code.includes('invalid_input')) {
-    return ERROR_TYPES.VALIDATION
-  }
-
-  // Erreurs réseau
-  if (message.includes('network') || message.includes('fetch') || 
-      code.includes('network_error') || error.name === 'NetworkError') {
-    return ERROR_TYPES.NETWORK
-  }
-
-  // Erreurs d'upload
-  if (message.includes('upload') || message.includes('file') || 
-      message.includes('image') || code.includes('storage')) {
-    return ERROR_TYPES.UPLOAD
-  }
-
-  // Erreurs serveur
-  if (error.status >= 500 || code.includes('server_error')) {
-    return ERROR_TYPES.SERVER
-  }
-
-  return ERROR_TYPES.UNKNOWN
-}
-
-// Messages utilisateur personnalisés
-const getUserMessage = (error, errorType) => {
-  switch (errorType) {
-    case ERROR_TYPES.CAPTCHA:
-      return 'Vérification de sécurité échouée. Veuillez compléter le captcha.'
-    
-    case ERROR_TYPES.AUTH:
-      if (error.message?.includes('invalid_credentials')) {
-        return 'Email ou mot de passe incorrect.'
-      }
-      if (error.message?.includes('email not confirmed')) {
-        return 'Veuillez confirmer votre email avant de vous connecter.'
-      }
-      if (error.message?.includes('weak_password')) {
-        return 'Le mot de passe doit contenir au moins 6 caractères.'
-      }
-      return 'Erreur d\'authentification. Vérifiez vos identifiants.'
-    
-    case ERROR_TYPES.VALIDATION:
-      return 'Veuillez vérifier les informations saisies.'
-    
-    case ERROR_TYPES.NETWORK:
-      return 'Problème de connexion. Vérifiez votre réseau et réessayez.'
-    
-    case ERROR_TYPES.UPLOAD:
-      return 'Erreur lors de l\'envoi du fichier. Vérifiez le format et la taille.'
-    
-    case ERROR_TYPES.SERVER:
-      return 'Erreur du serveur. Veuillez réessayer plus tard.'
-    
-    default:
-      return error.message || 'Une erreur inattendue est survenue.'
-  }
-}
-
-// Stratégies de récupération
-const getRecoveryStrategy = (error, errorType) => {
-  switch (errorType) {
-    case ERROR_TYPES.CAPTCHA:
-      return RECOVERY_STRATEGIES.CAPTCHA
-    
-    case ERROR_TYPES.VALIDATION:
-      return RECOVERY_STRATEGIES.MANUAL
-    
-    case ERROR_TYPES.NETWORK:
-    case ERROR_TYPES.SERVER:
-      return RECOVERY_STRATEGIES.RETRY
-    
-    case ERROR_TYPES.AUTH:
-      if (error.message?.includes('email not confirmed')) {
-        return RECOVERY_STRATEGIES.REDIRECT
-      }
-      return RECOVERY_STRATEGIES.MANUAL
-    
-    default:
-      return RECOVERY_STRATEGIES.RETRY
-  }
-}
-
-// Extraire les détails de l'erreur
-const extractErrorDetails = (error) => {
-  const details = {}
-
-  if (error.code) details.code = error.code
-  if (error.status) details.status = error.status
-  if (error.statusText) details.statusText = error.statusText
-  if (error.details) details.details = error.details
-
-  return details
-}
-
-// Gestionnaire d'erreurs d'authentification spécialisé
-export const handleAuthError = (error) => {
-  const context = { component: 'Auth', action: 'authentication' }
   
-  // Erreurs Supabase spécifiques
-  if (error.message === 'Invalid login credentials') {
-    return {
-      userError: {
-        message: 'Email ou mot de passe incorrect',
-        type: ERROR_TYPES.AUTH,
-        recoveryStrategy: RECOVERY_STRATEGIES.MANUAL
-      }
-    }
-  }
-
-  if (error.message === 'Email not confirmed') {
-    return {
-      userError: {
-        message: 'Veuillez confirmer votre email avant de vous connecter',
-        type: ERROR_TYPES.AUTH,
-        recoveryStrategy: RECOVERY_STRATEGIES.RESEND_EMAIL,
-        redirectUrl: '/auth/confirm'
-      }
-    }
-  }
-
-  if (error.message.includes('Password should be at least 6 characters')) {
-    return {
-      userError: {
-        message: 'Le mot de passe doit contenir au moins 6 caractères',
-        type: ERROR_TYPES.VALIDATION,
-        recoveryStrategy: RECOVERY_STRATEGIES.MANUAL
-      }
-    }
-  }
-
-  // Erreur générique
-  return processError(error, context)
+  return friendlyError
 }
 
-// Wrapper pour les fonctions avec gestion d'erreur
-export const withErrorHandling = (fn, context = {}) => {
-  return async (...args) => {
-    try {
-      return await fn(...args)
-    } catch (error) {
-      const errorResult = processError(error, context)
-      throw errorResult.error
-    }
+/**
+ * Hook React pour la gestion d'erreurs
+ */
+export function useErrorHandler() {
+  const [errors, setErrors] = useState([])
+  
+  const addError = useCallback((error, context = {}) => {
+    const friendlyError = createUserFriendlyError(error, context)
+    setErrors(prev => [...prev, friendlyError])
+    return friendlyError
+  }, [])
+  
+  const removeError = useCallback((errorId) => {
+    setErrors(prev => prev.filter(err => err.id !== errorId))
+  }, [])
+  
+  const clearErrors = useCallback(() => {
+    setErrors([])
+  }, [])
+  
+  const hasErrors = errors.length > 0
+  const latestError = errors[errors.length - 1]
+  
+  return {
+    errors,
+    hasErrors,
+    latestError,
+    addError,
+    removeError,
+    clearErrors
   }
 }
 
-// Gestionnaire d'erreur global pour les composants
-export const handleError = (error, context = {}) => {
-  return processError(error, context)
+/**
+ * Gestionnaire d'erreurs global pour les promesses non gérées
+ */
+export function setupGlobalErrorHandling() {
+  if (typeof window === 'undefined') return
+  
+  window.addEventListener('unhandledrejection', (event) => {
+    const error = event.reason
+    logError('Promesse rejetée non gérée', error)
+    
+    // Empêcher l'affichage dans la console du navigateur
+    event.preventDefault()
+    
+    // Créer une erreur conviviale
+    const friendlyError = createUserFriendlyError(error, {
+      type: 'unhandled_promise_rejection',
+      url: window.location.href
+    })
+    
+    // Dispatch d'un événement personnalisé pour que l'app puisse réagir
+    window.dispatchEvent(new CustomEvent('app-error', {
+      detail: friendlyError
+    }))
+  })
+  
+  window.addEventListener('error', (event) => {
+    const error = event.error
+    logError('Erreur JavaScript non gérée', error)
+    
+    const friendlyError = createUserFriendlyError(error, {
+      type: 'javascript_error',
+      filename: event.filename,
+      lineno: event.lineno,
+      colno: event.colno,
+      url: window.location.href
+    })
+    
+    window.dispatchEvent(new CustomEvent('app-error', {
+      detail: friendlyError
+    }))
+  })
 }
-
-// Export des utilitaires
-export default {
-  handleError,
-  handleAuthError,
-  withErrorHandling,
-  ERROR_TYPES,
-  RECOVERY_STRATEGIES,
-  useErrorHandler
-};
