@@ -1,40 +1,93 @@
-import Link from 'next/link'
-import styles from '../styles/Footer.module.css'
+import Link from 'next/link';
 
-export default function Footer() {
+const Footer = () => {
   return (
-    <footer className={styles.footer}>
-      <div className={styles.footerContainer}>
-        <div className={styles.footerSection}>
-          <h3>COCO - Cuisine & Saveurs</h3>
-          <p>Découvrez des recettes savoureuses, simples et authentiques.</p>
-        </div>
-        
-        <div className={styles.footerSection}>
-          <h3>Navigation</h3>
-          <ul>
-            <li><Link href="/">Accueil</Link></li>
-            <li><Link href="/recipes">Recettes</Link></li>
-            <li><Link href="/categories">Catégories</Link></li>
-            <li><Link href="/submit-recipe">Partager une recette</Link></li>
-            <li><Link href="/about">À propos</Link></li>
-            <li><Link href="/contact">Contact</Link></li>
-          </ul>
-        </div>
-        
-        <div className={styles.footerSection}>
-          <h3>Suivez-nous</h3>
-          <div className={styles.socialLinks}>
-            <a href="#" aria-label="Instagram">Instagram</a>
-            <a href="#" aria-label="Facebook">Facebook</a>
-            <a href="#" aria-label="Pinterest">Pinterest</a>
+    <footer style={{
+      background: 'var(--background-card)',
+      borderTop: '1px solid rgba(255, 107, 53, 0.1)',
+      padding: 'var(--spacing-2xl) 0',
+      marginTop: 'var(--spacing-2xl)'
+    }}>
+      <div className="container">
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+          gap: 'var(--spacing-xl)',
+          marginBottom: 'var(--spacing-xl)'
+        }}>
+          {/* Logo et description */}
+          <div>
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 'var(--spacing-sm)',
+              marginBottom: 'var(--spacing-md)'
+            }}>
+              <div style={{
+                width: '32px',
+                height: '32px',
+                background: 'linear-gradient(135deg, var(--primary-orange) 0%, var(--primary-orange-dark) 100%)',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                fontSize: '1rem'
+              }}>
+                🍴
+              </div>
+              <h3 style={{ 
+                margin: 0, 
+                color: 'var(--primary-orange)',
+                fontFamily: 'Playfair Display, serif'
+              }}>
+                COCO
+              </h3>
+            </div>
+            <p style={{ 
+              color: 'var(--text-medium)', 
+              margin: 0,
+              lineHeight: '1.6'
+            }}>
+              Partagez vos recettes favorites avec notre communauté de passionnés de cuisine.
+            </p>
+          </div>
+
+          {/* Contact simplifié */}
+          <div>
+            <h4 style={{ 
+              color: 'var(--text-dark)', 
+              marginBottom: 'var(--spacing-md)',
+              fontSize: '1.1rem'
+            }}>
+              Contact
+            </h4>
+            <div style={{ color: 'var(--text-medium)' }}>
+              <p style={{ margin: '0 0 var(--spacing-sm) 0' }}>
+                📧 contact@coco-cuisine.fr
+              </p>
+              <p style={{ margin: '0 0 var(--spacing-sm) 0' }}>
+                📱 Suivez-nous sur les réseaux
+              </p>
+            </div>
           </div>
         </div>
-      </div>
-      
-      <div className={styles.footerBottom}>
-        <p>&copy; {new Date().getFullYear()} COCO - Cuisine & Saveurs. Tous droits réservés.</p>
+
+        {/* Copyright */}
+        <div style={{
+          borderTop: '1px solid rgba(255, 107, 53, 0.1)',
+          paddingTop: 'var(--spacing-lg)',
+          textAlign: 'center',
+          color: 'var(--text-light)',
+          fontSize: '0.9rem'
+        }}>
+          <p style={{ margin: 0 }}>
+            © 2023 COCO - Cuisine & Saveurs. Tous droits réservés.
+          </p>
+        </div>
       </div>
     </footer>
-  )
-}
+  );
+};
+
+export default Footer;
