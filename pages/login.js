@@ -51,44 +51,81 @@ export default function Login() {
 
       <div style={{
         minHeight: '100vh',
-        background: 'var(--bg-gradient)',
+        background: 'linear-gradient(135deg, #ff6b6b 0%, #feca57 50%, #ff9ff3 100%)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: 'var(--spacing-md)'
+        padding: '20px',
+        position: 'relative'
       }}>
-        <div className="card" style={{
+        {/* Background Pattern */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+          opacity: 0.3
+        }}></div>
+
+        <div style={{
+          background: 'rgba(255, 255, 255, 0.95)',
+          backdropFilter: 'blur(10px)',
+          borderRadius: '24px',
+          padding: '48px',
           width: '100%',
-          maxWidth: '400px',
-          padding: 'var(--spacing-xl)'
+          maxWidth: '420px',
+          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.2)',
+          position: 'relative',
+          zIndex: 1
         }}>
-          <div style={{ textAlign: 'center', marginBottom: 'var(--spacing-xl)' }}>
-            <div style={{ fontSize: '3rem', marginBottom: 'var(--spacing-md)' }}>🥥</div>
+          {/* Header */}
+          <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+            <div style={{ 
+              fontSize: '4rem', 
+              marginBottom: '16px',
+              filter: 'drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1))'
+            }}>
+              🥥
+            </div>
             <h1 style={{ 
-              fontSize: '1.8rem', 
-              marginBottom: 'var(--spacing-sm)',
-              color: 'var(--primary-orange)'
+              fontSize: '2rem', 
+              fontWeight: '700',
+              background: 'linear-gradient(135deg, #ff6b6b, #feca57)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              marginBottom: '8px',
+              letterSpacing: '-0.5px'
             }}>
               Bon retour !
             </h1>
-            <p style={{ color: 'var(--text-medium)' }}>
-              Connectez-vous à votre compte
+            <p style={{ 
+              color: '#6b7280',
+              fontSize: '1rem',
+              margin: 0
+            }}>
+              Reconnectez-vous pour découvrir de nouvelles saveurs
             </p>
           </div>
 
           {error && (
-            <div style={{ marginBottom: 'var(--spacing-lg)' }}>
+            <div style={{ marginBottom: '32px' }}>
               <ErrorDisplay error={error} resetError={resetError} />
             </div>
           )}
 
-          <form onSubmit={handleSubmit}>
-            <div style={{ marginBottom: 'var(--spacing-lg)' }}>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            {/* Email Field */}
+            <div>
               <label style={{ 
                 display: 'block', 
-                marginBottom: 'var(--spacing-sm)',
-                fontWeight: '500',
-                color: 'var(--text-dark)'
+                marginBottom: '8px',
+                fontWeight: '600',
+                fontSize: '0.9rem',
+                color: '#374151',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px'
               }}>
                 Email
               </label>
@@ -98,23 +135,32 @@ export default function Login() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={loading}
-                className="form-input"
+                placeholder="votre@email.com"
                 style={{
                   width: '100%',
-                  padding: 'var(--spacing-md)',
-                  border: '2px solid var(--border-light)',
-                  borderRadius: 'var(--border-radius-medium)',
-                  fontSize: '1rem'
+                  padding: '16px 20px',
+                  border: '2px solid #e5e7eb',
+                  borderRadius: '16px',
+                  fontSize: '1rem',
+                  transition: 'all 0.3s ease',
+                  backgroundColor: loading ? '#f9fafb' : 'white',
+                  boxSizing: 'border-box'
                 }}
+                onFocus={(e) => e.target.style.borderColor = '#ff6b6b'}
+                onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
               />
             </div>
 
-            <div style={{ marginBottom: 'var(--spacing-lg)' }}>
+            {/* Password Field */}
+            <div>
               <label style={{ 
                 display: 'block', 
-                marginBottom: 'var(--spacing-sm)',
-                fontWeight: '500',
-                color: 'var(--text-dark)'
+                marginBottom: '8px',
+                fontWeight: '600',
+                fontSize: '0.9rem',
+                color: '#374151',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px'
               }}>
                 Mot de passe
               </label>
@@ -124,41 +170,55 @@ export default function Login() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={loading}
-                className="form-input"
+                placeholder="••••••••"
                 style={{
                   width: '100%',
-                  padding: 'var(--spacing-md)',
-                  border: '2px solid var(--border-light)',
-                  borderRadius: 'var(--border-radius-medium)',
-                  fontSize: '1rem'
+                  padding: '16px 20px',
+                  border: '2px solid #e5e7eb',
+                  borderRadius: '16px',
+                  fontSize: '1rem',
+                  transition: 'all 0.3s ease',
+                  backgroundColor: loading ? '#f9fafb' : 'white',
+                  boxSizing: 'border-box'
                 }}
+                onFocus={(e) => e.target.style.borderColor = '#ff6b6b'}
+                onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
               />
             </div>
 
+            {/* Submit Button */}
             <button
               type="submit"
               disabled={loading || !email || !password}
               style={{
                 width: '100%',
-                padding: 'var(--spacing-md)',
-                background: loading ? 'var(--text-light)' : 'linear-gradient(135deg, var(--primary-orange) 0%, var(--primary-orange-dark) 100%)',
+                padding: '18px',
+                background: loading || !email || !password 
+                  ? '#d1d5db' 
+                  : 'linear-gradient(135deg, #ff6b6b 0%, #feca57 100%)',
                 color: 'white',
                 border: 'none',
-                borderRadius: 'var(--border-radius-medium)',
-                fontSize: '1rem',
-                fontWeight: '600',
-                cursor: loading ? 'not-allowed' : 'pointer',
+                borderRadius: '16px',
+                fontSize: '1.1rem',
+                fontWeight: '700',
+                cursor: loading || !email || !password ? 'not-allowed' : 'pointer',
                 transition: 'all 0.3s ease',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 'var(--spacing-sm)'
+                gap: '12px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                transform: loading ? 'scale(0.98)' : 'scale(1)',
+                boxShadow: loading || !email || !password 
+                  ? 'none' 
+                  : '0 8px 20px rgba(255, 107, 107, 0.3)'
               }}
             >
               {loading && (
                 <div style={{
-                  width: '16px',
-                  height: '16px',
+                  width: '20px',
+                  height: '20px',
                   border: '2px solid white',
                   borderTop: '2px solid transparent',
                   borderRadius: '50%',
@@ -169,45 +229,53 @@ export default function Login() {
             </button>
           </form>
 
+          {/* Links */}
           <div style={{ 
             textAlign: 'center', 
-            marginTop: 'var(--spacing-lg)',
-            fontSize: '0.9rem'
+            marginTop: '32px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px'
           }}>
             <Link 
               href="/forgot-password" 
               style={{ 
-                color: 'var(--primary-orange)',
+                color: '#ff6b6b',
                 textDecoration: 'none',
-                display: 'block',
-                marginBottom: 'var(--spacing-md)'
+                fontWeight: '600',
+                fontSize: '0.95rem',
+                transition: 'opacity 0.3s ease'
               }}
+              onMouseEnter={(e) => e.target.style.opacity = '0.7'}
+              onMouseLeave={(e) => e.target.style.opacity = '1'}
             >
               Mot de passe oublié ?
             </Link>
-            <span style={{ color: 'var(--text-medium)' }}>
-              Pas encore de compte ?{' '}
-            </span>
-            <Link 
-              href="/signup" 
-              style={{ 
-                color: 'var(--primary-orange)',
-                textDecoration: 'none',
-                fontWeight: '600'
-              }}
-            >
-              Créer un compte
-            </Link>
+            
+            <div style={{ 
+              padding: '20px 0',
+              borderTop: '1px solid #e5e7eb',
+              fontSize: '0.95rem'
+            }}>
+              <span style={{ color: '#6b7280' }}>
+                Pas encore de compte ?{' '}
+              </span>
+              <Link 
+                href="/signup" 
+                style={{ 
+                  color: '#ff6b6b',
+                  textDecoration: 'none',
+                  fontWeight: '700'
+                }}
+              >
+                Créer un compte
+              </Link>
+            </div>
           </div>
         </div>
       </div>
 
       <style jsx>{`
-        .form-input:focus {
-          border-color: var(--primary-orange);
-          outline: none;
-        }
-        
         @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
