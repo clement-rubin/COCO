@@ -1,10 +1,12 @@
 import { useState, useRef, useCallback } from 'react'
+import { uploadImage, getImageUrl } from '../lib/supabase'
 import styles from '../styles/PhotoUpload.module.css'
 
 export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
   const [photos, setPhotos] = useState([])
   const [dragActive, setDragActive] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState({})
   const fileInputRef = useRef(null)
 
   const compressImage = (file, maxWidth = 800, quality = 0.8) => {
@@ -27,6 +29,30 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
     })
   }
 
+  const uploadToSupabase = async (file, photoId) => {
+    try {
+      const timestamp = Date.now()
+      const randomString = Math.random().toString(36).substring(2, 8)
+      const fileName = `recipe_${timestamp}_${randomString}.jpg`
+      
+      setUploadProgress(prev => ({ ...prev, [photoId]: 0 }))
+      
+      const uploadData = await uploadImage(file, fileName)
+      const publicUrl = getImageUrl(uploadData.path)
+      
+      setUploadProgress(prev => ({ ...prev, [photoId]: 100 }))
+      
+      return {
+        path: uploadData.path,
+        url: publicUrl
+      }
+    } catch (error) {
+      console.error('Erreur upload Supabase:', error)
+      setUploadProgress(prev => ({ ...prev, [photoId]: -1 })) // -1 = erreur
+      throw error
+    }
+  }
+
   const processFiles = useCallback(async (files) => {
     setUploading(true)
     const newPhotos = []
@@ -35,16 +61,40 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
       const file = files[i]
       
       if (file.type.startsWith('image/')) {
+        const photoId = Date.now() + i
         const compressedFile = await compressImage(file)
         const preview = URL.createObjectURL(compressedFile)
         
-        newPhotos.push({
-          id: Date.now() + i,
+        const photoData = {
+          id: photoId,
           file: compressedFile,
           preview,
           name: file.name,
-          size: compressedFile.size
-        })
+          size: compressedFile.size,
+          uploading: true,
+          uploaded: false,
+          error: false
+        }
+        
+        newPhotos.push(photoData)
+        
+        // Upload en arrière-plan
+        try {
+          const uploadResult = await uploadToSupabase(compressedFile, photoId)
+          
+          // Mettre à jour la photo avec les données d'upload
+          photoData.uploading = false
+          photoData.uploaded = true
+          photoData.supabasePath = uploadResult.path
+          photoData.supabaseUrl = uploadResult.url
+          photoData.error = false
+          
+        } catch (error) {
+          photoData.uploading = false
+          photoData.uploaded = false
+          photoData.error = true
+          photoData.errorMessage = 'Erreur d\'upload'
+        }
       }
     }
 
@@ -81,6 +131,14 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
   }
 
   const removePhoto = (id) => {
+    const photoToRemove = photos.find(photo => photo.id === id)
+    
+    // Si la photo a été uploadée, la supprimer de Supabase
+    if (photoToRemove?.supabasePath) {
+      // Note: On pourrait implémenter la suppression ici si nécessaire
+      console.log('Photo supprimée:', photoToRemove.supabasePath)
+    }
+    
     const updatedPhotos = photos.filter(photo => photo.id !== id)
     setPhotos(updatedPhotos)
     onPhotoSelect && onPhotoSelect(updatedPhotos)
@@ -117,7 +175,7 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
         {uploading ? (
           <div className={styles.uploading}>
             <div className={styles.spinner}></div>
-            <p>Optimisation des images...</p>
+            <p>Upload et optimisation en cours...</p>
           </div>
         ) : photos.length === 0 ? (
           <div className={styles.emptyState}>
@@ -127,7 +185,7 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
             <div className={styles.uploadTips}>
               <span>✓ Format JPEG/PNG</span>
               <span>✓ Max {maxFiles} photos</span>
-              <span>✓ Compression automatique</span>
+              <span>✓ Upload automatique</span>
             </div>
           </div>
         ) : (
@@ -156,9 +214,17 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
               </div>
               <div className={styles.photoInfo}>
                 <span className={styles.fileName}>{photo.name}</span>
-                <span className={styles.fileSize}>
-                  {(photo.size / 1024).toFixed(1)} KB
-                </span>
+                <div className={styles.uploadStatus}>
+                  {photo.uploading && (
+                    <span className={styles.uploading}>⏳ Upload...</span>
+                  )}
+                  {photo.uploaded && (
+                    <span className={styles.uploaded}>✅ Uploadé</span>
+                  )}
+                  {photo.error && (
+                    <span className={styles.error}>❌ Erreur</span>
+                  )}
+                </div>
               </div>
             </div>
           ))}
@@ -169,6 +235,7 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
         <div className={styles.photoTips}>
           <p>💡 La première photo sera utilisée comme image principale</p>
           <p>🔄 Glissez-déposez pour réorganiser</p>
+          <p>☁️ Les images sont automatiquement sauvegardées</p>
         </div>
       )}
     </div>

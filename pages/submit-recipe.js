@@ -99,14 +99,21 @@ export default function SubmitRecipe() {
       logWarning('Validation échouée: aucune photo')
     }
     
+    // Vérifier que toutes les photos sont uploadées
+    const pendingUploads = photos.filter(photo => photo.uploading || photo.error)
+    if (pendingUploads.length > 0) {
+      newErrors.photos = 'Attendez que toutes les photos soient uploadées'
+      logWarning('Validation échouée: uploads en cours', { pendingCount: pendingUploads.length })
+    }
+    
     const isValid = Object.keys(newErrors).length === 0
     
     logInfo('Résultat de la validation', {
       isValid,
       errorsCount: Object.keys(newErrors).length,
       errors: Object.keys(newErrors),
-      formDataKeys: Object.keys(formData).filter(key => formData[key].trim()),
-      photosCount: photos.length
+      photosCount: photos.length,
+      uploadedPhotosCount: photos.filter(p => p.uploaded).length
     })
     
     setErrors(newErrors)
@@ -133,6 +140,11 @@ export default function SubmitRecipe() {
       const ingredientsArray = parseIngredients(formData.ingredients)
       const instructionsArray = parseInstructions(formData.instructions)
       
+      // Préparer les URLs des images
+      const imageUrls = photos
+        .filter(photo => photo.uploaded && photo.supabaseUrl)
+        .map(photo => photo.supabaseUrl)
+      
       // Préparer les données selon le schéma de la base
       const recipeData = {
         title: formData.title.trim(),
@@ -143,7 +155,8 @@ export default function SubmitRecipe() {
         cookTime: formData.cookTime.trim() || null,
         category: formData.category || null,
         author: formData.author.trim() || 'Anonyme',
-        image: photos.length > 0 ? photos[0].preview : 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3'
+        image: imageUrls[0] || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3',
+        photos: imageUrls
       }
       
       logDebug('Données de recette préparées', {
@@ -152,6 +165,7 @@ export default function SubmitRecipe() {
         ingredientsCount: recipeData.ingredients.length,
         instructionsCount: recipeData.instructions.length,
         photosCount: photos.length,
+        imageUrlsCount: imageUrls.length,
         category: recipeData.category
       })
       
@@ -219,9 +233,13 @@ export default function SubmitRecipe() {
             <h2>📷 Photos de votre plat</h2>
             <PhotoUpload 
               onPhotoSelect={setPhotos}
-              maxFiles={1}
+              maxFiles={3}
             />
             {errors.photos && <span className={styles.error}>{errors.photos}</span>}
+            <small className={styles.helpText}>
+              Les images sont automatiquement optimisées et sauvegardées. 
+              Attendez que l'upload soit terminé avant de soumettre.
+            </small>
           </div>
 
           {/* Informations de base */}

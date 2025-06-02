@@ -82,6 +82,26 @@ NEXT_PUBLIC_SUPABASE_URL=votre_url_supabase
 NEXT_PUBLIC_SUPABASE_ANON_KEY=votre_cle_api_supabase
 ```
 
+4. **Configuration Storage pour les images :**
+   - Allez dans Storage > Buckets
+   - Créez un bucket nommé `recipe-images`
+   - Cochez "Public bucket"
+   - Configurez les restrictions :
+     - Types de fichiers : `image/jpeg`, `image/png`, `image/webp`
+     - Taille max : 5MB
+
+5. **Création de la table recipes :**
+   - Utilisez la page `/test-recipes` pour obtenir le SQL de création
+   - Ou exécutez le SQL fourni dans le dashboard Supabase
+
+## 📸 Gestion des Images
+
+- **Upload automatique** vers Supabase Storage
+- **Compression intelligente** (max 800px, qualité 80%)
+- **URLs publiques** générées automatiquement
+- **Support multi-images** (jusqu'à 3 photos par recette)
+- **Validation** avant soumission du formulaire
+
 ## 🌐 Déploiement
 
 ### Vercel (Recommandé)

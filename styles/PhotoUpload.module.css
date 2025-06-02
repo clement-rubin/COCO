@@ -268,6 +268,38 @@
   margin-bottom: 0;
 }
 
+.uploadStatus {
+  font-size: 0.7rem;
+  margin-top: var(--spacing-xs);
+}
+
+.uploadStatus .uploading {
+  color: var(--primary-orange);
+  font-weight: 500;
+}
+
+.uploadStatus .uploaded {
+  color: var(--secondary-green);
+  font-weight: 500;
+}
+
+.uploadStatus .error {
+  color: #ff4444;
+  font-weight: 500;
+}
+
+.photoItem.uploading {
+  opacity: 0.7;
+}
+
+.photoItem.error {
+  border: 2px solid #ff4444;
+}
+
+.photoItem.uploaded {
+  border: 2px solid var(--secondary-green);
+}
+
 @media (max-width: 768px) {
   .dropZone {
     padding: var(--spacing-lg);

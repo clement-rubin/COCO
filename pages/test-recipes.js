@@ -3,7 +3,7 @@ import Head from 'next/head'
 import { useRouter } from 'next/router'
 import { supabase } from '../lib/supabase'
 import { logInfo, logError, logWarning, logDebug } from '../utils/logger'
-import { createRecipesTableIfNotExists, initializeRecipesTable } from '../lib/supabase'
+import { createRecipesTableIfNotExists, initializeRecipesTable, createImageStorageBucket } from '../lib/supabase'
 
 export default function TestRecipes() {
   const router = useRouter()
@@ -242,9 +242,32 @@ export default function TestRecipes() {
     }
   }
 
+  const testImageStorage = async () => {
+    setIsLoading(true)
+    logInfo('🖼️ Test de création du bucket images...')
+    
+    try {
+      const success = await createImageStorageBucket()
+      
+      if (success) {
+        logInfo('✅ Bucket images créé/vérifié avec succès')
+        setTestResults(prev => ({ ...prev, imageStorage: 'OK' }))
+      } else {
+        logWarning('⚠️ Problème lors de la création du bucket')
+        setTestResults(prev => ({ ...prev, imageStorage: 'ATTENTION' }))
+      }
+    } catch (error) {
+      logError('❌ Erreur lors de la création du bucket', error)
+      setTestResults(prev => ({ ...prev, imageStorage: 'ERREUR' }))
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const runAllTests = async () => {
     logInfo('🚀 Début des tests automatiques...')
     await testTableCreation()
+    await testImageStorage()
     await testSupabaseConnection()
     await loadRecipes()
     await createTestRecipe()
