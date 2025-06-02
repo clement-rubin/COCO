@@ -4,56 +4,84 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Test API Recettes</title>
+  <script src="https://www.google.com/recaptcha/api.js" async defer></script>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 20px;
+    body { 
+      font-family: Arial, sans-serif; 
+      max-width: 800px; 
+      margin: 0 auto; 
+      padding: 20px; 
+      background: #f5f5f5;
     }
-    h1 {
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 { 
+      color: #333; 
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .form-group { 
+      margin-bottom: 20px; 
+    }
+    label { 
+      display: block; 
+      margin-bottom: 8px; 
+      font-weight: bold; 
       color: #333;
     }
-    .form-group {
-      margin-bottom: 15px;
+    input, textarea, select { 
+      width: 100%; 
+      padding: 12px; 
+      border: 2px solid #ddd; 
+      border-radius: 6px; 
+      font-size: 14px;
+      box-sizing: border-box;
+      transition: border-color 0.3s ease;
     }
-    label {
-      display: block;
-      margin-bottom: 5px;
-      font-weight: bold;
-    }
-    input, textarea, select {
-      width: 100%;
-      padding: 8px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: #ff6b35;
+      box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
     }
     button {
-      background-color: #4CAF50;
+      background-color: #ff6b35;
       color: white;
-      padding: 10px 15px;
+      padding: 12px 20px;
       border: none;
-      border-radius: 4px;
+      border-radius: 6px;
       cursor: pointer;
+      font-size: 16px;
+      font-weight: bold;
+      transition: background-color 0.3s ease;
     }
     button:hover {
-      background-color: #45a049;
+      background-color: #e55a2b;
+    }
+    button:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
     }
     .result {
       margin-top: 20px;
       padding: 15px;
       border: 1px solid #ddd;
-      border-radius: 4px;
+      border-radius: 6px;
       background-color: #f9f9f9;
       white-space: pre-wrap;
     }
     .success {
       border-color: #4CAF50;
       background-color: #e7f7e7;
+      color: #2e7d32;
     }
     .error {
       border-color: #f44336;
       background-color: #ffebee;
+      color: #c62828;
     }
     .recipes-list {
       margin-top: 30px;
@@ -62,81 +90,169 @@
       padding: 15px;
       margin-bottom: 10px;
       border: 1px solid #ddd;
-      border-radius: 4px;
+      border-radius: 6px;
       background-color: #fff;
+    }
+    /* Captcha styles */
+    .captcha-section {
+      margin: 30px 0;
+      padding: 20px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      border: 2px solid rgba(255, 107, 53, 0.1);
+      text-align: center;
+    }
+    .captcha-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 15px;
+    }
+    .captcha-error {
+      background: #fff5f5;
+      border: 2px solid #ff4757;
+      color: #ff4757;
+      padding: 12px;
+      border-radius: 6px;
+      margin-top: 10px;
+      font-weight: bold;
+      display: none;
+    }
+    .captcha-success {
+      background: #f0f9ff;
+      border: 2px solid #10b981;
+      color: #065f46;
+      padding: 12px;
+      border-radius: 6px;
+      margin-top: 10px;
+      font-weight: bold;
+      display: none;
+    }
+    .required::after {
+      content: ' *';
+      color: #ff4757;
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
-  <h1>Test API Recettes</h1>
-  
-  <h2>Ajouter une nouvelle recette</h2>
-  <form id="recipeForm">
-    <div class="form-group">
-      <label for="title">Titre*</label>
-      <input type="text" id="title" required placeholder="Titre de la recette">
-    </div>
+  <div class="container">
+    <h1>Test API Recettes</h1>
     
-    <div class="form-group">
-      <label for="description">Description*</label>
-      <textarea id="description" required placeholder="Description de la recette"></textarea>
-    </div>
+    <h2>Ajouter une nouvelle recette</h2>
+    <form id="recipeForm">
+      <div class="form-group">
+        <label for="title" class="required">Titre</label>
+        <input type="text" id="title" required placeholder="Titre de la recette">
+      </div>
+      
+      <div class="form-group">
+        <label for="description" class="required">Description</label>
+        <textarea id="description" required placeholder="Description de la recette" rows="3"></textarea>
+      </div>
+      
+      <div class="form-group">
+        <label for="image">URL de l'image</label>
+        <input type="url" id="image" placeholder="https://example.com/image.jpg">
+      </div>
+      
+      <div class="form-group">
+        <label for="ingredients">Ingrédients (un par ligne)</label>
+        <textarea id="ingredients" placeholder="200g de farine&#10;2 œufs&#10;500ml de lait" rows="4"></textarea>
+      </div>
+      
+      <div class="form-group">
+        <label for="instructions">Instructions (une par ligne)</label>
+        <textarea id="instructions" placeholder="Mélanger la farine et les œufs&#10;Ajouter le lait progressivement&#10;Cuire à la poêle" rows="4"></textarea>
+      </div>
+      
+      <div class="form-group">
+        <label for="prepTime">Temps de préparation</label>
+        <input type="text" id="prepTime" placeholder="10 min">
+      </div>
+      
+      <div class="form-group">
+        <label for="cookTime">Temps de cuisson</label>
+        <input type="text" id="cookTime" placeholder="20 min">
+      </div>
+      
+      <div class="form-group">
+        <label for="category">Catégorie</label>
+        <select id="category">
+          <option value="Entrée">Entrée</option>
+          <option value="Plat principal">Plat principal</option>
+          <option value="Dessert">Dessert</option>
+          <option value="Boisson">Boisson</option>
+          <option value="Autre">Autre</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label for="author">Auteur</label>
+        <input type="text" id="author" placeholder="Votre nom">
+      </div>
+      
+      <!-- Section Captcha -->
+      <div class="captcha-section">
+        <div class="captcha-wrapper">
+          <label class="required">Vérification de sécurité</label>
+          <div class="g-recaptcha" 
+               data-sitekey="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"
+               data-callback="onCaptchaSuccess"
+               data-expired-callback="onCaptchaExpired"
+               data-error-callback="onCaptchaError">
+          </div>
+          <div id="captchaError" class="captcha-error"></div>
+          <div id="captchaSuccess" class="captcha-success">
+            ✅ Vérification de sécurité réussie
+          </div>
+          <small style="color: #666; font-style: italic;">
+            Cette vérification nous aide à prévenir le spam
+          </small>
+        </div>
+      </div>
+      
+      <button type="submit">Ajouter la recette</button>
+    </form>
     
-    <div class="form-group">
-      <label for="image">URL de l'image</label>
-      <input type="url" id="image" placeholder="https://example.com/image.jpg">
-    </div>
+    <div id="result" class="result" style="display: none;"></div>
     
-    <div class="form-group">
-      <label for="ingredients">Ingrédients (un par ligne)</label>
-      <textarea id="ingredients" placeholder="200g de farine&#10;2 œufs&#10;500ml de lait"></textarea>
-    </div>
-    
-    <div class="form-group">
-      <label for="instructions">Instructions (une par ligne)</label>
-      <textarea id="instructions" placeholder="Mélanger la farine et les œufs&#10;Ajouter le lait progressivement&#10;Cuire à la poêle"></textarea>
-    </div>
-    
-    <div class="form-group">
-      <label for="prepTime">Temps de préparation</label>
-      <input type="text" id="prepTime" placeholder="10 min">
-    </div>
-    
-    <div class="form-group">
-      <label for="cookTime">Temps de cuisson</label>
-      <input type="text" id="cookTime" placeholder="20 min">
-    </div>
-    
-    <div class="form-group">
-      <label for="category">Catégorie</label>
-      <select id="category">
-        <option value="Entrée">Entrée</option>
-        <option value="Plat principal">Plat principal</option>
-        <option value="Dessert">Dessert</option>
-        <option value="Boisson">Boisson</option>
-        <option value="Autre">Autre</option>
-      </select>
-    </div>
-    
-    <div class="form-group">
-      <label for="author">Auteur</label>
-      <input type="text" id="author" placeholder="Votre nom">
-    </div>
-    
-    <button type="submit">Ajouter la recette</button>
-  </form>
-  
-  <div id="result" class="result" style="display: none;"></div>
-  
-  <h2>Recettes existantes</h2>
-  <button id="loadRecipes">Charger les recettes</button>
-  <div id="recipesList" class="recipes-list"></div>
+    <h2>Recettes existantes</h2>
+    <button id="loadRecipes">Charger les recettes</button>
+    <div id="recipesList" class="recipes-list"></div>
+  </div>
   
   <script>
     // URL de l'API (automatiquement adaptée selon l'environnement)
     const apiUrl = window.location.hostname === 'localhost' 
       ? 'http://localhost:3000/api/recipes' 
       : '/api/recipes';
+      
+    let captchaToken = null;
+    
+    // Callbacks pour reCAPTCHA
+    function onCaptchaSuccess(token) {
+      captchaToken = token;
+      document.getElementById('captchaError').style.display = 'none';
+      document.getElementById('captchaSuccess').style.display = 'block';
+      console.log('Captcha vérifié avec succès');
+    }
+    
+    function onCaptchaExpired() {
+      captchaToken = null;
+      document.getElementById('captchaSuccess').style.display = 'none';
+      document.getElementById('captchaError').textContent = 'Le captcha a expiré, veuillez le refaire.';
+      document.getElementById('captchaError').style.display = 'block';
+      console.log('Captcha expiré');
+    }
+    
+    function onCaptchaError() {
+      captchaToken = null;
+      document.getElementById('captchaSuccess').style.display = 'none';
+      document.getElementById('captchaError').textContent = 'Erreur lors de la vérification du captcha.';
+      document.getElementById('captchaError').style.display = 'block';
+      console.error('Erreur captcha');
+    }
     
     document.getElementById('recipeForm').addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -158,7 +274,8 @@
         prepTime: document.getElementById('prepTime').value.trim() || undefined,
         cookTime: document.getElementById('cookTime').value.trim() || undefined,
         category: document.getElementById('category').value,
-        author: document.getElementById('author').value.trim() || undefined
+        author: document.getElementById('author').value.trim() || undefined,
+        captchaToken: captchaToken
       };
       
       // Validation côté client
@@ -174,12 +291,19 @@
         return;
       }
       
+      if (!captchaToken) {
+        result.className = 'result error';
+        result.textContent = '❌ Veuillez compléter la vérification de sécurité';
+        document.getElementById('captchaError').textContent = 'Veuillez compléter la vérification de sécurité.';
+        document.getElementById('captchaError').style.display = 'block';
+        return;
+      }
+      
       try {
-        // Option de débogage avec timeout plus long
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 secondes timeout
+        const timeoutId = setTimeout(() => controller.abort(), 20000);
         
-        console.log('Envoi de la recette:', recipe);
+        console.log('Envoi de la recette avec captcha:', recipe);
         
         const response = await fetch(apiUrl, {
           method: 'POST',
@@ -198,19 +322,39 @@
           result.className = 'result success';
           result.textContent = `✅ Recette ajoutée avec succès!\n\nID: ${data.id}\n\nRéponse API:\n${JSON.stringify(data, null, 2)}`;
           document.getElementById('recipeForm').reset();
-          loadRecipes(); // Recharger la liste
+          
+          // Reset captcha après succès
+          grecaptcha.reset();
+          captchaToken = null;
+          document.getElementById('captchaSuccess').style.display = 'none';
+          
+          loadRecipes();
         } else {
           result.className = 'result error';
           result.textContent = `❌ Erreur: ${data.message}\n\nRéponse API:\n${JSON.stringify(data, null, 2)}`;
+          
+          // Reset captcha si erreur liée au captcha
+          if (data.message && data.message.includes('captcha')) {
+            grecaptcha.reset();
+            captchaToken = null;
+            document.getElementById('captchaSuccess').style.display = 'none';
+            document.getElementById('captchaError').textContent = 'Vérification de sécurité échouée. Veuillez réessayer.';
+            document.getElementById('captchaError').style.display = 'block';
+          }
         }
       } catch (error) {
         result.className = 'result error';
         if (error.name === 'AbortError') {
-          result.textContent = `❌ La requête a expiré après 20 secondes. Le serveur ne répond pas ou est trop lent.`;
+          result.textContent = `❌ La requête a expiré après 20 secondes.`;
         } else {
           result.textContent = `❌ Erreur: ${error.message}`;
-          console.error('Erreur détaillée:', error);
         }
+        console.error('Erreur détaillée:', error);
+        
+        // Reset captcha en cas d'erreur réseau
+        grecaptcha.reset();
+        captchaToken = null;
+        document.getElementById('captchaSuccess').style.display = 'none';
       }
     });
     

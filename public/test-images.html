@@ -199,8 +199,17 @@
       <div id="result" class="status" style="display: none;"></div>
       
       <div class="log-container" id="logs"></div>
+      
+      <!-- reCAPTCHA -->
+      <div class="form-group">
+        <div class="g-recaptcha" data-sitekey="6LeUcBMlAAAAABiKX9Z8Z8Z8Z8Z8Z8Z8Z8Z8Z8" data-callback="onCaptchaSuccess" data-expired-callback="onCaptchaExpired" data-error-callback="onCaptchaError"></div>
+        <div id="captchaSuccess" class="status success" style="display: none;">✓ Captcha vérifié avec succès!</div>
+        <div id="captchaError" class="status error" style="display: none;"></div>
+      </div>
     </div>
   </div>
+  
+  <script src="https://www.google.com/recaptcha/api.js" async defer></script>
   
   <script>
     // URL de l'API (automatiquement adaptée selon l'environnement)
@@ -276,6 +285,33 @@
       testImageUrl(imageUrl);
     });
     
+    // Variables pour reCAPTCHA
+    let captchaToken = null;
+    
+    // Callback function for reCAPTCHA
+    function onCaptchaSuccess(token) {
+      captchaToken = token;
+      addLog('Captcha vérifié avec succès', 'success');
+      document.getElementById('captchaError').style.display = 'none';
+      document.getElementById('captchaSuccess').style.display = 'block';
+    }
+    
+    function onCaptchaExpired() {
+      captchaToken = null;
+      addLog('Captcha expiré', 'warning');
+      document.getElementById('captchaSuccess').style.display = 'none';
+      document.getElementById('captchaError').textContent = 'Le captcha a expiré, veuillez le refaire.';
+      document.getElementById('captchaError').style.display = 'block';
+    }
+    
+    function onCaptchaError() {
+      captchaToken = null;
+      addLog('Erreur captcha', 'error');
+      document.getElementById('captchaSuccess').style.display = 'none';
+      document.getElementById('captchaError').textContent = 'Erreur lors de la vérification du captcha.';
+      document.getElementById('captchaError').style.display = 'block';
+    }
+
     // Écouteur pour le formulaire d'ajout de recette
     document.getElementById('recipeForm').addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -293,6 +329,7 @@
       
       addLog(`Tentative d'ajout de recette: ${title}`);
       
+      // Validation des champs obligatoires
       if (!title || !description) {
         resultElement.className = 'status error';
         resultElement.textContent = 'Le titre et la description sont obligatoires';
@@ -300,8 +337,18 @@
         return;
       }
       
+      // Validation du captcha
+      if (!captchaToken) {
+        resultElement.className = 'status error';
+        resultElement.textContent = 'Veuillez compléter la vérification de sécurité (captcha)';
+        addLog('Validation échouée: captcha manquant', 'error');
+        document.getElementById('captchaError').textContent = 'Veuillez compléter la vérification de sécurité.';
+        document.getElementById('captchaError').style.display = 'block';
+        return;
+      }
+      
       try {
-        addLog(`Envoi de la requête API pour ajouter la recette...`);
+        addLog(`Envoi de la requête API avec captcha...`);
         
         const response = await fetch(apiUrl, {
           method: 'POST',
@@ -318,7 +365,8 @@
             })),
             image: imageUrl,
             category,
-            author
+            author,
+            captchaToken: captchaToken
           })
         });
         
@@ -328,6 +376,11 @@
           resultElement.className = 'status success';
           resultElement.innerHTML = `✓ Recette ajoutée avec succès!<br>ID: ${data.id}`;
           addLog(`Recette ajoutée avec succès, ID: ${data.id}`, 'success');
+          
+          // Reset captcha après succès
+          grecaptcha.reset();
+          captchaToken = null;
+          document.getElementById('captchaSuccess').style.display = 'none';
           
           // Détails sur l'image
           if (data._dbResult && data._dbResult.imageStatus) {
@@ -339,14 +392,28 @@
           resultElement.textContent = `✗ Erreur: ${data.message || 'Erreur inconnue'}`;
           addLog(`Erreur API: ${data.message || 'Erreur inconnue'}`, 'error');
           
+          // Reset captcha en cas d'erreur
+          if (data.message && data.message.includes('captcha')) {
+            grecaptcha.reset();
+            captchaToken = null;
+            document.getElementById('captchaSuccess').style.display = 'none';
+            document.getElementById('captchaError').textContent = 'Vérification de sécurité échouée. Veuillez réessayer.';
+            document.getElementById('captchaError').style.display = 'block';
+          }
+          
           if (data.details) {
-            addLog(`Détails: ${data.details}`, 'error');
+            addLog(`Détails de l'erreur: ${JSON.stringify(data.details)}`, 'error');
           }
         }
       } catch (error) {
         resultElement.className = 'status error';
         resultElement.textContent = `✗ Erreur réseau: ${error.message}`;
         addLog(`Erreur réseau: ${error.message}`, 'error');
+        
+        // Reset captcha en cas d'erreur réseau
+        grecaptcha.reset();
+        captchaToken = null;
+        document.getElementById('captchaSuccess').style.display = 'none';
       }
     });
     

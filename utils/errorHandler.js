@@ -2,452 +2,276 @@
  * Gestionnaire d'erreurs centralisé avec récupération automatique et reporting
  */
 
-import { useState, useCallback } from 'react';
-import { logError, logWarning, logInfo } from './logger';
+import { useState, useCallback } from 'react'
+import { logError, logWarning, logInfo } from './logger'
 
-// Types d'erreurs courantes
+// Types d'erreurs
 export const ERROR_TYPES = {
-  NETWORK: 'NETWORK_ERROR',
-  VALIDATION: 'VALIDATION_ERROR',
-  AUTHENTICATION: 'AUTH_ERROR',
-  AUTHORIZATION: 'AUTHZ_ERROR',
-  NOT_FOUND: 'NOT_FOUND_ERROR',
-  SERVER: 'SERVER_ERROR',
-  CLIENT: 'CLIENT_ERROR',
-  TIMEOUT: 'TIMEOUT_ERROR',
-  UNKNOWN: 'UNKNOWN_ERROR'
-};
-
-// Messages d'erreur utilisateur conviviaux
-const USER_FRIENDLY_MESSAGES = {
-  [ERROR_TYPES.NETWORK]: "Problème de connexion. Vérifiez votre connexion internet.",
-  [ERROR_TYPES.VALIDATION]: "Certaines informations saisies ne sont pas valides.",
-  [ERROR_TYPES.AUTHENTICATION]: "Vous devez vous connecter pour accéder à cette fonctionnalité.",
-  [ERROR_TYPES.AUTHORIZATION]: "Vous n'avez pas les permissions nécessaires.",
-  [ERROR_TYPES.NOT_FOUND]: "La ressource demandée n'a pas été trouvée.",
-  [ERROR_TYPES.SERVER]: "Erreur du serveur. Nos équipes ont été notifiées.",
-  [ERROR_TYPES.CLIENT]: "Une erreur s'est produite dans l'application.",
-  [ERROR_TYPES.TIMEOUT]: "L'opération a pris trop de temps. Veuillez réessayer.",
-  [ERROR_TYPES.UNKNOWN]: "Une erreur inattendue s'est produite."
-};
+  VALIDATION: 'validation_error',
+  AUTH: 'auth_error',
+  NETWORK: 'network_error',
+  CAPTCHA: 'captcha_error',
+  SERVER: 'server_error',
+  UPLOAD: 'upload_error',
+  UNKNOWN: 'unknown_error'
+}
 
 // Stratégies de récupération
-const RECOVERY_STRATEGIES = {
-  [ERROR_TYPES.NETWORK]: 'retry',
-  [ERROR_TYPES.VALIDATION]: 'user_action',
-  [ERROR_TYPES.AUTHENTICATION]: 'redirect_login',
-  [ERROR_TYPES.AUTHORIZATION]: 'redirect_home',
-  [ERROR_TYPES.NOT_FOUND]: 'redirect_home',
-  [ERROR_TYPES.SERVER]: 'retry',
-  [ERROR_TYPES.CLIENT]: 'reload',
-  [ERROR_TYPES.TIMEOUT]: 'retry',
-  [ERROR_TYPES.UNKNOWN]: 'user_action'
-};
+export const RECOVERY_STRATEGIES = {
+  RETRY: 'retry',
+  REFRESH: 'refresh',
+  REDIRECT: 'redirect',
+  MANUAL: 'manual',
+  CAPTCHA: 'captcha'
+}
 
-// Classe d'erreur enrichie
-export class EnhancedError extends Error {
-  constructor(message, type = ERROR_TYPES.UNKNOWN, originalError = null, context = null) {
-    super(message);
-    this.name = 'EnhancedError';
-    this.type = type;
-    this.originalError = originalError;
-    this.context = context;
-    this.timestamp = new Date().toISOString();
-    this.id = `err_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
-    this.userMessage = USER_FRIENDLY_MESSAGES[type] || message;
-    this.recoveryStrategy = RECOVERY_STRATEGIES[type] || 'user_action';
+// Hook pour gérer les erreurs dans les composants
+export const useErrorHandler = () => {
+  const [lastError, setLastError] = useState(null)
+  const [lastAction, setLastAction] = useState(null)
+
+  const handleError = useCallback((error, context = {}) => {
+    const errorResult = processError(error, context)
+    setLastError(errorResult)
+    setLastAction(context.action || null)
+    return errorResult
+  }, [])
+
+  const clearError = useCallback(() => {
+    setLastError(null)
+    setLastAction(null)
+  }, [])
+
+  const retryLastAction = useCallback((actionCallback) => {
+    if (lastAction && actionCallback) {
+      clearError()
+      actionCallback()
+    }
+  }, [lastAction, clearError])
+
+  return {
+    lastError,
+    handleError,
+    clearError,
+    retryLastAction
   }
 }
 
-// Fonction pour détecter le type d'erreur
-export const detectErrorType = (error) => {
-  if (!error) return ERROR_TYPES.UNKNOWN;
-  
-  const message = error.message?.toLowerCase() || '';
-  const status = error.status || error.response?.status;
-  
+// Traitement principal des erreurs
+export const processError = (error, context = {}) => {
+  const errorInfo = {
+    timestamp: new Date().toISOString(),
+    context,
+    originalError: error
+  }
+
+  // Déterminer le type d'erreur
+  const errorType = determineErrorType(error)
+  const userMessage = getUserMessage(error, errorType)
+  const recoveryStrategy = getRecoveryStrategy(error, errorType)
+
+  const processedError = {
+    type: errorType,
+    message: error.message || 'Une erreur inconnue est survenue',
+    userMessage,
+    recoveryStrategy,
+    details: extractErrorDetails(error),
+    stack: error.stack,
+    context: errorInfo.context,
+    timestamp: errorInfo.timestamp
+  }
+
+  // Logger l'erreur
+  logError('Erreur traitée par errorHandler', error, {
+    processedError,
+    context
+  })
+
+  return {
+    error: processedError,
+    shouldShowToUser: true,
+    shouldLog: true
+  }
+}
+
+// Déterminer le type d'erreur
+const determineErrorType = (error) => {
+  if (!error) return ERROR_TYPES.UNKNOWN
+
+  const message = error.message?.toLowerCase() || ''
+  const code = error.code?.toLowerCase() || ''
+
+  // Erreurs de captcha
+  if (message.includes('captcha') || code.includes('captcha')) {
+    return ERROR_TYPES.CAPTCHA
+  }
+
+  // Erreurs d'authentification
+  if (code.includes('auth') || message.includes('invalid_credentials') || 
+      message.includes('email not confirmed') || message.includes('weak_password')) {
+    return ERROR_TYPES.AUTH
+  }
+
+  // Erreurs de validation
+  if (message.includes('validation') || message.includes('required') || 
+      message.includes('invalid format') || code.includes('invalid_input')) {
+    return ERROR_TYPES.VALIDATION
+  }
+
   // Erreurs réseau
   if (message.includes('network') || message.includes('fetch') || 
-      message.includes('connection') || error.code === 'NETWORK_ERROR') {
-    return ERROR_TYPES.NETWORK;
+      code.includes('network_error') || error.name === 'NetworkError') {
+    return ERROR_TYPES.NETWORK
   }
-  
-  // Erreurs de timeout
-  if (message.includes('timeout') || error.code === 'TIMEOUT') {
-    return ERROR_TYPES.TIMEOUT;
-  }
-  
-  // Erreurs HTTP par status code
-  if (status) {
-    if (status === 401) return ERROR_TYPES.AUTHENTICATION;
-    if (status === 403) return ERROR_TYPES.AUTHORIZATION;
-    if (status === 404) return ERROR_TYPES.NOT_FOUND;
-    if (status >= 400 && status < 500) return ERROR_TYPES.CLIENT;
-    if (status >= 500) return ERROR_TYPES.SERVER;
-  }
-  
-  // Erreurs de validation
-  if (message.includes('validation') || message.includes('invalid') || 
-      message.includes('required') || error.name === 'ValidationError') {
-    return ERROR_TYPES.VALIDATION;
-  }
-  
-  return ERROR_TYPES.UNKNOWN;
-};
 
-// Gestionnaire principal d'erreurs
-export const handleError = (error, context = null, options = {}) => {
-  const {
-    silent = false,
-    showToUser = true,
-    allowRetry = true,
-    maxRetries = 3
-  } = options;
-  
-  // Créer une erreur enrichie si nécessaire
-  let enhancedError;
-  if (error instanceof EnhancedError) {
-    enhancedError = error;
-  } else {
-    const errorType = detectErrorType(error);
-    enhancedError = new EnhancedError(
-      error.message || 'Erreur inconnue',
-      errorType,
-      error,
-      context
-    );
+  // Erreurs d'upload
+  if (message.includes('upload') || message.includes('file') || 
+      message.includes('image') || code.includes('storage')) {
+    return ERROR_TYPES.UPLOAD
   }
-  
-  // Logger l'erreur
-  if (!silent) {
-    logError(`[${enhancedError.type}] ${enhancedError.message}`, enhancedError.originalError, {
-      errorId: enhancedError.id,
-      type: enhancedError.type,
-      userMessage: enhancedError.userMessage,
-      context: enhancedError.context,
-      recoveryStrategy: enhancedError.recoveryStrategy
-    });
-  }
-  
-  // Déterminer l'action de récupération
-  const recovery = createRecoveryAction(enhancedError, { allowRetry, maxRetries });
-  
-  return {
-    error: enhancedError,
-    recovery,
-    shouldShowToUser: showToUser,
-    userMessage: enhancedError.userMessage
-  };
-};
 
-// Créer une action de récupération
-const createRecoveryAction = (error, options = {}) => {
-  const { allowRetry = true } = options
-  const baseRecovery = {
-    actions: []
+  // Erreurs serveur
+  if (error.status >= 500 || code.includes('server_error')) {
+    return ERROR_TYPES.SERVER
   }
-  
-  switch (error.recoveryStrategy) {
-    case 'retry':
-      if (allowRetry) {
-        baseRecovery.actions.push({
-          label: 'Réessayer',
-          action: 'retry',
-          primary: true
-        });
+
+  return ERROR_TYPES.UNKNOWN
+}
+
+// Messages utilisateur personnalisés
+const getUserMessage = (error, errorType) => {
+  switch (errorType) {
+    case ERROR_TYPES.CAPTCHA:
+      return 'Vérification de sécurité échouée. Veuillez compléter le captcha.'
+    
+    case ERROR_TYPES.AUTH:
+      if (error.message?.includes('invalid_credentials')) {
+        return 'Email ou mot de passe incorrect.'
       }
-      baseRecovery.actions.push({
-        label: 'Fermer',
-        action: 'dismiss',
-        primary: false
-      });
-      break;
-      
-    case 'redirect_login':
-      baseRecovery.actions.push({
-        label: 'Se connecter',
-        action: 'redirect',
-        url: '/login',
-        primary: true
-      });
-      baseRecovery.actions.push({
-        label: 'Retour',
-        action: 'dismiss',
-        primary: false
-      });
-      break;
-      
-    case 'redirect_home':
-      baseRecovery.actions.push({
-        label: 'Retour à l\'accueil',
-        action: 'redirect',
-        url: '/',
-        primary: true
-      });
-      baseRecovery.actions.push({
-        label: 'Fermer',
-        action: 'dismiss',
-        primary: false
-      });
-      break;
-      
-    case 'reload':
-      baseRecovery.actions.push({
-        label: 'Recharger la page',
-        action: 'reload',
-        primary: true
-      });
-      baseRecovery.actions.push({
-        label: 'Fermer',
-        action: 'dismiss',
-        primary: false
-      });
-      break;
-
-    case 'auth_required':
-      baseRecovery.actions.push({
-        label: 'Se connecter',
-        action: 'redirect',
-        url: '/login',
-        primary: true
-      });
-      baseRecovery.actions.push({
-        label: 'Créer un compte',
-        action: 'redirect',
-        url: '/signup',
-        primary: false
-      });
-      break;
-
-    case 'invalid_credentials':
-      baseRecovery.actions.push({
-        label: 'Réessayer',
-        action: 'retry',
-        primary: true
-      });
-      baseRecovery.actions.push({
-        label: 'Mot de passe oublié',
-        action: 'redirect',
-        url: '/forgot-password',
-        primary: false
-      });
-      break;
-
-    case 'check_email':
-      baseRecovery.actions.push({
-        label: 'Vérifier mes emails',
-        action: 'dismiss',
-        primary: true
-      });
-      break;
-
-    case 'contact_support':
-      baseRecovery.actions.push({
-        label: 'Contacter le support',
-        action: 'contact',
-        primary: true
-      });
-      baseRecovery.actions.push({
-        label: 'Fermer',
-        action: 'dismiss',
-        primary: false
-      });
-      break;
-
-    case 'wait':
-      baseRecovery.actions.push({
-        label: 'Fermer',
-        action: 'dismiss',
-        primary: true
-      });
-      break;
-      
+      if (error.message?.includes('email not confirmed')) {
+        return 'Veuillez confirmer votre email avant de vous connecter.'
+      }
+      if (error.message?.includes('weak_password')) {
+        return 'Le mot de passe doit contenir au moins 6 caractères.'
+      }
+      return 'Erreur d\'authentification. Vérifiez vos identifiants.'
+    
+    case ERROR_TYPES.VALIDATION:
+      return 'Veuillez vérifier les informations saisies.'
+    
+    case ERROR_TYPES.NETWORK:
+      return 'Problème de connexion. Vérifiez votre réseau et réessayez.'
+    
+    case ERROR_TYPES.UPLOAD:
+      return 'Erreur lors de l\'envoi du fichier. Vérifiez le format et la taille.'
+    
+    case ERROR_TYPES.SERVER:
+      return 'Erreur du serveur. Veuillez réessayer plus tard.'
+    
     default:
-      baseRecovery.actions.push({
-        label: 'Fermer',
-        action: 'dismiss',
-        primary: true
-      });
+      return error.message || 'Une erreur inattendue est survenue.'
   }
+}
 
-  return baseRecovery
-};
+// Stratégies de récupération
+const getRecoveryStrategy = (error, errorType) => {
+  switch (errorType) {
+    case ERROR_TYPES.CAPTCHA:
+      return RECOVERY_STRATEGIES.CAPTCHA
+    
+    case ERROR_TYPES.VALIDATION:
+      return RECOVERY_STRATEGIES.MANUAL
+    
+    case ERROR_TYPES.NETWORK:
+    case ERROR_TYPES.SERVER:
+      return RECOVERY_STRATEGIES.RETRY
+    
+    case ERROR_TYPES.AUTH:
+      if (error.message?.includes('email not confirmed')) {
+        return RECOVERY_STRATEGIES.REDIRECT
+      }
+      return RECOVERY_STRATEGIES.MANUAL
+    
+    default:
+      return RECOVERY_STRATEGIES.RETRY
+  }
+}
 
-// Gestionnaire d'erreurs pour les requêtes API
-export const handleApiError = async (response, context = null) => {
-  let errorMessage = 'Erreur de communication avec le serveur';
-  let errorData = null;
+// Extraire les détails de l'erreur
+const extractErrorDetails = (error) => {
+  const details = {}
+
+  if (error.code) details.code = error.code
+  if (error.status) details.status = error.status
+  if (error.statusText) details.statusText = error.statusText
+  if (error.details) details.details = error.details
+
+  return details
+}
+
+// Gestionnaire d'erreurs d'authentification spécialisé
+export const handleAuthError = (error) => {
+  const context = { component: 'Auth', action: 'authentication' }
   
-  try {
-    const contentType = response.headers.get('content-type');
-    if (contentType?.includes('application/json')) {
-      errorData = await response.json();
-      errorMessage = errorData.message || errorData.error || errorMessage;
-    } else {
-      errorMessage = `Erreur ${response.status}: ${response.statusText}`;
+  // Erreurs Supabase spécifiques
+  if (error.message === 'Invalid login credentials') {
+    return {
+      userError: {
+        message: 'Email ou mot de passe incorrect',
+        type: ERROR_TYPES.AUTH,
+        recoveryStrategy: RECOVERY_STRATEGIES.MANUAL
+      }
     }
-  } catch (parseError) {
-    logWarning('Impossible de parser la réponse d\'erreur', parseError);
   }
-  
-  const apiError = new Error(errorMessage);
-  apiError.status = response.status;
-  apiError.response = { status: response.status, data: errorData };
-  
-  return handleError(apiError, {
-    type: 'api_error',
-    url: response.url,
-    status: response.status,
-    ...context
-  });
-};
 
-// Wrapper pour les fonctions async avec gestion d'erreurs
-export const withErrorHandling = (asyncFn, context = null, options = {}) => {
+  if (error.message === 'Email not confirmed') {
+    return {
+      userError: {
+        message: 'Veuillez confirmer votre email avant de vous connecter',
+        type: ERROR_TYPES.AUTH,
+        recoveryStrategy: RECOVERY_STRATEGIES.REDIRECT,
+        redirectUrl: '/auth/confirm'
+      }
+    }
+  }
+
+  if (error.message.includes('Password should be at least 6 characters')) {
+    return {
+      userError: {
+        message: 'Le mot de passe doit contenir au moins 6 caractères',
+        type: ERROR_TYPES.VALIDATION,
+        recoveryStrategy: RECOVERY_STRATEGIES.MANUAL
+      }
+    }
+  }
+
+  // Erreur générique
+  return processError(error, context)
+}
+
+// Wrapper pour les fonctions avec gestion d'erreur
+export const withErrorHandling = (fn, context = {}) => {
   return async (...args) => {
     try {
-      return await asyncFn(...args);
+      return await fn(...args)
     } catch (error) {
-      const errorResult = handleError(error, context, options);
-      
-      // Re-throw l'erreur enrichie pour que l'appelant puisse la gérer
-      throw errorResult.error;
+      const errorResult = processError(error, context)
+      throw errorResult.error
     }
-  };
-};
+  }
+}
 
-// Hook React pour la gestion d'erreurs dans les composants
-export const useErrorHandler = () => {
-  const [lastError, setLastError] = useState(null);
-  
-  const handleComponentError = useCallback((error, context = null, options = {}) => {
-    const errorResult = handleError(error, {
-      component: 'unknown',
-      ...context
-    }, options);
-    
-    setLastError(errorResult);
-    return errorResult;
-  }, []);
-  
-  const clearError = useCallback(() => {
-    setLastError(null);
-  }, []);
-  
-  const retryLastAction = useCallback((retryFn) => {
-    if (lastError && retryFn) {
-      clearError();
-      return retryFn();
-    }
-  }, [lastError, clearError]);
-  
-  return {
-    lastError,
-    handleError: handleComponentError,
-    clearError,
-    retryLastAction
-  };
-};
-
-// Gestionnaire global pour les erreurs non capturées
-export const setupGlobalErrorHandling = () => {
-  if (typeof window === 'undefined') return;
-  
-  // Erreurs JavaScript non capturées
-  window.addEventListener('error', (event) => {
-    handleError(event.error, {
-      type: 'uncaught_error',
-      filename: event.filename,
-      lineno: event.lineno,
-      colno: event.colno
-    }, { silent: false });
-  });
-  
-  // Promesses rejetées non gérées
-  window.addEventListener('unhandledrejection', (event) => {
-    handleError(event.reason, {
-      type: 'unhandled_promise_rejection'
-    }, { silent: false });
-  });
-  
-  logInfo('Gestionnaire d\'erreurs global configuré');
-};
-
-/**
- * Gère les erreurs d'authentification Supabase
- * @param {Error} error - L'erreur à traiter
- * @returns {Object} Objet avec l'erreur utilisateur et les détails techniques
- */
-export const handleAuthError = (error) => {
-  logError('Erreur d\'authentification', error, {
-    errorCode: error?.code,
-    errorMessage: error?.message
-  });
-
-  const errorMessages = {
-    'invalid_credentials': 'Email ou mot de passe incorrect',
-    'email_not_confirmed': 'Veuillez confirmer votre email avant de vous connecter',
-    'signup_disabled': 'Les inscriptions sont temporairement désactivées',
-    'email_address_invalid': 'Adresse email invalide',
-    'password_too_short': 'Le mot de passe doit contenir au moins 6 caractères',
-    'user_already_exists': 'Un compte existe déjà avec cette adresse email',
-    'rate_limit_exceeded': 'Trop de tentatives. Veuillez réessayer dans quelques minutes',
-    'Invalid login credentials': 'Email ou mot de passe incorrect',
-    'Email not confirmed': 'Veuillez confirmer votre email avant de vous connecter',
-    'User already registered': 'Un compte existe déjà avec cet email',
-    'Password should be at least 6 characters': 'Le mot de passe doit contenir au moins 6 caractères',
-    'Invalid email': 'Adresse email invalide',
-    'Signup requires a valid password': 'Un mot de passe valide est requis',
-    'User not found': 'Aucun compte trouvé avec cet email',
-    'Email link is invalid or has expired': 'Le lien email est invalide ou a expiré',
-    'Token has expired or is invalid': 'Le lien a expiré ou est invalide'
-  };
-
-  const getRecoveryStrategy = (errorCode, errorMessage) => {
-    if (errorCode === 'invalid_credentials' || errorMessage?.includes('credentials') || errorMessage?.includes('not found')) {
-      return 'invalid_credentials';
-    }
-    if (errorCode === 'email_not_confirmed' || errorMessage?.includes('not confirmed')) {
-      return 'check_email';
-    }
-    if (errorCode === 'signup_disabled') {
-      return 'contact_support';
-    }
-    if (errorCode === 'rate_limit_exceeded') {
-      return 'wait';
-    }
-    if (errorCode === 'user_already_exists' || errorMessage?.includes('already registered')) {
-      return 'redirect_login';
-    }
-    if (errorMessage?.includes('expired') || errorMessage?.includes('invalid')) {
-      return 'retry';
-    }
-    return 'retry';
-  };
-
-  const userMessage = errorMessages[error?.code] || errorMessages[error?.message] || error?.message || 'Une erreur inattendue s\'est produite';
-  const recoveryStrategy = getRecoveryStrategy(error?.code, error?.message);
-
-  return {
-    userError: {
-      message: userMessage,
-      type: 'auth_error',
-      recoveryStrategy,
-      code: error?.code
-    },
-    technicalError: error
-  };
-};
+// Gestionnaire d'erreur global pour les composants
+export const handleError = (error, context = {}) => {
+  return processError(error, context)
+}
 
 // Export des utilitaires
 export default {
   handleError,
-  handleApiError,
   handleAuthError,
   withErrorHandling,
-  detectErrorType,
-  EnhancedError,
   ERROR_TYPES,
-  setupGlobalErrorHandling,
+  RECOVERY_STRATEGIES,
   useErrorHandler
 };
