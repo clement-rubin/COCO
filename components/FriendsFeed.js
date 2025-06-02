@@ -1,87 +1,128 @@
 import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useAuth } from './AuthContext'
 import styles from '../styles/FriendsFeed.module.css'
 
-export default function FriendsFeed() {
+export default function FriendsFeed({ feedType = 'friends' }) {
+  const { user } = useAuth()
   const [posts, setPosts] = useState([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [userLikes, setUserLikes] = useState(new Set())
   const [isLoading, setIsLoading] = useState(false)
   const containerRef = useRef(null)
 
-  // Données simulées de recettes d'amis
-  const mockPosts = [
-    {
-      id: 1,
-      user: { name: 'Marie Dubois', avatar: '👩‍🍳', status: 'En ligne' },
-      recipe: {
-        title: 'Tarte aux fraises maison',
+  // Données simulées enrichies basées sur le type de feed
+  const generateFriendsData = (type) => {
+    const baseFriends = [
+      { id: 'marie123', name: 'Marie Dubois', avatar: '👩‍🍳', status: 'En ligne', isBestFriend: true },
+      { id: 'pierre_chef', name: 'Pierre Martin', avatar: '👨‍🍳', status: 'Il y a 2h', isBestFriend: true },
+      { id: 'sophie_pat', name: 'Sophie Laurent', avatar: '👩‍🦳', status: 'En ligne', isBestFriend: false },
+      { id: 'lucas_cook', name: 'Lucas Moreau', avatar: '👨‍🦱', status: 'Hier', isBestFriend: true },
+      { id: 'emma_green', name: 'Emma Petit', avatar: '👩‍🦰', status: 'En ligne', isBestFriend: false },
+      { id: 'tom_grill', name: 'Tom Barbier', avatar: '🧔', status: 'Il y a 3h', isBestFriend: true },
+      { id: 'julie_sweet', name: 'Julie Sucré', avatar: '👱‍♀️', status: 'Il y a 1h', isBestFriend: false },
+      { id: 'alex_fusion', name: 'Alex Fusion', avatar: '🧑‍🦱', status: 'En ligne', isBestFriend: true }
+    ]
+
+    const recipes = [
+      {
+        title: 'Tarte aux fraises du jardin',
         image: 'https://images.unsplash.com/photo-1565958011703-44f9829ba187',
-        description: 'Ma première tarte aux fraises de la saison ! 🍓✨'
+        description: 'Première récolte de fraises du jardin ! 🍓✨',
+        category: 'Dessert',
+        timeAgo: '5 min',
+        likes: 24,
+        location: 'Chez moi'
       },
-      likes: 24,
-      timeAgo: '5 min',
-      category: 'Dessert'
-    },
-    {
-      id: 2,
-      user: { name: 'Pierre Martin', avatar: '👨‍🍳', status: 'Il y a 2h' },
-      recipe: {
+      {
         title: 'Ramen maison épicé',
         image: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624',
-        description: 'Premier essai de ramen fait maison, trop bon ! 🍜🔥'
+        description: 'Premier essai de ramen fait maison, trop bon ! 🍜🔥',
+        category: 'Asiatique',
+        timeAgo: '1h',
+        likes: 67,
+        location: 'Ma cuisine'
       },
-      likes: 67,
-      timeAgo: '1h',
-      category: 'Asiatique'
-    },
-    {
-      id: 3,
-      user: { name: 'Sophie Laurent', avatar: '👩‍🦳', status: 'En ligne' },
-      recipe: {
-        title: 'Salade quinoa avocat',
+      {
+        title: 'Salade quinoa avocat colorée',
         image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd',
-        description: 'Déjeuner healthy et coloré pour bien commencer la semaine 🥑💚'
+        description: 'Déjeuner healthy pour bien commencer la semaine 🥑💚',
+        category: 'Healthy',
+        timeAgo: '3h',
+        likes: 43,
+        location: 'Bureau'
       },
-      likes: 43,
-      timeAgo: '3h',
-      category: 'Healthy'
-    },
-    {
-      id: 4,
-      user: { name: 'Lucas Moreau', avatar: '👨‍🦱', status: 'Hier' },
-      recipe: {
+      {
         title: 'Pizza margherita authentique',
         image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b',
-        description: 'Pizza maison avec de la vraie mozzarella di bufala 🍕🇮🇹'
+        description: 'Pizza maison avec mozzarella di bufala 🍕🇮🇹',
+        category: 'Italien',
+        timeAgo: '6h',
+        likes: 89,
+        location: 'Cuisine'
       },
-      likes: 89,
-      timeAgo: '6h',
-      category: 'Italien'
-    },
-    {
-      id: 5,
-      user: { name: 'Emma Petit', avatar: '👩‍🦰', status: 'En ligne' },
-      recipe: {
+      {
         title: 'Smoothie bowl tropical',
         image: 'https://images.unsplash.com/photo-1511690743698-d9d85f2fbf38',
-        description: 'Petit-déjeuner vitaminé avec mangue et fruits de la passion 🥭🌴'
+        description: 'Petit-déjeuner vitaminé mangue passion 🥭🌴',
+        category: 'Petit-déj',
+        timeAgo: '4h',
+        likes: 52,
+        location: 'Terrasse'
       },
-      likes: 52,
-      timeAgo: '4h',
-      category: 'Petit-déj'
+      {
+        title: 'Burger gourmet BBQ',
+        image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd',
+        description: 'Soirée BBQ entre amis, un délice ! 🍔🔥',
+        category: 'BBQ',
+        timeAgo: '8h',
+        likes: 76,
+        location: 'Jardin'
+      },
+      {
+        title: 'Tarte citron meringuée',
+        image: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587',
+        description: 'Recette de grand-mère revisitée 🍋✨',
+        category: 'Pâtisserie',
+        timeAgo: '12h',
+        likes: 94,
+        location: 'Atelier'
+      },
+      {
+        title: 'Curry vert thaï épicé',
+        image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836',
+        description: 'Voyage gustatif en Thaïlande 🌶️🥥',
+        category: 'Exotique',
+        timeAgo: '1j',
+        likes: 61,
+        location: 'Ma cuisine'
+      }
+    ]
+
+    // Filtrer selon le type de feed
+    let filteredFriends = baseFriends
+    if (type === 'friends') {
+      filteredFriends = baseFriends.filter(friend => friend.isBestFriend)
     }
-  ]
+
+    return filteredFriends.map((friend, index) => ({
+      id: `${friend.id}_${index}`,
+      user: friend,
+      recipe: recipes[index % recipes.length],
+      isStory: Math.random() > 0.7, // 30% chance d'être une story
+      viewCount: 50 + Math.floor(Math.random() * 200)
+    }))
+  }
 
   useEffect(() => {
-    // Simuler le chargement de données
     setIsLoading(true)
     setTimeout(() => {
-      setPosts(mockPosts)
+      const friendsData = generateFriendsData(feedType)
+      setPosts(friendsData)
       setIsLoading(false)
     }, 500)
-  }, [])
+  }, [feedType])
 
   const handleScroll = (e) => {
     const container = e.target
@@ -142,13 +183,64 @@ export default function FriendsFeed() {
     return (
       <div className={styles.loadingContainer}>
         <div className={styles.loadingSpinner}>🔄</div>
-        <p>Chargement des dernières créations...</p>
+        <p>Chargement des photos de tes amis...</p>
+      </div>
+    )
+  }
+
+  if (posts.length === 0) {
+    return (
+      <div style={{
+        textAlign: 'center',
+        padding: 'var(--spacing-xl)',
+        color: 'var(--text-medium)'
+      }}>
+        <div style={{ fontSize: '3rem', marginBottom: 'var(--spacing-md)' }}>👥</div>
+        <h3 style={{ color: 'var(--primary-orange)', marginBottom: 'var(--spacing-sm)' }}>
+          Aucune photo d'amis
+        </h3>
+        <p>Invite tes amis à rejoindre COCO pour voir leurs créations !</p>
+        <button style={{
+          background: 'linear-gradient(135deg, var(--primary-orange), var(--primary-orange-dark))',
+          color: 'white',
+          border: 'none',
+          padding: 'var(--spacing-md) var(--spacing-lg)',
+          borderRadius: 'var(--border-radius-medium)',
+          fontWeight: '600',
+          cursor: 'pointer',
+          marginTop: 'var(--spacing-md)'
+        }}>
+          Inviter des amis
+        </button>
       </div>
     )
   }
 
   return (
     <div className={styles.feedContainer}>
+      {/* En-tête du feed */}
+      <div style={{
+        background: 'white',
+        padding: 'var(--spacing-lg)',
+        margin: '0 var(--spacing-md) var(--spacing-lg)',
+        borderRadius: 'var(--border-radius-large)',
+        boxShadow: 'var(--shadow-light)',
+        textAlign: 'center'
+      }}>
+        <h2 style={{
+          color: 'var(--primary-orange)',
+          margin: '0 0 var(--spacing-sm) 0',
+          fontFamily: "'Playfair Display', serif"
+        }}>
+          {feedType === 'friends' ? '👥 Tes amis proches' : 
+           feedType === 'recent' ? '🕒 Photos récentes' :
+           feedType === 'popular' ? '🔥 Photos populaires' : '📸 Photos de tes amis'}
+        </h2>
+        <p style={{ color: 'var(--text-medium)', margin: 0 }}>
+          {posts.length} {posts.length > 1 ? 'nouvelles créations' : 'nouvelle création'}
+        </p>
+      </div>
+
       {/* Stories-like horizontal scroll */}
       <div 
         ref={containerRef}
@@ -168,18 +260,29 @@ export default function FriendsFeed() {
                 />
                 <div className={styles.gradient} />
                 
-                {/* User info overlay */}
+                {/* User info overlay avec badge d'ami proche */}
                 <div className={styles.userOverlay}>
                   <div className={styles.userInfo}>
                     <span className={styles.userAvatar}>{post.user.avatar}</span>
                     <div>
-                      <span className={styles.userName}>{post.user.name}</span>
-                      <span className={styles.timeAgo}>{post.timeAgo}</span>
+                      <span className={styles.userName}>
+                        {post.user.name}
+                        {post.user.isBestFriend && (
+                          <span style={{ 
+                            fontSize: '0.7rem', 
+                            marginLeft: '4px',
+                            color: '#FFD700' 
+                          }}>⭐</span>
+                        )}
+                      </span>
+                      <span className={styles.timeAgo}>
+                        📍 {post.recipe.location} • {post.recipe.timeAgo}
+                      </span>
                     </div>
                   </div>
                   
                   <div className={styles.categoryBadge}>
-                    {post.category}
+                    {post.recipe.category}
                   </div>
                 </div>
 
@@ -193,9 +296,9 @@ export default function FriendsFeed() {
                       className={`${styles.likeBtn} ${userLikes.has(post.id) ? styles.liked : ''}`}
                       onClick={(e) => toggleLike(post.id, e)}
                     >
-                      {userLikes.has(post.id) ? '❤️' : '🤍'} {post.likes}
+                      {userLikes.has(post.id) ? '❤️' : '🤍'} {post.recipe.likes}
                     </button>
-                    <span className={styles.viewCount}>👁️ {Math.floor(Math.random() * 200) + 50}</span>
+                    <span className={styles.viewCount}>👁️ {post.viewCount}</span>
                   </div>
                 </div>
               </div>
