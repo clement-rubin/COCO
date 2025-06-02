@@ -58,21 +58,19 @@ COCO/
 │   ├── ErrorBoundary.js          # Gestion d'erreurs React
 │   ├── ErrorDisplay.js           # Affichage des erreurs
 │   └── Footer.js                 # Pied de page
+├── utils/
+│   ├── logger.js                 # Système de logging centralisé
+│   └── errorHandler.js           # Gestionnaire d'erreurs avancé
 ├── styles/
 │   ├── globals.css               # Design system global
 │   ├── SharePhoto.module.css     # Styles du partage de photo
 │   ├── SubmitRecipe.module.css   # Styles du formulaire de recette
-│   ├── RecipeDetail.module.css   # Styles des détails
-│   └── Navigation.module.css     # Styles de navigation
+│   └── RecipeDetail.module.css   # Styles des détails
 ├── lib/
-│   └── supabase.js               # Configuration et utilitaires Supabase
-├── utils/
-│   └── logger.js                 # Système de logging centralisé
-├── public/
-│   └── test-api.html             # Page de test API (standalone)
+│   └── supabase.js              # Configuration Supabase
 └── .netlify/
     └── functions-internal/
-        └── recipes.js            # Version Netlify de l'API (pour déploiement)
+        └── recipes.js           # Fonction serverless optimisée
 ```
 
 ## 🚀 Installation et Démarrage

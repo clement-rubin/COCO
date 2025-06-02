@@ -1,604 +1,826 @@
-import { useState } from 'react'
 import Head from 'next/head'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import PhotoUpload from '../components/PhotoUpload'
-import styles from '../styles/SubmitRecipe.module.css'
-import { logDebug, logInfo, logError, logWarning, logUserInteraction } from '../utils/logger'
+import { logUserInteraction, logInfo, logError, logDebug } from '../utils/logger'
+import { handleError, handleValidationError, retryOperation } from '../utils/errorHandler'
+import ErrorDisplay from '../components/ErrorDisplay'
 
 export default function SubmitRecipe() {
   const router = useRouter()
+  const [step, setStep] = useState(1)
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    ingredients: '',
-    instructions: '',
+    ingredients: [''],
+    instructions: [''],
     prepTime: '',
     cookTime: '',
+    servings: '',
     category: '',
-    author: ''
+    difficulty: 'Facile',
+    author: '',
+    tags: []
   })
   const [photos, setPhotos] = useState([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errors, setErrors] = useState({})
   const [showSuccessMessage, setShowSuccessMessage] = useState(false)
+  const [currentError, setCurrentError] = useState(null)
 
   const categories = [
-    'Entrées', 'Plats principaux', 'Desserts', 'Apéritifs', 
-    'Soupes', 'Salades', 'Végétarien', 'Vegan', 'Sans gluten'
+    'Entrées', 'Plats principaux', 'Desserts', 'Pâtes', 
+    'Salades', 'Soupes', 'Boissons', 'Snacks', 'Végétarien', 'Vegan'
   ]
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target
-    
-    logDebug(`Changement de champ: ${name}`, { 
-      fieldName: name, 
-      valueLength: value.length,
-      isEmpty: !value.trim()
-    })
-    
+  const difficulties = ['Facile', 'Moyen', 'Difficile']
+
+  useEffect(() => {
+    logUserInteraction('PAGE_VISIT', 'submit-recipe', { step })
+  }, [step])
+
+  const validateStep = (stepNumber) => {
+    const newErrors = {}
+
+    if (stepNumber === 1) {
+      if (!formData.title.trim()) {
+        newErrors.title = 'Le titre est obligatoire'
+      } else if (formData.title.length < 3) {
+        newErrors.title = 'Le titre doit contenir au moins 3 caractères'
+      }
+
+      if (!formData.description.trim()) {
+        newErrors.description = 'La description est obligatoire'
+      } else if (formData.description.length < 10) {
+        newErrors.description = 'La description doit contenir au moins 10 caractères'
+      }
+
+      if (!formData.category) {
+        newErrors.category = 'Veuillez sélectionner une catégorie'
+      }
+    }
+
+    if (stepNumber === 2) {
+      const validIngredients = formData.ingredients.filter(ing => ing.trim())
+      if (validIngredients.length < 2) {
+        newErrors.ingredients = 'Au moins 2 ingrédients sont requis'
+      }
+
+      const validInstructions = formData.instructions.filter(inst => inst.trim())
+      if (validInstructions.length < 2) {
+        newErrors.instructions = 'Au moins 2 étapes sont requises'
+      }
+    }
+
+    if (stepNumber === 3) {
+      if (photos.length === 0) {
+        newErrors.photos = 'Au moins une photo est requise'
+      }
+
+      const hasProcessingPhotos = photos.some(photo => photo.processing)
+      const hasErrorPhotos = photos.some(photo => photo.error)
+
+      if (hasProcessingPhotos) {
+        newErrors.photos = 'Attendez que toutes les photos soient traitées'
+      }
+
+      if (hasErrorPhotos) {
+        newErrors.photos = 'Certaines photos contiennent des erreurs'
+      }
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
+  const handleInputChange = (field, value) => {
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [field]: value
     }))
-    
-    // Clear error when user starts typing
-    if (errors[name]) {
-      logDebug(`Effacement d'erreur pour le champ: ${name}`)
-      setErrors(prev => ({
-        ...prev,
-        [name]: ''
-      }))
-    }
-  }
 
-  const parseIngredients = (text) => {
-    if (!text.trim()) return []
-    return text.split('\n')
-      .map(line => line.trim())
-      .filter(line => line.length > 0)
-      .map(line => line.replace(/^[-•*]\s*/, ''))
-  }
-
-  const parseInstructions = (text) => {
-    if (!text.trim()) return []
-    return text.split('\n')
-      .map(line => line.trim())
-      .filter(line => line.length > 0)
-      .map((line, index) => {
-        // Remove existing numbers at start
-        const cleanLine = line.replace(/^\d+\.\s*/, '')
-        return {
-          step: index + 1,
-          instruction: cleanLine
-        }
+    // Effacer l'erreur si elle existe
+    if (errors[field]) {
+      setErrors(prev => {
+        const newErrors = { ...prev }
+        delete newErrors[field]
+        return newErrors
       })
+    }
   }
 
-  const validateForm = () => {
-    logInfo('Début de la validation du formulaire')
-    const newErrors = {}
-    
-    if (!formData.title.trim()) {
-      newErrors.title = 'Le titre est obligatoire'
-      logWarning('Validation échouée: titre manquant')
-    }
-    if (!formData.description.trim()) {
-      newErrors.description = 'La description est obligatoire'
-      logWarning('Validation échouée: description manquante')
-    }
-    if (!formData.ingredients.trim()) {
-      newErrors.ingredients = 'Les ingrédients sont obligatoires'
-      logWarning('Validation échouée: ingrédients manquants')
-    }
-    if (!formData.instructions.trim()) {
-      newErrors.instructions = 'Les instructions sont obligatoires'
-      logWarning('Validation échouée: instructions manquantes')
-    }
-    if (photos.length === 0) {
-      newErrors.photos = 'Au moins une photo est obligatoire'
-      logWarning('Validation échouée: aucune photo')
-    }
-    
-    // Validation améliorée des photos avec vérification des bytes (pas des URLs Supabase)
-    if (photos.length > 0) {
-      const processingPhotos = photos.filter(photo => photo.processing)
-      const errorPhotos = photos.filter(photo => photo.error)
-      const processedPhotos = photos.filter(photo => 
-        photo.processed && 
-        photo.imageBytes && 
-        Array.isArray(photo.imageBytes) &&
-        photo.imageBytes.length > 0
-      )
-      
-      if (processingPhotos.length > 0) {
-        newErrors.photos = `Attendez que ${processingPhotos.length} photo(s) finissent d'être traitées`
-        logWarning('Validation échouée: traitement en cours', { 
-          processingCount: processingPhotos.length,
-          totalPhotos: photos.length 
-        })
-      } else if (errorPhotos.length > 0) {
-        newErrors.photos = `${errorPhotos.length} photo(s) ont échoué. Supprimez-les et réessayez.`
-        logWarning('Validation échouée: photos en erreur', { 
-          errorCount: errorPhotos.length,
-          totalPhotos: photos.length,
-          errorMessages: errorPhotos.map(p => p.errorMessage)
-        })
-      } else if (processedPhotos.length === 0) {
-        newErrors.photos = 'Aucune photo n\'a été correctement traitée. Veuillez réessayer.'
-        logWarning('Validation échouée: aucune photo traitée', {
-          totalPhotos: photos.length,
-          photosWithBytes: photos.filter(p => p.imageBytes).length,
-          processedPhotos: photos.filter(p => p.processed).length
-        })
-      }
-    }
-    
-    const isValid = Object.keys(newErrors).length === 0
-    
-    logInfo('Résultat de la validation', {
-      isValid,
-      errorsCount: Object.keys(newErrors).length,
-      errors: Object.keys(newErrors),
-      photosCount: photos.length,
-      processedPhotosCount: photos.filter(p => p.processed).length,
-      photosWithBytes: photos.filter(p => p.imageBytes?.length > 0).length
-    })
-    
-    setErrors(newErrors)
-    return isValid
+  const addIngredient = () => {
+    setFormData(prev => ({
+      ...prev,
+      ingredients: [...prev.ingredients, '']
+    }))
+    logUserInteraction('ADD_INGREDIENT', 'button-add-ingredient')
   }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
+  const removeIngredient = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      ingredients: prev.ingredients.filter((_, i) => i !== index)
+    }))
+    logUserInteraction('REMOVE_INGREDIENT', 'button-remove-ingredient', { index })
+  }
+
+  const updateIngredient = (index, value) => {
+    setFormData(prev => ({
+      ...prev,
+      ingredients: prev.ingredients.map((ing, i) => i === index ? value : ing)
+    }))
+  }
+
+  const addInstruction = () => {
+    setFormData(prev => ({
+      ...prev,
+      instructions: [...prev.instructions, '']
+    }))
+    logUserInteraction('ADD_INSTRUCTION', 'button-add-instruction')
+  }
+
+  const removeInstruction = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      instructions: prev.instructions.filter((_, i) => i !== index)
+    }))
+    logUserInteraction('REMOVE_INSTRUCTION', 'button-remove-instruction', { index })
+  }
+
+  const updateInstruction = (index, value) => {
+    setFormData(prev => ({
+      ...prev,
+      instructions: prev.instructions.map((inst, i) => i === index ? value : inst)
+    }))
+  }
+
+  const nextStep = () => {
+    if (validateStep(step)) {
+      setStep(prev => prev + 1)
+      logUserInteraction('NEXT_STEP', 'button-next-step', { fromStep: step, toStep: step + 1 })
+    }
+  }
+
+  const prevStep = () => {
+    setStep(prev => prev - 1)
+    logUserInteraction('PREV_STEP', 'button-prev-step', { fromStep: step, toStep: step - 1 })
+  }
+
+  const handlePhotoSelect = (selectedPhotos) => {
+    setPhotos(selectedPhotos)
+    logDebug('Photos sélectionnées', { photosCount: selectedPhotos.length })
     
-    logInfo('Début de soumission de recette')
-    
-    if (!validateForm()) {
-      logUserInteraction('ECHEC_VALIDATION', 'formulaire-soumission', {
-        errorsCount: Object.keys(errors).length,
-        errors: Object.keys(errors)
+    // Effacer l'erreur photos si elle existe
+    if (errors.photos) {
+      setErrors(prev => {
+        const newErrors = { ...prev }
+        delete newErrors.photos
+        return newErrors
       })
-      return
     }
-    
+  }
+
+  const submitRecipe = async () => {
+    if (!validateStep(3)) return
+
     setIsSubmitting(true)
-    
+    setCurrentError(null)
+
     try {
-      // Parse ingredients and instructions to JSON format
-      const ingredientsArray = parseIngredients(formData.ingredients)
-      const instructionsArray = parseInstructions(formData.instructions)
-      
-      // Préparer les photos validées (avec bytes)
-      const validPhotos = photos.filter(photo => 
-        photo.processed && 
-        photo.imageBytes && 
-        Array.isArray(photo.imageBytes) &&
-        photo.imageBytes.length > 0 &&
-        !photo.error
-      )
-      
-      if (validPhotos.length === 0) {
-        logError('Aucune photo valide trouvée', null, {
-          totalPhotos: photos.length,
-          photosState: photos.map(p => ({
-            processed: p.processed,
-            hasImageBytes: !!p.imageBytes,
-            imageBytesType: typeof p.imageBytes,
-            imageBytesIsArray: Array.isArray(p.imageBytes),
-            imageBytesLength: p.imageBytes?.length,
-            error: p.error,
-            errorMessage: p.errorMessage
-          }))
-        })
-        throw new Error('Aucune photo valide trouvée. Veuillez réessayer le traitement des photos.')
-      }
-      
-      logDebug('Photos validées pour soumission', {
-        totalPhotos: photos.length,
-        validPhotos: validPhotos.length,
-        firstImageBytesLength: validPhotos[0].imageBytes.length,
-        allImageSizes: validPhotos.map(p => p.imageBytes.length)
+      logInfo('Début de soumission de recette', {
+        title: formData.title,
+        photosCount: photos.length,
+        ingredientsCount: formData.ingredients.filter(i => i.trim()).length
       })
-      
-      // Préparer les données selon le schéma bytea
-      const recipeData = {
+
+      // Préparer les données
+      const validIngredients = formData.ingredients.filter(ing => ing.trim())
+      const validInstructions = formData.instructions.filter(inst => inst.trim())
+
+      // Utiliser la première photo comme image principale
+      const mainPhoto = photos.find(photo => photo.processed && !photo.error)
+      if (!mainPhoto) {
+        throw new Error('Aucune photo valide trouvée')
+      }
+
+      const submissionData = {
         title: formData.title.trim(),
         description: formData.description.trim(),
-        ingredients: ingredientsArray,
-        instructions: instructionsArray,
+        ingredients: validIngredients,
+        instructions: validInstructions.map((instruction, index) => ({
+          step: index + 1,
+          instruction: instruction.trim()
+        })),
         prepTime: formData.prepTime.trim() || null,
         cookTime: formData.cookTime.trim() || null,
-        category: formData.category || null,
-        author: formData.author.trim() || 'Anonyme',
-        image: validPhotos[0].imageBytes // Image principale en bytea
+        servings: formData.servings.trim() || null,
+        category: formData.category,
+        difficulty: formData.difficulty,
+        author: formData.author.trim() || 'Chef Anonyme',
+        image: mainPhoto.imageBytes, // Array de bytes
+        photos: photos
+          .filter(photo => photo.processed && !photo.error)
+          .map(photo => ({
+            bytes: photo.imageBytes,
+            name: photo.name,
+            mimeType: photo.mimeType
+          }))
       }
-      
-      logDebug('Données de recette préparées pour API', {
-        hasTitle: !!recipeData.title,
-        hasDescription: !!recipeData.description,
-        ingredientsCount: recipeData.ingredients.length,
-        instructionsCount: recipeData.instructions.length,
-        mainImageBytesLength: recipeData.image.length,
-        category: recipeData.category,
-        author: recipeData.author
+
+      logDebug('Données préparées pour envoi', {
+        ...submissionData,
+        image: `[${submissionData.image.length} bytes]`,
+        photos: submissionData.photos.map(p => ({ name: p.name, bytes: `[${p.bytes.length} bytes]` }))
       })
-      
-      // Valider que les données sont complètes avant l'envoi
-      if (!recipeData.image || !Array.isArray(recipeData.image) || recipeData.image.length === 0) {
-        throw new Error('Image principale manquante ou invalide')
-      }
-      
-      // Call API to submit recipe
-      logInfo('Envoi des données vers l\'API /api/recipes')
-      const response = await fetch('/api/recipes', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(recipeData)
-      })
-      
-      logDebug('Réponse de l\'API reçue', {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok,
-        contentType: response.headers.get('content-type')
-      })
-      
-      // Check if response is JSON before parsing
-      const contentType = response.headers.get('content-type')
-      let result
-      
-      if (contentType && contentType.includes('application/json')) {
-        result = await response.json()
-      } else {
-        // Server returned HTML or other content - likely an error page
-        const textContent = await response.text()
-        logError('API a retourné du contenu non-JSON', null, {
-          status: response.status,
-          statusText: response.statusText,
-          contentType,
-          contentPreview: textContent.substring(0, 500)
+
+      // Envoi avec retry automatique
+      const response = await retryOperation(async () => {
+        const res = await fetch('/api/recipes', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(submissionData)
         })
-        
-        if (response.status === 500) {
-          throw new Error('Erreur serveur interne. Vérifiez la configuration de la base de données et les variables d\'environnement.')
-        } else if (response.status === 404) {
-          throw new Error('API non trouvée. Vérifiez que le fichier /api/recipes.js existe.')
-        } else {
-          throw new Error(`Erreur serveur (${response.status}): Le serveur a retourné une page d'erreur au lieu d'une réponse JSON.`)
+
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({ message: 'Erreur de réseau' }))
+          const error = new Error(errorData.message || `HTTP ${res.status}`)
+          error.status = res.status
+          error.data = errorData
+          throw error
         }
-      }
-      
-      logDebug('Contenu de la réponse API', {
-        hasResult: !!result,
-        resultKeys: Object.keys(result || {}),
-        message: result?.message,
-        id: result?.id,
-        error: result?.error
+
+        return res.json()
+      }, 3, 1500)
+
+      logInfo('Recette soumise avec succès', {
+        recipeId: response.id,
+        title: response.title || formData.title
       })
-      
-      if (!response.ok) {
-        const errorMessage = result?.message || result?.error || `Erreur HTTP ${response.status}: ${response.statusText}`
-        logError('Erreur de l\'API lors de la soumission', null, {
-          status: response.status,
-          statusText: response.statusText,
-          responseBody: result,
-          errorMessage
-        })
-        throw new Error(errorMessage)
-      }
-      
-      logUserInteraction('RECETTE_SOUMISE', 'formulaire-soumission', {
-        title: recipeData.title,
-        category: recipeData.category,
-        ingredientsCount: recipeData.ingredients.length,
-        instructionsCount: recipeData.instructions.length,
-        photosCount: validPhotos.length,
-        recipeId: result.id
-      })
-      
-      // Afficher le message de succès
+
+      // Succès
       setShowSuccessMessage(true)
-      
-      // Redirection après 3 secondes
-      setTimeout(() => {
-        router.push('/?success=recipe-submitted')
-      }, 3000)
-      
-    } catch (error) {
-      logError('Erreur lors de la soumission de recette', error, {
-        errorName: error.constructor.name,
-        errorMessage: error.message,
-        errorStack: error.stack,
-        formData: {
-          title: formData.title,
-          hasDescription: !!formData.description,
-          category: formData.category,
-          ingredientsLength: formData.ingredients.length,
-          instructionsLength: formData.instructions.length
-        },
-        photosState: {
-          total: photos.length,
-          processed: photos.filter(p => p.processed).length,
-          withBytes: photos.filter(p => p.imageBytes?.length > 0).length,
-          withErrors: photos.filter(p => p.error).length
-        }
+      logUserInteraction('RECIPE_SUBMITTED', 'form-submit', {
+        recipeId: response.id,
+        title: formData.title
       })
-      
-      // Fournir un message d'erreur plus spécifique
-      let errorMessage = 'Une erreur est survenue lors de l\'envoi. Veuillez réessayer.'
-      
-      if (error.message.includes('structure de base de données')) {
-        errorMessage = 'Problème de configuration de la base de données. La table recipes n\'a pas toutes les colonnes requises. Contactez l\'administrateur.'
-      } else if (error.message.includes('JSON')) {
-        errorMessage = 'Erreur serveur: Le serveur a retourné une réponse invalide. Vérifiez la configuration du serveur et de la base de données.'
-      } else if (error.message.includes('serveur interne')) {
-        errorMessage = 'Erreur de base de données. Vérifiez la configuration Supabase dans les variables d\'environnement.'
-      } else if (error.message.includes('API non trouvée')) {
-        errorMessage = 'Configuration manquante: L\'API de recettes n\'est pas configurée correctement.'
-      } else if (error.message.includes('photo')) {
-        errorMessage = 'Problème avec les photos. Veuillez les recharger et réessayer.'
-      } else if (error.message.includes('fetch')) {
-        errorMessage = 'Problème de connexion. Vérifiez votre connexion internet et réessayez.'
-      } else if (error.message.includes('Données manquantes')) {
-        errorMessage = 'Erreur de validation: Certaines données requises sont manquantes.'
-      } else if (error.message.includes('Données trop longues')) {
-        errorMessage = 'Le titre, la description ou un autre champ est trop long. Veuillez raccourcir votre texte.'
-      } else if (error.message) {
-        errorMessage = `Erreur: ${error.message}`
-      }
-      
-      setErrors({ submit: errorMessage })
+
+      // Redirection après succès
+      setTimeout(() => {
+        router.push('/')
+      }, 3000)
+
+    } catch (error) {
+      logError('Erreur lors de la soumission', error)
+      const errorResult = handleError(error, {
+        action: 'submit_recipe',
+        formData: { ...formData, photos: photos.length }
+      })
+      setCurrentError(errorResult.userError)
     } finally {
       setIsSubmitting(false)
     }
   }
 
-  // Calculer l'état des traitements pour l'affichage (pas uploads)
-  const processingPhotosCount = photos.filter(photo => photo.processing).length
-  const errorPhotosCount = photos.filter(photo => photo.error).length
-  const processedPhotosCount = photos.filter(photo => photo.processed && photo.imageBytes).length
-  const allPhotosProcessed = photos.length > 0 && photos.every(photo => 
-    photo.processed && 
-    photo.imageBytes && 
-    Array.isArray(photo.imageBytes)
-  )
+  const resetError = () => {
+    setCurrentError(null)
+  }
 
-  // Message de confirmation de soumission
   if (showSuccessMessage) {
     return (
-      <div className={styles.container}>
-        <div className={styles.successMessage}>
-          <div className={styles.successIcon}>🎉</div>
-          <h1>Recette partagée avec succès !</h1>
-          <p>Votre délicieuse recette "<strong>{formData.title}</strong>" a été ajoutée à COCO.</p>
-          <p>Redirection en cours vers l'accueil...</p>
-          <div className={styles.successSpinner}></div>
-        </div>
+      <div style={{ 
+        padding: 'var(--spacing-xl)', 
+        textAlign: 'center',
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        background: 'var(--bg-gradient)'
+      }}>
+        <div style={{ fontSize: '4rem', marginBottom: 'var(--spacing-lg)' }}>🎉</div>
+        <h1 style={{ color: 'var(--primary-coral)', marginBottom: 'var(--spacing-md)' }}>
+          Recette publiée avec succès !
+        </h1>
+        <p style={{ fontSize: '1.1rem', color: 'var(--text-medium)', marginBottom: 'var(--spacing-lg)' }}>
+          Votre délicieuse recette "{formData.title}" a été ajoutée à COCO.
+        </p>
+        <p style={{ color: 'var(--text-light)' }}>
+          Redirection en cours...
+        </p>
       </div>
     )
   }
 
   return (
-    <>
+    <div>
       <Head>
-        <title>Partager ma recette - COCO</title>
-        <meta name="description" content="Partagez votre délicieuse recette avec la communauté COCO" />
+        <title>Partager une recette - COCO</title>
+        <meta name="description" content="Partagez votre recette avec la communauté COCO" />
       </Head>
-      
-      <div className={styles.container}>
-        <div className={styles.header}>
-          <button onClick={() => router.back()} className={styles.backBtn}>
-            ← Retour
-          </button>
-          <h1>📸 Partager ma recette</h1>
-          <p className={styles.subtitle}>
-            Partagez votre création culinaire avec la communauté COCO
-          </p>
+
+      {/* Progress Bar */}
+      <div style={{
+        background: 'white',
+        padding: 'var(--spacing-md)',
+        borderBottom: '1px solid var(--bg-light)',
+        position: 'sticky',
+        top: 0,
+        zIndex: 100
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          maxWidth: '600px',
+          margin: '0 auto'
+        }}>
+          <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+            Étape {step} sur 3
+          </span>
+          <div style={{
+            flex: 1,
+            height: '4px',
+            background: 'var(--bg-light)',
+            borderRadius: '2px',
+            margin: '0 var(--spacing-md)',
+            overflow: 'hidden'
+          }}>
+            <div style={{
+              height: '100%',
+              background: 'var(--primary-coral)',
+              width: `${(step / 3) * 100}%`,
+              transition: 'width 0.3s ease',
+              borderRadius: '2px'
+            }}></div>
+          </div>
+          <span style={{ fontSize: '0.9rem', color: 'var(--primary-coral)', fontWeight: '600' }}>
+            {Math.round((step / 3) * 100)}%
+          </span>
         </div>
-
-        <form onSubmit={handleSubmit} className={styles.form}>
-          {/* Section Photos */}
-          <div className={styles.section}>
-            <h2>📷 Photos de votre plat</h2>
-            <PhotoUpload 
-              onPhotoSelect={setPhotos}
-              maxFiles={3}
-            />
-            {errors.photos && <span className={styles.error}>{errors.photos}</span>}
-            
-            {/* Status des traitements */}
-            {processingPhotosCount > 0 && (
-              <div className={styles.uploadStatus}>
-                ⏳ {processingPhotosCount} photo(s) en cours de traitement...
-              </div>
-            )}
-            
-            {errorPhotosCount > 0 && (
-              <div className={styles.uploadError}>
-                ❌ {errorPhotosCount} photo(s) ont échoué. Supprimez-les et réessayez.
-              </div>
-            )}
-            
-            {allPhotosProcessed && photos.length > 0 && (
-              <div className={styles.uploadSuccess}>
-                ✅ Toutes les photos sont prêtes !
-              </div>
-            )}
-            
-            <small className={styles.helpText}>
-              Les images sont automatiquement optimisées et traitées. 
-              Attendez que le traitement soit terminé avant de soumettre.
-            </small>
-          </div>
-
-          {/* Informations de base */}
-          <div className={styles.section}>
-            <h2>📝 Informations de base</h2>
-            
-            <div className={styles.formGroup}>
-              <label htmlFor="title">Nom de votre plat *</label>
-              <input
-                type="text"
-                id="title"
-                name="title"
-                value={formData.title}
-                onChange={handleInputChange}
-                placeholder="Ex: Tarte aux pommes de grand-mère"
-                className={errors.title ? styles.inputError : ''}
-              />
-              {errors.title && <span className={styles.error}>{errors.title}</span>}
-            </div>
-
-            <div className={styles.formGroup}>
-              <label htmlFor="description">Description *</label>
-              <textarea
-                id="description"
-                name="description"
-                value={formData.description}
-                onChange={handleInputChange}
-                placeholder="Décrivez votre plat, son histoire, ce qui le rend spécial..."
-                rows={4}
-                className={errors.description ? styles.inputError : ''}
-              />
-              {errors.description && <span className={styles.error}>{errors.description}</span>}
-            </div>
-
-            <div className={styles.formRow}>
-              <div className={styles.formGroup}>
-                <label htmlFor="category">Catégorie</label>
-                <select
-                  id="category"
-                  name="category"
-                  value={formData.category}
-                  onChange={handleInputChange}
-                >
-                  <option value="">Choisir une catégorie</option>
-                  {categories.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className={styles.formGroup}>
-                <label htmlFor="prepTime">Temps de préparation</label>
-                <input
-                  type="text"
-                  id="prepTime"
-                  name="prepTime"
-                  value={formData.prepTime}
-                  onChange={handleInputChange}
-                  placeholder="30 min"
-                />
-              </div>
-
-              <div className={styles.formGroup}>
-                <label htmlFor="cookTime">Temps de cuisson</label>
-                <input
-                  type="text"
-                  id="cookTime"
-                  name="cookTime"
-                  value={formData.cookTime}
-                  onChange={handleInputChange}
-                  placeholder="45 min"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Ingrédients */}
-          <div className={styles.section}>
-            <h2>🛒 Ingrédients</h2>
-            <div className={styles.formGroup}>
-              <label htmlFor="ingredients">Liste des ingrédients *</label>
-              <textarea
-                id="ingredients"
-                name="ingredients"
-                value={formData.ingredients}
-                onChange={handleInputChange}
-                placeholder="Listez vos ingrédients (un par ligne)&#10;Ex:&#10;3 pommes&#10;200g de farine&#10;2 œufs&#10;1 cuillère à soupe de sucre"
-                rows={8}
-                className={errors.ingredients ? styles.inputError : ''}
-              />
-              {errors.ingredients && <span className={styles.error}>{errors.ingredients}</span>}
-              <small className={styles.helpText}>
-                Entrez un ingrédient par ligne. Les tirets et puces seront supprimés automatiquement.
-              </small>
-            </div>
-          </div>
-
-          {/* Instructions */}
-          <div className={styles.section}>
-            <h2>👨‍🍳 Instructions</h2>
-            <div className={styles.formGroup}>
-              <label htmlFor="instructions">Étapes de préparation *</label>
-              <textarea
-                id="instructions"
-                name="instructions"
-                value={formData.instructions}
-                onChange={handleInputChange}
-                placeholder="Décrivez les étapes de préparation (une par ligne)&#10;Ex:&#10;Préchauffer le four à 180°C&#10;Éplucher et couper les pommes&#10;Mélanger la farine et les œufs&#10;Cuire pendant 45 minutes"
-                rows={10}
-                className={errors.instructions ? styles.inputError : ''}
-              />
-              {errors.instructions && <span className={styles.error}>{errors.instructions}</span>}
-              <small className={styles.helpText}>
-                Entrez une étape par ligne. Les numéros seront ajoutés automatiquement.
-              </small>
-            </div>
-          </div>
-
-          {/* Auteur */}
-          <div className={styles.section}>
-            <h2>👤 Signature</h2>
-            <div className={styles.formGroup}>
-              <label htmlFor="author">Votre nom ou pseudo</label>
-              <input
-                type="text"
-                id="author"
-                name="author"
-                value={formData.author}
-                onChange={handleInputChange}
-                placeholder="Comment souhaitez-vous être crédité ?"
-              />
-            </div>
-          </div>
-
-          {errors.submit && (
-            <div className={styles.submitError}>
-              {errors.submit}
-            </div>
-          )}
-
-          <div className={styles.submitSection}>
-            <button 
-              type="submit" 
-              className={styles.submitBtn}
-              disabled={isSubmitting || processingPhotosCount > 0}
-            >
-              {isSubmitting ? (
-                <>
-                  <span className={styles.spinner}></span>
-                  Partage en cours...
-                </>
-              ) : processingPhotosCount > 0 ? (
-                <>
-                  ⏳ Traitement en cours ({processingPhotosCount} photo(s))
-                </>
-              ) : (
-                <>
-                  🍴 Partager ma recette
-                </>
-              )}
-            </button>
-            
-            <p className={styles.submitNote}>
-              En partageant votre recette, vous acceptez qu'elle soit visible par tous les utilisateurs de COCO.
-            </p>
-          </div>
-        </form>
       </div>
-    </>
+
+      {/* Error Display */}
+      {currentError && (
+        <div style={{ padding: 'var(--spacing-md)', maxWidth: '600px', margin: '0 auto' }}>
+          <ErrorDisplay error={currentError} resetError={resetError} />
+        </div>
+      )}
+
+      {/* Step Content */}
+      <div style={{ padding: 'var(--spacing-lg)', maxWidth: '600px', margin: '0 auto' }}>
+        
+        {/* Step 1: Basic Info */}
+        {step === 1 && (
+          <div>
+            <div style={{ textAlign: 'center', marginBottom: 'var(--spacing-xl)' }}>
+              <div style={{ fontSize: '3rem', marginBottom: 'var(--spacing-md)' }}>📝</div>
+              <h1 style={{ fontSize: '1.5rem', marginBottom: 'var(--spacing-sm)' }}>
+                Informations de base
+              </h1>
+              <p style={{ color: 'var(--text-secondary)' }}>
+                Commençons par les détails essentiels de votre recette
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-lg)' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: 'var(--spacing-sm)', fontWeight: '500' }}>
+                  Titre de la recette *
+                </label>
+                <input
+                  type="text"
+                  value={formData.title}
+                  onChange={(e) => handleInputChange('title', e.target.value)}
+                  placeholder="Ex: Pâtes Carbonara de ma grand-mère"
+                  style={{
+                    width: '100%',
+                    padding: 'var(--spacing-md)',
+                    border: errors.title ? '2px solid #ff4444' : '1px solid var(--bg-light)',
+                    borderRadius: 'var(--radius-md)',
+                    fontSize: '1rem'
+                  }}
+                />
+                {errors.title && (
+                  <p style={{ color: '#ff4444', fontSize: '0.8rem', marginTop: 'var(--spacing-xs)' }}>
+                    {errors.title}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: 'var(--spacing-sm)', fontWeight: '500' }}>
+                  Description *
+                </label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => handleInputChange('description', e.target.value)}
+                  placeholder="Décrivez votre recette, son origine, ce qui la rend spéciale..."
+                  rows={4}
+                  style={{
+                    width: '100%',
+                    padding: 'var(--spacing-md)',
+                    border: errors.description ? '2px solid #ff4444' : '1px solid var(--bg-light)',
+                    borderRadius: 'var(--radius-md)',
+                    fontSize: '1rem',
+                    resize: 'vertical'
+                  }}
+                />
+                {errors.description && (
+                  <p style={{ color: '#ff4444', fontSize: '0.8rem', marginTop: 'var(--spacing-xs)' }}>
+                    {errors.description}
+                  </p>
+                )}
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: 'var(--spacing-sm)', fontWeight: '500' }}>
+                    Catégorie *
+                  </label>
+                  <select
+                    value={formData.category}
+                    onChange={(e) => handleInputChange('category', e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: 'var(--spacing-md)',
+                      border: errors.category ? '2px solid #ff4444' : '1px solid var(--bg-light)',
+                      borderRadius: 'var(--radius-md)',
+                      fontSize: '1rem'
+                    }}
+                  >
+                    <option value="">Choisir...</option>
+                    {categories.map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                  {errors.category && (
+                    <p style={{ color: '#ff4444', fontSize: '0.8rem', marginTop: 'var(--spacing-xs)' }}>
+                      {errors.category}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', marginBottom: 'var(--spacing-sm)', fontWeight: '500' }}>
+                    Difficulté
+                  </label>
+                  <select
+                    value={formData.difficulty}
+                    onChange={(e) => handleInputChange('difficulty', e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: 'var(--spacing-md)',
+                      border: '1px solid var(--bg-light)',
+                      borderRadius: 'var(--radius-md)',
+                      fontSize: '1rem'
+                    }}
+                  >
+                    {difficulties.map(diff => (
+                      <option key={diff} value={diff}>{diff}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--spacing-md)' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: 'var(--spacing-sm)', fontWeight: '500' }}>
+                    Temps de préparation
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.prepTime}
+                    onChange={(e) => handleInputChange('prepTime', e.target.value)}
+                    placeholder="15 min"
+                    style={{
+                      width: '100%',
+                      padding: 'var(--spacing-md)',
+                      border: '1px solid var(--bg-light)',
+                      borderRadius: 'var(--radius-md)',
+                      fontSize: '1rem'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', marginBottom: 'var(--spacing-sm)', fontWeight: '500' }}>
+                    Temps de cuisson
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.cookTime}
+                    onChange={(e) => handleInputChange('cookTime', e.target.value)}
+                    placeholder="30 min"
+                    style={{
+                      width: '100%',
+                      padding: 'var(--spacing-md)',
+                      border: '1px solid var(--bg-light)',
+                      borderRadius: 'var(--radius-md)',
+                      fontSize: '1rem'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', marginBottom: 'var(--spacing-sm)', fontWeight: '500' }}>
+                    Portions
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.servings}
+                    onChange={(e) => handleInputChange('servings', e.target.value)}
+                    placeholder="4 pers."
+                    style={{
+                      width: '100%',
+                      padding: 'var(--spacing-md)',
+                      border: '1px solid var(--bg-light)',
+                      borderRadius: 'var(--radius-md)',
+                      fontSize: '1rem'
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: 'var(--spacing-sm)', fontWeight: '500' }}>
+                  Votre nom (optionnel)
+                </label>
+                <input
+                  type="text"
+                  value={formData.author}
+                  onChange={(e) => handleInputChange('author', e.target.value)}
+                  placeholder="Comment souhaitez-vous être crédité ?"
+                  style={{
+                    width: '100%',
+                    padding: 'var(--spacing-md)',
+                    border: '1px solid var(--bg-light)',
+                    borderRadius: 'var(--radius-md)',
+                    fontSize: '1rem'
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Step 2: Ingredients & Instructions */}
+        {step === 2 && (
+          <div>
+            <div style={{ textAlign: 'center', marginBottom: 'var(--spacing-xl)' }}>
+              <div style={{ fontSize: '3rem', marginBottom: 'var(--spacing-md)' }}>🧄</div>
+              <h1 style={{ fontSize: '1.5rem', marginBottom: 'var(--spacing-sm)' }}>
+                Ingrédients et étapes
+              </h1>
+              <p style={{ color: 'var(--text-secondary)' }}>
+                Détaillez les ingrédients et les instructions de préparation
+              </p>
+            </div>
+
+            {/* Ingredients */}
+            <div style={{ marginBottom: 'var(--spacing-xl)' }}>
+              <h3 style={{ marginBottom: 'var(--spacing-md)' }}>Ingrédients *</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-sm)' }}>
+                {formData.ingredients.map((ingredient, index) => (
+                  <div key={index} style={{ display: 'flex', gap: 'var(--spacing-sm)' }}>
+                    <input
+                      type="text"
+                      value={ingredient}
+                      onChange={(e) => updateIngredient(index, e.target.value)}
+                      placeholder={`Ingrédient ${index + 1}...`}
+                      style={{
+                        flex: 1,
+                        padding: 'var(--spacing-md)',
+                        border: '1px solid var(--bg-light)',
+                        borderRadius: 'var(--radius-md)',
+                        fontSize: '1rem'
+                      }}
+                    />
+                    {formData.ingredients.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeIngredient(index)}
+                        style={{
+                          padding: 'var(--spacing-md)',
+                          border: 'none',
+                          background: '#ff4444',
+                          color: 'white',
+                          borderRadius: 'var(--radius-md)',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={addIngredient}
+                style={{
+                  marginTop: 'var(--spacing-md)',
+                  padding: 'var(--spacing-sm) var(--spacing-md)',
+                  border: '1px dashed var(--primary-coral)',
+                  background: 'transparent',
+                  color: 'var(--primary-coral)',
+                  borderRadius: 'var(--radius-md)',
+                  cursor: 'pointer'
+                }}
+              >
+                + Ajouter un ingrédient
+              </button>
+              {errors.ingredients && (
+                <p style={{ color: '#ff4444', fontSize: '0.8rem', marginTop: 'var(--spacing-xs)' }}>
+                  {errors.ingredients}
+                </p>
+              )}
+            </div>
+
+            {/* Instructions */}
+            <div>
+              <h3 style={{ marginBottom: 'var(--spacing-md)' }}>Instructions *</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-sm)' }}>
+                {formData.instructions.map((instruction, index) => (
+                  <div key={index} style={{ display: 'flex', gap: 'var(--spacing-sm)', alignItems: 'flex-start' }}>
+                    <div style={{
+                      background: 'var(--primary-coral)',
+                      color: 'white',
+                      borderRadius: '50%',
+                      width: '32px',
+                      height: '32px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '0.9rem',
+                      fontWeight: '600',
+                      flexShrink: 0,
+                      marginTop: 'var(--spacing-sm)'
+                    }}>
+                      {index + 1}
+                    </div>
+                    <textarea
+                      value={instruction}
+                      onChange={(e) => updateInstruction(index, e.target.value)}
+                      placeholder={`Étape ${index + 1}...`}
+                      rows={2}
+                      style={{
+                        flex: 1,
+                        padding: 'var(--spacing-md)',
+                        border: '1px solid var(--bg-light)',
+                        borderRadius: 'var(--radius-md)',
+                        fontSize: '1rem',
+                        resize: 'vertical'
+                      }}
+                    />
+                    {formData.instructions.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeInstruction(index)}
+                        style={{
+                          padding: 'var(--spacing-sm)',
+                          border: 'none',
+                          background: '#ff4444',
+                          color: 'white',
+                          borderRadius: 'var(--radius-md)',
+                          cursor: 'pointer',
+                          marginTop: 'var(--spacing-sm)'
+                        }}
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={addInstruction}
+                style={{
+                  marginTop: 'var(--spacing-md)',
+                  padding: 'var(--spacing-sm) var(--spacing-md)',
+                  border: '1px dashed var(--primary-coral)',
+                  background: 'transparent',
+                  color: 'var(--primary-coral)',
+                  borderRadius: 'var(--radius-md)',
+                  cursor: 'pointer'
+                }}
+              >
+                + Ajouter une étape
+              </button>
+              {errors.instructions && (
+                <p style={{ color: '#ff4444', fontSize: '0.8rem', marginTop: 'var(--spacing-xs)' }}>
+                  {errors.instructions}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Step 3: Photos */}
+        {step === 3 && (
+          <div>
+            <div style={{ textAlign: 'center', marginBottom: 'var(--spacing-xl)' }}>
+              <div style={{ fontSize: '3rem', marginBottom: 'var(--spacing-md)' }}>📸</div>
+              <h1 style={{ fontSize: '1.5rem', marginBottom: 'var(--spacing-sm)' }}>
+                Photos de votre plat
+              </h1>
+              <p style={{ color: 'var(--text-secondary)' }}>
+                Ajoutez des photos appetissantes de votre création
+              </p>
+            </div>
+
+            <PhotoUpload 
+              onPhotoSelect={handlePhotoSelect}
+              maxFiles={5}
+            />
+            
+            {errors.photos && (
+              <p style={{ color: '#ff4444', fontSize: '0.8rem', marginTop: 'var(--spacing-md)' }}>
+                {errors.photos}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Navigation Buttons */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          marginTop: 'var(--spacing-xl)',
+          paddingTop: 'var(--spacing-lg)',
+          borderTop: '1px solid var(--bg-light)'
+        }}>
+          {step > 1 ? (
+            <button
+              onClick={prevStep}
+              style={{
+                padding: 'var(--spacing-md) var(--spacing-lg)',
+                border: '1px solid var(--primary-coral)',
+                background: 'transparent',
+                color: 'var(--primary-coral)',
+                borderRadius: 'var(--radius-md)',
+                cursor: 'pointer',
+                fontWeight: '500'
+              }}
+            >
+              ← Précédent
+            </button>
+          ) : <div></div>}
+
+          {step < 3 ? (
+            <button
+              onClick={nextStep}
+              style={{
+                padding: 'var(--spacing-md) var(--spacing-lg)',
+                border: 'none',
+                background: 'var(--primary-coral)',
+                color: 'white',
+                borderRadius: 'var(--radius-md)',
+                cursor: 'pointer',
+                fontWeight: '500'
+              }}
+            >
+              Suivant →
+            </button>
+          ) : (
+            <button
+              onClick={submitRecipe}
+              disabled={isSubmitting}
+              style={{
+                padding: 'var(--spacing-md) var(--spacing-lg)',
+                border: 'none',
+                background: isSubmitting ? 'var(--text-light)' : 'var(--primary-coral)',
+                color: 'white',
+                borderRadius: 'var(--radius-md)',
+                cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                fontWeight: '500',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 'var(--spacing-sm)'
+              }}
+            >
+              {isSubmitting && <div style={{
+                width: '16px',
+                height: '16px',
+                border: '2px solid white',
+                borderTop: '2px solid transparent',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite'
+              }}></div>}
+              {isSubmitting ? 'Publication...' : 'Publier la recette'}
+            </button>
+          )}
+        </div>
+      </div>
+
+      <style jsx>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
+    </div>
   )
 }

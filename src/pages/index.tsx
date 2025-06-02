@@ -98,6 +98,15 @@ export default function Home() {
               <h3>Favoris</h3>
               <p>Sauvegardez vos recettes préférées pour les retrouver facilement</p>
             </div>
+            <div className="card text-center fade-in-up">
+              <div style={{ 
+                fontSize: '3rem', 
+                marginBottom: 'var(--spacing-md)',
+                color: 'var(--accent-purple)'
+              }}>🔍</div>
+              <h3>Découverte</h3>
+              <p>Explorez de nouvelles saveurs avec notre système de recommandations intelligentes</p>
+            </div>
           </div>
         </div>
       </section>

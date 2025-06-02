@@ -1,215 +1,315 @@
 /**
- * Système de logging centralisé pour l'application COCO
- * Gère tous les types de logs : erreurs, interactions utilisateur, événements composants, etc.
+ * Système de logging centralisé pour COCO
+ * Supporte différents niveaux de log et environnements
  */
 
-// Niveaux de log
 const LOG_LEVELS = {
-  ERROR: 0,
-  WARN: 1,
-  INFO: 2,
-  DEBUG: 3
+  DEBUG: 0,
+  INFO: 1,
+  WARNING: 2,
+  ERROR: 3
+};
+
+const LOG_COLORS = {
+  DEBUG: '\x1b[36m',    // Cyan
+  INFO: '\x1b[32m',     // Green
+  WARNING: '\x1b[33m',  // Yellow
+  ERROR: '\x1b[31m',    // Red
+  RESET: '\x1b[0m'
 };
 
 // Configuration du logger
-const CONFIG = {
-  level: process.env.NODE_ENV === 'production' ? LOG_LEVELS.WARN : LOG_LEVELS.DEBUG,
+const config = {
+  level: process.env.LOG_LEVEL === 'debug' ? LOG_LEVELS.DEBUG : 
+         process.env.NODE_ENV === 'development' ? LOG_LEVELS.DEBUG : LOG_LEVELS.INFO,
   enableConsole: true,
   enableStorage: typeof window !== 'undefined',
-  maxStoredLogs: 100
+  maxStoredLogs: 100,
+  includeTimestamp: true,
+  includeStackTrace: true
 };
 
-// Générateur d'ID unique pour les logs
-function generateLogId() {
-  return `log-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
-}
+// Storage pour les logs (côté client)
+let logStorage = [];
 
-// Fonction de base pour créer un log
-function createLog(level, message, error = null, context = {}) {
-  const timestamp = new Date().toISOString();
-  const id = generateLogId();
+// Fonction utilitaire pour générer un ID unique
+const generateLogId = () => {
+  return `${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
+};
+
+// Fonction utilitaire pour formater les timestamps
+const formatTimestamp = () => {
+  return new Date().toISOString().replace('T', ' ').substring(0, 19);
+};
+
+// Fonction utilitaire pour détecter l'environnement
+const getEnvironmentInfo = () => {
+  const isClient = typeof window !== 'undefined';
+  const isServer = typeof process !== 'undefined';
   
+  return {
+    isClient,
+    isServer,
+    isProduction: process.env.NODE_ENV === 'production',
+    isDevelopment: process.env.NODE_ENV === 'development',
+    platform: isClient ? 'browser' : 'server',
+    userAgent: isClient ? navigator.userAgent.substring(0, 100) : 'server',
+    url: isClient ? window.location.href : process.env.VERCEL_URL || 'localhost'
+  };
+};
+
+// Fonction principale de logging
+const log = (level, message, data = null, options = {}) => {
+  const logLevel = LOG_LEVELS[level];
+  
+  // Vérifier si ce niveau de log doit être affiché
+  if (logLevel < config.level) {
+    return null;
+  }
+  
+  const timestamp = formatTimestamp();
+  const logId = generateLogId();
+  const env = getEnvironmentInfo();
+  
+  // Créer l'objet de log structuré
   const logEntry = {
-    id,
+    id: logId,
     timestamp,
     level,
     message,
-    context: {
-      ...context,
-      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Server',
-      url: typeof window !== 'undefined' ? window.location.href : 'Server',
-      nodeEnv: process.env.NODE_ENV || 'development'
-    }
+    data,
+    environment: env,
+    ...options
   };
-
-  // Ajouter les détails d'erreur si fournis
-  if (error) {
-    logEntry.error = {
-      name: error.name || 'Error',
-      message: error.message || 'No message',
-      stack: error.stack || 'No stack trace',
-      code: error.code,
-      cause: error.cause
-    };
-  }
-
-  return logEntry;
-}
-
-// Fonction pour afficher les logs dans la console
-function outputToConsole(logEntry) {
-  if (!CONFIG.enableConsole) return;
-
-  const { level, timestamp, message, error, context } = logEntry;
-  const timeStr = new Date(timestamp).toLocaleTimeString();
   
-  const levelEmojis = {
-    [LOG_LEVELS.ERROR]: '❌',
-    [LOG_LEVELS.WARN]: '⚠️',
-    [LOG_LEVELS.INFO]: 'ℹ️',
-    [LOG_LEVELS.DEBUG]: '🔍'
-  };
-
-  const emoji = levelEmojis[level] || 'ℹ️';
-  const prefix = `[${timeStr}] ${emoji}`;
-
-  if (level === LOG_LEVELS.ERROR) {
-    console.error(`${prefix} ${message}`, error || '', context);
-  } else if (level === LOG_LEVELS.WARN) {
-    console.warn(`${prefix} ${message}`, context);
-  } else {
-    console.log(`${prefix} ${message}`, context);
+  // Log vers la console si activé
+  if (config.enableConsole) {
+    const color = LOG_COLORS[level] || '';
+    const reset = LOG_COLORS.RESET;
+    const prefix = `${color}[${timestamp}] ${level}${reset}`;
+    
+    console.log(`${prefix}: ${message}`);
+    
+    if (data) {
+      if (level === 'ERROR' && data instanceof Error) {
+        console.error('Error Details:', {
+          name: data.name,
+          message: data.message,
+          stack: data.stack,
+          ...data
+        });
+      } else {
+        console.log('Data:', data);
+      }
+    }
   }
-}
-
-// Fonction pour stocker les logs localement
-function storeLog(logEntry) {
-  if (!CONFIG.enableStorage) return;
-
-  try {
-    const stored = JSON.parse(localStorage.getItem('coco_logs') || '[]');
-    stored.push(logEntry);
+  
+  // Stocker le log si activé (côté client)
+  if (config.enableStorage && env.isClient) {
+    logStorage.push(logEntry);
     
     // Limiter le nombre de logs stockés
-    if (stored.length > CONFIG.maxStoredLogs) {
-      stored.splice(0, stored.length - CONFIG.maxStoredLogs);
+    if (logStorage.length > config.maxStoredLogs) {
+      logStorage = logStorage.slice(-config.maxStoredLogs);
     }
     
-    localStorage.setItem('coco_logs', JSON.stringify(stored));
-  } catch (err) {
-    console.error('Erreur lors du stockage des logs:', err);
+    // Sauvegarder dans localStorage pour les erreurs critiques
+    if (level === 'ERROR') {
+      try {
+        const existingLogs = JSON.parse(localStorage.getItem('coco_error_logs') || '[]');
+        existingLogs.push(logEntry);
+        
+        // Garder seulement les 20 dernières erreurs
+        const recentLogs = existingLogs.slice(-20);
+        localStorage.setItem('coco_error_logs', JSON.stringify(recentLogs));
+      } catch (e) {
+        console.warn('Impossible de sauvegarder les logs dans localStorage:', e);
+      }
+    }
   }
-}
-
-// Fonction principale de logging
-function log(level, message, error = null, context = {}) {
-  if (level > CONFIG.level) return null;
-
-  const logEntry = createLog(level, message, error, context);
-  
-  outputToConsole(logEntry);
-  storeLog(logEntry);
   
   return logEntry;
-}
+};
 
-// Fonctions publiques pour différents types de logs
-export function logError(message, error = null, context = {}) {
-  return log(LOG_LEVELS.ERROR, message, error, { ...context, type: 'ERROR' });
-}
+// Fonctions spécialisées pour chaque niveau
+export const logDebug = (message, data = null) => {
+  return log('DEBUG', message, data);
+};
 
-export function logWarning(message, context = {}) {
-  return log(LOG_LEVELS.WARN, message, null, { ...context, type: 'WARNING' });
-}
+export const logInfo = (message, data = null) => {
+  return log('INFO', message, data);
+};
 
-export function logInfo(message, context = {}) {
-  return log(LOG_LEVELS.INFO, message, null, { ...context, type: 'INFO' });
-}
+export const logWarning = (message, data = null) => {
+  return log('WARNING', message, data);
+};
 
-export function logDebug(message, context = {}) {
-  return log(LOG_LEVELS.DEBUG, message, null, { ...context, type: 'DEBUG' });
-}
-
-// Logs spécifiques pour les erreurs frontend
-export function logFrontendError(error, context = {}) {
-  return logError('Erreur frontend détectée', error, {
-    ...context,
-    category: 'FRONTEND_ERROR',
-    timestamp: new Date().toISOString()
+export const logError = (message, error = null, context = null) => {
+  const errorData = {
+    error: error instanceof Error ? {
+      name: error.name,
+      message: error.message,
+      stack: config.includeStackTrace ? error.stack : null,
+      cause: error.cause
+    } : error,
+    context
+  };
+  
+  return log('ERROR', message, errorData, { 
+    critical: true,
+    needsReporting: true 
   });
-}
+};
 
-// Logs pour les événements de composants
-export function logComponentEvent(componentName, eventType, context = {}) {
-  return logDebug(`${componentName} - ${eventType}`, {
-    ...context,
-    category: 'COMPONENT_EVENT',
-    component: componentName,
-    event: eventType
-  });
-}
-
-// Logs pour les interactions utilisateur
-export function logUserInteraction(action, element, details = null) {
-  const timestamp = new Date().toISOString()
-  const context = {
+// Fonctions spécialisées pour différents types d'événements
+export const logUserInteraction = (action, element, data = null) => {
+  return logInfo(`User: ${action}`, {
+    type: 'user_interaction',
     action,
     element,
-    timestamp,
-    url: typeof window !== 'undefined' ? window.location.href : 'Server',
-    userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Server',
-    ...details
-  }
-  
-  return log(LOG_LEVELS.INFO, `Interaction utilisateur: ${action}`, null, { 
-    ...context, 
-    type: 'USER_INTERACTION',
-    category: 'USER_INTERACTION'
-  })
-}
+    timestamp: Date.now(),
+    ...data
+  });
+};
 
-// Fonction pour récupérer les logs stockés
-export function getStoredLogs() {
-  if (!CONFIG.enableStorage) return [];
+export const logAPICall = (method, endpoint, status, duration = null, data = null) => {
+  const level = status >= 400 ? 'ERROR' : status >= 300 ? 'WARNING' : 'INFO';
+  return log(level, `API: ${method} ${endpoint} - ${status}`, {
+    type: 'api_call',
+    method,
+    endpoint,
+    status,
+    duration,
+    ...data
+  });
+};
+
+export const logComponentEvent = (component, event, data = null) => {
+  return logDebug(`Component: ${component} - ${event}`, {
+    type: 'component_event',
+    component,
+    event,
+    ...data
+  });
+};
+
+export const logPerformance = (metric, value, context = null) => {
+  return logInfo(`Performance: ${metric}`, {
+    type: 'performance',
+    metric,
+    value,
+    unit: typeof value === 'number' ? 'ms' : 'unknown',
+    context
+  });
+};
+
+export const logFrontendError = (error, context = null) => {
+  const errorId = generateLogId();
+  
+  return logError('Frontend Error', error, {
+    errorId,
+    type: 'frontend_error',
+    url: typeof window !== 'undefined' ? window.location.href : 'unknown',
+    userAgent: typeof window !== 'undefined' ? navigator.userAgent : 'unknown',
+    timestamp: Date.now(),
+    ...context
+  });
+};
+
+// Fonctions utilitaires pour récupérer les logs
+export const getStoredLogs = (level = null) => {
+  if (level) {
+    return logStorage.filter(log => log.level === level);
+  }
+  return [...logStorage];
+};
+
+export const getErrorLogs = () => {
+  if (typeof window === 'undefined') return [];
   
   try {
-    return JSON.parse(localStorage.getItem('coco_logs') || '[]');
-  } catch (err) {
-    console.error('Erreur lors de la récupération des logs:', err);
+    return JSON.parse(localStorage.getItem('coco_error_logs') || '[]');
+  } catch (e) {
+    console.warn('Erreur lors de la récupération des logs d\'erreur:', e);
     return [];
   }
-}
+};
 
-// Fonction pour vider les logs stockés
-export function clearStoredLogs() {
-  if (!CONFIG.enableStorage) return;
+export const clearStoredLogs = () => {
+  logStorage = [];
   
-  try {
-    localStorage.removeItem('coco_logs');
-    logInfo('Logs locaux vidés');
-  } catch (err) {
-    console.error('Erreur lors du vidage des logs:', err);
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.removeItem('coco_error_logs');
+    } catch (e) {
+      console.warn('Erreur lors de la suppression des logs:', e);
+    }
   }
-}
+};
 
-// Fonction pour exporter les logs
-export function exportLogs() {
-  const logs = getStoredLogs();
-  const dataStr = JSON.stringify(logs, null, 2);
-  const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+// Fonction pour exporter les logs (pour debugging)
+export const exportLogs = () => {
+  const allLogs = {
+    memoryLogs: logStorage,
+    errorLogs: getErrorLogs(),
+    environment: getEnvironmentInfo(),
+    config,
+    exportedAt: new Date().toISOString()
+  };
   
-  const exportFileDefaultName = `coco-logs-${new Date().toISOString().split('T')[0]}.json`;
+  if (typeof window !== 'undefined') {
+    const blob = new Blob([JSON.stringify(allLogs, null, 2)], { 
+      type: 'application/json' 
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `coco-logs-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
   
-  const linkElement = document.createElement('a');
-  linkElement.setAttribute('href', dataUri);
-  linkElement.setAttribute('download', exportFileDefaultName);
-  linkElement.click();
-  
-  logInfo('Logs exportés', { filename: exportFileDefaultName, logsCount: logs.length });
-}
+  return allLogs;
+};
 
-// Configuration du niveau de log
-export function setLogLevel(level) {
-  CONFIG.level = level;
-  logInfo('Niveau de log modifié', { newLevel: level });
-}
+// Configuration du logger pour différents environnements
+export const configureLogger = (newConfig) => {
+  Object.assign(config, newConfig);
+  logInfo('Logger configuration updated', newConfig);
+};
+
+// Hook React pour utiliser le logger
+export const useLogger = () => {
+  return {
+    debug: logDebug,
+    info: logInfo,
+    warning: logWarning,
+    error: logError,
+    userInteraction: logUserInteraction,
+    apiCall: logAPICall,
+    componentEvent: logComponentEvent,
+    performance: logPerformance,
+    frontendError: logFrontendError,
+    getStoredLogs,
+    clearStoredLogs,
+    exportLogs
+  };
+};
+
+// Export par défaut
+export default {
+  debug: logDebug,
+  info: logInfo,
+  warning: logWarning,
+  error: logError,
+  userInteraction: logUserInteraction,
+  apiCall: logAPICall,
+  componentEvent: logComponentEvent,
+  performance: logPerformance,
+  frontendError: logFrontendError,
+  getStoredLogs,
+  getErrorLogs,
+  clearStoredLogs,
+  exportLogs,
+  configureLogger
+};
