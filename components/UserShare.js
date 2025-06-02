@@ -46,22 +46,80 @@ export default function UserShare({ recipe, isOpen, onClose }) {
   if (!isOpen) return null
 
   return (
-    <div className={styles.overlay}>
-      <div className={styles.modal}>
-        <div className={styles.header}>
-          <h3>Partager avec des amis</h3>
-          <button className={styles.closeBtn} onClick={onClose}>
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'rgba(0, 0, 0, 0.6)',
+      zIndex: 1000,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 'var(--spacing-md)'
+    }}>
+      <div style={{
+        background: 'white',
+        borderRadius: 'var(--border-radius-large)',
+        width: '100%',
+        maxWidth: '500px',
+        maxHeight: '90vh',
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column'
+      }}>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: 'var(--spacing-lg)',
+          borderBottom: '1px solid var(--border-light)'
+        }}>
+          <h3 style={{ margin: 0, color: 'var(--primary-orange)' }}>Partager avec des amis</h3>
+          <button 
+            onClick={onClose}
+            style={{
+              background: 'none',
+              border: 'none',
+              fontSize: '1.5rem',
+              cursor: 'pointer',
+              color: 'var(--text-medium)'
+            }}
+          >
             ✕
           </button>
         </div>
 
-        <div className={styles.recipePreview}>
-          <img src={recipe?.image} alt={recipe?.title} className={styles.recipeImage} />
-          <div>
-            <h4>{recipe?.title}</h4>
-            <p>{recipe?.description}</p>
+        {recipe && (
+          <div style={{
+            display: 'flex',
+            gap: 'var(--spacing-md)',
+            padding: 'var(--spacing-lg)',
+            borderBottom: '1px solid var(--border-light)'
+          }}>
+            {recipe.image && (
+              <img 
+                src={recipe.image} 
+                alt={recipe.title}
+                style={{
+                  width: '60px',
+                  height: '60px',
+                  borderRadius: 'var(--border-radius-medium)',
+                  objectFit: 'cover'
+                }}
+              />
+            )}
+            <div>
+              <h4 style={{ margin: '0 0 var(--spacing-xs) 0', color: 'var(--primary-orange)' }}>
+                {recipe.title}
+              </h4>
+              <p style={{ margin: 0, color: 'var(--text-medium)', fontSize: '0.9rem' }}>
+                {recipe.description}
+              </p>
+            </div>
           </div>
-        </div>
+        )}
 
         <div className={styles.searchContainer}>
           <input
@@ -103,13 +161,32 @@ export default function UserShare({ recipe, isOpen, onClose }) {
         </div>
 
         <div className={styles.actions}>
-          <button className={styles.cancelBtn} onClick={onClose}>
+          <button 
+            onClick={onClose}
+            style={{
+              flex: 1,
+              padding: 'var(--spacing-md)',
+              background: 'var(--text-light)',
+              color: 'white',
+              border: 'none',
+              borderRadius: 'var(--border-radius-medium)',
+              cursor: 'pointer'
+            }}
+          >
             Annuler
           </button>
           <button 
-            className={styles.sendBtn} 
             onClick={handleSend}
             disabled={selectedUsers.length === 0}
+            style={{
+              flex: 1,
+              padding: 'var(--spacing-md)',
+              background: selectedUsers.length === 0 ? 'var(--text-light)' : 'var(--primary-orange)',
+              color: 'white',
+              border: 'none',
+              borderRadius: 'var(--border-radius-medium)',
+              cursor: selectedUsers.length === 0 ? 'not-allowed' : 'pointer'
+            }}
           >
             Partager ({selectedUsers.length})
           </button>
