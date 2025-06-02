@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import Image from 'next/image'
@@ -10,6 +10,7 @@ export default function SubmitRecipe() {
   const { user } = useAuth()
   const [step, setStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const fileInputRef = useRef(null)
   
   const [formData, setFormData] = useState({
@@ -377,8 +378,31 @@ export default function SubmitRecipe() {
     </div>
   )
 
+  useEffect(() => {
+    if (!user) {
+      router.push('/login?redirect=' + encodeURIComponent('/submit-recipe'))
+      return
+    }
+    setIsLoading(false)
+  }, [user, router])
+
+  if (isLoading) {
+    return (
+      <div className={styles.container}>
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          height: '100vh',
+          color: '#666'
+        }}>
+          Chargement...
+        </div>
+      </div>
+    )
+  }
+
   if (!user) {
-    router.push('/login?redirect=' + encodeURIComponent('/submit-recipe'))
     return null
   }
 
