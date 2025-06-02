@@ -122,59 +122,106 @@ export default function SubmitRecipe() {
       <div className={styles.stepHeader}>
         <h2>📝 Informations de base</h2>
         <p>Donnez vie à votre recette</p>
-      </div>
-
-      <div className={styles.formGroup}>
-        <label>Titre de la recette *</label>
-        <input
-          type="text"
-          placeholder="Ex: Pasta Carbonara Authentique"
-          value={formData.title}
-          onChange={(e) => handleInputChange('title', e.target.value)}
-          className={styles.input}
-        />
-      </div>
-
-      <div className={styles.formGroup}>
-        <label>Description</label>
-        <textarea
-          placeholder="Décrivez votre recette en quelques mots..."
-          value={formData.description}
-          onChange={(e) => handleInputChange('description', e.target.value)}
-          className={styles.textarea}
-          rows={3}
-        />
-      </div>
-
-      <div className={styles.formRow}>
-        <div className={styles.formGroup}>
-          <label>Temps de préparation</label>
-          <input
-            type="number"
-            placeholder="15"
-            value={formData.prepTime}
-            onChange={(e) => handleInputChange('prepTime', e.target.value)}
-            className={styles.input}
-          />
-          <span className={styles.unit}>min</span>
-        </div>
-        <div className={styles.formGroup}>
-          <label>Temps de cuisson</label>
-          <input
-            type="number"
-            placeholder="30"
-            value={formData.cookTime}
-            onChange={(e) => handleInputChange('cookTime', e.target.value)}
-            className={styles.input}
-          />
-          <span className={styles.unit}>min</span>
+        <div className={styles.progressInfo}>
+          Étape 1/3 - Informations générales
         </div>
       </div>
 
-      <div className={styles.formRow}>
+      <div className={styles.formSection}>
         <div className={styles.formGroup}>
-          <label>Portions</label>
-          <div className={styles.potionSelector}>
+          <label className={styles.requiredLabel}>
+            Titre de la recette <span className={styles.required}>*</span>
+          </label>
+          <input
+            type="text"
+            placeholder="Ex: Pasta Carbonara Authentique"
+            value={formData.title}
+            onChange={(e) => handleInputChange('title', e.target.value)}
+            className={styles.input}
+          />
+        </div>
+
+        <div className={styles.formGroup}>
+          <label>Description</label>
+          <textarea
+            placeholder="Décrivez votre recette en quelques mots..."
+            value={formData.description}
+            onChange={(e) => handleInputChange('description', e.target.value)}
+            className={styles.textarea}
+            rows={4}
+          />
+        </div>
+
+        <div className={styles.formGroup}>
+          <label>Catégorie</label>
+          <div className={styles.categoryGrid}>
+            {categories.map(cat => (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => handleInputChange('category', cat.id)}
+                className={`${styles.categoryBtn} ${formData.category === cat.id ? styles.active : ''}`}
+              >
+                <span className={styles.emoji}>{cat.emoji}</span>
+                <span>{cat.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className={styles.formGroup}>
+          <label>Difficulté</label>
+          <div className={styles.difficultySelector}>
+            {difficulties.map(diff => (
+              <button
+                key={diff.value}
+                type="button"
+                onClick={() => handleInputChange('difficulty', diff.value)}
+                className={`${styles.difficultyBtn} ${formData.difficulty === diff.value ? styles.active : ''}`}
+                style={{ '--accent-color': diff.color }}
+              >
+                <span className={styles.emoji}>{diff.emoji}</span>
+                <span>{diff.value}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className={styles.timeSection}>
+          <h3>⏱️ Temps de préparation</h3>
+          <div className={styles.formRow}>
+            <div className={styles.formGroup}>
+              <label>Préparation</label>
+              <div className={styles.inputWithUnit}>
+                <input
+                  type="number"
+                  placeholder="15"
+                  value={formData.prepTime}
+                  onChange={(e) => handleInputChange('prepTime', e.target.value)}
+                  className={styles.input}
+                />
+                <span className={styles.unit}>min</span>
+              </div>
+            </div>
+            <div className={styles.formGroup}>
+              <label>Cuisson</label>
+              <div className={styles.inputWithUnit}>
+                <input
+                  type="number"
+                  placeholder="30"
+                  value={formData.cookTime}
+                  onChange={(e) => handleInputChange('cookTime', e.target.value)}
+                  className={styles.input}
+                />
+                <span className={styles.unit}>min</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className={styles.formGroup}>
+          <label>Nombre de portions</label>
+          <div className={styles.portionSelector}>
             {[1,2,3,4,5,6,8,10].map(num => (
               <button
                 key={num}
@@ -188,41 +235,6 @@ export default function SubmitRecipe() {
           </div>
         </div>
       </div>
-
-      <div className={styles.formGroup}>
-        <label>Difficulté</label>
-        <div className={styles.difficultySelector}>
-          {difficulties.map(diff => (
-            <button
-              key={diff.value}
-              type="button"
-              onClick={() => handleInputChange('difficulty', diff.value)}
-              className={`${styles.difficultyBtn} ${formData.difficulty === diff.value ? styles.active : ''}`}
-              style={{ '--accent-color': diff.color }}
-            >
-              <span className={styles.emoji}>{diff.emoji}</span>
-              <span>{diff.value}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className={styles.formGroup}>
-        <label>Catégorie</label>
-        <div className={styles.categoryGrid}>
-          {categories.map(cat => (
-            <button
-              key={cat.id}
-              type="button"
-              onClick={() => handleInputChange('category', cat.id)}
-              className={`${styles.categoryBtn} ${formData.category === cat.id ? styles.active : ''}`}
-            >
-              <span className={styles.emoji}>{cat.emoji}</span>
-              <span>{cat.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
     </div>
   )
 
@@ -231,80 +243,104 @@ export default function SubmitRecipe() {
       <div className={styles.stepHeader}>
         <h2>🥘 Ingrédients & Instructions</h2>
         <p>Le cœur de votre recette</p>
+        <div className={styles.progressInfo}>
+          Étape 2/3 - Contenu de la recette
+        </div>
       </div>
 
-      <div className={styles.formGroup}>
-        <label>Ingrédients *</label>
-        {formData.ingredients.map((ingredient, index) => (
-          <div key={index} className={styles.arrayInput}>
-            <input
-              type="text"
-              placeholder={`Ingrédient ${index + 1}...`}
-              value={ingredient}
-              onChange={(e) => handleArrayChange('ingredients', index, e.target.value)}
-              className={styles.input}
-            />
-            {formData.ingredients.length > 1 && (
-              <button
-                type="button"
-                onClick={() => removeArrayItem('ingredients', index)}
-                className={styles.removeBtn}
-              >
-                ✕
-              </button>
-            )}
-          </div>
-        ))}
-        <button
-          type="button"
-          onClick={() => addArrayItem('ingredients')}
-          className={styles.addBtn}
-        >
-          ➕ Ajouter un ingrédient
-        </button>
-      </div>
+      <div className={styles.formSection}>
+        <div className={styles.ingredientsSection}>
+          <h3>
+            📋 Ingrédients <span className={styles.required}>*</span>
+          </h3>
+          <p className={styles.sectionHelp}>
+            Listez tous les ingrédients nécessaires avec leurs quantités
+          </p>
+          {formData.ingredients.map((ingredient, index) => (
+            <div key={index} className={styles.arrayInput}>
+              <span className={styles.itemNumber}>{index + 1}.</span>
+              <input
+                type="text"
+                placeholder={`Ex: 200g de spaghetti`}
+                value={ingredient}
+                onChange={(e) => handleArrayChange('ingredients', index, e.target.value)}
+                className={styles.input}
+              />
+              {formData.ingredients.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => removeArrayItem('ingredients', index)}
+                  className={styles.removeBtn}
+                  title="Supprimer cet ingrédient"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={() => addArrayItem('ingredients')}
+            className={styles.addBtn}
+          >
+            ➕ Ajouter un ingrédient
+          </button>
+        </div>
 
-      <div className={styles.formGroup}>
-        <label>Instructions *</label>
-        {formData.instructions.map((instruction, index) => (
-          <div key={index} className={styles.arrayInput}>
-            <textarea
-              placeholder={`Étape ${index + 1}...`}
-              value={instruction}
-              onChange={(e) => handleArrayChange('instructions', index, e.target.value)}
-              className={styles.textarea}
-              rows={2}
-            />
-            {formData.instructions.length > 1 && (
-              <button
-                type="button"
-                onClick={() => removeArrayItem('instructions', index)}
-                className={styles.removeBtn}
-              >
-                ✕
-              </button>
-            )}
-          </div>
-        ))}
-        <button
-          type="button"
-          onClick={() => addArrayItem('instructions')}
-          className={styles.addBtn}
-        >
-          ➕ Ajouter une étape
-        </button>
-      </div>
+        <div className={styles.instructionsSection}>
+          <h3>
+            👩‍🍳 Instructions <span className={styles.required}>*</span>
+          </h3>
+          <p className={styles.sectionHelp}>
+            Décrivez chaque étape de préparation de manière claire et détaillée
+          </p>
+          {formData.instructions.map((instruction, index) => (
+            <div key={index} className={styles.arrayInput}>
+              <span className={styles.itemNumber}>Étape {index + 1}</span>
+              <textarea
+                placeholder={`Ex: Faire bouillir une grande casserole d'eau salée...`}
+                value={instruction}
+                onChange={(e) => handleArrayChange('instructions', index, e.target.value)}
+                className={styles.textarea}
+                rows={3}
+              />
+              {formData.instructions.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => removeArrayItem('instructions', index)}
+                  className={styles.removeBtn}
+                  title="Supprimer cette étape"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={() => addArrayItem('instructions')}
+            className={styles.addBtn}
+          >
+            ➕ Ajouter une étape
+          </button>
+        </div>
 
-      <div className={styles.formGroup}>
-        <label>Tags</label>
-        <input
-          type="text"
-          placeholder="#italien #pasta #authentique"
-          value={formData.tags}
-          onChange={(e) => handleInputChange('tags', e.target.value)}
-          className={styles.input}
-        />
-        <small>Séparez les tags par des espaces</small>
+        <div className={styles.tagsSection}>
+          <h3>🏷️ Tags</h3>
+          <p className={styles.sectionHelp}>
+            Ajoutez des mots-clés pour aider les autres à trouver votre recette
+          </p>
+          <input
+            type="text"
+            placeholder="#italien #pasta #authentique #fait-maison"
+            value={formData.tags}
+            onChange={(e) => handleInputChange('tags', e.target.value)}
+            className={styles.input}
+          />
+          <small className={styles.inputHelp}>
+            Séparez les tags par des espaces. Ex: #italien #rapide #vegetarien
+          </small>
+        </div>
       </div>
     </div>
   )
@@ -314,66 +350,108 @@ export default function SubmitRecipe() {
       <div className={styles.stepHeader}>
         <h2>📸 Photos & Vidéos</h2>
         <p>Rendez votre recette irrésistible</p>
+        <div className={styles.progressInfo}>
+          Étape 3/3 - Médias et finalisation
+        </div>
       </div>
 
-      <div className={styles.mediaUpload}>
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          accept="image/*,video/*"
-          onChange={handleMediaUpload}
-          className={styles.hiddenInput}
-        />
-        
-        {formData.media.length === 0 ? (
-          <div 
-            className={styles.uploadZone}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <div className={styles.uploadIcon}>📸</div>
-            <h3>Ajoutez vos médias</h3>
-            <p>Photos ou vidéos de votre recette</p>
-            <button type="button" className={styles.uploadBtn}>
-              Choisir des fichiers
-            </button>
-          </div>
-        ) : (
-          <div className={styles.mediaGrid}>
-            {formData.media.map((media, index) => (
-              <div key={index} className={styles.mediaItem}>
-                {media.type === 'video' ? (
-                  <video
-                    src={media.url}
-                    className={styles.mediaPreview}
-                    controls
-                  />
-                ) : (
-                  <Image
-                    src={media.url}
-                    alt={`Media ${index + 1}`}
-                    width={200}
-                    height={200}
-                    className={styles.mediaPreview}
-                  />
-                )}
-                <button
-                  type="button"
-                  onClick={() => removeMedia(index)}
-                  className={styles.removeMediaBtn}
-                >
-                  ✕
+      <div className={styles.formSection}>
+        <div className={styles.mediaSection}>
+          <h3>🖼️ Ajoutez vos médias</h3>
+          <p className={styles.sectionHelp}>
+            Les photos et vidéos rendent votre recette plus attractive. 
+            Vous pouvez ajouter plusieurs médias.
+          </p>
+          
+          <div className={styles.mediaUpload}>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="image/*,video/*"
+              onChange={handleMediaUpload}
+              className={styles.hiddenInput}
+            />
+            
+            {formData.media.length === 0 ? (
+              <div 
+                className={styles.uploadZone}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <div className={styles.uploadIcon}>📸</div>
+                <h4>Ajoutez vos médias</h4>
+                <p>Photos ou vidéos de votre recette</p>
+                <button type="button" className={styles.uploadBtn}>
+                  📁 Choisir des fichiers
                 </button>
+                <small className={styles.uploadHelp}>
+                  Formats acceptés: JPG, PNG, MP4, MOV
+                </small>
               </div>
-            ))}
-            <div 
-              className={styles.addMediaBtn}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              ➕
+            ) : (
+              <>
+                <div className={styles.mediaGrid}>
+                  {formData.media.map((media, index) => (
+                    <div key={index} className={styles.mediaItem}>
+                      {media.type === 'video' ? (
+                        <video
+                          src={media.url}
+                          className={styles.mediaPreview}
+                          controls
+                        />
+                      ) : (
+                        <Image
+                          src={media.url}
+                          alt={`Media ${index + 1}`}
+                          width={200}
+                          height={200}
+                          className={styles.mediaPreview}
+                        />
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => removeMedia(index)}
+                        className={styles.removeMediaBtn}
+                        title="Supprimer ce média"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                  <div 
+                    className={styles.addMediaBtn}
+                    onClick={() => fileInputRef.current?.click()}
+                    title="Ajouter plus de médias"
+                  >
+                    ➕
+                  </div>
+                </div>
+                <p className={styles.mediaCount}>
+                  {formData.media.length} média{formData.media.length > 1 ? 's' : ''} ajouté{formData.media.length > 1 ? 's' : ''}
+                </p>
+              </>
+            )}
+          </div>
+        </div>
+
+        <div className={styles.recapSection}>
+          <h3>📋 Récapitulatif de votre recette</h3>
+          <div className={styles.recapCard}>
+            <h4>{formData.title || 'Titre de la recette'}</h4>
+            <div className={styles.recapDetails}>
+              <span>📂 {formData.category ? categories.find(c => c.id === formData.category)?.label : 'Catégorie'}</span>
+              <span>🔥 {formData.difficulty}</span>
+              <span>👥 {formData.portions} portion{formData.portions > 1 ? 's' : ''}</span>
+              {formData.prepTime && <span>⏱️ {formData.prepTime}min prep</span>}
+              {formData.cookTime && <span>🍳 {formData.cookTime}min cuisson</span>}
+            </div>
+            <div className={styles.recapStats}>
+              <span>{formData.ingredients.filter(i => i).length} ingrédient{formData.ingredients.filter(i => i).length > 1 ? 's' : ''}</span>
+              <span>{formData.instructions.filter(i => i).length} étape{formData.instructions.filter(i => i).length > 1 ? 's' : ''}</span>
+              <span>{formData.media.length} média{formData.media.length > 1 ? 's' : ''}</span>
             </div>
           </div>
-        )}
+        </div>
       </div>
     </div>
   )
@@ -422,16 +500,26 @@ export default function SubmitRecipe() {
         </button>
         <h1>Créer une recette</h1>
         <div className={styles.stepIndicator}>
-          <span className={step >= 1 ? styles.active : ''}></span>
-          <span className={step >= 2 ? styles.active : ''}></span>
-          <span className={step >= 3 ? styles.active : ''}></span>
+          <div className={`${styles.stepDot} ${step >= 1 ? styles.active : ''}`}>
+            <span>1</span>
+          </div>
+          <div className={`${styles.stepLine} ${step >= 2 ? styles.active : ''}`}></div>
+          <div className={`${styles.stepDot} ${step >= 2 ? styles.active : ''}`}>
+            <span>2</span>
+          </div>
+          <div className={`${styles.stepLine} ${step >= 3 ? styles.active : ''}`}></div>
+          <div className={`${styles.stepDot} ${step >= 3 ? styles.active : ''}`}>
+            <span>3</span>
+          </div>
         </div>
       </div>
 
       <div className={styles.formContainer}>
-        {step === 1 && renderStep1()}
-        {step === 2 && renderStep2()}
-        {step === 3 && renderStep3()}
+        <div className={styles.formWrapper}>
+          {step === 1 && renderStep1()}
+          {step === 2 && renderStep2()}
+          {step === 3 && renderStep3()}
+        </div>
 
         <div className={styles.actions}>
           {step > 1 && (
@@ -443,6 +531,18 @@ export default function SubmitRecipe() {
               ← Précédent
             </button>
           )}
+          
+          <div className={styles.actionInfo}>
+            {step === 1 && !formData.title && (
+              <small>Veuillez renseigner au minimum le titre</small>
+            )}
+            {step === 2 && formData.ingredients.every(i => !i) && (
+              <small>Ajoutez au moins un ingrédient</small>
+            )}
+            {step === 3 && (
+              <small>Les médias sont optionnels mais recommandés</small>
+            )}
+          </div>
           
           {step < 3 ? (
             <button
