@@ -5,12 +5,14 @@ import { useAuth } from '../components/AuthContext'
 import { logUserInteraction, logInfo, logDebug, logError } from '../utils/logger'
 import { retryOperation } from '../utils/retryOperation'
 import { supabase } from '../lib/supabase'
+import { useErrorHandler, handleError, withErrorHandling } from '../utils/errorHandler'
 import PhotoUpload from '../components/PhotoUpload'
 import ErrorDisplay from '../components/ErrorDisplay'
 
 export default function SubmitRecipe() {
   const router = useRouter()
   const { user } = useAuth()
+  const { lastError, handleError: handleComponentError, clearError, retryLastAction } = useErrorHandler()
   const [step, setStep] = useState(1)
   const [formData, setFormData] = useState({
     title: '',
@@ -39,61 +41,75 @@ export default function SubmitRecipe() {
   const difficulties = ['Facile', 'Moyen', 'Difficile']
 
   useEffect(() => {
-    logUserInteraction('PAGE_VISIT', 'submit-recipe', { step })
-  }, [step])
+    try {
+      logUserInteraction('PAGE_VISIT', 'submit-recipe', { step })
+    } catch (error) {
+      handleComponentError(error, { component: 'SubmitRecipe', action: 'page_visit' })
+    }
+  }, [step, handleComponentError])
 
   const validateStep = (stepNumber) => {
-    const newErrors = {}
+    try {
+      const newErrors = {}
 
-    if (stepNumber === 1) {
-      if (!formData.title.trim()) {
-        newErrors.title = 'Le titre est obligatoire'
-      } else if (formData.title.length < 3) {
-        newErrors.title = 'Le titre doit contenir au moins 3 caractères'
+      if (stepNumber === 1) {
+        if (!formData.title.trim()) {
+          newErrors.title = 'Le titre est obligatoire'
+        } else if (formData.title.length < 3) {
+          newErrors.title = 'Le titre doit contenir au moins 3 caractères'
+        }
+
+        if (!formData.description.trim()) {
+          newErrors.description = 'La description est obligatoire'
+        } else if (formData.description.length < 10) {
+          newErrors.description = 'La description doit contenir au moins 10 caractères'
+        }
+
+        if (!formData.category) {
+          newErrors.category = 'Veuillez sélectionner une catégorie'
+        }
       }
 
-      if (!formData.description.trim()) {
-        newErrors.description = 'La description est obligatoire'
-      } else if (formData.description.length < 10) {
-        newErrors.description = 'La description doit contenir au moins 10 caractères'
+      if (stepNumber === 2) {
+        const validIngredients = formData.ingredients.filter(ing => ing.trim())
+        if (validIngredients.length < 2) {
+          newErrors.ingredients = 'Au moins 2 ingrédients sont requis'
+        }
+
+        const validInstructions = formData.instructions.filter(inst => inst.trim())
+        if (validInstructions.length < 2) {
+          newErrors.instructions = 'Au moins 2 étapes sont requises'
+        }
       }
 
-      if (!formData.category) {
-        newErrors.category = 'Veuillez sélectionner une catégorie'
+      if (stepNumber === 3) {
+        if (photos.length === 0) {
+          newErrors.photos = 'Au moins une photo est requise'
+        }
+
+        const hasProcessingPhotos = photos.some(photo => photo.processing)
+        const hasErrorPhotos = photos.some(photo => photo.error)
+
+        if (hasProcessingPhotos) {
+          newErrors.photos = 'Attendez que toutes les photos soient traitées'
+        }
+
+        if (hasErrorPhotos) {
+          newErrors.photos = 'Certaines photos contiennent des erreurs'
+        }
       }
+
+      setErrors(newErrors)
+      return Object.keys(newErrors).length === 0
+    } catch (error) {
+      const errorResult = handleComponentError(error, { 
+        component: 'SubmitRecipe', 
+        action: 'validate_step',
+        step: stepNumber 
+      })
+      setCurrentError(errorResult.error)
+      return false
     }
-
-    if (stepNumber === 2) {
-      const validIngredients = formData.ingredients.filter(ing => ing.trim())
-      if (validIngredients.length < 2) {
-        newErrors.ingredients = 'Au moins 2 ingrédients sont requis'
-      }
-
-      const validInstructions = formData.instructions.filter(inst => inst.trim())
-      if (validInstructions.length < 2) {
-        newErrors.instructions = 'Au moins 2 étapes sont requises'
-      }
-    }
-
-    if (stepNumber === 3) {
-      if (photos.length === 0) {
-        newErrors.photos = 'Au moins une photo est requise'
-      }
-
-      const hasProcessingPhotos = photos.some(photo => photo.processing)
-      const hasErrorPhotos = photos.some(photo => photo.error)
-
-      if (hasProcessingPhotos) {
-        newErrors.photos = 'Attendez que toutes les photos soient traitées'
-      }
-
-      if (hasErrorPhotos) {
-        newErrors.photos = 'Certaines photos contiennent des erreurs'
-      }
-    }
-
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
   }
 
   const handleInputChange = (field, value) => {
@@ -113,19 +129,27 @@ export default function SubmitRecipe() {
   }
 
   const addIngredient = () => {
-    setFormData(prev => ({
-      ...prev,
-      ingredients: [...prev.ingredients, '']
-    }))
-    logUserInteraction('ADD_INGREDIENT', 'button-add-ingredient')
+    try {
+      setFormData(prev => ({
+        ...prev,
+        ingredients: [...prev.ingredients, '']
+      }))
+      logUserInteraction('ADD_INGREDIENT', 'button-add-ingredient')
+    } catch (error) {
+      handleComponentError(error, { component: 'SubmitRecipe', action: 'add_ingredient' })
+    }
   }
 
   const removeIngredient = (index) => {
-    setFormData(prev => ({
-      ...prev,
-      ingredients: prev.ingredients.filter((_, i) => i !== index)
-    }))
-    logUserInteraction('REMOVE_INGREDIENT', 'button-remove-ingredient', { index })
+    try {
+      setFormData(prev => ({
+        ...prev,
+        ingredients: prev.ingredients.filter((_, i) => i !== index)
+      }))
+      logUserInteraction('REMOVE_INGREDIENT', 'button-remove-ingredient', { index })
+    } catch (error) {
+      handleComponentError(error, { component: 'SubmitRecipe', action: 'remove_ingredient', index })
+    }
   }
 
   const updateIngredient = (index, value) => {
@@ -136,19 +160,27 @@ export default function SubmitRecipe() {
   }
 
   const addInstruction = () => {
-    setFormData(prev => ({
-      ...prev,
-      instructions: [...prev.instructions, '']
-    }))
-    logUserInteraction('ADD_INSTRUCTION', 'button-add-instruction')
+    try {
+      setFormData(prev => ({
+        ...prev,
+        instructions: [...prev.instructions, '']
+      }))
+      logUserInteraction('ADD_INSTRUCTION', 'button-add-instruction')
+    } catch (error) {
+      handleComponentError(error, { component: 'SubmitRecipe', action: 'add_instruction' })
+    }
   }
 
   const removeInstruction = (index) => {
-    setFormData(prev => ({
-      ...prev,
-      instructions: prev.instructions.filter((_, i) => i !== index)
-    }))
-    logUserInteraction('REMOVE_INSTRUCTION', 'button-remove-instruction', { index })
+    try {
+      setFormData(prev => ({
+        ...prev,
+        instructions: prev.instructions.filter((_, i) => i !== index)
+      }))
+      logUserInteraction('REMOVE_INSTRUCTION', 'button-remove-instruction', { index })
+    } catch (error) {
+      handleComponentError(error, { component: 'SubmitRecipe', action: 'remove_instruction', index })
+    }
   }
 
   const updateInstruction = (index, value) => {
@@ -159,121 +191,145 @@ export default function SubmitRecipe() {
   }
 
   const nextStep = () => {
-    if (validateStep(step)) {
-      setStep(prev => prev + 1)
-      logUserInteraction('NEXT_STEP', 'button-next-step', { fromStep: step, toStep: step + 1 })
+    try {
+      if (validateStep(step)) {
+        setStep(prev => prev + 1)
+        logUserInteraction('NEXT_STEP', 'button-next-step', { fromStep: step, toStep: step + 1 })
+      }
+    } catch (error) {
+      handleComponentError(error, { component: 'SubmitRecipe', action: 'next_step', step })
     }
   }
 
   const prevStep = () => {
-    setStep(prev => prev - 1)
-    logUserInteraction('PREV_STEP', 'button-prev-step', { fromStep: step, toStep: step - 1 })
-  }
-
-  const handlePhotoSelect = (selectedPhotos) => {
-    setPhotos(selectedPhotos)
-    logDebug('Photos sélectionnées', { photosCount: selectedPhotos.length })
-    
-    // Effacer l'erreur photos si elle existe
-    if (errors.photos) {
-      setErrors(prev => {
-        const newErrors = { ...prev }
-        delete newErrors.photos
-        return newErrors
-      })
+    try {
+      setStep(prev => prev - 1)
+      logUserInteraction('PREV_STEP', 'button-prev-step', { fromStep: step, toStep: step - 1 })
+    } catch (error) {
+      handleComponentError(error, { component: 'SubmitRecipe', action: 'prev_step', step })
     }
   }
 
-  const submitRecipe = async () => {
+  const handlePhotoSelect = (selectedPhotos) => {
+    try {
+      setPhotos(selectedPhotos)
+      logDebug('Photos sélectionnées', { photosCount: selectedPhotos.length })
+      
+      // Effacer l'erreur photos si elle existe
+      if (errors.photos) {
+        setErrors(prev => {
+          const newErrors = { ...prev }
+          delete newErrors.photos
+          return newErrors
+        })
+      }
+    } catch (error) {
+      const errorResult = handleComponentError(error, { 
+        component: 'SubmitRecipe', 
+        action: 'handle_photo_select',
+        photosCount: selectedPhotos?.length 
+      })
+      setCurrentError(errorResult.error)
+    }
+  }
+
+  const submitRecipe = withErrorHandling(async () => {
     if (!validateStep(3)) return
 
     setIsSubmitting(true)
     setCurrentError(null)
 
-    try {
-      logInfo('Début de soumission de recette', {
-        title: formData.title,
-        photosCount: photos.length,
-        ingredientsCount: formData.ingredients.filter(i => i.trim()).length
-      })
+    logInfo('Début de soumission de recette', {
+      title: formData.title,
+      photosCount: photos.length,
+      ingredientsCount: formData.ingredients.filter(i => i.trim()).length
+    })
 
-      // Préparer les données
-      const validIngredients = formData.ingredients.filter(ing => ing.trim())
-      const validInstructions = formData.instructions.filter(inst => inst.trim())
+    // Préparer les données
+    const validIngredients = formData.ingredients.filter(ing => ing.trim())
+    const validInstructions = formData.instructions.filter(inst => inst.trim())
 
-      // Utiliser la première photo comme image principale
-      const mainPhoto = photos.find(photo => photo.processed && !photo.error)
-      if (!mainPhoto) {
-        throw new Error('Aucune photo valide trouvée')
-      }
-
-      const submissionData = {
-        title: formData.title.trim(),
-        description: formData.description.trim(),
-        ingredients: validIngredients,
-        instructions: validInstructions.map((instruction, index) => ({
-          step: index + 1,
-          instruction: instruction.trim()
-        })),
-        prepTime: formData.prepTime.trim() || null,
-        cookTime: formData.cookTime.trim() || null,
-        servings: formData.servings.trim() || null,
-        category: formData.category,
-        difficulty: formData.difficulty,
-        author: formData.author.trim() || 'Chef Anonyme',
-        image: mainPhoto.imageBytes, // Array de bytes
-        photos: photos
-          .filter(photo => photo.processed && !photo.error)
-          .map(photo => ({
-            bytes: photo.imageBytes,
-            name: photo.name,
-            mimeType: photo.mimeType
-          }))
-      }
-
-      logDebug('Données préparées pour envoi', {
-        ...submissionData,
-        image: `[${submissionData.image.length} bytes]`,
-        photos: submissionData.photos.map(p => ({ name: p.name, bytes: `[${p.bytes.length} bytes]` }))
-      })
-
-      // Envoi avec retry automatique
-      const response = await retryOperation(async () => {
-        return await supabase
-          .from('recipes')
-          .insert([submissionData])
-          .select()
-      }, 3, 1500)
-
-      if (response.error) {
-        throw new Error(`Erreur lors de l'envoi: ${response.error.message}`)
-      }
-
-      logInfo('Recette soumise avec succès', {
-        recipeId: response.data[0]?.id,
-        title: submissionData.title
-      })
-
-      setShowSuccessMessage(true)
-    } catch (error) {
-      logError('Erreur lors de la soumission', error, {
-        title: formData.title,
-        step: 'submission'
-      })
-      
-      setCurrentError({
-        message: error.message || 'Une erreur est survenue lors de la soumission',
-        type: 'submission_error',
-        recoveryStrategy: 'retry'
-      })
-    } finally {
-      setIsSubmitting(false)
+    // Utiliser la première photo comme image principale
+    const mainPhoto = photos.find(photo => photo.processed && !photo.error)
+    if (!mainPhoto) {
+      throw new Error('Aucune photo valide trouvée')
     }
-  }
+
+    const submissionData = {
+      title: formData.title.trim(),
+      description: formData.description.trim(),
+      ingredients: validIngredients,
+      instructions: validInstructions.map((instruction, index) => ({
+        step: index + 1,
+        instruction: instruction.trim()
+      })),
+      prepTime: formData.prepTime.trim() || null,
+      cookTime: formData.cookTime.trim() || null,
+      servings: formData.servings.trim() || null,
+      category: formData.category,
+      difficulty: formData.difficulty,
+      author: formData.author.trim() || 'Chef Anonyme',
+      image: mainPhoto.imageBytes,
+      photos: photos
+        .filter(photo => photo.processed && !photo.error)
+        .map(photo => ({
+          bytes: photo.imageBytes,
+          name: photo.name,
+          mimeType: photo.mimeType
+        }))
+    }
+
+    logDebug('Données préparées pour envoi', {
+      ...submissionData,
+      image: `[${submissionData.image.length} bytes]`,
+      photos: submissionData.photos.map(p => ({ name: p.name, bytes: `[${p.bytes.length} bytes]` }))
+    })
+
+    // Envoi avec retry automatique
+    const response = await retryOperation(async () => {
+      return await supabase
+        .from('recipes')
+        .insert([submissionData])
+        .select()
+    }, 3, 1500)
+
+    if (response.error) {
+      throw new Error(`Erreur lors de l'envoi: ${response.error.message}`)
+    }
+
+    logInfo('Recette soumise avec succès', {
+      recipeId: response.data[0]?.id,
+      title: submissionData.title
+    })
+
+    setShowSuccessMessage(true)
+  }, { 
+    component: 'SubmitRecipe', 
+    action: 'submit_recipe',
+    title: formData.title 
+  }, {
+    silent: false,
+    showToUser: true,
+    allowRetry: true
+  }).catch(error => {
+    setCurrentError(error)
+  }).finally(() => {
+    setIsSubmitting(false)
+  })
 
   const resetError = () => {
     setCurrentError(null)
+    clearError()
   }
+
+  const handleRetry = () => {
+    if (currentError && currentError.recoveryStrategy === 'retry') {
+      retryLastAction(() => submitRecipe())
+    }
+  }
+
+  // Afficher l'erreur centralisée si elle existe
+  const displayError = currentError || lastError?.error
 
   if (showSuccessMessage) {
     return (
@@ -375,9 +431,17 @@ export default function SubmitRecipe() {
       </div>
 
       {/* Error Display */}
-      {currentError && (
+      {displayError && (
         <div style={{ padding: 'var(--spacing-md)', maxWidth: '600px', margin: '0 auto' }}>
-          <ErrorDisplay error={currentError} resetError={resetError} />
+          <ErrorDisplay 
+            error={{
+              message: displayError.userMessage || displayError.message,
+              type: displayError.type,
+              recoveryStrategy: displayError.recoveryStrategy
+            }} 
+            resetError={resetError}
+            onRetry={displayError.recoveryStrategy === 'retry' ? handleRetry : undefined}
+          />
         </div>
       )}
 
