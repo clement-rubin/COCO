@@ -12,12 +12,36 @@ export default function RecipeCard({ recipe, isUserRecipe = true }) {
     return null;
   }
 
+  // Function to convert bytea to image URL
+  const getImageUrl = (imageData) => {
+    if (!imageData) return '/placeholder-recipe.jpg'
+    
+    try {
+      // If imageData is already a string (URL), return it
+      if (typeof imageData === 'string') {
+        return imageData.startsWith('http') ? imageData : `data:image/jpeg;base64,${imageData}`
+      }
+      
+      // If imageData is an array of bytes (bytea), convert to base64
+      if (Array.isArray(imageData)) {
+        const uint8Array = new Uint8Array(imageData)
+        const base64 = btoa(String.fromCharCode.apply(null, uint8Array))
+        return `data:image/jpeg;base64,${base64}`
+      }
+      
+      return '/placeholder-recipe.jpg'
+    } catch (error) {
+      console.error('Erreur lors de la conversion de l\'image bytea:', error)
+      return '/placeholder-recipe.jpg'
+    }
+  }
+
   // Safe access to recipe properties with defaults
   const safeRecipe = {
     id: recipe.id || Math.random().toString(36),
     title: recipe.title || 'Recette sans titre',
     description: recipe.description || 'Aucune description disponible',
-    image: recipe.image || '/placeholder-recipe.jpg',
+    image: getImageUrl(recipe.image),
     author: recipe.author || 'Chef Anonyme',
     prepTime: recipe.prepTime || 'Non spécifié',
     cookTime: recipe.cookTime || 'Non spécifié',

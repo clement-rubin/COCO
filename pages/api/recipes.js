@@ -23,21 +23,16 @@ export default async function handler(req, res) {
 
     // GET - Récupération des recettes
     if (req.method === 'GET') {
-      const { author, user_id } = req.query
+      const { author } = req.query
       
       let query = supabase
         .from('recipes')
         .select('*')
         .order('created_at', { ascending: false })
       
-      // Filter by user_id if specified (priority over author)
-      if (user_id) {
-        logInfo('[API] Filtrage par ID utilisateur', { user_id })
-        query = query.eq('user_id', user_id)
-      }
-      // Filter by author if specified (legacy support)
-      else if (author) {
-        logInfo('[API] Filtrage par auteur (legacy)', { author })
+      // Filter by author if specified
+      if (author) {
+        logInfo('[API] Filtrage par auteur', { author })
         query = query.eq('author', author)
       }
       
@@ -50,7 +45,6 @@ export default async function handler(req, res) {
       
       logInfo('[API] Recettes récupérées avec succès', {
         recipesCount: recipes.length,
-        filteredByUserId: !!user_id,
         filteredByAuthor: !!author
       })
       
@@ -94,7 +88,7 @@ export default async function handler(req, res) {
         return
       }
       
-      // Validation de l'image si fournie
+      // Validation de l'image si fournie (doit être un tableau de bytes)
       if (data.image && (!Array.isArray(data.image) || data.image.length === 0)) {
         logWarning('[API] Image invalide fournie', {
           hasImage: !!data.image,
@@ -221,33 +215,31 @@ export default async function handler(req, res) {
         processedInstructions = []
       }
       
-      // Création de l'objet recette avec user_id
+      // Création de l'objet recette selon le schéma exact
       const newRecipe = {
         // id sera généré automatiquement par gen_random_uuid()
         title: data.title.trim(),
         description: data.description?.trim() || null,
-        image: data.image || null,
+        image: data.image || null, // bytea array ou null
         prepTime: data.prepTime?.trim() || null,
         cookTime: data.cookTime?.trim() || null,
         category: data.category?.trim() || null,
         author: data.author?.trim() || null,
-        user_id: data.user_id?.trim() || null, // Ajout du user_id
         ingredients: processedIngredients,
         instructions: processedInstructions,
         difficulty: data.difficulty?.trim() || 'Facile',
         // created_at et updated_at seront gérés automatiquement
       }
 
-      logInfo('[API] Recette préparée pour insertion avec user_id', {
+      logInfo('[API] Recette préparée pour insertion selon schéma bytea', {
         title: newRecipe.title,
-        hasUserId: !!newRecipe.user_id,
-        userId: newRecipe.user_id,
         hasAuthor: !!newRecipe.author,
+        hasImageBytes: !!newRecipe.image && Array.isArray(newRecipe.image),
+        imageBytesLength: Array.isArray(newRecipe.image) ? newRecipe.image.length : 0,
         ingredientsCount: newRecipe.ingredients.length,
         instructionsCount: newRecipe.instructions.length,
         difficulty: newRecipe.difficulty,
-        schemaCompliant: true,
-        estimatedSize: JSON.stringify(newRecipe).length
+        schemaCompliant: true
       })
       
       const { data: insertedData, error } = await supabase
@@ -262,11 +254,10 @@ export default async function handler(req, res) {
           errorMessage: error.message,
           errorDetails: error.details,
           errorHint: error.hint,
-          dataSize: JSON.stringify(newRecipe).length,
           schemaColumns: Object.keys(newRecipe)
         })
         
-        // Messages d'erreur spécifiques selon le schéma UUID
+        // Messages d'erreur spécifiques
         if (error.code === 'PGRST204' || error.code === '42703') {
           res.status(500).json({ 
             message: 'Erreur de structure de base de données',
@@ -325,9 +316,8 @@ export default async function handler(req, res) {
         recipeId: insertedData[0]?.id,
         recipeTitle: insertedData[0]?.title,
         createdAt: insertedData[0]?.created_at,
-        isUUID: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(insertedData[0]?.id),
-        schemaCompliant: true,
-        insertedFields: Object.keys(insertedData[0] || {})
+        hasImageBytes: !!insertedData[0]?.image,
+        isUUID: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(insertedData[0]?.id)
       })
       
       res.status(201).json({

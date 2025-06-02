@@ -41,11 +41,13 @@ export default function Profil() {
   // Fetch user's recipes
   useEffect(() => {
     const fetchUserRecipes = async () => {
-      if (!user?.id) return
+      if (!user?.email) return
       
       try {
         setLoading(true)
-        const response = await fetch(`/api/recipes?user_id=${encodeURIComponent(user.id)}`)
+        // Use author-based filtering since user_id is not in schema
+        const userDisplayName = user.user_metadata?.display_name || user.email
+        const response = await fetch(`/api/recipes?author=${encodeURIComponent(userDisplayName)}`)
         if (response.ok) {
           const recipes = await response.json()
           setUserRecipes(recipes)
@@ -68,22 +70,22 @@ export default function Profil() {
       }
     }
 
-    if (user?.id) {
+    if (user?.email) {
       fetchUserRecipes()
     }
-  }, [user?.id, userProfile])
+  }, [user?.email, userProfile])
 
   // Function to convert bytea to image URL
   const getImageUrl = (imageData) => {
     if (!imageData) return null
     
     try {
-      // If imageData is already a string (base64 or URL), return it
+      // If imageData is already a string (URL), return it
       if (typeof imageData === 'string') {
-        return imageData.startsWith('data:') ? imageData : `data:image/jpeg;base64,${imageData}`
+        return imageData.startsWith('http') ? imageData : `data:image/jpeg;base64,${imageData}`
       }
       
-      // If imageData is an array of bytes, convert to base64
+      // If imageData is an array of bytes (bytea), convert to base64
       if (Array.isArray(imageData)) {
         const uint8Array = new Uint8Array(imageData)
         const base64 = btoa(String.fromCharCode.apply(null, uint8Array))
@@ -92,7 +94,7 @@ export default function Profil() {
       
       return null
     } catch (error) {
-      console.error('Erreur lors de la conversion de l\'image:', error)
+      console.error('Erreur lors de la conversion de l\'image bytea:', error)
       return null
     }
   }

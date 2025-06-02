@@ -84,21 +84,16 @@ exports.handler = async (event, context) => {
 
     // GET - Récupération des recettes
     if (event.httpMethod === 'GET') {
-      const { author, user_id } = event.queryStringParameters || {}
+      const { author } = event.queryStringParameters || {}
       
       let query = supabase
         .from('recipes')
         .select('*')
         .order('created_at', { ascending: false })
       
-      // Filter by user_id if specified (priority over author)
-      if (user_id) {
-        log(`Filtrage des recettes par ID utilisateur: ${user_id}`, "info")
-        query = query.eq('user_id', user_id)
-      }
-      // Filter by author if specified (legacy support)
-      else if (author) {
-        log(`Filtrage des recettes par auteur (legacy): ${author}`, "info")
+      // Filter by author if specified
+      if (author) {
+        log(`Filtrage des recettes par auteur: ${author}`, "info")
         query = query.eq('author', author)
       }
       
@@ -106,7 +101,7 @@ exports.handler = async (event, context) => {
       
       if (error) throw error;
       
-      log(`Recettes récupérées: ${recipes.length}${user_id ? ` pour l'utilisateur ${user_id}` : author ? ` pour l'auteur ${author}` : ''}`, "info")
+      log(`Recettes récupérées: ${recipes.length}${author ? ` pour l'auteur ${author}` : ''}`, "info")
       
       return {
         statusCode: 200,
@@ -120,13 +115,13 @@ exports.handler = async (event, context) => {
       const data = JSON.parse(event.body);
       
       // Validation des champs obligatoires
-      if (!data.title || !data.description) {
+      if (!data.title) {
         return {
           statusCode: 400,
           headers,
           body: JSON.stringify({ 
             message: 'Champs obligatoires manquants',
-            required: ['title', 'description'],
+            required: ['title'],
             received: Object.keys(data)
           })
         };
@@ -147,25 +142,23 @@ exports.handler = async (event, context) => {
       
       const newRecipe = {
         title: data.title.trim(),
-        description: data.description?.trim() || '',
-        ingredients: ingredients,
-        instructions: instructions,
+        description: data.description?.trim() || null,
+        image: data.image || null, // bytea array ou null
         prepTime: data.prepTime?.trim() || null,
         cookTime: data.cookTime?.trim() || null,
-        servings: data.servings?.trim() || null,
         category: data.category?.trim() || null,
-        difficulty: data.difficulty?.trim() || 'Facile',
-        author: data.author?.trim() || "Anonyme",
-        user_id: data.user_id?.trim() || null, // Ajout du user_id
-        image: data.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3",
-        photos: data.photos || [] // Support pour les multiples photos
+        author: data.author?.trim() || null,
+        ingredients: ingredients,
+        instructions: instructions,
+        difficulty: data.difficulty?.trim() || 'Facile'
       };
       
       log(`Tentative d'insertion d'une nouvelle recette: ${newRecipe.title}`, "info", {
         hasTitle: !!newRecipe.title,
         hasDescription: !!newRecipe.description,
-        hasUserId: !!newRecipe.user_id,
-        userId: newRecipe.user_id,
+        hasAuthor: !!newRecipe.author,
+        hasImageBytes: !!newRecipe.image && Array.isArray(newRecipe.image),
+        imageBytesLength: Array.isArray(newRecipe.image) ? newRecipe.image.length : 0,
         ingredientsCount: newRecipe.ingredients.length,
         instructionsCount: newRecipe.instructions.length,
         category: newRecipe.category,
@@ -186,28 +179,6 @@ exports.handler = async (event, context) => {
           recipeTitle: newRecipe.title,
           recipeData: newRecipe
         });
-        
-        // Si c'est une erreur de colonne manquante, donner des instructions
-        if (error.code === 'PGRST204' || error.code === '42703') {
-          let missingColumn = '';
-          if (error.message.includes('difficulty')) {
-            missingColumn = 'difficulty';
-          }
-          
-          return {
-            statusCode: 500,
-            headers,
-            body: JSON.stringify({ 
-              message: 'Erreur de structure de base de données',
-              details: `La colonne '${missingColumn}' est manquante dans la table recipes.`,
-              error: error.message,
-              solution: 'Consultez les logs ou la page de test pour les instructions SQL de création de table.',
-              sqlRequired: missingColumn === 'difficulty' 
-                ? `ALTER TABLE recipes ADD COLUMN IF NOT EXISTS difficulty TEXT DEFAULT 'Facile';`
-                : 'CREATE TABLE recipes avec les colonnes : id, title, description, ingredients, instructions, prepTime, cookTime, servings, category, difficulty, author, image, photos, created_at, updated_at'
-            })
-          };
-        }
         
         return {
           statusCode: 500,

@@ -26,16 +26,18 @@ export default function MesRecettes() {
   // Fetch user's recipes
   useEffect(() => {
     const fetchUserRecipes = async () => {
-      if (!user?.id) return
+      if (!user?.email) return
       
       try {
         setLoading(true)
         logInfo('Récupération des recettes utilisateur', {
-          userId: user.id,
-          userEmail: user.email
+          userEmail: user.email,
+          userDisplayName: user.user_metadata?.display_name
         })
 
-        const response = await fetch(`/api/recipes?user_id=${encodeURIComponent(user.id)}`)
+        // Use author-based filtering since user_id is not in schema
+        const userDisplayName = user.user_metadata?.display_name || user.email
+        const response = await fetch(`/api/recipes?author=${encodeURIComponent(userDisplayName)}`)
         
         if (!response.ok) {
           throw new Error(`Erreur HTTP: ${response.status}`)
@@ -43,14 +45,11 @@ export default function MesRecettes() {
 
         const data = await response.json()
         
-        // Filter recipes by current user email or user metadata
+        // Filter recipes by current user email or display name
         const userEmail = user.email
-        const userDisplayName = user.user_metadata?.display_name || user.email
-
         const userRecipes = data.filter(recipe => 
           recipe.author === userEmail || 
-          recipe.author === userDisplayName ||
-          recipe.user_id === user.id
+          recipe.author === userDisplayName
         )
 
         setRecipes(userRecipes)
@@ -69,10 +68,10 @@ export default function MesRecettes() {
       }
     }
 
-    if (user?.id && !authLoading) {
+    if (user?.email && !authLoading) {
       fetchUserRecipes()
     }
-  }, [user?.id, authLoading])
+  }, [user?.email, authLoading])
 
   // Show loading state while checking authentication
   if (authLoading) {
