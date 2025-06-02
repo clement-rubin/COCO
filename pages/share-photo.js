@@ -57,7 +57,7 @@ export default function SharePhoto() {
       logWarning('Validation échouée: aucune photo')
     }
     
-    // Validation des photos traitées (pas uploadées vers Supabase)
+    // Validation des photos traitées
     if (photos.length > 0) {
       const processingPhotos = photos.filter(photo => photo.processing)
       const errorPhotos = photos.filter(photo => photo.error)
@@ -132,14 +132,14 @@ export default function SharePhoto() {
         throw new Error('Aucune photo valide trouvée. Veuillez réessayer le traitement.')
       }
       
-      // Préparer les données selon le schéma bytes
+      // Préparer les données selon le schéma bytea
       const recipeData = {
         title: formData.title.trim(),
         description: formData.description.trim(),
         ingredients: ['Photo partagée sans liste d\'ingrédients'],
         instructions: [{ step: 1, instruction: 'Voir la photo pour inspiration' }],
         author: formData.author.trim() || 'Anonyme',
-        image: validPhotos[0].imageBytes, // Image principale en bytes
+        image: validPhotos[0].imageBytes, // Image en bytea
         category: 'Photo partagée',
         prepTime: null,
         cookTime: null

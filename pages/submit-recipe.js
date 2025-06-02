@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
-import { supabase } from '../lib/supabase'
 import PhotoUpload from '../components/PhotoUpload'
 import styles from '../styles/SubmitRecipe.module.css'
 import { logDebug, logInfo, logError, logWarning, logUserInteraction } from '../utils/logger'
@@ -169,7 +168,7 @@ export default function SubmitRecipe() {
       const ingredientsArray = parseIngredients(formData.ingredients)
       const instructionsArray = parseInstructions(formData.instructions)
       
-      // Préparer les photos validées (avec bytes) - pas d'URLs Supabase nécessaires
+      // Préparer les photos validées (avec bytes)
       const validPhotos = photos.filter(photo => 
         photo.processed && 
         photo.imageBytes && 
@@ -201,7 +200,7 @@ export default function SubmitRecipe() {
         allImageSizes: validPhotos.map(p => p.imageBytes.length)
       })
       
-      // Préparer les données selon le schéma bytes
+      // Préparer les données selon le schéma bytea
       const recipeData = {
         title: formData.title.trim(),
         description: formData.description.trim(),
@@ -211,8 +210,7 @@ export default function SubmitRecipe() {
         cookTime: formData.cookTime.trim() || null,
         category: formData.category || null,
         author: formData.author.trim() || 'Anonyme',
-        image: validPhotos[0].imageBytes, // Image principale en bytes
-        photos: validPhotos.map(p => p.imageBytes) // Toutes les photos en bytes
+        image: validPhotos[0].imageBytes // Image principale en bytea
       }
       
       logDebug('Données de recette préparées pour API', {
@@ -220,7 +218,6 @@ export default function SubmitRecipe() {
         hasDescription: !!recipeData.description,
         ingredientsCount: recipeData.ingredients.length,
         instructionsCount: recipeData.instructions.length,
-        photosCount: recipeData.photos.length,
         mainImageBytesLength: recipeData.image.length,
         category: recipeData.category,
         author: recipeData.author
