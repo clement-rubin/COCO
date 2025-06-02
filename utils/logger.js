@@ -150,13 +150,22 @@ export function logComponentEvent(componentName, eventType, context = {}) {
 }
 
 // Logs pour les interactions utilisateur
-export function logUserInteraction(action, element, context = {}) {
-  return logInfo(`Interaction utilisateur: ${action}`, {
-    ...context,
-    category: 'USER_INTERACTION',
+export function logUserInteraction(action, element, details = null) {
+  const timestamp = new Date().toISOString()
+  const context = {
     action,
-    element
-  });
+    element,
+    timestamp,
+    url: typeof window !== 'undefined' ? window.location.href : 'Server',
+    userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Server',
+    ...details
+  }
+  
+  return log(LOG_LEVELS.INFO, `Interaction utilisateur: ${action}`, null, { 
+    ...context, 
+    type: 'USER_INTERACTION',
+    category: 'USER_INTERACTION'
+  })
 }
 
 // Fonction pour récupérer les logs stockés

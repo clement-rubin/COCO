@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from 'react'
 import { uploadImage, getImageUrl } from '../lib/supabase'
+import { logDebug, logInfo, logError, logUserInteraction } from '../utils/logger'
 import styles from '../styles/PhotoUpload.module.css'
 
 export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
@@ -7,6 +8,7 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
   const [dragActive, setDragActive] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState({})
+  const [globalProgress, setGlobalProgress] = useState(0)
   const fileInputRef = useRef(null)
 
   const compressImage = (file, maxWidth = 800, quality = 0.8) => {
@@ -35,27 +37,78 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
       const randomString = Math.random().toString(36).substring(2, 8)
       const fileName = `recipe_${timestamp}_${randomString}.jpg`
       
+      logDebug('Début upload Supabase', { photoId, fileName, fileSize: file.size })
+      
       setUploadProgress(prev => ({ ...prev, [photoId]: 0 }))
+      
+      // Simuler la progression d'upload (Supabase ne fournit pas de progression native)
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => {
+          const current = prev[photoId] || 0
+          if (current < 90) {
+            return { ...prev, [photoId]: current + 10 }
+          }
+          return prev
+        })
+      }, 200)
       
       const uploadData = await uploadImage(file, fileName)
       const publicUrl = getImageUrl(uploadData.path)
       
+      clearInterval(progressInterval)
       setUploadProgress(prev => ({ ...prev, [photoId]: 100 }))
+      
+      logInfo('Upload Supabase réussi', { photoId, fileName, url: publicUrl })
       
       return {
         path: uploadData.path,
         url: publicUrl
       }
     } catch (error) {
-      console.error('Erreur upload Supabase:', error)
+      logError('Erreur upload Supabase', error, { photoId, fileName: file.name })
       setUploadProgress(prev => ({ ...prev, [photoId]: -1 })) // -1 = erreur
       throw error
     }
   }
 
+  const updateGlobalProgress = (photos) => {
+    const totalPhotos = photos.length
+    if (totalPhotos === 0) {
+      setGlobalProgress(0)
+      return
+    }
+
+    const uploadedPhotos = photos.filter(photo => photo.uploaded).length
+    const uploadingPhotos = photos.filter(photo => photo.uploading)
+    
+    let progressSum = uploadedPhotos * 100
+    
+    uploadingPhotos.forEach(photo => {
+      const progress = uploadProgress[photo.id] || 0
+      progressSum += progress
+    })
+    
+    const globalPercent = Math.round(progressSum / totalPhotos)
+    setGlobalProgress(globalPercent)
+    
+    logDebug('Progression globale mise à jour', {
+      totalPhotos,
+      uploadedPhotos,
+      uploadingCount: uploadingPhotos.length,
+      globalPercent
+    })
+  }
+
   const processFiles = useCallback(async (files) => {
     setUploading(true)
+    setGlobalProgress(0)
     const newPhotos = []
+
+    logUserInteraction('UPLOAD_PHOTOS_STARTED', 'photo-upload', {
+      filesCount: files.length,
+      maxFiles,
+      currentPhotosCount: photos.length
+    })
 
     for (let i = 0; i < Math.min(files.length, maxFiles - photos.length); i++) {
       const file = files[i]
@@ -78,31 +131,60 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
         
         newPhotos.push(photoData)
         
-        // Upload en arrière-plan
-        try {
-          const uploadResult = await uploadToSupabase(compressedFile, photoId)
-          
-          // Mettre à jour la photo avec les données d'upload
-          photoData.uploading = false
-          photoData.uploaded = true
-          photoData.supabasePath = uploadResult.path
-          photoData.supabaseUrl = uploadResult.url
-          photoData.error = false
-          
-        } catch (error) {
-          photoData.uploading = false
-          photoData.uploaded = false
-          photoData.error = true
-          photoData.errorMessage = 'Erreur d\'upload'
-        }
+        // Mettre à jour la liste immédiatement
+        const tempPhotos = [...photos, ...newPhotos]
+        setPhotos(tempPhotos)
+        onPhotoSelect && onPhotoSelect(tempPhotos)
+        updateGlobalProgress(tempPhotos)
       }
     }
 
-    const updatedPhotos = [...photos, ...newPhotos]
-    setPhotos(updatedPhotos)
-    onPhotoSelect && onPhotoSelect(updatedPhotos)
+    // Upload en arrière-plan
+    for (const photoData of newPhotos) {
+      try {
+        const uploadResult = await uploadToSupabase(photoData.file, photoData.id)
+        
+        // Mettre à jour la photo avec les données d'upload
+        photoData.uploading = false
+        photoData.uploaded = true
+        photoData.supabasePath = uploadResult.path
+        photoData.supabaseUrl = uploadResult.url
+        photoData.error = false
+        
+        // Mettre à jour l'état
+        setPhotos(prevPhotos => {
+          const updatedPhotos = prevPhotos.map(p => 
+            p.id === photoData.id ? photoData : p
+          )
+          updateGlobalProgress(updatedPhotos)
+          onPhotoSelect && onPhotoSelect(updatedPhotos)
+          return updatedPhotos
+        })
+        
+      } catch (error) {
+        photoData.uploading = false
+        photoData.uploaded = false
+        photoData.error = true
+        photoData.errorMessage = 'Erreur d\'upload'
+        
+        setPhotos(prevPhotos => {
+          const updatedPhotos = prevPhotos.map(p => 
+            p.id === photoData.id ? photoData : p
+          )
+          updateGlobalProgress(updatedPhotos)
+          onPhotoSelect && onPhotoSelect(updatedPhotos)
+          return updatedPhotos
+        })
+      }
+    }
+
     setUploading(false)
-  }, [photos, maxFiles, onPhotoSelect])
+    
+    logUserInteraction('UPLOAD_PHOTOS_COMPLETED', 'photo-upload', {
+      uploadedCount: newPhotos.filter(p => p.uploaded).length,
+      errorCount: newPhotos.filter(p => p.error).length
+    })
+  }, [photos, maxFiles, onPhotoSelect, uploadProgress])
 
   const handleDrag = useCallback((e) => {
     e.preventDefault()
@@ -153,8 +235,46 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
     onPhotoSelect && onPhotoSelect(newPhotos)
   }
 
+  // Calculer l'état global des uploads
+  const hasUploadingPhotos = photos.some(photo => photo.uploading)
+  const hasErrorPhotos = photos.some(photo => photo.error)
+  const allPhotosUploaded = photos.length > 0 && photos.every(photo => photo.uploaded)
+
   return (
     <div className={styles.photoUpload}>
+      {/* Barre de progression globale */}
+      {(hasUploadingPhotos || uploading) && (
+        <div className={styles.globalProgress}>
+          <div className={styles.progressHeader}>
+            <span>📤 Upload en cours...</span>
+            <span>{globalProgress}%</span>
+          </div>
+          <div className={styles.progressBar}>
+            <div 
+              className={styles.progressFill}
+              style={{ width: `${globalProgress}%` }}
+            ></div>
+          </div>
+          <div className={styles.progressDetails}>
+            {photos.filter(p => p.uploaded).length} sur {photos.length} photos uploadées
+          </div>
+        </div>
+      )}
+
+      {/* Message de confirmation quand tout est uploadé */}
+      {allPhotosUploaded && (
+        <div className={styles.uploadSuccess}>
+          ✅ Toutes les photos ont été uploadées avec succès !
+        </div>
+      )}
+
+      {/* Message d'erreur s'il y a des erreurs */}
+      {hasErrorPhotos && (
+        <div className={styles.uploadError}>
+          ❌ Certaines photos n'ont pas pu être uploadées. Veuillez les supprimer et réessayer.
+        </div>
+      )}
+
       <div 
         className={`${styles.dropZone} ${dragActive ? styles.active : ''} ${photos.length >= maxFiles ? styles.disabled : ''}`}
         onDragEnter={handleDrag}
@@ -216,7 +336,15 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
                 <span className={styles.fileName}>{photo.name}</span>
                 <div className={styles.uploadStatus}>
                   {photo.uploading && (
-                    <span className={styles.uploading}>⏳ Upload...</span>
+                    <div className={styles.uploadingStatus}>
+                      <span className={styles.uploading}>⏳ Upload...</span>
+                      <div className={styles.individualProgress}>
+                        <div 
+                          className={styles.progressFill}
+                          style={{ width: `${uploadProgress[photo.id] || 0}%` }}
+                        ></div>
+                      </div>
+                    </div>
                   )}
                   {photo.uploaded && (
                     <span className={styles.uploaded}>✅ Uploadé</span>

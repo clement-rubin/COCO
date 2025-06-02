@@ -21,6 +21,7 @@ export default function SubmitRecipe() {
   const [photos, setPhotos] = useState([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errors, setErrors] = useState({})
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false)
 
   const categories = [
     'Entrées', 'Plats principaux', 'Desserts', 'Apéritifs', 
@@ -102,8 +103,20 @@ export default function SubmitRecipe() {
     // Vérifier que toutes les photos sont uploadées
     const pendingUploads = photos.filter(photo => photo.uploading || photo.error)
     if (pendingUploads.length > 0) {
-      newErrors.photos = 'Attendez que toutes les photos soient uploadées'
-      logWarning('Validation échouée: uploads en cours', { pendingCount: pendingUploads.length })
+      const uploadingCount = photos.filter(photo => photo.uploading).length
+      const errorCount = photos.filter(photo => photo.error).length
+      
+      if (uploadingCount > 0) {
+        newErrors.photos = `Attendez que ${uploadingCount} photo(s) finissent d'être uploadées`
+      } else if (errorCount > 0) {
+        newErrors.photos = `${errorCount} photo(s) ont échoué. Supprimez-les et réessayez.`
+      }
+      
+      logWarning('Validation échouée: uploads en cours', { 
+        uploadingCount, 
+        errorCount,
+        totalPhotos: photos.length 
+      })
     }
     
     const isValid = Object.keys(newErrors).length === 0
@@ -188,11 +201,17 @@ export default function SubmitRecipe() {
         title: recipeData.title,
         category: recipeData.category,
         ingredientsCount: recipeData.ingredients.length,
-        instructionsCount: recipeData.instructions.length
+        instructionsCount: recipeData.instructions.length,
+        recipeId: result.id
       })
       
-      // Redirection après succès
-      router.push('/?success=recipe-submitted')
+      // Afficher le message de succès
+      setShowSuccessMessage(true)
+      
+      // Redirection après 3 secondes
+      setTimeout(() => {
+        router.push('/?success=recipe-submitted')
+      }, 3000)
       
     } catch (error) {
       logError('Erreur lors de la soumission de recette', error, {
@@ -207,6 +226,26 @@ export default function SubmitRecipe() {
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  // Calculer l'état des uploads pour l'affichage
+  const uploadingPhotosCount = photos.filter(photo => photo.uploading).length
+  const errorPhotosCount = photos.filter(photo => photo.error).length
+  const allPhotosUploaded = photos.length > 0 && photos.every(photo => photo.uploaded)
+
+  // Message de confirmation de soumission
+  if (showSuccessMessage) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.successMessage}>
+          <div className={styles.successIcon}>🎉</div>
+          <h1>Recette partagée avec succès !</h1>
+          <p>Votre délicieuse recette "<strong>{formData.title}</strong>" a été ajoutée à COCO.</p>
+          <p>Redirection en cours vers l'accueil...</p>
+          <div className={styles.successSpinner}></div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -236,6 +275,26 @@ export default function SubmitRecipe() {
               maxFiles={3}
             />
             {errors.photos && <span className={styles.error}>{errors.photos}</span>}
+            
+            {/* Status des uploads */}
+            {uploadingPhotosCount > 0 && (
+              <div className={styles.uploadStatus}>
+                ⏳ {uploadingPhotosCount} photo(s) en cours d'upload...
+              </div>
+            )}
+            
+            {errorPhotosCount > 0 && (
+              <div className={styles.uploadError}>
+                ❌ {errorPhotosCount} photo(s) ont échoué. Supprimez-les et réessayez.
+              </div>
+            )}
+            
+            {allPhotosUploaded && photos.length > 0 && (
+              <div className={styles.uploadSuccess}>
+                ✅ Toutes les photos sont prêtes !
+              </div>
+            )}
+            
             <small className={styles.helpText}>
               Les images sont automatiquement optimisées et sauvegardées. 
               Attendez que l'upload soit terminé avant de soumettre.
@@ -384,12 +443,16 @@ export default function SubmitRecipe() {
             <button 
               type="submit" 
               className={styles.submitBtn}
-              disabled={isSubmitting}
+              disabled={isSubmitting || uploadingPhotosCount > 0}
             >
               {isSubmitting ? (
                 <>
                   <span className={styles.spinner}></span>
                   Partage en cours...
+                </>
+              ) : uploadingPhotosCount > 0 ? (
+                <>
+                  ⏳ Upload en cours ({uploadingPhotosCount} photo(s))
                 </>
               ) : (
                 <>
