@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { uploadImage, uploadImageWithRetry, getImageUrl, createImageStorageBucket } from '../lib/supabase';
+import { uploadImageAsBytes, createRecipesTableIfNotExists } from '../lib/supabase';
 import { logInfo, logError, logDebug } from '../utils/logger';
 
 export default function TestUpload() {
@@ -21,7 +21,7 @@ export default function TestUpload() {
       addLog('info', 'Vérification du bucket de stockage au chargement...');
       setBucketStatus('checking');
       
-      const isAvailable = await createImageStorageBucket();
+      const isAvailable = await createRecipesTableIfNotExists();
       
       if (isAvailable) {
         setBucketStatus('available');
@@ -98,7 +98,7 @@ export default function TestUpload() {
       // Vérifier que le bucket est disponible avant de commencer
       if (bucketStatus !== 'available') {
         addLog('warning', 'Revérification du bucket avant upload...');
-        const bucketAvailable = await createImageStorageBucket();
+        const bucketAvailable = await createRecipesTableIfNotExists();
         if (!bucketAvailable) {
           throw new Error('Le bucket de stockage n\'est pas disponible. Veuillez configurer Supabase Storage.');
         }
@@ -123,7 +123,7 @@ export default function TestUpload() {
       addLog('info', 'Test 1: Upload simple');
       let uploadResult;
       try {
-        uploadResult = await uploadImage(file, uniqueFileName);
+        uploadResult = await uploadImageAsBytes(file, uniqueFileName);
         addLog('info', 'Upload simple réussi', uploadResult);
       } catch (error) {
         addLog('error', 'Upload simple échoué', {

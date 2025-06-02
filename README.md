@@ -125,6 +125,13 @@ Accédez à `/test-upload` pour :
 - Voir les logs détaillés en temps réel
 - Identifier les problèmes de configuration
 
+### Test de Conversion d'Images
+Accédez à `/test-upload` pour :
+- Tester la conversion d'images en données binaires
+- Tester la prise de photo avec caméra
+- Voir les logs détaillés en temps réel
+- Identifier les problèmes de configuration
+
 ### Test de la Base de Données
 Accédez à `/test-recipes` pour :
 - Vérifier la configuration de la table
@@ -133,9 +140,9 @@ Accédez à `/test-recipes` pour :
 
 ## 📸 Gestion des Images
 
-- **Upload automatique** vers Supabase Storage
+- **Conversion automatique** en données binaires
 - **Compression intelligente** (max 800px, qualité 80%)
-- **URLs publiques** générées automatiquement
+- **Stockage optimisé** dans la base de données
 - **Support multi-images** (jusqu'à 3 photos par recette)
 - **Validation** avant soumission du formulaire
 - **Partage rapide** de photos avec description simple
