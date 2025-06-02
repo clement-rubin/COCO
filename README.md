@@ -7,6 +7,7 @@ Une application web moderne et mobile-first pour partager et découvrir des rece
 - **Partage rapide de photos** - Partagez rapidement une photo de votre plat avec nom et description
 - **Partage de recettes complètes** - Partagez vos créations culinaires avec photos détaillées
 - **Navigation des recettes** - Explorez les recettes partagées par d'autres utilisateurs
+- **Feed social addictif** - Découvrez les créations de vos amis avec un défilement horizontal immersif
 - **Recherche intelligente** - Trouvez des recettes par titre, description ou auteur
 - **Design mobile-first** - Interface optimisée pour smartphone et tablette
 - **Upload multiple d'images** - Ajoutez jusqu'à 3 photos de vos plats
@@ -21,6 +22,7 @@ L'application adopte un design moderne inspiré des meilleures applications mobi
 - **Animations fluides** et transitions
 - **Composants cards** avec ombres modernes
 - **Navigation intuitive** avec menu hamburger
+- **Feed horizontal addictif** similaire aux stories Instagram
 
 ## 🛠 Technologies
 
@@ -36,10 +38,11 @@ L'application adopte un design moderne inspiré des meilleures applications mobi
 ```
 COCO/
 ├── pages/
-│   ├── index.js                    # Page d'accueil
+│   ├── index.js                    # Page d'accueil avec feed amis
 │   ├── user-recipes.js            # Liste des recettes partagées
 │   ├── share-photo.js             # Page de partage rapide de photo
 │   ├── submit-recipe.js           # Page de partage de recette complète
+│   ├── social.js                  # Feed social complet
 │   ├── test-upload.js             # Page de test d'upload (debug)
 │   ├── test-recipes.js            # Page de test de la base de données
 │   ├── favoris.js                 # Page des favoris
@@ -55,6 +58,9 @@ COCO/
 │   ├── RecipeCard.js             # Carte de recette
 │   ├── ShareButton.js            # Bouton de partage vers share-photo
 │   ├── PhotoUpload.js            # Composant d'upload de photos
+│   ├── FriendsFeed.js            # Feed horizontal addictif des amis
+│   ├── SocialFeed.js             # Feed social vertical complet
+│   ├── UserShare.js              # Partage entre utilisateurs
 │   ├── ErrorBoundary.js          # Gestion d'erreurs React
 │   ├── ErrorDisplay.js           # Affichage des erreurs
 │   └── Footer.js                 # Pied de page
@@ -65,6 +71,8 @@ COCO/
 │   ├── globals.css               # Design system global
 │   ├── SharePhoto.module.css     # Styles du partage de photo
 │   ├── SubmitRecipe.module.css   # Styles du formulaire de recette
+│   ├── SocialFeed.module.css     # Styles du feed social vertical
+│   ├── FriendsFeed.module.css    # Styles du feed horizontal addictif
 │   └── RecipeDetail.module.css   # Styles des détails
 ├── lib/
 │   └── supabase.js              # Configuration Supabase
@@ -230,6 +238,9 @@ vercel --prod
 
 ## 🎯 Fonctionnalités à Venir
 
+- [x] Feed social addictif des amis
+- [x] Défilement horizontal immersif
+- [x] Animations de like Instagram-style
 - [ ] Système de favoris
 - [ ] Notation des recettes
 - [ ] Catégories avancées

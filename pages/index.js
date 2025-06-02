@@ -2,6 +2,7 @@ import Head from 'next/head'
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
+import FriendsFeed from '../components/FriendsFeed'
 
 export default function Home() {
   const [showAddRecipe, setShowAddRecipe] = useState(false);
@@ -81,7 +82,7 @@ export default function Home() {
       </section>
 
       {/* Quick Actions */}
-      <section style={{ padding: '0 var(--spacing-md) var(--spacing-xl)' }}>
+      <section style={{ padding: '0 var(--spacing-md) var(--spacing-md)' }}>
         <h2 style={{ fontSize: '1.3rem', marginBottom: 'var(--spacing-md)' }}>Actions rapides</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--spacing-md)' }}>
           <button 
@@ -119,6 +120,30 @@ export default function Home() {
             <div style={{ fontWeight: '600' }}>Explorer</div>
           </Link>
         </div>
+      </section>
+
+      {/* Friends Feed Section */}
+      <section style={{ padding: '0 var(--spacing-md) var(--spacing-xl)' }}>
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          marginBottom: 'var(--spacing-lg)'
+        }}>
+          <h2 style={{ fontSize: '1.3rem', margin: 0 }}>👥 Mes amis cuisinent</h2>
+          <Link href="/social" style={{ 
+            background: 'none', 
+            border: 'none', 
+            color: 'var(--primary-coral)', 
+            fontWeight: '600',
+            cursor: 'pointer',
+            textDecoration: 'none'
+          }}>
+            Voir tout
+          </Link>
+        </div>
+        
+        <FriendsFeed />
       </section>
 
       {/* Trending Recipes */}

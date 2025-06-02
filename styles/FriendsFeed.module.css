@@ -1,0 +1,302 @@
+.feedContainer {
+  width: 100%;
+  margin-bottom: var(--spacing-lg);
+}
+
+.loadingContainer {
+  text-align: center;
+  padding: var(--spacing-xl);
+  color: var(--text-medium);
+}
+
+.loadingSpinner {
+  font-size: 2rem;
+  margin-bottom: var(--spacing-sm);
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.horizontalScroll {
+  display: flex;
+  gap: var(--spacing-md);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  padding: var(--spacing-sm) 0;
+  margin-bottom: var(--spacing-md);
+  
+  /* Hide scrollbar but keep functionality */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.horizontalScroll::-webkit-scrollbar {
+  display: none;
+}
+
+.postCard {
+  flex: none;
+  width: 280px;
+  height: 400px;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+.postLink {
+  display: block;
+  width: 100%;
+  height: 100%;
+  text-decoration: none;
+  color: inherit;
+}
+
+.imageContainer {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--border-radius-large);
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.imageContainer:hover {
+  transform: scale(1.02);
+}
+
+.recipeImage {
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.imageContainer:hover .recipeImage {
+  transform: scale(1.1);
+}
+
+.gradient {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.3) 0%,
+    rgba(0, 0, 0, 0.1) 30%,
+    rgba(0, 0, 0, 0.1) 70%,
+    rgba(0, 0, 0, 0.7) 100%
+  );
+  pointer-events: none;
+}
+
+.userOverlay {
+  position: absolute;
+  top: var(--spacing-md);
+  left: var(--spacing-md);
+  right: var(--spacing-md);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  z-index: 2;
+}
+
+.userInfo {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  color: white;
+}
+
+.userAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary-orange) 0%, var(--secondary-green) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  border: 2px solid white;
+  box-shadow: var(--shadow-light);
+}
+
+.userName {
+  font-weight: 600;
+  font-size: 0.9rem;
+  display: block;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.timeAgo {
+  font-size: 0.7rem;
+  opacity: 0.9;
+  display: block;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.categoryBadge {
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--primary-orange);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius-medium);
+  font-size: 0.7rem;
+  font-weight: 600;
+  backdrop-filter: blur(10px);
+}
+
+.recipeOverlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: var(--spacing-lg);
+  color: white;
+  z-index: 2;
+}
+
+.recipeTitle {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin: 0 0 var(--spacing-xs) 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  font-family: 'Playfair Display', serif;
+}
+
+.recipeDescription {
+  font-size: 0.9rem;
+  margin: 0 0 var(--spacing-md) 0;
+  opacity: 0.95;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  line-height: 1.4;
+}
+
+.engagement {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.likeBtn {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius-medium);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.likeBtn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
+}
+
+.likeBtn.liked {
+  background: rgba(255, 107, 53, 0.8);
+  border-color: var(--primary-orange);
+  animation: likeAnimation 0.3s ease;
+}
+
+@keyframes likeAnimation {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}
+
+.viewCount {
+  font-size: 0.8rem;
+  opacity: 0.9;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.dotsContainer {
+  display: flex;
+  justify-content: center;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-md);
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 107, 53, 0.3);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.activeDot {
+  background: var(--primary-orange);
+  transform: scale(1.3);
+}
+
+.quickActions {
+  display: flex;
+  gap: var(--spacing-sm);
+  justify-content: center;
+}
+
+.actionBtn {
+  background: var(--background-light);
+  border: 1px solid rgba(255, 107, 53, 0.2);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--border-radius-medium);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 500;
+  color: var(--text-medium);
+  font-size: 0.8rem;
+}
+
+.actionBtn:hover {
+  background: var(--warm-cream);
+  border-color: var(--primary-orange);
+  color: var(--primary-orange);
+  transform: translateY(-1px);
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .postCard {
+    width: 260px;
+    height: 380px;
+  }
+  
+  .quickActions {
+    flex-direction: column;
+    gap: var(--spacing-xs);
+  }
+  
+  .actionBtn {
+    font-size: 0.7rem;
+    padding: var(--spacing-xs) var(--spacing-sm);
+  }
+}
+
+/* Smooth scrolling animations */
+.horizontalScroll {
+  scroll-padding-left: var(--spacing-md);
+}
+
+/* Focus states for accessibility */
+.postCard:focus-within .imageContainer {
+  outline: 2px solid var(--primary-orange);
+  outline-offset: 2px;
+}
+
+.likeBtn:focus {
+  outline: 2px solid white;
+  outline-offset: 2px;
+}
+
+.actionBtn:focus {
+  outline: 2px solid var(--primary-orange);
+  outline-offset: 2px;
+}
