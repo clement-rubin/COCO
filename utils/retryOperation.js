@@ -1,4 +1,4 @@
-import { logInfo, logWarning, logError } from './logger'
+import { logDebug, logError } from './logger'
 
 /**
  * Exécute une opération avec retry automatique
@@ -7,49 +7,26 @@ import { logInfo, logWarning, logError } from './logger'
  * @param {number} delay - Délai entre les tentatives (ms)
  * @returns {Promise} Résultat de l'opération
  */
-export async function retryOperation(operation, maxRetries = 3, delay = 1000) {
-  let lastError = null
-  
+export const retryOperation = async (operation, maxRetries = 3, delay = 1000) => {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      logInfo(`Tentative ${attempt}/${maxRetries}`, {
-        operation: operation.name || 'anonymous',
-        attempt,
-        maxRetries
-      })
-      
+      logDebug(`Tentative ${attempt}/${maxRetries}`, { operation: operation.name })
       const result = await operation()
       
       if (attempt > 1) {
-        logInfo('Opération réussie après retry', {
-          attempt,
-          totalAttempts: attempt
-        })
+        logDebug(`Opération réussie après ${attempt} tentatives`)
       }
       
       return result
     } catch (error) {
-      lastError = error
-      
-      logWarning(`Tentative ${attempt} échouée`, {
-        error: error.message,
-        attempt,
-        maxRetries,
-        willRetry: attempt < maxRetries
-      })
+      logError(`Tentative ${attempt}/${maxRetries} échouée`, error)
       
       if (attempt === maxRetries) {
-        logError('Toutes les tentatives ont échoué', error, {
-          totalAttempts: attempt,
-          maxRetries
-        })
-        break
+        throw new Error(`Opération échouée après ${maxRetries} tentatives: ${error.message}`)
       }
       
       // Attendre avant la prochaine tentative
       await new Promise(resolve => setTimeout(resolve, delay * attempt))
     }
   }
-  
-  throw lastError
 }

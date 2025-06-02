@@ -106,75 +106,124 @@ export default function ErrorDisplay({ error, resetError = null }) {
   };
 
   return (
-    <div className={styles.errorContainer}>
-      <div className={styles.errorHeader}>
-        <h3 className={styles.errorTitle}>
-          {getErrorIcon(error.type)} Erreur
-        </h3>
-        {resetError && (
-          <button onClick={handleReset} className={styles.dismissButton}>
-            Fermer
-          </button>
-        )}
-      </div>
-      
-      <p className={styles.errorMessage}>{message}</p>
-      
-      {id && (
-        <p className={styles.errorId}>
-          Référence: <code>{id}</code>
-        </p>
-      )}
-      
-      <p className={styles.timestamp}>
-        Date: {formattedTimestamp}
-      </p>
-      
-      {hasDetails && (
-        <div className={styles.detailsSection}>
-          <button 
-            onClick={handleToggleDetails}
-            className={styles.toggleButton}
-          >
-            {showDetails ? 'Masquer les détails' : 'Afficher les détails'}
-          </button>
+    <div style={{
+      background: '#fef2f2',
+      border: '1px solid #fecaca',
+      borderRadius: 'var(--border-radius-medium)',
+      padding: 'var(--spacing-md)',
+      marginBottom: 'var(--spacing-md)'
+    }} className={styles.errorContainer}>
+      <div style={{
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 'var(--spacing-md)'
+      }} className={styles.errorHeader}>
+        <div style={{ fontSize: '1.5rem', flexShrink: 0 }}>
+          {getErrorIcon(error.type)}
+        </div>
+        
+        <div style={{ flex: 1 }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            marginBottom: 'var(--spacing-sm)'
+          }}>
+            <h4 style={{
+              margin: 0,
+              color: '#dc2626',
+              fontSize: '1rem',
+              fontWeight: '600'
+            }} className={styles.errorTitle}>
+              Une erreur s'est produite
+            </h4>
+            
+            <button
+              onClick={resetError}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#6b7280',
+                cursor: 'pointer',
+                fontSize: '1.2rem',
+                padding: 'var(--spacing-xs)'
+              }} className={styles.dismissButton}
+            >
+              ✕
+            </button>
+          </div>
           
-          {showDetails && (
-            <div className={styles.details}>
-              {details && (
-                <div className={styles.detailsBlock}>
-                  <h4>Informations supplémentaires</h4>
-                  <pre>{typeof details === 'object' ? JSON.stringify(details, null, 2) : details}</pre>
-                </div>
-              )}
-              
-              {stack && (
-                <div className={styles.detailsBlock}>
-                  <h4>Stack Trace</h4>
-                  <pre className={styles.stackTrace}>{Array.isArray(stack) ? stack.join('\n') : stack}</pre>
-                </div>
-              )}
+          <p style={{
+            margin: '0 0 var(--spacing-md) 0',
+            color: '#7f1d1d',
+            fontSize: '0.9rem',
+            lineHeight: '1.4'
+          }} className={styles.errorMessage}>
+            {message}
+          </p>
+          
+          <div style={{
+            display: 'flex',
+            gap: 'var(--spacing-sm)',
+            alignItems: 'center'
+          }} className={styles.recoveryActions}>
+            {error.recoveryStrategy && (
+              <button
+                onClick={handleRetry}
+                style={{
+                  padding: 'var(--spacing-sm) var(--spacing-md)',
+                  background: '#dc2626',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 'var(--border-radius-small)',
+                  fontSize: '0.8rem',
+                  cursor: 'pointer',
+                  fontWeight: '500'
+                }}
+              >
+                {getRecoveryText(error.recoveryStrategy)}
+              </button>
+            )}
+            
+            {error.details && (
+              <button
+                onClick={toggleDetails}
+                style={{
+                  padding: 'var(--spacing-sm) var(--spacing-md)',
+                  background: 'transparent',
+                  color: '#dc2626',
+                  border: '1px solid #fecaca',
+                  borderRadius: 'var(--border-radius-small)',
+                  fontSize: '0.8rem',
+                  cursor: 'pointer'
+                }}
+              >
+                {showDetails ? 'Masquer' : 'Détails'}
+              </button>
+            )}
+          </div>
+          
+          {showDetails && error.details && (
+            <div style={{
+              marginTop: 'var(--spacing-md)',
+              padding: 'var(--spacing-md)',
+              background: '#fff',
+              border: '1px solid #fecaca',
+              borderRadius: 'var(--border-radius-small)',
+              fontSize: '0.8rem',
+              color: '#6b7280'
+            }}>
+              <strong>Détails techniques :</strong>
+              <pre style={{
+                margin: 'var(--spacing-xs) 0 0 0',
+                overflow: 'auto',
+                maxHeight: '100px'
+              }}>
+                {JSON.stringify(error.details, null, 2)}
+              </pre>
             </div>
           )}
         </div>
-      )}
-      
-      <div className={styles.recoveryActions}>
-        <button
-          onClick={resetError}
-          className={styles.recoveryButton}
-        >
-          {getRecoveryAction(error.recoveryStrategy)}
-        </button>
-        
-        {error.details && (
-          <button
-            onClick={() => setShowDetails(!showDetails)}
-            className={styles.toggleDetailsButton}
-          >
-            {showDetails ? 'Masquer' : 'Détails'}
-          </button>
-        )}
       </div>
     </div>
   );

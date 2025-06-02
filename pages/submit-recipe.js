@@ -5,6 +5,8 @@ import { useAuth } from '../components/AuthContext'
 import { logUserInteraction, logInfo, logDebug, logError } from '../utils/logger'
 import { retryOperation } from '../utils/retryOperation'
 import { supabase } from '../lib/supabase'
+import PhotoUpload from '../components/PhotoUpload'
+import ErrorDisplay from '../components/ErrorDisplay'
 
 export default function SubmitRecipe() {
   const router = useRouter()

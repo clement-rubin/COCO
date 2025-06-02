@@ -422,3 +422,60 @@ export function handleAuthError(error) {
     technicalError: error
   }
 }
+
+export const handleAuthError = (error) => {
+  logError('Erreur d\'authentification', error)
+  
+  const errorMessages = {
+    'Invalid login credentials': 'Email ou mot de passe incorrect',
+    'Email not confirmed': 'Veuillez confirmer votre email avant de vous connecter',
+    'User already registered': 'Un compte existe déjà avec cet email',
+    'Password should be at least 6 characters': 'Le mot de passe doit contenir au moins 6 caractères',
+    'Invalid email': 'Adresse email invalide',
+    'Signup requires a valid password': 'Un mot de passe valide est requis',
+    'User not found': 'Aucun compte trouvé avec cet email',
+    'Email link is invalid or has expired': 'Le lien email est invalide ou a expiré',
+    'Token has expired or is invalid': 'Le lien a expiré ou est invalide'
+  }
+
+  const userMessage = errorMessages[error.message] || error.message || 'Une erreur est survenue'
+  
+  const userError = {
+    message: userMessage,
+    type: 'auth_error',
+    recoveryStrategy: getRecoveryStrategy(error.message)
+  }
+
+  return {
+    originalError: error,
+    userError
+  }
+}
+
+const getRecoveryStrategy = (errorMessage) => {
+  if (errorMessage?.includes('credentials') || errorMessage?.includes('not found')) {
+    return 'retry'
+  }
+  if (errorMessage?.includes('expired') || errorMessage?.includes('invalid')) {
+    return 'retry'
+  }
+  if (errorMessage?.includes('already registered')) {
+    return 'contact'
+  }
+  return 'retry'
+}
+
+export const handleApiError = (error, context = {}) => {
+  logError('Erreur API', error, context)
+  
+  const userError = {
+    message: 'Erreur de connexion au serveur',
+    type: 'network_error',
+    recoveryStrategy: 'retry'
+  }
+
+  return {
+    originalError: error,
+    userError
+  }
+}
