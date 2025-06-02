@@ -15,6 +15,8 @@ export default function Profil() {
   }, [user, router])
 
   const [userProfile, setUserProfile] = useState(null)
+  const [userRecipes, setUserRecipes] = useState([])
+  const [loading, setLoading] = useState(true)
 
   // Update profile when user changes
   useEffect(() => {
@@ -36,14 +38,68 @@ export default function Profil() {
     }
   }, [user])
 
+  // Fetch user's recipes
+  useEffect(() => {
+    const fetchUserRecipes = async () => {
+      if (!user?.email) return
+      
+      try {
+        setLoading(true)
+        const response = await fetch(`/api/recipes?author=${encodeURIComponent(user.email)}`)
+        if (response.ok) {
+          const recipes = await response.json()
+          setUserRecipes(recipes)
+          
+          // Update recipe count in stats
+          if (userProfile) {
+            setUserProfile(prev => ({
+              ...prev,
+              stats: {
+                ...prev.stats,
+                recipesCreated: recipes.length
+              }
+            }))
+          }
+        }
+      } catch (error) {
+        console.error('Erreur lors du chargement des recettes:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (user?.email) {
+      fetchUserRecipes()
+    }
+  }, [user?.email, userProfile])
+
+  // Function to convert bytea to image URL
+  const getImageUrl = (imageData) => {
+    if (!imageData) return null
+    
+    try {
+      // If imageData is already a string (base64 or URL), return it
+      if (typeof imageData === 'string') {
+        return imageData.startsWith('data:') ? imageData : `data:image/jpeg;base64,${imageData}`
+      }
+      
+      // If imageData is an array of bytes, convert to base64
+      if (Array.isArray(imageData)) {
+        const uint8Array = new Uint8Array(imageData)
+        const base64 = btoa(String.fromCharCode.apply(null, uint8Array))
+        return `data:image/jpeg;base64,${base64}`
+      }
+      
+      return null
+    } catch (error) {
+      console.error('Erreur lors de la conversion de l\'image:', error)
+      return null
+    }
+  }
+
   const [activeTab, setActiveTab] = useState('stats');
 
   // Mock data - à remplacer par de vraies données
-  const userRecipes = [
-    { id: 1, name: 'Ma première recette COCO', likes: 12, emoji: '🍝' },
-    { id: 2, name: 'Dessert du dimanche', likes: 8, emoji: '🥧' },
-  ];
-
   const achievements = [
     { id: 1, title: 'Bienvenue !', description: 'Compte créé avec succès', emoji: '🎉', unlocked: true },
     { id: 2, title: 'Premier partage', description: 'Première recette publiée', emoji: '📝', unlocked: false },
@@ -248,55 +304,141 @@ export default function Profil() {
       <section style={{ padding: '0 var(--spacing-md) var(--spacing-xl)' }}>
         {activeTab === 'stats' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
-            {userRecipes.map(recipe => (
-              <div key={recipe.id} className="card" style={{ 
-                padding: 'var(--spacing-md)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 'var(--spacing-md)'
-              }}>
-                <div style={{
-                  width: '60px',
-                  height: '60px',
-                  background: 'linear-gradient(45deg, var(--primary-coral-light), var(--secondary-mint-light))',
-                  borderRadius: 'var(--radius-lg)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '1.5rem'
-                }}>
-                  {recipe.emoji}
-                </div>
-                
-                <div style={{ flex: 1 }}>
-                  <h3 style={{ 
-                    fontSize: '1rem', 
-                    marginBottom: 'var(--spacing-xs)',
-                    margin: '0 0 var(--spacing-xs) 0'
-                  }}>
-                    {recipe.name}
-                  </h3>
-                  <p style={{ 
-                    fontSize: '0.8rem', 
-                    color: 'var(--text-secondary)',
-                    margin: 0
-                  }}>
-                    ❤️ {recipe.likes} likes
-                  </p>
-                </div>
-                
-                <button style={{
-                  background: 'var(--bg-light)',
-                  border: 'none',
-                  padding: 'var(--spacing-sm)',
-                  borderRadius: 'var(--radius-sm)',
-                  cursor: 'pointer',
-                  fontSize: '1rem'
-                }}>
-                  ⋯
+            {loading ? (
+              <div style={{ textAlign: 'center', padding: 'var(--spacing-xl)' }}>
+                <div style={{ fontSize: '2rem', marginBottom: 'var(--spacing-md)' }}>🔄</div>
+                <p style={{ color: 'var(--text-medium)' }}>Chargement de vos recettes...</p>
+              </div>
+            ) : userRecipes.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: 'var(--spacing-xl)' }}>
+                <div style={{ fontSize: '3rem', marginBottom: 'var(--spacing-md)' }}>📝</div>
+                <h3 style={{ color: 'var(--text-medium)', marginBottom: 'var(--spacing-sm)' }}>
+                  Aucune recette publiée
+                </h3>
+                <p style={{ color: 'var(--text-light)', marginBottom: 'var(--spacing-lg)' }}>
+                  Commencez à partager vos créations culinaires !
+                </p>
+                <button
+                  onClick={() => router.push('/publier')}
+                  style={{
+                    padding: 'var(--spacing-md) var(--spacing-lg)',
+                    background: 'var(--primary-orange)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 'var(--border-radius-medium)',
+                    cursor: 'pointer',
+                    fontSize: '1rem',
+                    fontWeight: '500'
+                  }}
+                >
+                  🍳 Publier ma première recette
                 </button>
               </div>
-            ))}
+            ) : (
+              userRecipes.map(recipe => {
+                const imageUrl = getImageUrl(recipe.image)
+                return (
+                  <div key={recipe.id} className="card" style={{ 
+                    padding: 'var(--spacing-md)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 'var(--spacing-md)'
+                  }}>
+                    <div style={{
+                      width: '80px',
+                      height: '80px',
+                      borderRadius: 'var(--radius-lg)',
+                      overflow: 'hidden',
+                      background: imageUrl ? 'none' : 'linear-gradient(45deg, var(--primary-coral-light), var(--secondary-mint-light))',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '2rem',
+                      flexShrink: 0
+                    }}>
+                      {imageUrl ? (
+                        <img 
+                          src={imageUrl} 
+                          alt={recipe.title}
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover'
+                          }}
+                          onError={(e) => {
+                            e.target.style.display = 'none'
+                            e.target.parentElement.innerHTML = '🍽️'
+                            e.target.parentElement.style.background = 'linear-gradient(45deg, var(--primary-coral-light), var(--secondary-mint-light))'
+                          }}
+                        />
+                      ) : (
+                        '🍽️'
+                      )}
+                    </div>
+                    
+                    <div style={{ flex: 1 }}>
+                      <h3 style={{ 
+                        fontSize: '1.1rem', 
+                        marginBottom: 'var(--spacing-xs)',
+                        margin: '0 0 var(--spacing-xs) 0',
+                        color: 'var(--text-dark)'
+                      }}>
+                        {recipe.title}
+                      </h3>
+                      
+                      {recipe.description && (
+                        <p style={{ 
+                          fontSize: '0.85rem', 
+                          color: 'var(--text-medium)',
+                          marginBottom: 'var(--spacing-xs)',
+                          lineHeight: '1.4',
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden'
+                        }}>
+                          {recipe.description}
+                        </p>
+                      )}
+                      
+                      <div style={{ 
+                        display: 'flex',
+                        gap: 'var(--spacing-md)',
+                        fontSize: '0.8rem', 
+                        color: 'var(--text-secondary)',
+                        margin: 0
+                      }}>
+                        {recipe.category && (
+                          <span>📂 {recipe.category}</span>
+                        )}
+                        {recipe.difficulty && (
+                          <span>⭐ {recipe.difficulty}</span>
+                        )}
+                        {recipe.prepTime && (
+                          <span>⏱️ {recipe.prepTime}</span>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <button 
+                      onClick={() => router.push(`/recette/${recipe.id}`)}
+                      style={{
+                        background: 'var(--primary-orange)',
+                        color: 'white',
+                        border: 'none',
+                        padding: 'var(--spacing-sm) var(--spacing-md)',
+                        borderRadius: 'var(--radius-sm)',
+                        cursor: 'pointer',
+                        fontSize: '0.9rem',
+                        fontWeight: '500'
+                      }}
+                    >
+                      Voir
+                    </button>
+                  </div>
+                )
+              })
+            )}
           </div>
         )}
 
