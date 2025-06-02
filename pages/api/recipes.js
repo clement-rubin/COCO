@@ -90,6 +90,40 @@ export default async function handler(req, res) {
         })
         return
       }
+
+      // Test de structure de la table avant insertion
+      try {
+        logInfo('[API] Test de structure de la table recipes')
+        const { data: tableTest, error: tableError } = await supabase
+          .from('recipes')
+          .select('id')
+          .limit(1)
+        
+        if (tableError) {
+          logError('[API] Erreur lors du test de la table', tableError)
+          res.status(500).json({
+            message: 'Erreur de configuration de la base de données',
+            details: 'La table recipes n\'est pas accessible ou n\'existe pas.',
+            error: tableError.message,
+            solution: 'Vérifiez que la table recipes existe dans Supabase avec toutes les colonnes requises.'
+          })
+          return
+        }
+        
+        logDebug('[API] Test de structure réussi', { 
+          canAccessTable: true,
+          testResultCount: tableTest?.length || 0
+        })
+      } catch (tableTestError) {
+        logError('[API] Erreur critique lors du test de table', tableTestError)
+        res.status(500).json({
+          message: 'Erreur critique de base de données',
+          details: 'Impossible d\'accéder à la table recipes.',
+          error: tableTestError.message,
+          solution: 'Vérifiez la configuration Supabase et les variables d\'environnement.'
+        })
+        return
+      }
       
       // Préparer les ingrédients et instructions
       const ingredients = Array.isArray(data.ingredients) ? data.ingredients : 
@@ -104,6 +138,7 @@ export default async function handler(req, res) {
                             })) :
                           []
       
+      // Préparer les données avec validation des champs requis
       const newRecipe = {
         title: data.title.trim(),
         description: data.description?.trim() || '',
@@ -113,8 +148,12 @@ export default async function handler(req, res) {
         cookTime: data.cookTime?.trim() || null,
         category: data.category?.trim() || null,
         author: data.author?.trim() || 'Anonyme',
-        image: data.image, // Array de bytes pour stockage en bytea
-        photos: data.photos ? JSON.stringify(data.photos) : JSON.stringify([])
+        image: data.image // Array de bytes pour stockage en bytea
+      }
+
+      // Ajouter photos seulement si la colonne existe
+      if (data.photos) {
+        newRecipe.photos = JSON.stringify(data.photos)
       }
       
       logInfo('[API] Tentative d\'insertion de nouvelle recette', {
@@ -123,7 +162,8 @@ export default async function handler(req, res) {
         instructionsCount: instructions.length,
         imageBytesLength: newRecipe.image.length,
         category: newRecipe.category,
-        author: newRecipe.author
+        author: newRecipe.author,
+        hasPhotos: !!newRecipe.photos
       })
       
       const { data: insertedData, error } = await supabase
@@ -140,13 +180,50 @@ export default async function handler(req, res) {
           errorHint: error.hint
         })
         
-        // Messages d'erreur spécifiques
+        // Messages d'erreur spécifiques améliorés
         if (error.code === 'PGRST204' || error.code === '42703') {
           res.status(500).json({ 
             message: 'Erreur de structure de base de données',
-            details: 'La table recipes semble incomplète. Veuillez vérifier que toutes les colonnes nécessaires existent.',
+            details: 'Une ou plusieurs colonnes nécessaires sont manquantes dans la table recipes.',
             error: error.message,
-            solution: 'Consultez la page /test-recipes pour les instructions SQL de création de table.'
+            requiredColumns: ['id', 'title', 'description', 'ingredients', 'instructions', 'image', 'author', 'created_at'],
+            solution: 'Consultez la documentation pour créer la table avec toutes les colonnes requises.',
+            sqlHelp: `
+CREATE TABLE recipes (
+  id SERIAL PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  ingredients TEXT,
+  instructions TEXT,
+  prep_time VARCHAR(50),
+  cook_time VARCHAR(50),
+  category VARCHAR(100),
+  author VARCHAR(255) DEFAULT 'Anonyme',
+  image BYTEA,
+  photos TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);`
+          })
+          return
+        }
+
+        if (error.code === '23502') {
+          res.status(400).json({
+            message: 'Données manquantes pour la base de données',
+            details: 'Un champ obligatoire est manquant ou null.',
+            error: error.message,
+            hint: 'Vérifiez que tous les champs obligatoires sont remplis.'
+          })
+          return
+        }
+
+        if (error.code === '22001') {
+          res.status(400).json({
+            message: 'Données trop longues',
+            details: 'Une des valeurs dépasse la taille maximale autorisée.',
+            error: error.message,
+            hint: 'Réduisez la taille du titre, de la description ou des autres champs.'
           })
           return
         }

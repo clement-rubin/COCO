@@ -329,7 +329,9 @@ export default function SubmitRecipe() {
       // Fournir un message d'erreur plus spécifique
       let errorMessage = 'Une erreur est survenue lors de l\'envoi. Veuillez réessayer.'
       
-      if (error.message.includes('JSON')) {
+      if (error.message.includes('structure de base de données')) {
+        errorMessage = 'Problème de configuration de la base de données. La table recipes n\'a pas toutes les colonnes requises. Contactez l\'administrateur.'
+      } else if (error.message.includes('JSON')) {
         errorMessage = 'Erreur serveur: Le serveur a retourné une réponse invalide. Vérifiez la configuration du serveur et de la base de données.'
       } else if (error.message.includes('serveur interne')) {
         errorMessage = 'Erreur de base de données. Vérifiez la configuration Supabase dans les variables d\'environnement.'
@@ -339,6 +341,10 @@ export default function SubmitRecipe() {
         errorMessage = 'Problème avec les photos. Veuillez les recharger et réessayer.'
       } else if (error.message.includes('fetch')) {
         errorMessage = 'Problème de connexion. Vérifiez votre connexion internet et réessayez.'
+      } else if (error.message.includes('Données manquantes')) {
+        errorMessage = 'Erreur de validation: Certaines données requises sont manquantes.'
+      } else if (error.message.includes('Données trop longues')) {
+        errorMessage = 'Le titre, la description ou un autre champ est trop long. Veuillez raccourcir votre texte.'
       } else if (error.message) {
         errorMessage = `Erreur: ${error.message}`
       }
