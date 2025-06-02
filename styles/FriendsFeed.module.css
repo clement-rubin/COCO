@@ -1,12 +1,19 @@
 .feedContainer {
   width: 100%;
   margin-bottom: var(--spacing-lg);
+  position: relative;
 }
 
 .loadingContainer {
   text-align: center;
   padding: var(--spacing-xl);
   color: var(--text-medium);
+  animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .loadingSpinner {
@@ -26,12 +33,15 @@
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   scroll-behavior: smooth;
-  padding: var(--spacing-sm) 0;
+  padding: var(--spacing-sm) var(--spacing-md);
   margin-bottom: var(--spacing-md);
   
   /* Hide scrollbar but keep functionality */
   scrollbar-width: none;
   -ms-overflow-style: none;
+  
+  /* Amélioration du momentum scrolling sur iOS */
+  -webkit-overflow-scrolling: touch;
 }
 
 .horizontalScroll::-webkit-scrollbar {
@@ -44,7 +54,21 @@
   height: 400px;
   scroll-snap-align: start;
   scroll-snap-stop: always;
+  animation: slideInRight 0.6s ease forwards;
+  opacity: 0;
+  transform: translateX(30px);
 }
+
+@keyframes slideInRight {
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.postCard:nth-child(2) { animation-delay: 0.1s; }
+.postCard:nth-child(3) { animation-delay: 0.2s; }
+.postCard:nth-child(4) { animation-delay: 0.3s; }
 
 .postLink {
   display: block;
@@ -61,11 +85,17 @@
   border-radius: var(--border-radius-large);
   overflow: hidden;
   cursor: pointer;
-  transition: transform 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
 .imageContainer:hover {
-  transform: scale(1.02);
+  transform: scale(1.02) translateY(-4px);
+  box-shadow: 0 12px 40px rgba(255, 107, 53, 0.2);
+}
+
+.imageContainer:active {
+  transform: scale(0.98);
 }
 
 .recipeImage {
@@ -122,6 +152,12 @@
   font-size: 1.2rem;
   border: 2px solid white;
   box-shadow: var(--shadow-light);
+  animation: avatarPulse 3s ease-in-out infinite;
+}
+
+@keyframes avatarPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
 }
 
 .userName {
@@ -187,26 +223,48 @@
   padding: var(--spacing-xs) var(--spacing-sm);
   border-radius: var(--border-radius-medium);
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   backdrop-filter: blur(10px);
   font-size: 0.8rem;
   font-weight: 600;
+  position: relative;
+  overflow: hidden;
+}
+
+.likeBtn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.likeBtn:hover::before {
+  left: 100%;
 }
 
 .likeBtn:hover {
   background: rgba(255, 255, 255, 0.3);
   transform: scale(1.05);
+  box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
 }
 
 .likeBtn.liked {
-  background: rgba(255, 107, 53, 0.8);
+  background: linear-gradient(135deg, rgba(255, 107, 53, 0.8), rgba(247, 147, 30, 0.8));
   border-color: var(--primary-orange);
-  animation: likeAnimation 0.3s ease;
+  animation: likeAnimation 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  box-shadow: 0 0 20px rgba(255, 107, 53, 0.5);
 }
 
 @keyframes likeAnimation {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.2); }
+  0% { transform: scale(1); }
+  25% { transform: scale(1.3) rotate(-5deg); }
+  50% { transform: scale(1.1) rotate(5deg); }
+  75% { transform: scale(1.2) rotate(-2deg); }
+  100% { transform: scale(1) rotate(0deg); }
 }
 
 .viewCount {
@@ -241,25 +299,47 @@
   display: flex;
   gap: var(--spacing-sm);
   justify-content: center;
+  margin-top: var(--spacing-md);
 }
 
 .actionBtn {
-  background: var(--background-light);
+  background: linear-gradient(135deg, var(--background-light), white);
   border: 1px solid rgba(255, 107, 53, 0.2);
   padding: var(--spacing-sm) var(--spacing-md);
   border-radius: var(--border-radius-medium);
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   font-weight: 500;
   color: var(--text-medium);
   font-size: 0.8rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.actionBtn::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: linear-gradient(135deg, var(--primary-orange), var(--primary-orange-dark));
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: all 0.3s ease;
+  z-index: -1;
+}
+
+.actionBtn:hover::after {
+  width: 200%;
+  height: 200%;
 }
 
 .actionBtn:hover {
-  background: var(--warm-cream);
+  color: white;
   border-color: var(--primary-orange);
-  color: var(--primary-orange);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(255, 107, 53, 0.3);
 }
 
 /* Mobile optimizations */
@@ -269,34 +349,44 @@
     height: 380px;
   }
   
+  .horizontalScroll {
+    padding: var(--spacing-sm) var(--spacing-sm);
+    gap: var(--spacing-sm);
+  }
+  
   .quickActions {
     flex-direction: column;
     gap: var(--spacing-xs);
+    padding: 0 var(--spacing-md);
   }
   
   .actionBtn {
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: 20px;
   }
 }
 
-/* Smooth scrolling animations */
-.horizontalScroll {
-  scroll-padding-left: var(--spacing-md);
+/* Optimisations pour les performances */
+@media (prefers-reduced-motion: reduce) {
+  .postCard,
+  .imageContainer,
+  .likeBtn,
+  .actionBtn {
+    animation: none;
+    transition: none;
+  }
 }
 
-/* Focus states for accessibility */
-.postCard:focus-within .imageContainer {
-  outline: 2px solid var(--primary-orange);
-  outline-offset: 2px;
-}
-
-.likeBtn:focus {
-  outline: 2px solid white;
-  outline-offset: 2px;
-}
-
-.actionBtn:focus {
-  outline: 2px solid var(--primary-orange);
-  outline-offset: 2px;
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .feedContainer {
+    color: white;
+  }
+  
+  .actionBtn {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.8);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
 }
