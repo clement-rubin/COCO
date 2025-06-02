@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react'
-import { uploadImage, getImageUrl } from '../lib/supabase'
+import { uploadImageWithRetry, uploadImage, getImageUrl } from '../lib/supabase'
 import { logDebug, logInfo, logError, logUserInteraction } from '../utils/logger'
 import styles from '../styles/PhotoUpload.module.css'
 
@@ -33,39 +33,65 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
 
   const uploadToSupabase = async (file, photoId) => {
     try {
+      // Générer un nom de fichier unique et sécurisé
       const timestamp = Date.now()
       const randomString = Math.random().toString(36).substring(2, 8)
-      const fileName = `recipe_${timestamp}_${randomString}.jpg`
+      const fileExtension = file.name.split('.').pop().toLowerCase()
+      const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_').substring(0, 50)
+      const fileName = `recipe_${timestamp}_${randomString}_${safeName}.${fileExtension}`
       
-      logDebug('Début upload Supabase', { photoId, fileName, fileSize: file.size })
+      logDebug('Début upload Supabase', { 
+        photoId, 
+        fileName, 
+        fileSize: file.size,
+        fileType: file.type
+      })
       
       setUploadProgress(prev => ({ ...prev, [photoId]: 0 }))
       
-      // Simuler la progression d'upload (Supabase ne fournit pas de progression native)
+      // Simuler la progression d'upload avec des étapes plus réalistes
       const progressInterval = setInterval(() => {
         setUploadProgress(prev => {
           const current = prev[photoId] || 0
-          if (current < 90) {
-            return { ...prev, [photoId]: current + 10 }
+          if (current < 85) {
+            return { ...prev, [photoId]: current + Math.random() * 15 }
           }
           return prev
         })
-      }, 200)
+      }, 300)
       
-      const uploadData = await uploadImage(file, fileName)
+      // Upload avec retry automatique
+      const uploadData = await uploadImageWithRetry(file, fileName)
       const publicUrl = getImageUrl(uploadData.path)
       
       clearInterval(progressInterval)
       setUploadProgress(prev => ({ ...prev, [photoId]: 100 }))
       
-      logInfo('Upload Supabase réussi', { photoId, fileName, url: publicUrl })
+      // Validation de l'URL générée
+      if (!publicUrl || !uploadData.path) {
+        throw new Error('URL de l\'image non générée correctement')
+      }
+      
+      logInfo('Upload Supabase réussi', { 
+        photoId, 
+        fileName, 
+        path: uploadData.path,
+        url: publicUrl,
+        fileSize: file.size
+      })
       
       return {
         path: uploadData.path,
-        url: publicUrl
+        url: publicUrl,
+        fileName: fileName
       }
     } catch (error) {
-      logError('Erreur upload Supabase', error, { photoId, fileName: file.name })
+      logError('Erreur upload Supabase', error, { 
+        photoId, 
+        fileName: file.name,
+        fileSize: file.size,
+        errorMessage: error.message
+      })
       setUploadProgress(prev => ({ ...prev, [photoId]: -1 })) // -1 = erreur
       throw error
     }
@@ -110,38 +136,63 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
       currentPhotosCount: photos.length
     })
 
-    // Étape 1: Préparer toutes les photos avec compression
-    for (let i = 0; i < Math.min(files.length, maxFiles - photos.length); i++) {
-      const file = files[i]
+    // Validation des fichiers avant traitement
+    const validFiles = Array.from(files).filter(file => {
+      const isValidType = file.type.startsWith('image/')
+      const isValidSize = file.size <= 6 * 1024 * 1024 // 6MB max selon Supabase
       
-      if (file.type.startsWith('image/')) {
-        try {
-          const photoId = Date.now() + i
-          const compressedFile = await compressImage(file)
-          const preview = URL.createObjectURL(compressedFile)
-          
-          const photoData = {
-            id: photoId,
-            file: compressedFile,
-            preview,
-            name: file.name,
-            size: compressedFile.size,
-            uploading: true,
-            uploaded: false,
-            error: false
-          }
-          
-          newPhotos.push(photoData)
-          
-          logDebug('Photo préparée pour upload', { 
-            photoId, 
-            fileName: file.name, 
-            compressedSize: compressedFile.size 
-          })
-          
-        } catch (error) {
-          logError('Erreur lors de la compression', error, { fileName: file.name })
+      if (!isValidType) {
+        logWarning('Fichier ignoré - type invalide', { fileName: file.name, type: file.type })
+      }
+      if (!isValidSize) {
+        logWarning('Fichier ignoré - trop volumineux', { fileName: file.name, size: file.size })
+      }
+      
+      return isValidType && isValidSize
+    })
+
+    if (validFiles.length === 0) {
+      setUploading(false)
+      logError('Aucun fichier valide trouvé', new Error('No valid files'), { 
+        originalCount: files.length,
+        validCount: validFiles.length 
+      })
+      return
+    }
+
+    // Étape 1: Préparer toutes les photos avec compression
+    for (let i = 0; i < Math.min(validFiles.length, maxFiles - photos.length); i++) {
+      const file = validFiles[i]
+      
+      try {
+        const photoId = Date.now() + i
+        const compressedFile = await compressImage(file)
+        const preview = URL.createObjectURL(compressedFile)
+        
+        const photoData = {
+          id: photoId,
+          file: compressedFile,
+          preview,
+          name: file.name,
+          size: compressedFile.size,
+          uploading: true,
+          uploaded: false,
+          error: false,
+          supabaseUrl: null,
+          supabasePath: null
         }
+        
+        newPhotos.push(photoData)
+        
+        logDebug('Photo préparée pour upload', { 
+          photoId, 
+          fileName: file.name, 
+          originalSize: file.size,
+          compressedSize: compressedFile.size 
+        })
+        
+      } catch (error) {
+        logError('Erreur lors de la compression', error, { fileName: file.name })
       }
     }
 
@@ -151,8 +202,8 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
     onPhotoSelect && onPhotoSelect(updatedPhotos)
     updateGlobalProgress(updatedPhotos)
 
-    // Étape 3: Upload en arrière-plan avec gestion d'erreurs robuste
-    const uploadPromises = newPhotos.map(async (photoData) => {
+    // Étape 3: Upload séquentiel pour éviter la surcharge
+    for (const photoData of newPhotos) {
       try {
         const uploadResult = await uploadToSupabase(photoData.file, photoData.id)
         
@@ -165,10 +216,17 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
         
         logInfo('Photo uploadée avec succès', { 
           photoId: photoData.id, 
+          fileName: uploadResult.fileName,
           url: uploadResult.url 
         })
         
-        return { success: true, photoData }
+        // Mettre à jour l'état après chaque upload réussi
+        setPhotos(prevPhotos => {
+          const updated = prevPhotos.map(p => p.id === photoData.id ? photoData : p)
+          updateGlobalProgress(updated)
+          onPhotoSelect && onPhotoSelect(updated)
+          return updated
+        })
         
       } catch (error) {
         photoData.uploading = false
@@ -181,28 +239,20 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
           fileName: photoData.name 
         })
         
-        return { success: false, photoData, error }
+        // Mettre à jour l'état même en cas d'erreur
+        setPhotos(prevPhotos => {
+          const updated = prevPhotos.map(p => p.id === photoData.id ? photoData : p)
+          updateGlobalProgress(updated)
+          onPhotoSelect && onPhotoSelect(updated)
+          return updated
+        })
       }
-    })
-
-    // Attendre tous les uploads et mettre à jour l'état final
-    const results = await Promise.allSettled(uploadPromises)
-    
-    // Mettre à jour l'état avec tous les résultats
-    setPhotos(prevPhotos => {
-      const finalPhotos = prevPhotos.map(existingPhoto => {
-        const updatedPhoto = newPhotos.find(np => np.id === existingPhoto.id)
-        return updatedPhoto || existingPhoto
-      })
-      updateGlobalProgress(finalPhotos)
-      onPhotoSelect && onPhotoSelect(finalPhotos)
-      return finalPhotos
-    })
+    }
 
     setUploading(false)
     
-    const successCount = results.filter(r => r.status === 'fulfilled' && r.value.success).length
-    const errorCount = results.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.success)).length
+    const successCount = newPhotos.filter(p => p.uploaded).length
+    const errorCount = newPhotos.filter(p => p.error).length
     
     logUserInteraction('UPLOAD_PHOTOS_COMPLETED', 'photo-upload', {
       totalPhotos: newPhotos.length,

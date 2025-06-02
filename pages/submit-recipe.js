@@ -100,11 +100,16 @@ export default function SubmitRecipe() {
       logWarning('Validation échouée: aucune photo')
     }
     
-    // Vérification plus robuste des photos
+    // Validation améliorée des photos avec vérification des URLs Supabase
     if (photos.length > 0) {
       const uploadingPhotos = photos.filter(photo => photo.uploading)
       const errorPhotos = photos.filter(photo => photo.error)
-      const uploadedPhotos = photos.filter(photo => photo.uploaded && photo.supabaseUrl)
+      const uploadedPhotos = photos.filter(photo => 
+        photo.uploaded && 
+        photo.supabaseUrl && 
+        photo.supabasePath &&
+        photo.supabaseUrl.includes('supabase')
+      )
       
       if (uploadingPhotos.length > 0) {
         newErrors.photos = `Attendez que ${uploadingPhotos.length} photo(s) finissent d'être uploadées`
@@ -120,10 +125,11 @@ export default function SubmitRecipe() {
           errorMessages: errorPhotos.map(p => p.errorMessage)
         })
       } else if (uploadedPhotos.length === 0) {
-        newErrors.photos = 'Aucune photo n\'a été correctement uploadée. Veuillez réessayer.'
-        logWarning('Validation échouée: aucune photo uploadée', {
+        newErrors.photos = 'Aucune photo n\'a été correctement uploadée vers Supabase. Veuillez réessayer.'
+        logWarning('Validation échouée: aucune photo uploadée vers Supabase', {
           totalPhotos: photos.length,
-          photosWithUrls: photos.filter(p => p.supabaseUrl).length
+          photosWithUrls: photos.filter(p => p.supabaseUrl).length,
+          photosWithPaths: photos.filter(p => p.supabasePath).length
         })
       }
     }
@@ -136,7 +142,7 @@ export default function SubmitRecipe() {
       errors: Object.keys(newErrors),
       photosCount: photos.length,
       uploadedPhotosCount: photos.filter(p => p.uploaded).length,
-      photosWithUrls: photos.filter(p => p.supabaseUrl).length
+      validSupabaseUrls: photos.filter(p => p.supabaseUrl?.includes('supabase')).length
     })
     
     setErrors(newErrors)
@@ -163,19 +169,27 @@ export default function SubmitRecipe() {
       const ingredientsArray = parseIngredients(formData.ingredients)
       const instructionsArray = parseInstructions(formData.instructions)
       
-      // Préparer les URLs des images avec validation
-      const validPhotos = photos.filter(photo => photo.uploaded && photo.supabaseUrl)
+      // Préparer les URLs des images avec validation renforcée
+      const validPhotos = photos.filter(photo => 
+        photo.uploaded && 
+        photo.supabaseUrl && 
+        photo.supabasePath &&
+        photo.supabaseUrl.includes('supabase') &&
+        !photo.error
+      )
+      
       const imageUrls = validPhotos.map(photo => photo.supabaseUrl)
       
       if (imageUrls.length === 0) {
-        throw new Error('Aucune photo valide trouvée. Veuillez réessayer l\'upload.')
+        throw new Error('Aucune photo valide trouvée dans Supabase. Veuillez réessayer l\'upload.')
       }
       
       logDebug('Photos validées pour soumission', {
         totalPhotos: photos.length,
         validPhotos: validPhotos.length,
         imageUrls: imageUrls.length,
-        firstImageUrl: imageUrls[0]
+        firstImageUrl: imageUrls[0],
+        allUrls: imageUrls
       })
       
       // Préparer les données selon le schéma de la base
@@ -188,8 +202,8 @@ export default function SubmitRecipe() {
         cookTime: formData.cookTime.trim() || null,
         category: formData.category || null,
         author: formData.author.trim() || 'Anonyme',
-        image: imageUrls[0] || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3',
-        photos: imageUrls
+        image: imageUrls[0], // Image principale obligatoire
+        photos: imageUrls // Toutes les photos
       }
       
       logDebug('Données de recette préparées', {
@@ -199,7 +213,8 @@ export default function SubmitRecipe() {
         instructionsCount: recipeData.instructions.length,
         photosCount: photos.length,
         imageUrlsCount: imageUrls.length,
-        category: recipeData.category
+        category: recipeData.category,
+        mainImageUrl: recipeData.image
       })
       
       // Call API to submit recipe
@@ -222,6 +237,7 @@ export default function SubmitRecipe() {
         category: recipeData.category,
         ingredientsCount: recipeData.ingredients.length,
         instructionsCount: recipeData.instructions.length,
+        photosCount: imageUrls.length,
         recipeId: result.id
       })
       
@@ -239,6 +255,11 @@ export default function SubmitRecipe() {
           title: formData.title,
           hasDescription: !!formData.description,
           category: formData.category
+        },
+        photosState: {
+          total: photos.length,
+          uploaded: photos.filter(p => p.uploaded).length,
+          withSupabaseUrls: photos.filter(p => p.supabaseUrl).length
         }
       })
       
@@ -252,7 +273,11 @@ export default function SubmitRecipe() {
   const uploadingPhotosCount = photos.filter(photo => photo.uploading).length
   const errorPhotosCount = photos.filter(photo => photo.error).length
   const uploadedPhotosCount = photos.filter(photo => photo.uploaded && photo.supabaseUrl).length
-  const allPhotosUploaded = photos.length > 0 && photos.every(photo => photo.uploaded && photo.supabaseUrl)
+  const allPhotosUploaded = photos.length > 0 && photos.every(photo => 
+    photo.uploaded && 
+    photo.supabaseUrl && 
+    photo.supabaseUrl.includes('supabase')
+  )
 
   // Message de confirmation de soumission
   if (showSuccessMessage) {
