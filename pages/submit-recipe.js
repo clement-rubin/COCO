@@ -250,7 +250,8 @@ export default function SubmitRecipe() {
         category: formData.category,
         difficulty: formData.difficulty || 'Facile',
         author: formData.author.trim() || 'Chef Anonyme',
-        image: selectedImage.imageBytes
+        image: selectedImage.imageBytes,
+        user_id: user.id // Ajouter l'ID utilisateur ici
       }
 
       logDebug('Données préparées pour envoi', {

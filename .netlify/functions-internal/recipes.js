@@ -84,16 +84,21 @@ exports.handler = async (event, context) => {
 
     // GET - Récupération des recettes
     if (event.httpMethod === 'GET') {
-      const author = event.queryStringParameters?.author
+      const { author, user_id } = event.queryStringParameters || {}
       
       let query = supabase
         .from('recipes')
         .select('*')
         .order('created_at', { ascending: false })
       
-      // Filter by author if specified
-      if (author) {
-        log(`Filtrage des recettes par auteur: ${author}`, "info")
+      // Filter by user_id if specified (priority over author)
+      if (user_id) {
+        log(`Filtrage des recettes par ID utilisateur: ${user_id}`, "info")
+        query = query.eq('user_id', user_id)
+      }
+      // Filter by author if specified (legacy support)
+      else if (author) {
+        log(`Filtrage des recettes par auteur (legacy): ${author}`, "info")
         query = query.eq('author', author)
       }
       
@@ -101,7 +106,7 @@ exports.handler = async (event, context) => {
       
       if (error) throw error;
       
-      log(`Recettes récupérées: ${recipes.length}${author ? ` pour l'auteur ${author}` : ''}`, "info")
+      log(`Recettes récupérées: ${recipes.length}${user_id ? ` pour l'utilisateur ${user_id}` : author ? ` pour l'auteur ${author}` : ''}`, "info")
       
       return {
         statusCode: 200,
@@ -149,8 +154,9 @@ exports.handler = async (event, context) => {
         cookTime: data.cookTime?.trim() || null,
         servings: data.servings?.trim() || null,
         category: data.category?.trim() || null,
-        difficulty: data.difficulty?.trim() || 'Facile', // Ajout avec valeur par défaut
+        difficulty: data.difficulty?.trim() || 'Facile',
         author: data.author?.trim() || "Anonyme",
+        user_id: data.user_id?.trim() || null, // Ajout du user_id
         image: data.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3",
         photos: data.photos || [] // Support pour les multiples photos
       };
@@ -158,6 +164,8 @@ exports.handler = async (event, context) => {
       log(`Tentative d'insertion d'une nouvelle recette: ${newRecipe.title}`, "info", {
         hasTitle: !!newRecipe.title,
         hasDescription: !!newRecipe.description,
+        hasUserId: !!newRecipe.user_id,
+        userId: newRecipe.user_id,
         ingredientsCount: newRecipe.ingredients.length,
         instructionsCount: newRecipe.instructions.length,
         category: newRecipe.category,

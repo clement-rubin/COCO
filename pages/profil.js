@@ -41,11 +41,11 @@ export default function Profil() {
   // Fetch user's recipes
   useEffect(() => {
     const fetchUserRecipes = async () => {
-      if (!user?.email) return
+      if (!user?.id) return
       
       try {
         setLoading(true)
-        const response = await fetch(`/api/recipes?author=${encodeURIComponent(user.email)}`)
+        const response = await fetch(`/api/recipes?user_id=${encodeURIComponent(user.id)}`)
         if (response.ok) {
           const recipes = await response.json()
           setUserRecipes(recipes)
@@ -68,10 +68,10 @@ export default function Profil() {
       }
     }
 
-    if (user?.email) {
+    if (user?.id) {
       fetchUserRecipes()
     }
-  }, [user?.email, userProfile])
+  }, [user?.id, userProfile])
 
   // Function to convert bytea to image URL
   const getImageUrl = (imageData) => {

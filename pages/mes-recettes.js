@@ -26,8 +26,8 @@ export default function MesRecettes() {
   // Fetch user's recipes
   useEffect(() => {
     const fetchUserRecipes = async () => {
-      if (!user) return
-
+      if (!user?.id) return
+      
       try {
         setLoading(true)
         logInfo('Récupération des recettes utilisateur', {
@@ -35,7 +35,7 @@ export default function MesRecettes() {
           userEmail: user.email
         })
 
-        const response = await fetch(`/api/recipes?author=${encodeURIComponent(user.email)}`)
+        const response = await fetch(`/api/recipes?user_id=${encodeURIComponent(user.id)}`)
         
         if (!response.ok) {
           throw new Error(`Erreur HTTP: ${response.status}`)
@@ -69,10 +69,10 @@ export default function MesRecettes() {
       }
     }
 
-    if (user && !authLoading) {
+    if (user?.id && !authLoading) {
       fetchUserRecipes()
     }
-  }, [user, authLoading])
+  }, [user?.id, authLoading])
 
   // Show loading state while checking authentication
   if (authLoading) {

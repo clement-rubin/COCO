@@ -23,16 +23,21 @@ export default async function handler(req, res) {
 
     // GET - Récupération des recettes
     if (req.method === 'GET') {
-      const { author } = req.query
+      const { author, user_id } = req.query
       
       let query = supabase
         .from('recipes')
         .select('*')
         .order('created_at', { ascending: false })
       
-      // Filter by author if specified
-      if (author) {
-        logInfo('[API] Filtrage par auteur', { author })
+      // Filter by user_id if specified (priority over author)
+      if (user_id) {
+        logInfo('[API] Filtrage par ID utilisateur', { user_id })
+        query = query.eq('user_id', user_id)
+      }
+      // Filter by author if specified (legacy support)
+      else if (author) {
+        logInfo('[API] Filtrage par auteur (legacy)', { author })
         query = query.eq('author', author)
       }
       
@@ -45,6 +50,7 @@ export default async function handler(req, res) {
       
       logInfo('[API] Recettes récupérées avec succès', {
         recipesCount: recipes.length,
+        filteredByUserId: !!user_id,
         filteredByAuthor: !!author
       })
       
@@ -215,7 +221,7 @@ export default async function handler(req, res) {
         processedInstructions = []
       }
       
-      // Création de l'objet recette strictement conforme au schéma
+      // Création de l'objet recette avec user_id
       const newRecipe = {
         // id sera généré automatiquement par gen_random_uuid()
         title: data.title.trim(),
@@ -225,20 +231,17 @@ export default async function handler(req, res) {
         cookTime: data.cookTime?.trim() || null,
         category: data.category?.trim() || null,
         author: data.author?.trim() || null,
+        user_id: data.user_id?.trim() || null, // Ajout du user_id
         ingredients: processedIngredients,
         instructions: processedInstructions,
         difficulty: data.difficulty?.trim() || 'Facile',
         // created_at et updated_at seront gérés automatiquement
       }
 
-      logInfo('[API] Recette préparée pour insertion conforme au schéma', {
+      logInfo('[API] Recette préparée pour insertion avec user_id', {
         title: newRecipe.title,
-        hasDescription: !!newRecipe.description,
-        hasImage: !!newRecipe.image,
-        imageBytesLength: newRecipe.image ? newRecipe.image.length : null,
-        hasPrepTime: !!newRecipe.prepTime,
-        hasCookTime: !!newRecipe.cookTime,
-        hasCategory: !!newRecipe.category,
+        hasUserId: !!newRecipe.user_id,
+        userId: newRecipe.user_id,
         hasAuthor: !!newRecipe.author,
         ingredientsCount: newRecipe.ingredients.length,
         instructionsCount: newRecipe.instructions.length,
