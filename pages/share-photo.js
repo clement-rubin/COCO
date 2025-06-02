@@ -107,43 +107,39 @@ export default function SharePhoto() {
     setIsSubmitting(true)
     
     try {
-      // Préparer les URLs des images validées
+      // Préparer les photos validées (avec bytes)
       const validPhotos = photos.filter(photo => 
-        photo.uploaded && 
-        photo.supabaseUrl && 
-        photo.supabasePath &&
-        photo.supabaseUrl.includes('supabase') &&
+        photo.processed && 
+        photo.imageBytes && 
+        Array.isArray(photo.imageBytes) &&
+        photo.imageBytes.length > 0 &&
         !photo.error
       )
       
-      const imageUrls = validPhotos.map(photo => photo.supabaseUrl)
-      
-      if (imageUrls.length === 0) {
-        throw new Error('Aucune photo valide trouvée dans Supabase. Veuillez réessayer l\'upload.')
+      if (validPhotos.length === 0) {
+        throw new Error('Aucune photo valide trouvée. Veuillez réessayer le traitement.')
       }
       
-      // Préparer les données selon le schéma de la base - version simplifiée
+      // Préparer les données selon le nouveau schéma
       const recipeData = {
         title: formData.title.trim(),
         description: formData.description.trim(),
-        ingredients: ['Photo partagée sans liste d\'ingrédients'], // Valeur par défaut car obligatoire en DB
-        instructions: [{ step: 1, instruction: 'Voir la photo pour inspiration' }], // Valeur par défaut car obligatoire en DB
+        ingredients: ['Photo partagée sans liste d\'ingrédients'],
+        instructions: [{ step: 1, instruction: 'Voir la photo pour inspiration' }],
         author: formData.author.trim() || 'Anonyme',
-        image: imageUrls[0], // Image principale obligatoire
-        photos: imageUrls, // Toutes les photos
-        category: 'Photo partagée', // Catégorie spéciale pour les photos
-        difficulty: 'Non spécifiée',
+        image: validPhotos[0].imageBytes, // Image principale en bytes
+        category: 'Photo partagée',
         prepTime: null,
         cookTime: null
       }
       
-      logDebug('Données de photo préparées', {
+      logDebug('Données de photo préparées pour DB bytea', {
         hasTitle: !!recipeData.title,
         hasDescription: !!recipeData.description,
         photosCount: photos.length,
-        imageUrlsCount: imageUrls.length,
-        category: recipeData.category,
-        mainImageUrl: recipeData.image
+        validPhotosCount: validPhotos.length,
+        mainImageBytesLength: recipeData.image.length,
+        category: recipeData.category
       })
       
       // Call API to submit photo as recipe
@@ -163,8 +159,9 @@ export default function SharePhoto() {
       
       logUserInteraction('PHOTO_SOUMISE', 'formulaire-photo', {
         title: recipeData.title,
-        photosCount: imageUrls.length,
-        recipeId: result.id
+        photosCount: validPhotos.length,
+        recipeId: result.id,
+        imageBytesLength: recipeData.image.length
       })
       
       // Afficher le message de succès
@@ -183,8 +180,8 @@ export default function SharePhoto() {
         },
         photosState: {
           total: photos.length,
-          uploaded: photos.filter(p => p.uploaded).length,
-          withSupabaseUrls: photos.filter(p => p.supabaseUrl).length
+          processed: photos.filter(p => p.processed).length,
+          withBytes: photos.filter(p => p.imageBytes).length
         }
       })
       
@@ -195,11 +192,11 @@ export default function SharePhoto() {
   }
 
   // Calculer l'état des uploads
-  const uploadingPhotosCount = photos.filter(photo => photo.uploading).length
-  const allPhotosUploaded = photos.length > 0 && photos.every(photo => 
-    photo.uploaded && 
-    photo.supabaseUrl && 
-    photo.supabaseUrl.includes('supabase')
+  const processingPhotosCount = photos.filter(photo => photo.processing).length
+  const allPhotosProcessed = photos.length > 0 && photos.every(photo => 
+    photo.processed && 
+    photo.imageBytes && 
+    Array.isArray(photo.imageBytes)
   )
 
   // Message de confirmation de soumission
@@ -245,13 +242,13 @@ export default function SharePhoto() {
             />
             {errors.photos && <span className={styles.error}>{errors.photos}</span>}
             
-            {uploadingPhotosCount > 0 && (
+            {processingPhotosCount > 0 && (
               <div className={styles.uploadStatus}>
-                ⏳ {uploadingPhotosCount} photo(s) en cours d'upload...
+                ⏳ {processingPhotosCount} photo(s) en cours de traitement...
               </div>
             )}
             
-            {allPhotosUploaded && photos.length > 0 && (
+            {allPhotosProcessed && photos.length > 0 && (
               <div className={styles.uploadSuccess}>
                 ✅ Toutes les photos sont prêtes !
               </div>
@@ -313,16 +310,16 @@ export default function SharePhoto() {
             <button 
               type="submit" 
               className={styles.submitBtn}
-              disabled={isSubmitting || uploadingPhotosCount > 0}
+              disabled={isSubmitting || processingPhotosCount > 0}
             >
               {isSubmitting ? (
                 <>
                   <span className={styles.spinner}></span>
                   Partage en cours...
                 </>
-              ) : uploadingPhotosCount > 0 ? (
+              ) : processingPhotosCount > 0 ? (
                 <>
-                  ⏳ Upload en cours ({uploadingPhotosCount} photo(s))
+                  ⏳ Traitement en cours ({processingPhotosCount} photo(s))
                 </>
               ) : (
                 <>

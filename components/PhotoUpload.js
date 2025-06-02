@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react'
-import { uploadImageWithRetry, uploadImage, getImageUrl } from '../lib/supabase'
+import { uploadImageAsBytes, bytesToImageUrl } from '../lib/supabase'
 import { logDebug, logInfo, logError, logUserInteraction } from '../utils/logger'
 import styles from '../styles/PhotoUpload.module.css'
 
@@ -11,53 +11,18 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
   const [globalProgress, setGlobalProgress] = useState(0)
   const fileInputRef = useRef(null)
 
-  const compressImage = (file, maxWidth = 800, quality = 0.8) => {
-    return new Promise((resolve) => {
-      const canvas = document.createElement('canvas')
-      const ctx = canvas.getContext('2d')
-      const img = new Image()
-
-      img.onload = () => {
-        const ratio = Math.min(maxWidth / img.width, maxWidth / img.height)
-        canvas.width = img.width * ratio
-        canvas.height = img.height * ratio
-
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
-        
-        canvas.toBlob(resolve, 'image/jpeg', quality)
-      }
-
-      img.src = URL.createObjectURL(file)
-    })
-  }
-
-  const uploadToSupabase = async (file, photoId) => {
+  const processImageToBytes = async (file, photoId) => {
     try {
-      // Vérifier que le bucket est disponible avant de commencer
-      logDebug('Vérification du bucket avant upload', { photoId, fileName: file.name });
-      
-      const bucketAvailable = await createImageStorageBucket();
-      if (!bucketAvailable) {
-        throw new Error('❌ Bucket de stockage non disponible. Veuillez configurer Supabase Storage selon les instructions du README.');
-      }
-
-      // Générer un nom de fichier unique et sécurisé
-      const timestamp = Date.now()
-      const randomString = Math.random().toString(36).substring(2, 8)
-      const fileExtension = file.name.split('.').pop().toLowerCase()
-      const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_').substring(0, 50)
-      const fileName = `recipe_${timestamp}_${randomString}_${safeName}.${fileExtension}`
-      
-      logDebug('Début upload Supabase', { 
+      logDebug('Conversion en bytes', { 
         photoId, 
-        fileName, 
+        fileName: file.name, 
         fileSize: file.size,
         fileType: file.type
       })
       
       setUploadProgress(prev => ({ ...prev, [photoId]: 0 }))
       
-      // Simuler la progression d'upload avec des étapes plus réalistes
+      // Simuler la progression
       const progressInterval = setInterval(() => {
         setUploadProgress(prev => {
           const current = prev[photoId] || 0
@@ -66,35 +31,24 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
           }
           return prev
         })
-      }, 300)
+      }, 200)
       
-      // Upload avec retry automatique
-      const uploadData = await uploadImageWithRetry(file, fileName)
-      const publicUrl = getImageUrl(uploadData.path)
+      // Conversion en bytes
+      const result = await uploadImageAsBytes(file)
       
       clearInterval(progressInterval)
       setUploadProgress(prev => ({ ...prev, [photoId]: 100 }))
       
-      // Validation de l'URL générée
-      if (!publicUrl || !uploadData.path) {
-        throw new Error('URL de l\'image non générée correctement')
-      }
-      
-      logInfo('Upload Supabase réussi', { 
+      logInfo('Image convertie en bytes avec succès', { 
         photoId, 
-        fileName, 
-        path: uploadData.path,
-        url: publicUrl,
-        fileSize: file.size
+        fileName: file.name, 
+        bytesLength: result.bytes.length,
+        processedSize: result.processedSize
       })
       
-      return {
-        path: uploadData.path,
-        url: publicUrl,
-        fileName: fileName
-      }
+      return result
     } catch (error) {
-      logError('Erreur upload Supabase', error, { 
+      logError('Erreur conversion bytes', error, { 
         photoId, 
         fileName: file.name,
         fileSize: file.size,
@@ -112,25 +66,18 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
       return
     }
 
-    const uploadedPhotos = photos.filter(photo => photo.uploaded).length
-    const uploadingPhotos = photos.filter(photo => photo.uploading)
+    const processedPhotos = photos.filter(photo => photo.processed).length
+    const processingPhotos = photos.filter(photo => photo.processing)
     
-    let progressSum = uploadedPhotos * 100
+    let progressSum = processedPhotos * 100
     
-    uploadingPhotos.forEach(photo => {
+    processingPhotos.forEach(photo => {
       const progress = uploadProgress[photo.id] || 0
       progressSum += progress
     })
     
     const globalPercent = Math.round(progressSum / totalPhotos)
     setGlobalProgress(globalPercent)
-    
-    logDebug('Progression globale mise à jour', {
-      totalPhotos,
-      uploadedPhotos,
-      uploadingCount: uploadingPhotos.length,
-      globalPercent
-    })
   }
 
   const processFiles = useCallback(async (files) => {
@@ -144,10 +91,10 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
       currentPhotosCount: photos.length
     })
 
-    // Validation des fichiers avant traitement
+    // Validation des fichiers
     const validFiles = Array.from(files).filter(file => {
       const isValidType = file.type.startsWith('image/')
-      const isValidSize = file.size <= 6 * 1024 * 1024 // 6MB max selon Supabase
+      const isValidSize = file.size <= 6 * 1024 * 1024 // 6MB max
       
       if (!isValidType) {
         logWarning('Fichier ignoré - type invalide', { fileName: file.name, type: file.type })
@@ -161,74 +108,53 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
 
     if (validFiles.length === 0) {
       setUploading(false)
-      logError('Aucun fichier valide trouvé', new Error('No valid files'), { 
-        originalCount: files.length,
-        validCount: validFiles.length 
-      })
+      logError('Aucun fichier valide trouvé', new Error('No valid files'))
       return
     }
 
-    // Étape 1: Préparer toutes les photos avec compression
+    // Étape 1: Préparer toutes les photos
     for (let i = 0; i < Math.min(validFiles.length, maxFiles - photos.length); i++) {
       const file = validFiles[i]
       
-      try {
-        const photoId = Date.now() + i
-        const compressedFile = await compressImage(file)
-        const preview = URL.createObjectURL(compressedFile)
-        
-        const photoData = {
-          id: photoId,
-          file: compressedFile,
-          preview,
-          name: file.name,
-          size: compressedFile.size,
-          uploading: true,
-          uploaded: false,
-          error: false,
-          supabaseUrl: null,
-          supabasePath: null
-        }
-        
-        newPhotos.push(photoData)
-        
-        logDebug('Photo préparée pour upload', { 
-          photoId, 
-          fileName: file.name, 
-          originalSize: file.size,
-          compressedSize: compressedFile.size 
-        })
-        
-      } catch (error) {
-        logError('Erreur lors de la compression', error, { fileName: file.name })
+      const photoId = Date.now() + i
+      const preview = URL.createObjectURL(file)
+      
+      const photoData = {
+        id: photoId,
+        file: file,
+        preview,
+        name: file.name,
+        size: file.size,
+        processing: true,
+        processed: false,
+        error: false,
+        imageBytes: null,
+        mimeType: file.type
       }
+      
+      newPhotos.push(photoData)
     }
 
-    // Étape 2: Mettre à jour immédiatement l'état avec les nouvelles photos
+    // Mettre à jour immédiatement l'état
     const updatedPhotos = [...photos, ...newPhotos]
     setPhotos(updatedPhotos)
     onPhotoSelect && onPhotoSelect(updatedPhotos)
     updateGlobalProgress(updatedPhotos)
 
-    // Étape 3: Upload séquentiel pour éviter la surcharge
+    // Étape 2: Traitement séquentiel
     for (const photoData of newPhotos) {
       try {
-        const uploadResult = await uploadToSupabase(photoData.file, photoData.id)
+        const result = await processImageToBytes(photoData.file, photoData.id)
         
-        // Mettre à jour la photo avec les données d'upload
-        photoData.uploading = false
-        photoData.uploaded = true
-        photoData.supabasePath = uploadResult.path
-        photoData.supabaseUrl = uploadResult.url
+        // Mettre à jour la photo avec les bytes
+        photoData.processing = false
+        photoData.processed = true
+        photoData.imageBytes = result.bytes
+        photoData.mimeType = result.mimeType
+        photoData.processedSize = result.processedSize
         photoData.error = false
         
-        logInfo('Photo uploadée avec succès', { 
-          photoId: photoData.id, 
-          fileName: uploadResult.fileName,
-          url: uploadResult.url 
-        })
-        
-        // Mettre à jour l'état après chaque upload réussi
+        // Mettre à jour l'état après chaque traitement
         setPhotos(prevPhotos => {
           const updated = prevPhotos.map(p => p.id === photoData.id ? photoData : p)
           updateGlobalProgress(updated)
@@ -237,15 +163,10 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
         })
         
       } catch (error) {
-        photoData.uploading = false
-        photoData.uploaded = false
+        photoData.processing = false
+        photoData.processed = false
         photoData.error = true
-        photoData.errorMessage = error.message || 'Erreur d\'upload'
-        
-        logError('Échec upload photo', error, { 
-          photoId: photoData.id, 
-          fileName: photoData.name 
-        })
+        photoData.errorMessage = error.message || 'Erreur de traitement'
         
         // Mettre à jour l'état même en cas d'erreur
         setPhotos(prevPhotos => {
@@ -259,7 +180,7 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
 
     setUploading(false)
     
-    const successCount = newPhotos.filter(p => p.uploaded).length
+    const successCount = newPhotos.filter(p => p.processed).length
     const errorCount = newPhotos.filter(p => p.error).length
     
     logUserInteraction('UPLOAD_PHOTOS_COMPLETED', 'photo-upload', {
@@ -267,14 +188,6 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
       successCount,
       errorCount
     })
-    
-    if (errorCount > 0) {
-      logError('Certains uploads ont échoué', new Error('Upload partiel'), {
-        successCount,
-        errorCount,
-        totalPhotos: newPhotos.length
-      })
-    }
     
   }, [photos, maxFiles, onPhotoSelect, uploadProgress])
 
@@ -305,41 +218,24 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
   }
 
   const removePhoto = (id) => {
-    const photoToRemove = photos.find(photo => photo.id === id)
-    
-    // Si la photo a été uploadée, la supprimer de Supabase
-    if (photoToRemove?.supabasePath) {
-      // Note: On pourrait implémenter la suppression ici si nécessaire
-      console.log('Photo supprimée:', photoToRemove.supabasePath)
-    }
-    
     const updatedPhotos = photos.filter(photo => photo.id !== id)
     setPhotos(updatedPhotos)
     onPhotoSelect && onPhotoSelect(updatedPhotos)
   }
 
-  const reorderPhotos = (dragIndex, hoverIndex) => {
-    const draggedPhoto = photos[dragIndex]
-    const newPhotos = [...photos]
-    newPhotos.splice(dragIndex, 1)
-    newPhotos.splice(hoverIndex, 0, draggedPhoto)
-    setPhotos(newPhotos)
-    onPhotoSelect && onPhotoSelect(newPhotos)
-  }
-
-  // Calculer l'état global des uploads
-  const hasUploadingPhotos = photos.some(photo => photo.uploading)
+  // Calculer l'état global
+  const hasProcessingPhotos = photos.some(photo => photo.processing)
   const hasErrorPhotos = photos.some(photo => photo.error)
-  const allPhotosUploaded = photos.length > 0 && photos.every(photo => photo.uploaded)
-  const readyForSubmission = photos.length > 0 && !hasUploadingPhotos && !hasErrorPhotos && allPhotosUploaded
+  const allPhotosProcessed = photos.length > 0 && photos.every(photo => photo.processed)
+  const readyForSubmission = photos.length > 0 && !hasProcessingPhotos && !hasErrorPhotos && allPhotosProcessed
 
   return (
     <div className={styles.photoUpload}>
       {/* Barre de progression globale */}
-      {(hasUploadingPhotos || uploading) && (
+      {(hasProcessingPhotos || uploading) && (
         <div className={styles.globalProgress}>
           <div className={styles.progressHeader}>
-            <span>📤 Upload en cours...</span>
+            <span>🔄 Traitement en cours...</span>
             <span>{globalProgress}%</span>
           </div>
           <div className={styles.progressBar}>
@@ -349,24 +245,22 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
             ></div>
           </div>
           <div className={styles.progressDetails}>
-            {photos.filter(p => p.uploaded).length} sur {photos.length} photos uploadées
+            {photos.filter(p => p.processed).length} sur {photos.length} photos traitées
           </div>
         </div>
       )}
 
-      {/* Message de confirmation quand tout est uploadé */}
+      {/* Message de confirmation */}
       {readyForSubmission && (
         <div className={styles.uploadSuccess}>
-          ✅ Toutes les photos ont été uploadées avec succès ! Vous pouvez maintenant soumettre votre recette.
+          ✅ Toutes les photos ont été traitées avec succès ! Vous pouvez maintenant soumettre votre recette.
         </div>
       )}
 
-      {/* Message d'erreur s'il y a des erreurs */}
+      {/* Message d'erreur */}
       {hasErrorPhotos && (
         <div className={styles.uploadError}>
-          ❌ Certaines photos n'ont pas pu être uploadées. Veuillez les supprimer et réessayer.
-          <br />
-          <small>Vérifiez votre connexion internet et que les fichiers ne sont pas corrompus.</small>
+          ❌ Certaines photos n'ont pas pu être traitées. Veuillez les supprimer et réessayer.
         </div>
       )}
 
@@ -390,7 +284,7 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
         {uploading ? (
           <div className={styles.uploading}>
             <div className={styles.spinner}></div>
-            <p>Upload et optimisation en cours...</p>
+            <p>Traitement et optimisation en cours...</p>
           </div>
         ) : photos.length === 0 ? (
           <div className={styles.emptyState}>
@@ -400,7 +294,7 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
             <div className={styles.uploadTips}>
               <span>✓ Format JPEG/PNG</span>
               <span>✓ Max {maxFiles} photos</span>
-              <span>✓ Upload automatique</span>
+              <span>✓ Traitement automatique</span>
             </div>
           </div>
         ) : (
@@ -430,9 +324,9 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
               <div className={styles.photoInfo}>
                 <span className={styles.fileName}>{photo.name}</span>
                 <div className={styles.uploadStatus}>
-                  {photo.uploading && (
+                  {photo.processing && (
                     <div className={styles.uploadingStatus}>
-                      <span className={styles.uploading}>⏳ Upload...</span>
+                      <span className={styles.uploading}>⏳ Traitement...</span>
                       <div className={styles.individualProgress}>
                         <div 
                           className={styles.progressFill}
@@ -441,8 +335,8 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
                       </div>
                     </div>
                   )}
-                  {photo.uploaded && (
-                    <span className={styles.uploaded}>✅ Uploadé</span>
+                  {photo.processed && (
+                    <span className={styles.uploaded}>✅ Traité</span>
                   )}
                   {photo.error && (
                     <span className={styles.error}>❌ Erreur</span>
@@ -458,7 +352,7 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
         <div className={styles.photoTips}>
           <p>💡 La première photo sera utilisée comme image principale</p>
           <p>🔄 Glissez-déposez pour réorganiser</p>
-          <p>☁️ Les images sont automatiquement sauvegardées</p>
+          <p>💾 Les images sont converties automatiquement</p>
         </div>
       )}
     </div>
