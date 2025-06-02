@@ -4,13 +4,13 @@ Une application web moderne et mobile-first pour partager et découvrir des rece
 
 ## 🍴 Fonctionnalités Principales
 
-- **Partage de recettes avec photos** - Partagez vos créations culinaires avec photos de vos plats
+- **Partage rapide de photos** - Partagez rapidement une photo de votre plat avec nom et description
+- **Partage de recettes complètes** - Partagez vos créations culinaires avec photos détaillées
 - **Navigation des recettes** - Explorez les recettes partagées par d'autres utilisateurs
 - **Recherche intelligente** - Trouvez des recettes par titre, description ou auteur
 - **Design mobile-first** - Interface optimisée pour smartphone et tablette
-- **Upload multiple d'images** - Ajoutez jusqu'à 5 photos de vos plats
+- **Upload multiple d'images** - Ajoutez jusqu'à 3 photos de vos plats
 - **Détails complets** - Ingrédients, instructions étape par étape, temps de préparation
-- **Bouton de partage intégré** - Accès rapide à la page de soumission de recette
 
 ## 🎨 Design Mobile-First
 
@@ -38,17 +38,19 @@ COCO/
 ├── pages/
 │   ├── index.js                    # Page d'accueil
 │   ├── user-recipes.js            # Liste des recettes partagées
-│   ├── submit-recipe.js           # Page de partage de recette avec photos
+│   ├── share-photo.js             # Page de partage rapide de photo
+│   ├── submit-recipe.js           # Page de partage de recette complète
 │   └── recipes/
 │       └── user/[id].js           # Détail d'une recette utilisateur
 ├── components/
 │   ├── Navbar.tsx                 # Navigation responsive
 │   ├── RecipeCard.js             # Carte de recette
-│   ├── ShareButton.js            # Bouton de partage vers submit-recipe
+│   ├── ShareButton.js            # Bouton de partage vers share-photo
 │   └── PhotoUpload.js            # Composant d'upload de photos
 ├── styles/
 │   ├── globals.css               # Design system global
-│   ├── SubmitRecipe.module.css   # Styles du formulaire de partage
+│   ├── SharePhoto.module.css     # Styles du partage de photo
+│   ├── SubmitRecipe.module.css   # Styles du formulaire de recette
 │   └── RecipeDetail.module.css   # Styles des détails
 └── api/
     └── recipes/                  # API de gestion des recettes
@@ -101,6 +103,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=votre_cle_api_supabase
 - **URLs publiques** générées automatiquement
 - **Support multi-images** (jusqu'à 3 photos par recette)
 - **Validation** avant soumission du formulaire
+- **Partage rapide** de photos avec description simple
 
 ## 🌐 Déploiement
 
@@ -124,11 +127,8 @@ vercel --prod
 - [ ] Notifications push
 - [ ] Partage social direct des recettes
 - [ ] Stories de cuisine éphémères
+- [ ] Mode photo instantané avec géolocalisation
 
 ## 📄 Licence
-
-MIT License - Voir le fichier LICENSE pour plus de détails.
-
----
 
 **COCO** - *Où chaque recette raconte une histoire* 🍴✨
