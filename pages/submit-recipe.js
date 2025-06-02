@@ -233,89 +233,89 @@ export default function SubmitRecipe() {
     }
   }
 
-  const submitRecipe = withErrorHandling(async () => {
+  const submitRecipe = async () => {
     if (!validateStep(3)) return
 
     setIsSubmitting(true)
     setCurrentError(null)
 
-    logInfo('Début de soumission de recette', {
-      title: formData.title,
-      photosCount: photos.length,
-      ingredientsCount: formData.ingredients.filter(i => i.trim()).length
-    })
+    try {
+      logInfo('Début de soumission de recette', {
+        title: formData.title,
+        photosCount: photos.length,
+        ingredientsCount: formData.ingredients.filter(i => i.trim()).length
+      })
 
-    // Préparer les données
-    const validIngredients = formData.ingredients.filter(ing => ing.trim())
-    const validInstructions = formData.instructions.filter(inst => inst.trim())
+      // Préparer les données
+      const validIngredients = formData.ingredients.filter(ing => ing.trim())
+      const validInstructions = formData.instructions.filter(inst => inst.trim())
 
-    // Utiliser la première photo comme image principale
-    const mainPhoto = photos.find(photo => photo.processed && !photo.error)
-    if (!mainPhoto) {
-      throw new Error('Aucune photo valide trouvée')
+      // Utiliser la première photo comme image principale
+      const mainPhoto = photos.find(photo => photo.processed && !photo.error)
+      if (!mainPhoto) {
+        throw new Error('Aucune photo valide trouvée')
+      }
+
+      const submissionData = {
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        ingredients: validIngredients,
+        instructions: validInstructions.map((instruction, index) => ({
+          step: index + 1,
+          instruction: instruction.trim()
+        })),
+        prepTime: formData.prepTime.trim() || null,
+        cookTime: formData.cookTime.trim() || null,
+        servings: formData.servings.trim() || null,
+        category: formData.category,
+        difficulty: formData.difficulty,
+        author: formData.author.trim() || 'Chef Anonyme',
+        image: mainPhoto.imageBytes,
+        photos: photos
+          .filter(photo => photo.processed && !photo.error)
+          .map(photo => ({
+            bytes: photo.imageBytes,
+            name: photo.name,
+            mimeType: photo.mimeType
+          }))
+      }
+
+      logDebug('Données préparées pour envoi', {
+        ...submissionData,
+        image: `[${submissionData.image.length} bytes]`,
+        photos: submissionData.photos.map(p => ({ name: p.name, bytes: `[${p.bytes.length} bytes]` }))
+      })
+
+      // Envoi avec retry automatique
+      const response = await retryOperation(async () => {
+        return await supabase
+          .from('recipes')
+          .insert([submissionData])
+          .select()
+      }, 3, 1500)
+
+      if (response.error) {
+        throw new Error(`Erreur lors de l'envoi: ${response.error.message}`)
+      }
+
+      logInfo('Recette soumise avec succès', {
+        recipeId: response.data[0]?.id,
+        title: submissionData.title
+      })
+
+      setShowSuccessMessage(true)
+      
+    } catch (error) {
+      const errorResult = handleComponentError(error, { 
+        component: 'SubmitRecipe', 
+        action: 'submit_recipe',
+        title: formData.title 
+      })
+      setCurrentError(errorResult.error)
+    } finally {
+      setIsSubmitting(false)
     }
-
-    const submissionData = {
-      title: formData.title.trim(),
-      description: formData.description.trim(),
-      ingredients: validIngredients,
-      instructions: validInstructions.map((instruction, index) => ({
-        step: index + 1,
-        instruction: instruction.trim()
-      })),
-      prepTime: formData.prepTime.trim() || null,
-      cookTime: formData.cookTime.trim() || null,
-      servings: formData.servings.trim() || null,
-      category: formData.category,
-      difficulty: formData.difficulty,
-      author: formData.author.trim() || 'Chef Anonyme',
-      image: mainPhoto.imageBytes,
-      photos: photos
-        .filter(photo => photo.processed && !photo.error)
-        .map(photo => ({
-          bytes: photo.imageBytes,
-          name: photo.name,
-          mimeType: photo.mimeType
-        }))
-    }
-
-    logDebug('Données préparées pour envoi', {
-      ...submissionData,
-      image: `[${submissionData.image.length} bytes]`,
-      photos: submissionData.photos.map(p => ({ name: p.name, bytes: `[${p.bytes.length} bytes]` }))
-    })
-
-    // Envoi avec retry automatique
-    const response = await retryOperation(async () => {
-      return await supabase
-        .from('recipes')
-        .insert([submissionData])
-        .select()
-    }, 3, 1500)
-
-    if (response.error) {
-      throw new Error(`Erreur lors de l'envoi: ${response.error.message}`)
-    }
-
-    logInfo('Recette soumise avec succès', {
-      recipeId: response.data[0]?.id,
-      title: submissionData.title
-    })
-
-    setShowSuccessMessage(true)
-  }, { 
-    component: 'SubmitRecipe', 
-    action: 'submit_recipe',
-    title: formData.title 
-  }, {
-    silent: false,
-    showToUser: true,
-    allowRetry: true
-  }).catch(error => {
-    setCurrentError(error)
-  }).finally(() => {
-    setIsSubmitting(false)
-  })
+  }
 
   const resetError = () => {
     setCurrentError(null)
