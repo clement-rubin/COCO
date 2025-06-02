@@ -287,15 +287,7 @@ function AppContent({ Component, pageProps }) {
   return (
     <>
       <div className="mobile-app">
-        {/* Mobile Status Bar */}
-        <div className="status-bar">
-          <span>9:41</span>
-          <div className="status-icons">
-            <span>📶</span>
-            <span>📱</span>
-            <span>🔋</span>
-          </div>
-        </div>
+        {/* Mobile Status Bar supprimée */}
         
         <main className="app-content">
           {globalError && (
