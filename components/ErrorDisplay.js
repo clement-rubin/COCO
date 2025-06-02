@@ -1,10 +1,15 @@
 import { useState, useEffect } from 'react';
-import styles from '../styles/ErrorDisplay.module.css';
+import { useAuth } from './AuthContext';
 import { logComponentEvent, logUserInteraction, logDebug } from '../utils/logger';
+import { RECOVERY_STRATEGIES } from '../utils/errorHandler';
+import styles from '../styles/ErrorDisplay.module.css';
 
-export default function ErrorDisplay({ error, resetError = null, onRetry = null }) {
+export default function ErrorDisplay({ error, resetError = null, onRetry = null, email }) {
   const [showDetails, setShowDetails] = useState(false);
-  
+  const [resending, setResending] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
+  const { resendConfirmation } = useAuth();
+
   // Log le montage du composant et les détails de l'erreur
   useEffect(() => {
     logComponentEvent('ErrorDisplay', 'MOUNTED', {
@@ -87,6 +92,27 @@ export default function ErrorDisplay({ error, resetError = null, onRetry = null 
     }
   };
   
+  const handleResendEmail = async () => {
+    if (!email) return
+    
+    setResending(true)
+    try {
+      const { error: resendError } = await resendConfirmation(email)
+      if (resendError) {
+        throw resendError
+      }
+      setResendSuccess(true)
+      setTimeout(() => {
+        setResendSuccess(false)
+        resetError()
+      }, 3000)
+    } catch (err) {
+      console.error('Erreur lors du renvoi:', err)
+    } finally {
+      setResending(false)
+    }
+  }
+  
   // Log le rendu du composant
   logDebug('ErrorDisplay - Rendu du composant', {
     errorId: id,
@@ -101,7 +127,17 @@ export default function ErrorDisplay({ error, resetError = null, onRetry = null 
       case 'auth_error': return '🔐';
       case 'validation_error': return '⚠️';
       case 'network_error': return '📡';
+      case 'captcha_error': return '🤖';
       default: return '❌';
+    }
+  };
+
+  const getErrorColor = (type) => {
+    switch (type) {
+      case 'auth_error': return '#ff6b35';
+      case 'validation_error': return '#feca57';
+      case 'network_error': return '#ff6b6b';
+      default: return '#ff4757';
     }
   };
 
@@ -116,126 +152,140 @@ export default function ErrorDisplay({ error, resetError = null, onRetry = null 
     }
   };
 
+  if (resendSuccess) {
+    return (
+      <div style={{
+        background: '#e7f7e7',
+        border: '2px solid #4CAF50',
+        borderRadius: '12px',
+        padding: '16px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px'
+      }}>
+        <span style={{ fontSize: '1.5rem' }}>✅</span>
+        <div style={{ flex: 1 }}>
+          <p style={{ 
+            margin: 0,
+            color: '#2e7d32',
+            fontWeight: '600'
+          }}>
+            Email renvoyé avec succès !
+          </p>
+          <p style={{ 
+            margin: '4px 0 0 0',
+            fontSize: '0.9rem',
+            color: '#2e7d32'
+          }}>
+            Vérifiez votre boîte mail (et vos spams).
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div style={{
-      background: '#fef2f2',
-      border: '1px solid #fecaca',
-      borderRadius: 'var(--border-radius-medium)',
-      padding: 'var(--spacing-md)',
-      marginBottom: 'var(--spacing-md)'
-    }} className={styles.errorContainer}>
-      <div style={{
-        display: 'flex',
-        alignItems: 'flex-start',
-        gap: 'var(--spacing-md)'
-      }} className={styles.errorHeader}>
-        <div style={{ fontSize: '1.5rem', flexShrink: 0 }}>
+      background: '#fff5f5',
+      border: `2px solid ${getErrorColor(error.type)}`,
+      borderRadius: '12px',
+      padding: '16px'
+    }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+        <span style={{ fontSize: '1.5rem', flexShrink: 0 }}>
           {getErrorIcon(error.type)}
-        </div>
-        
+        </span>
         <div style={{ flex: 1 }}>
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-            marginBottom: 'var(--spacing-sm)'
+          <p style={{ 
+            margin: '0 0 8px 0',
+            color: getErrorColor(error.type),
+            fontWeight: '600',
+            fontSize: '1rem'
           }}>
-            <h4 style={{
-              margin: 0,
-              color: '#dc2626',
-              fontSize: '1rem',
-              fontWeight: '600'
-            }} className={styles.errorTitle}>
-              Une erreur s'est produite
-            </h4>
-            
-            <button
-              onClick={handleReset}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#6b7280',
-                cursor: 'pointer',
-                fontSize: '1.2rem',
-                padding: 'var(--spacing-xs)'
-              }} className={styles.dismissButton}
-            >
-              ✕
-            </button>
-          </div>
-          
-          <p style={{
-            margin: '0 0 var(--spacing-md) 0',
-            color: '#7f1d1d',
-            fontSize: '0.9rem',
-            lineHeight: '1.4'
-          }} className={styles.errorMessage}>
-            {message}
+            {error.message}
           </p>
           
-          <div style={{
-            display: 'flex',
-            gap: 'var(--spacing-sm)',
-            alignItems: 'center'
-          }} className={styles.recoveryActions}>
-            {error.recoveryStrategy && onRetry && (
+          <div style={{ 
+            display: 'flex', 
+            gap: '8px', 
+            flexWrap: 'wrap',
+            marginTop: '12px'
+          }}>
+            {error.recoveryStrategy === RECOVERY_STRATEGIES.RETRY && onRetry && (
               <button
-                onClick={handleRetry}
+                onClick={onRetry}
                 style={{
-                  padding: 'var(--spacing-sm) var(--spacing-md)',
-                  background: '#dc2626',
+                  padding: '8px 16px',
+                  background: getErrorColor(error.type),
                   color: 'white',
                   border: 'none',
-                  borderRadius: 'var(--border-radius-small)',
-                  fontSize: '0.8rem',
-                  cursor: 'pointer',
-                  fontWeight: '500'
-                }}
-              >
-                {getRecoveryAction(error.recoveryStrategy)}
-              </button>
-            )}
-            
-            {hasDetails && (
-              <button
-                onClick={handleToggleDetails}
-                style={{
-                  padding: 'var(--spacing-sm) var(--spacing-md)',
-                  background: 'transparent',
-                  color: '#dc2626',
-                  border: '1px solid #fecaca',
-                  borderRadius: 'var(--border-radius-small)',
-                  fontSize: '0.8rem',
+                  borderRadius: '8px',
+                  fontSize: '0.9rem',
+                  fontWeight: '600',
                   cursor: 'pointer'
                 }}
               >
-                {showDetails ? 'Masquer' : 'Détails'}
+                Réessayer
               </button>
             )}
+            
+            {error.recoveryStrategy === RECOVERY_STRATEGIES.RESEND_EMAIL && email && (
+              <button
+                onClick={handleResendEmail}
+                disabled={resending}
+                style={{
+                  padding: '8px 16px',
+                  background: resending ? '#ccc' : getErrorColor(error.type),
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '0.9rem',
+                  fontWeight: '600',
+                  cursor: resending ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                {resending && (
+                  <div style={{
+                    width: '12px',
+                    height: '12px',
+                    border: '2px solid white',
+                    borderTop: '2px solid transparent',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite'
+                  }} />
+                )}
+                {resending ? 'Envoi...' : 'Renvoyer l\'email'}
+              </button>
+            )}
+            
+            <button
+              onClick={resetError}
+              style={{
+                padding: '8px 16px',
+                background: 'transparent',
+                color: getErrorColor(error.type),
+                border: `1px solid ${getErrorColor(error.type)}`,
+                borderRadius: '8px',
+                fontSize: '0.9rem',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+            >
+              Fermer
+            </button>
           </div>
-          
-          {showDetails && hasDetails && (
-            <div style={{
-              marginTop: 'var(--spacing-md)',
-              padding: 'var(--spacing-md)',
-              background: '#fff',
-              border: '1px solid #fecaca',
-              borderRadius: 'var(--border-radius-small)',
-              fontSize: '0.8rem',
-              color: '#6b7280'
-            }}>
-              <strong>Détails techniques :</strong>
-              <pre style={{
-                margin: 'var(--spacing-xs) 0 0 0',
-                overflow: 'auto',
-                maxHeight: '100px'
-              }}>
-                {stack || JSON.stringify(details, null, 2)}
-              </pre>
-            </div>
-          )}
         </div>
       </div>
+      
+      <style jsx>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 }

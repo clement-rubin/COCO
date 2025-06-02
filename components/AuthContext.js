@@ -163,13 +163,43 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
+  const resendConfirmation = async (email) => {
+    try {
+      logUserInteraction('RESEND_CONFIRMATION_ATTEMPT', 'auth-resend', { email })
+      
+      const redirectTo = typeof window !== 'undefined' 
+        ? `${window.location.origin}/auth/confirm`
+        : '/auth/confirm';
+      
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+        options: {
+          emailRedirectTo: redirectTo
+        }
+      })
+
+      if (error) {
+        logError('Erreur lors du renvoi de l\'email de confirmation', error)
+        throw error
+      }
+
+      logInfo('Email de confirmation renvoyé', { email })
+      return { error: null }
+    } catch (error) {
+      logError('Erreur lors du renvoi de l\'email de confirmation', error)
+      return { error }
+    }
+  }
+
   const value = {
     user,
     loading,
     signUp,
     signIn,
     signOut,
-    resetPassword
+    resetPassword,
+    resendConfirmation
   }
 
   return (

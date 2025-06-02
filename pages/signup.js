@@ -232,7 +232,7 @@ export default function Signup() {
 
           {error && (
             <div style={{ marginBottom: '32px' }}>
-              <ErrorDisplay error={error} resetError={resetError} />
+              <ErrorDisplay error={error} resetError={resetError} email={email} />
             </div>
           )}
 

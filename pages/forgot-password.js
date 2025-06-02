@@ -125,7 +125,7 @@ export default function ForgotPassword() {
 
           {error && (
             <div style={{ marginBottom: 'var(--spacing-lg)' }}>
-              <ErrorDisplay error={error} resetError={resetError} />
+              <ErrorDisplay error={error} resetError={resetError} email={email} />
             </div>
           )}
 

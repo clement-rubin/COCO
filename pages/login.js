@@ -111,7 +111,7 @@ export default function Login() {
 
           {error && (
             <div style={{ marginBottom: '32px' }}>
-              <ErrorDisplay error={error} resetError={resetError} />
+              <ErrorDisplay error={error} resetError={resetError} email={email} />
             </div>
           )}
 

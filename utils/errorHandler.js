@@ -22,7 +22,8 @@ export const RECOVERY_STRATEGIES = {
   REFRESH: 'refresh',
   REDIRECT: 'redirect',
   MANUAL: 'manual',
-  CAPTCHA: 'captcha'
+  CAPTCHA: 'captcha',
+  RESEND_EMAIL: 'resend_email'
 }
 
 // Hook pour gérer les erreurs dans les composants
@@ -229,7 +230,7 @@ export const handleAuthError = (error) => {
       userError: {
         message: 'Veuillez confirmer votre email avant de vous connecter',
         type: ERROR_TYPES.AUTH,
-        recoveryStrategy: RECOVERY_STRATEGIES.REDIRECT,
+        recoveryStrategy: RECOVERY_STRATEGIES.RESEND_EMAIL,
         redirectUrl: '/auth/confirm'
       }
     }
