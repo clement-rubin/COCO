@@ -239,23 +239,58 @@ export default function TestUpload() {
                 <span className="text-green-600 text-xl mr-3">✅</span>
                 <div>
                   <p className="text-green-800 font-medium">Bucket recipe-images disponible</p>
-                  <p className="text-green-600 text-sm">Upload d'images possible</p>
+                  <p className="text-green-600 text-sm">Configuration correcte - Upload d'images possible</p>
                 </div>
               </div>
             )}
             
             {bucketStatus === 'error' && (
-              <div className="flex items-center">
-                <span className="text-red-600 text-xl mr-3">❌</span>
-                <div>
-                  <p className="text-red-800 font-medium">Problème avec le bucket recipe-images</p>
-                  <p className="text-red-600 text-sm">Consultez les logs ci-dessous pour plus d'informations</p>
+              <div>
+                <div className="flex items-center mb-4">
+                  <span className="text-red-600 text-xl mr-3">❌</span>
+                  <div>
+                    <p className="text-red-800 font-medium">Problème avec le bucket recipe-images</p>
+                    <p className="text-red-600 text-sm">Configuration Supabase requise</p>
+                  </div>
+                </div>
+                
+                <div className="bg-red-50 border border-red-200 rounded p-4 mb-4">
+                  <h3 className="font-medium text-red-800 mb-2">🔧 Étapes de configuration :</h3>
+                  <ol className="text-sm text-red-700 space-y-1 list-decimal list-inside">
+                    <li>Allez dans votre <strong>dashboard Supabase</strong></li>
+                    <li>Cliquez sur <strong>Storage &gt; Buckets</strong></li>
+                    <li>Cliquez sur <strong>"New bucket"</strong></li>
+                    <li>Nom : <code className="bg-red-100 px-1 rounded">recipe-images</code></li>
+                    <li><strong>⚠️ IMPORTANT :</strong> Cochez <strong>"Public bucket"</strong></li>
+                    <li>Cliquez sur <strong>"Create bucket"</strong></li>
+                    <li>Exécutez les politiques SQL du README</li>
+                  </ol>
+                </div>
+                
+                <div className="bg-blue-50 border border-blue-200 rounded p-4 mb-4">
+                  <h3 className="font-medium text-blue-800 mb-2">🔍 Vérifications supplémentaires :</h3>
+                  <ul className="text-sm text-blue-700 space-y-1 list-disc list-inside">
+                    <li>Vérifiez vos variables d'environnement dans <code>.env.local</code></li>
+                    <li>Assurez-vous que votre projet Supabase est actif</li>
+                    <li>Consultez les logs ci-dessous pour plus de détails</li>
+                  </ul>
+                </div>
+                
+                <div className="flex space-x-2">
                   <button
                     onClick={checkBucketStatus}
-                    className="mt-2 px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
+                    className="px-4 py-2 bg-red-600 text-white rounded text-sm hover:bg-red-700"
                   >
-                    Revérifier
+                    🔄 Revérifier
                   </button>
+                  <a
+                    href="https://supabase.com/dashboard"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                  >
+                    🔗 Ouvrir Supabase
+                  </a>
                 </div>
               </div>
             )}

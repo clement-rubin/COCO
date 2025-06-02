@@ -81,23 +81,40 @@ npm run dev
 3. Configurez vos variables d'environnement dans `.env.local` :
 
 ```bash
-NEXT_PUBLIC_SUPABASE_URL=https://bokfmtmbngwifgliliqc.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJva2ZtdG1ibmd3aWZnbGlsaXFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgzNzk0MTAsImV4cCI6MjA2Mzk1NTQxMH0.p-cRnf9OC4PoNyq397HUf3iZ4pZ1Q4GwKp8GCA17wAk
+NEXT_PUBLIC_SUPABASE_URL=https://votre-projet.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=votre_cle_anonyme_ici
 ```
 
-4. **Configuration Storage pour les images :**
-   - Allez dans Storage > Buckets
-   - Créez un bucket nommé `recipe-images`
-   - Cochez "Public bucket"
-   - Configurez les restrictions :
-     - Types de fichiers : `image/jpeg`, `image/png`, `image/webp`
-     - Taille max : 6MB
-   - **URL Storage disponible :** `https://bokfmtmbngwifgliliqc.supabase.co/storage/v1/s3`
+**⚠️ Important** : Remplacez les valeurs ci-dessus par celles de votre projet Supabase.
 
-5. **Création de la table recipes :**
-   - Utilisez la page `/test-upload` pour tester l'upload d'images
-   - Utilisez la page `/test-recipes` pour obtenir le SQL de création
-   - Ou exécutez le SQL fourni dans le dashboard Supabase
+4. **Configuration Storage pour les images :**
+   
+   **Étape 1 : Créer le bucket**
+   - Allez dans **Storage > Buckets** dans votre dashboard Supabase
+   - Cliquez sur **"New bucket"**
+   - Nom : `recipe-images`
+   - **⚠️ OBLIGATOIRE : Cochez "Public bucket"**
+   - Cliquez sur "Create bucket"
+
+   **Étape 2 : Configurer les politiques de sécurité**
+   - Allez dans **SQL Editor** dans votre dashboard Supabase
+   - Exécutez le SQL suivant :
+
+```sql
+-- Politiques pour permettre l'upload et la lecture publique
+CREATE POLICY IF NOT EXISTS "Permettre upload public" ON storage.objects
+  FOR INSERT WITH CHECK (bucket_id = 'recipe-images');
+
+CREATE POLICY IF NOT EXISTS "Permettre lecture publique" ON storage.objects
+  FOR SELECT USING (bucket_id = 'recipe-images');
+
+CREATE POLICY IF NOT EXISTS "Permettre suppression publique" ON storage.objects
+  FOR DELETE USING (bucket_id = 'recipe-images');
+```
+
+   **Étape 3 : Vérifier la configuration**
+   - Utilisez la page `/test-upload` pour vérifier que tout fonctionne
+   - Le statut du bucket doit afficher "✅ Bucket recipe-images disponible"
 
 ## 🔧 Tests et Debug
 

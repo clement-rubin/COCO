@@ -33,6 +33,14 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
 
   const uploadToSupabase = async (file, photoId) => {
     try {
+      // Vérifier que le bucket est disponible avant de commencer
+      logDebug('Vérification du bucket avant upload', { photoId, fileName: file.name });
+      
+      const bucketAvailable = await createImageStorageBucket();
+      if (!bucketAvailable) {
+        throw new Error('❌ Bucket de stockage non disponible. Veuillez configurer Supabase Storage selon les instructions du README.');
+      }
+
       // Générer un nom de fichier unique et sécurisé
       const timestamp = Date.now()
       const randomString = Math.random().toString(36).substring(2, 8)
