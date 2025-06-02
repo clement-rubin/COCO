@@ -179,7 +179,19 @@ export default function SubmitRecipe() {
       )
       
       if (validPhotos.length === 0) {
-        throw new Error('Aucune photo valide trouvée. Veuillez réessayer le traitement.')
+        logError('Aucune photo valide trouvée', null, {
+          totalPhotos: photos.length,
+          photosState: photos.map(p => ({
+            processed: p.processed,
+            hasImageBytes: !!p.imageBytes,
+            imageBytesType: typeof p.imageBytes,
+            imageBytesIsArray: Array.isArray(p.imageBytes),
+            imageBytesLength: p.imageBytes?.length,
+            error: p.error,
+            errorMessage: p.errorMessage
+          }))
+        })
+        throw new Error('Aucune photo valide trouvée. Veuillez réessayer le traitement des photos.')
       }
       
       logDebug('Photos validées pour soumission', {
@@ -203,18 +215,24 @@ export default function SubmitRecipe() {
         photos: validPhotos.map(p => p.imageBytes) // Toutes les photos en bytes
       }
       
-      logDebug('Données de recette préparées', {
+      logDebug('Données de recette préparées pour API', {
         hasTitle: !!recipeData.title,
         hasDescription: !!recipeData.description,
         ingredientsCount: recipeData.ingredients.length,
         instructionsCount: recipeData.instructions.length,
-        photosCount: photos.length,
-        imageUrlsCount: validPhotos.length,
+        photosCount: recipeData.photos.length,
+        mainImageBytesLength: recipeData.image.length,
         category: recipeData.category,
-        mainImageUrl: recipeData.image
+        author: recipeData.author
       })
       
+      // Valider que les données sont complètes avant l'envoi
+      if (!recipeData.image || !Array.isArray(recipeData.image) || recipeData.image.length === 0) {
+        throw new Error('Image principale manquante ou invalide')
+      }
+      
       // Call API to submit recipe
+      logInfo('Envoi des données vers l\'API /api/recipes')
       const response = await fetch('/api/recipes', {
         method: 'POST',
         headers: {
@@ -223,10 +241,31 @@ export default function SubmitRecipe() {
         body: JSON.stringify(recipeData)
       })
       
+      logDebug('Réponse de l\'API reçue', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
+      })
+      
       const result = await response.json()
       
+      logDebug('Contenu de la réponse API', {
+        hasResult: !!result,
+        resultKeys: Object.keys(result || {}),
+        message: result?.message,
+        id: result?.id,
+        error: result?.error
+      })
+      
       if (!response.ok) {
-        throw new Error(result.message || 'Erreur lors de la soumission')
+        const errorMessage = result.message || result.error || `Erreur HTTP ${response.status}: ${response.statusText}`
+        logError('Erreur de l\'API lors de la soumission', null, {
+          status: response.status,
+          statusText: response.statusText,
+          responseBody: result,
+          errorMessage
+        })
+        throw new Error(errorMessage)
       }
       
       logUserInteraction('RECETTE_SOUMISE', 'formulaire-soumission', {
@@ -248,19 +287,38 @@ export default function SubmitRecipe() {
       
     } catch (error) {
       logError('Erreur lors de la soumission de recette', error, {
+        errorName: error.constructor.name,
+        errorMessage: error.message,
+        errorStack: error.stack,
         formData: {
           title: formData.title,
           hasDescription: !!formData.description,
-          category: formData.category
+          category: formData.category,
+          ingredientsLength: formData.ingredients.length,
+          instructionsLength: formData.instructions.length
         },
         photosState: {
           total: photos.length,
-          uploaded: photos.filter(p => p.uploaded).length,
-          withSupabaseUrls: photos.filter(p => p.supabaseUrl).length
+          processed: photos.filter(p => p.processed).length,
+          withBytes: photos.filter(p => p.imageBytes?.length > 0).length,
+          withErrors: photos.filter(p => p.error).length
         }
       })
       
-      setErrors({ submit: 'Une erreur est survenue lors de l\'envoi. Veuillez réessayer.' })
+      // Fournir un message d'erreur plus spécifique
+      let errorMessage = 'Une erreur est survenue lors de l\'envoi. Veuillez réessayer.'
+      
+      if (error.message.includes('photo')) {
+        errorMessage = 'Problème avec les photos. Veuillez les recharger et réessayer.'
+      } else if (error.message.includes('fetch')) {
+        errorMessage = 'Problème de connexion. Vérifiez votre connexion internet et réessayez.'
+      } else if (error.message.includes('JSON')) {
+        errorMessage = 'Erreur de format des données. Veuillez recharger la page et réessayer.'
+      } else if (error.message) {
+        errorMessage = `Erreur: ${error.message}`
+      }
+      
+      setErrors({ submit: errorMessage })
     } finally {
       setIsSubmitting(false)
     }

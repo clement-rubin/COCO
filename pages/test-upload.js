@@ -92,7 +92,9 @@ export default function TestUpload() {
         testId,
         fileName: file.name,
         source,
-        bucketStatus
+        bucketStatus,
+        fileSize: file.size,
+        fileType: file.type
       });
 
       // Vérifier que le bucket est disponible avant de commencer
@@ -124,18 +126,45 @@ export default function TestUpload() {
       let uploadResult;
       try {
         uploadResult = await uploadImageAsBytes(file);
-        addLog('info', 'Conversion en bytes réussie', uploadResult);
+        addLog('info', 'Conversion en bytes réussie', {
+          bytesLength: uploadResult.bytes?.length,
+          processedSize: uploadResult.processedSize,
+          resultKeys: Object.keys(uploadResult)
+        });
       } catch (error) {
         addLog('error', 'Conversion en bytes échouée', {
           error: error.message,
+          errorName: error.constructor.name,
           stack: error.stack
         });
         
         // Test 2: Retry simple
         addLog('info', 'Test 2: Retry de conversion');
         await new Promise(resolve => setTimeout(resolve, 1000)); // Attendre 1 seconde
-        uploadResult = await uploadImageAsBytes(file);
-        addLog('info', 'Retry réussi', uploadResult);
+        try {
+          uploadResult = await uploadImageAsBytes(file);
+          addLog('info', 'Retry réussi', {
+            bytesLength: uploadResult.bytes?.length,
+            processedSize: uploadResult.processedSize
+          });
+        } catch (retryError) {
+          addLog('error', 'Retry également échoué', {
+            error: retryError.message,
+            errorName: retryError.constructor.name
+          });
+          throw retryError;
+        }
+      }
+
+      // Vérifier le résultat de conversion
+      if (!uploadResult || !uploadResult.bytes || !Array.isArray(uploadResult.bytes)) {
+        addLog('error', 'Résultat de conversion invalide', {
+          hasResult: !!uploadResult,
+          hasBytes: !!uploadResult?.bytes,
+          bytesType: typeof uploadResult?.bytes,
+          bytesIsArray: Array.isArray(uploadResult?.bytes)
+        });
+        throw new Error('La conversion en bytes a échoué: résultat invalide');
       }
 
       // Créer une URL de prévisualisation depuis le fichier original
@@ -170,7 +199,12 @@ export default function TestUpload() {
         source,
         error: error.message,
         errorName: error.constructor.name,
-        stack: error.stack
+        stack: error.stack,
+        fileInfo: {
+          name: file.name,
+          size: file.size,
+          type: file.type
+        }
       });
     } finally {
       setIsUploading(false);
