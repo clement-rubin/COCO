@@ -184,6 +184,7 @@ export default function Signup() {
                 onChange={(e) => setDisplayName(e.target.value)}
                 disabled={loading}
                 placeholder="Comment souhaitez-vous être appelé ?"
+                className="form-input"
                 style={{
                   width: '100%',
                   padding: 'var(--spacing-md)',
@@ -209,6 +210,7 @@ export default function Signup() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={loading}
+                className="form-input"
                 style={{
                   width: '100%',
                   padding: 'var(--spacing-md)',
@@ -234,6 +236,7 @@ export default function Signup() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={loading}
+                className="form-input"
                 style={{
                   width: '100%',
                   padding: 'var(--spacing-md)',
@@ -259,6 +262,7 @@ export default function Signup() {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
                 disabled={loading}
+                className="form-input"
                 style={{
                   width: '100%',
                   padding: 'var(--spacing-md)',
@@ -325,6 +329,11 @@ export default function Signup() {
       </div>
 
       <style jsx>{`
+        .form-input:focus {
+          border-color: var(--primary-orange);
+          outline: none;
+        }
+        
         @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }

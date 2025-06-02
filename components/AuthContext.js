@@ -137,8 +137,12 @@ export const AuthProvider = ({ children }) => {
     try {
       logUserInteraction('RESET_PASSWORD_ATTEMPT', 'auth-reset', { email })
       
+      const redirectTo = typeof window !== 'undefined' 
+        ? `${window.location.origin}/reset-password`
+        : '/reset-password';
+      
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`
+        redirectTo
       })
 
       if (error) {

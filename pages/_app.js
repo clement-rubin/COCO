@@ -256,25 +256,31 @@ function AppContent({ Component, pageProps }) {
     router.push('/submit-recipe')
   };
 
+  const copyToClipboard = async () => {
+    try {
+      if (typeof window !== 'undefined' && navigator.clipboard) {
+        await navigator.clipboard.writeText(window.location.origin);
+        alert('Lien copié dans le presse-papiers !');
+        setShowShareMenu(false);
+      }
+    } catch (err) {
+      console.error('Erreur lors de la copie:', err);
+    }
+  };
+
   const shareToWhatsApp = () => {
-    const text = encodeURIComponent('🍴 Découvrez COCO, l\'app pour partager et découvrir de délicieuses recettes ! ' + window.location.origin);
-    window.open(`https://wa.me/?text=${text}`, '_blank');
-    setShowShareMenu(false);
+    if (typeof window !== 'undefined') {
+      const text = encodeURIComponent('🍴 Découvrez COCO, l\'app pour partager et découvrir de délicieuses recettes ! ' + window.location.origin);
+      window.open(`https://wa.me/?text=${text}`, '_blank');
+      setShowShareMenu(false);
+    }
   };
 
   const shareToFacebook = () => {
-    const url = encodeURIComponent(window.location.origin);
-    window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, '_blank');
-    setShowShareMenu(false);
-  };
-
-  const copyToClipboard = async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.origin);
-      alert('Lien copié dans le presse-papiers !');
+    if (typeof window !== 'undefined') {
+      const url = encodeURIComponent(window.location.origin);
+      window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, '_blank');
       setShowShareMenu(false);
-    } catch (err) {
-      console.error('Erreur lors de la copie:', err);
     }
   };
 

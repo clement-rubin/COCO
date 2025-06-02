@@ -98,16 +98,14 @@ export default function Login() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={loading}
+                className="form-input"
                 style={{
                   width: '100%',
                   padding: 'var(--spacing-md)',
                   border: '2px solid var(--border-light)',
                   borderRadius: 'var(--border-radius-medium)',
-                  fontSize: '1rem',
-                  transition: 'border-color 0.3s ease'
+                  fontSize: '1rem'
                 }}
-                onFocus={(e) => e.target.style.borderColor = 'var(--primary-orange)'}
-                onBlur={(e) => e.target.style.borderColor = 'var(--border-light)'}
               />
             </div>
 
@@ -126,16 +124,14 @@ export default function Login() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={loading}
+                className="form-input"
                 style={{
                   width: '100%',
                   padding: 'var(--spacing-md)',
                   border: '2px solid var(--border-light)',
                   borderRadius: 'var(--border-radius-medium)',
-                  fontSize: '1rem',
-                  transition: 'border-color 0.3s ease'
+                  fontSize: '1rem'
                 }}
-                onFocus={(e) => e.target.style.borderColor = 'var(--primary-orange)'}
-                onBlur={(e) => e.target.style.borderColor = 'var(--border-light)'}
               />
             </div>
 
@@ -207,6 +203,11 @@ export default function Login() {
       </div>
 
       <style jsx>{`
+        .form-input:focus {
+          border-color: var(--primary-orange);
+          outline: none;
+        }
+        
         @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
