@@ -60,11 +60,16 @@ export const AuthProvider = ({ children }) => {
     try {
       logUserInteraction('SIGN_UP_ATTEMPT', 'auth-signup', { email })
       
+      const redirectTo = typeof window !== 'undefined' 
+        ? `${window.location.origin}/auth/confirm`
+        : '/auth/confirm';
+      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: metadata
+          data: metadata,
+          emailRedirectTo: redirectTo
         }
       })
 
@@ -138,8 +143,8 @@ export const AuthProvider = ({ children }) => {
       logUserInteraction('RESET_PASSWORD_ATTEMPT', 'auth-reset', { email })
       
       const redirectTo = typeof window !== 'undefined' 
-        ? `${window.location.origin}/reset-password`
-        : '/reset-password';
+        ? `${window.location.origin}/auth/reset-password`
+        : '/auth/reset-password';
       
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo
