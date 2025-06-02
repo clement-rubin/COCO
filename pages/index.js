@@ -300,12 +300,12 @@ export default function Home() {
             flexWrap: 'wrap',
             marginBottom: '1rem'
           }}>
-            {{
-              id: 'friends', icon: '👥', label: 'Amis', count: 12 },
+            {[
+              { id: 'friends', icon: '👥', label: 'Amis', count: 12 },
               { id: 'recent', icon: '🕒', label: 'Récent', count: 24 },
               { id: 'popular', icon: '🔥', label: 'Tendance', count: '∞' },
               { id: 'challenges', icon: '🏆', label: 'Défis', count: 3 }
-            }.map(filter => (
+            ].map(filter => (
               <button
                 key={filter.id}
                 onClick={() => setFeedType(filter.id)}
