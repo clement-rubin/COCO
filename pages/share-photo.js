@@ -3,7 +3,7 @@ import Head from 'next/head'
 import { useRouter } from 'next/router'
 import PhotoUpload from '../components/PhotoUpload'
 import styles from '../styles/SharePhoto.module.css'
-import { logDebug, logInfo, logError, logUserInteraction } from '../utils/logger'
+import { logDebug, logInfo, logError, logWarning, logUserInteraction } from '../utils/logger'
 
 export default function SharePhoto() {
   const router = useRouter()
