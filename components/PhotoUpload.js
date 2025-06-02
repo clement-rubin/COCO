@@ -110,37 +110,49 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
       currentPhotosCount: photos.length
     })
 
+    // Étape 1: Préparer toutes les photos avec compression
     for (let i = 0; i < Math.min(files.length, maxFiles - photos.length); i++) {
       const file = files[i]
       
       if (file.type.startsWith('image/')) {
-        const photoId = Date.now() + i
-        const compressedFile = await compressImage(file)
-        const preview = URL.createObjectURL(compressedFile)
-        
-        const photoData = {
-          id: photoId,
-          file: compressedFile,
-          preview,
-          name: file.name,
-          size: compressedFile.size,
-          uploading: true,
-          uploaded: false,
-          error: false
+        try {
+          const photoId = Date.now() + i
+          const compressedFile = await compressImage(file)
+          const preview = URL.createObjectURL(compressedFile)
+          
+          const photoData = {
+            id: photoId,
+            file: compressedFile,
+            preview,
+            name: file.name,
+            size: compressedFile.size,
+            uploading: true,
+            uploaded: false,
+            error: false
+          }
+          
+          newPhotos.push(photoData)
+          
+          logDebug('Photo préparée pour upload', { 
+            photoId, 
+            fileName: file.name, 
+            compressedSize: compressedFile.size 
+          })
+          
+        } catch (error) {
+          logError('Erreur lors de la compression', error, { fileName: file.name })
         }
-        
-        newPhotos.push(photoData)
-        
-        // Mettre à jour la liste immédiatement
-        const tempPhotos = [...photos, ...newPhotos]
-        setPhotos(tempPhotos)
-        onPhotoSelect && onPhotoSelect(tempPhotos)
-        updateGlobalProgress(tempPhotos)
       }
     }
 
-    // Upload en arrière-plan
-    for (const photoData of newPhotos) {
+    // Étape 2: Mettre à jour immédiatement l'état avec les nouvelles photos
+    const updatedPhotos = [...photos, ...newPhotos]
+    setPhotos(updatedPhotos)
+    onPhotoSelect && onPhotoSelect(updatedPhotos)
+    updateGlobalProgress(updatedPhotos)
+
+    // Étape 3: Upload en arrière-plan avec gestion d'erreurs robuste
+    const uploadPromises = newPhotos.map(async (photoData) => {
       try {
         const uploadResult = await uploadToSupabase(photoData.file, photoData.id)
         
@@ -151,39 +163,61 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
         photoData.supabaseUrl = uploadResult.url
         photoData.error = false
         
-        // Mettre à jour l'état
-        setPhotos(prevPhotos => {
-          const updatedPhotos = prevPhotos.map(p => 
-            p.id === photoData.id ? photoData : p
-          )
-          updateGlobalProgress(updatedPhotos)
-          onPhotoSelect && onPhotoSelect(updatedPhotos)
-          return updatedPhotos
+        logInfo('Photo uploadée avec succès', { 
+          photoId: photoData.id, 
+          url: uploadResult.url 
         })
+        
+        return { success: true, photoData }
         
       } catch (error) {
         photoData.uploading = false
         photoData.uploaded = false
         photoData.error = true
-        photoData.errorMessage = 'Erreur d\'upload'
+        photoData.errorMessage = error.message || 'Erreur d\'upload'
         
-        setPhotos(prevPhotos => {
-          const updatedPhotos = prevPhotos.map(p => 
-            p.id === photoData.id ? photoData : p
-          )
-          updateGlobalProgress(updatedPhotos)
-          onPhotoSelect && onPhotoSelect(updatedPhotos)
-          return updatedPhotos
+        logError('Échec upload photo', error, { 
+          photoId: photoData.id, 
+          fileName: photoData.name 
         })
+        
+        return { success: false, photoData, error }
       }
-    }
+    })
+
+    // Attendre tous les uploads et mettre à jour l'état final
+    const results = await Promise.allSettled(uploadPromises)
+    
+    // Mettre à jour l'état avec tous les résultats
+    setPhotos(prevPhotos => {
+      const finalPhotos = prevPhotos.map(existingPhoto => {
+        const updatedPhoto = newPhotos.find(np => np.id === existingPhoto.id)
+        return updatedPhoto || existingPhoto
+      })
+      updateGlobalProgress(finalPhotos)
+      onPhotoSelect && onPhotoSelect(finalPhotos)
+      return finalPhotos
+    })
 
     setUploading(false)
     
+    const successCount = results.filter(r => r.status === 'fulfilled' && r.value.success).length
+    const errorCount = results.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.success)).length
+    
     logUserInteraction('UPLOAD_PHOTOS_COMPLETED', 'photo-upload', {
-      uploadedCount: newPhotos.filter(p => p.uploaded).length,
-      errorCount: newPhotos.filter(p => p.error).length
+      totalPhotos: newPhotos.length,
+      successCount,
+      errorCount
     })
+    
+    if (errorCount > 0) {
+      logError('Certains uploads ont échoué', new Error('Upload partiel'), {
+        successCount,
+        errorCount,
+        totalPhotos: newPhotos.length
+      })
+    }
+    
   }, [photos, maxFiles, onPhotoSelect, uploadProgress])
 
   const handleDrag = useCallback((e) => {
@@ -239,6 +273,7 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
   const hasUploadingPhotos = photos.some(photo => photo.uploading)
   const hasErrorPhotos = photos.some(photo => photo.error)
   const allPhotosUploaded = photos.length > 0 && photos.every(photo => photo.uploaded)
+  const readyForSubmission = photos.length > 0 && !hasUploadingPhotos && !hasErrorPhotos && allPhotosUploaded
 
   return (
     <div className={styles.photoUpload}>
@@ -262,9 +297,9 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
       )}
 
       {/* Message de confirmation quand tout est uploadé */}
-      {allPhotosUploaded && (
+      {readyForSubmission && (
         <div className={styles.uploadSuccess}>
-          ✅ Toutes les photos ont été uploadées avec succès !
+          ✅ Toutes les photos ont été uploadées avec succès ! Vous pouvez maintenant soumettre votre recette.
         </div>
       )}
 
@@ -272,6 +307,8 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
       {hasErrorPhotos && (
         <div className={styles.uploadError}>
           ❌ Certaines photos n'ont pas pu être uploadées. Veuillez les supprimer et réessayer.
+          <br />
+          <small>Vérifiez votre connexion internet et que les fichiers ne sont pas corrompus.</small>
         </div>
       )}
 

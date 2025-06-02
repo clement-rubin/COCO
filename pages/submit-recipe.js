@@ -100,23 +100,32 @@ export default function SubmitRecipe() {
       logWarning('Validation échouée: aucune photo')
     }
     
-    // Vérifier que toutes les photos sont uploadées
-    const pendingUploads = photos.filter(photo => photo.uploading || photo.error)
-    if (pendingUploads.length > 0) {
-      const uploadingCount = photos.filter(photo => photo.uploading).length
-      const errorCount = photos.filter(photo => photo.error).length
+    // Vérification plus robuste des photos
+    if (photos.length > 0) {
+      const uploadingPhotos = photos.filter(photo => photo.uploading)
+      const errorPhotos = photos.filter(photo => photo.error)
+      const uploadedPhotos = photos.filter(photo => photo.uploaded && photo.supabaseUrl)
       
-      if (uploadingCount > 0) {
-        newErrors.photos = `Attendez que ${uploadingCount} photo(s) finissent d'être uploadées`
-      } else if (errorCount > 0) {
-        newErrors.photos = `${errorCount} photo(s) ont échoué. Supprimez-les et réessayez.`
+      if (uploadingPhotos.length > 0) {
+        newErrors.photos = `Attendez que ${uploadingPhotos.length} photo(s) finissent d'être uploadées`
+        logWarning('Validation échouée: uploads en cours', { 
+          uploadingCount: uploadingPhotos.length,
+          totalPhotos: photos.length 
+        })
+      } else if (errorPhotos.length > 0) {
+        newErrors.photos = `${errorPhotos.length} photo(s) ont échoué. Supprimez-les et réessayez.`
+        logWarning('Validation échouée: photos en erreur', { 
+          errorCount: errorPhotos.length,
+          totalPhotos: photos.length,
+          errorMessages: errorPhotos.map(p => p.errorMessage)
+        })
+      } else if (uploadedPhotos.length === 0) {
+        newErrors.photos = 'Aucune photo n\'a été correctement uploadée. Veuillez réessayer.'
+        logWarning('Validation échouée: aucune photo uploadée', {
+          totalPhotos: photos.length,
+          photosWithUrls: photos.filter(p => p.supabaseUrl).length
+        })
       }
-      
-      logWarning('Validation échouée: uploads en cours', { 
-        uploadingCount, 
-        errorCount,
-        totalPhotos: photos.length 
-      })
     }
     
     const isValid = Object.keys(newErrors).length === 0
@@ -126,7 +135,8 @@ export default function SubmitRecipe() {
       errorsCount: Object.keys(newErrors).length,
       errors: Object.keys(newErrors),
       photosCount: photos.length,
-      uploadedPhotosCount: photos.filter(p => p.uploaded).length
+      uploadedPhotosCount: photos.filter(p => p.uploaded).length,
+      photosWithUrls: photos.filter(p => p.supabaseUrl).length
     })
     
     setErrors(newErrors)
@@ -153,10 +163,20 @@ export default function SubmitRecipe() {
       const ingredientsArray = parseIngredients(formData.ingredients)
       const instructionsArray = parseInstructions(formData.instructions)
       
-      // Préparer les URLs des images
-      const imageUrls = photos
-        .filter(photo => photo.uploaded && photo.supabaseUrl)
-        .map(photo => photo.supabaseUrl)
+      // Préparer les URLs des images avec validation
+      const validPhotos = photos.filter(photo => photo.uploaded && photo.supabaseUrl)
+      const imageUrls = validPhotos.map(photo => photo.supabaseUrl)
+      
+      if (imageUrls.length === 0) {
+        throw new Error('Aucune photo valide trouvée. Veuillez réessayer l\'upload.')
+      }
+      
+      logDebug('Photos validées pour soumission', {
+        totalPhotos: photos.length,
+        validPhotos: validPhotos.length,
+        imageUrls: imageUrls.length,
+        firstImageUrl: imageUrls[0]
+      })
       
       // Préparer les données selon le schéma de la base
       const recipeData = {
@@ -231,7 +251,8 @@ export default function SubmitRecipe() {
   // Calculer l'état des uploads pour l'affichage
   const uploadingPhotosCount = photos.filter(photo => photo.uploading).length
   const errorPhotosCount = photos.filter(photo => photo.error).length
-  const allPhotosUploaded = photos.length > 0 && photos.every(photo => photo.uploaded)
+  const uploadedPhotosCount = photos.filter(photo => photo.uploaded && photo.supabaseUrl).length
+  const allPhotosUploaded = photos.length > 0 && photos.every(photo => photo.uploaded && photo.supabaseUrl)
 
   // Message de confirmation de soumission
   if (showSuccessMessage) {
