@@ -2,6 +2,7 @@
  * Gestionnaire d'erreurs centralisé avec récupération automatique et reporting
  */
 
+import { useState, useCallback } from 'react';
 import { logError, logWarning, logInfo } from './logger';
 
 // Types d'erreurs courantes
@@ -231,6 +232,35 @@ const createRecoveryAction = (error, options = {}) => {
         primary: false
       });
       break;
+
+    case 'check_email':
+      baseRecovery.actions.push({
+        label: 'Vérifier mes emails',
+        action: 'dismiss',
+        primary: true
+      });
+      break;
+
+    case 'contact_support':
+      baseRecovery.actions.push({
+        label: 'Contacter le support',
+        action: 'contact',
+        primary: true
+      });
+      baseRecovery.actions.push({
+        label: 'Fermer',
+        action: 'dismiss',
+        primary: false
+      });
+      break;
+
+    case 'wait':
+      baseRecovery.actions.push({
+        label: 'Fermer',
+        action: 'dismiss',
+        primary: true
+      });
+      break;
       
     default:
       baseRecovery.actions.push({
@@ -343,90 +373,25 @@ export const setupGlobalErrorHandling = () => {
   logInfo('Gestionnaire d\'erreurs global configuré');
 };
 
-// Export des utilitaires
-export default {
-  handleError,
-  handleApiError,
-  withErrorHandling,
-  detectErrorType,
-  EnhancedError,
-  ERROR_TYPES,
-  setupGlobalErrorHandling
-};
-
-import { logError } from './logger'
-
 /**
  * Gère les erreurs d'authentification Supabase
  * @param {Error} error - L'erreur à traiter
  * @returns {Object} Objet avec l'erreur utilisateur et les détails techniques
  */
-export function handleAuthError(error) {
+export const handleAuthError = (error) => {
   logError('Erreur d\'authentification', error, {
     errorCode: error?.code,
     errorMessage: error?.message
-  })
+  });
 
-  let userMessage = 'Une erreur inattendue s\'est produite'
-  let recoveryStrategy = 'retry'
-
-  switch (error?.code) {
-    case 'invalid_credentials':
-      userMessage = 'Email ou mot de passe incorrect'
-      recoveryStrategy = 'retry'
-      break
-      
-    case 'email_not_confirmed':
-      userMessage = 'Veuillez confirmer votre email avant de vous connecter'
-      recoveryStrategy = 'check_email'
-      break
-      
-    case 'signup_disabled':
-      userMessage = 'Les inscriptions sont temporairement désactivées'
-      recoveryStrategy = 'contact_support'
-      break
-      
-    case 'email_address_invalid':
-      userMessage = 'Adresse email invalide'
-      recoveryStrategy = 'retry'
-      break
-      
-    case 'password_too_short':
-      userMessage = 'Le mot de passe doit contenir au moins 6 caractères'
-      recoveryStrategy = 'retry'
-      break
-      
-    case 'user_already_exists':
-      userMessage = 'Un compte existe déjà avec cette adresse email'
-      recoveryStrategy = 'login'
-      break
-      
-    case 'rate_limit_exceeded':
-      userMessage = 'Trop de tentatives. Veuillez réessayer dans quelques minutes'
-      recoveryStrategy = 'wait'
-      break
-      
-    default:
-      if (error?.message) {
-        userMessage = error.message
-      }
-  }
-
-  return {
-    userError: {
-      message: userMessage,
-      type: 'auth_error',
-      recoveryStrategy,
-      code: error?.code
-    },
-    technicalError: error
-  }
-}
-
-export const handleAuthError = (error) => {
-  logError('Erreur d\'authentification', error)
-  
   const errorMessages = {
+    'invalid_credentials': 'Email ou mot de passe incorrect',
+    'email_not_confirmed': 'Veuillez confirmer votre email avant de vous connecter',
+    'signup_disabled': 'Les inscriptions sont temporairement désactivées',
+    'email_address_invalid': 'Adresse email invalide',
+    'password_too_short': 'Le mot de passe doit contenir au moins 6 caractères',
+    'user_already_exists': 'Un compte existe déjà avec cette adresse email',
+    'rate_limit_exceeded': 'Trop de tentatives. Veuillez réessayer dans quelques minutes',
     'Invalid login credentials': 'Email ou mot de passe incorrect',
     'Email not confirmed': 'Veuillez confirmer votre email avant de vous connecter',
     'User already registered': 'Un compte existe déjà avec cet email',
@@ -436,46 +401,53 @@ export const handleAuthError = (error) => {
     'User not found': 'Aucun compte trouvé avec cet email',
     'Email link is invalid or has expired': 'Le lien email est invalide ou a expiré',
     'Token has expired or is invalid': 'Le lien a expiré ou est invalide'
-  }
+  };
 
-  const userMessage = errorMessages[error.message] || error.message || 'Une erreur est survenue'
-  
-  const userError = {
-    message: userMessage,
-    type: 'auth_error',
-    recoveryStrategy: getRecoveryStrategy(error.message)
-  }
+  const getRecoveryStrategy = (errorCode, errorMessage) => {
+    if (errorCode === 'invalid_credentials' || errorMessage?.includes('credentials') || errorMessage?.includes('not found')) {
+      return 'invalid_credentials';
+    }
+    if (errorCode === 'email_not_confirmed' || errorMessage?.includes('not confirmed')) {
+      return 'check_email';
+    }
+    if (errorCode === 'signup_disabled') {
+      return 'contact_support';
+    }
+    if (errorCode === 'rate_limit_exceeded') {
+      return 'wait';
+    }
+    if (errorCode === 'user_already_exists' || errorMessage?.includes('already registered')) {
+      return 'redirect_login';
+    }
+    if (errorMessage?.includes('expired') || errorMessage?.includes('invalid')) {
+      return 'retry';
+    }
+    return 'retry';
+  };
 
-  return {
-    originalError: error,
-    userError
-  }
-}
-
-const getRecoveryStrategy = (errorMessage) => {
-  if (errorMessage?.includes('credentials') || errorMessage?.includes('not found')) {
-    return 'retry'
-  }
-  if (errorMessage?.includes('expired') || errorMessage?.includes('invalid')) {
-    return 'retry'
-  }
-  if (errorMessage?.includes('already registered')) {
-    return 'contact'
-  }
-  return 'retry'
-}
-
-export const handleApiError = (error, context = {}) => {
-  logError('Erreur API', error, context)
-  
-  const userError = {
-    message: 'Erreur de connexion au serveur',
-    type: 'network_error',
-    recoveryStrategy: 'retry'
-  }
+  const userMessage = errorMessages[error?.code] || errorMessages[error?.message] || error?.message || 'Une erreur inattendue s\'est produite';
+  const recoveryStrategy = getRecoveryStrategy(error?.code, error?.message);
 
   return {
-    originalError: error,
-    userError
-  }
-}
+    userError: {
+      message: userMessage,
+      type: 'auth_error',
+      recoveryStrategy,
+      code: error?.code
+    },
+    technicalError: error
+  };
+};
+
+// Export des utilitaires
+export default {
+  handleError,
+  handleApiError,
+  handleAuthError,
+  withErrorHandling,
+  detectErrorType,
+  EnhancedError,
+  ERROR_TYPES,
+  setupGlobalErrorHandling,
+  useErrorHandler
+};
