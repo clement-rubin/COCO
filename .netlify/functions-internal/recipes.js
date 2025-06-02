@@ -84,12 +84,24 @@ exports.handler = async (event, context) => {
 
     // GET - Récupération des recettes
     if (event.httpMethod === 'GET') {
-      const { data: recipes, error } = await supabase
+      const author = event.queryStringParameters?.author
+      
+      let query = supabase
         .from('recipes')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+      
+      // Filter by author if specified
+      if (author) {
+        log(`Filtrage des recettes par auteur: ${author}`, "info")
+        query = query.eq('author', author)
+      }
+      
+      const { data: recipes, error } = await query
       
       if (error) throw error;
+      
+      log(`Recettes récupérées: ${recipes.length}${author ? ` pour l'auteur ${author}` : ''}`, "info")
       
       return {
         statusCode: 200,

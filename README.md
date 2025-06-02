@@ -6,9 +6,11 @@ Une application web moderne et mobile-first pour partager et découvrir des rece
 
 - **Partage rapide de photos** - Partagez rapidement une photo de votre plat avec nom et description
 - **Partage de recettes complètes** - Partagez vos créations culinaires avec photos détaillées
+- **Gestion des recettes personnelles** - Page dédiée pour voir et gérer vos propres recettes
 - **Navigation des recettes** - Explorez les recettes partagées par d'autres utilisateurs
 - **Feed social addictif** - Découvrez les créations de vos amis avec un défilement horizontal immersif
 - **Recherche intelligente** - Trouvez des recettes par titre, description ou auteur
+- **Authentification complète** - Système d'inscription, connexion et gestion de profil
 - **Design mobile-first** - Interface optimisée pour smartphone et tablette
 - **Upload multiple d'images** - Ajoutez jusqu'à 3 photos de vos plats
 - **Détails complets** - Ingrédients, instructions étape par étape, temps de préparation
@@ -39,6 +41,7 @@ L'application adopte un design moderne inspiré des meilleures applications mobi
 COCO/
 ├── pages/
 │   ├── index.js                    # Page d'accueil avec feed amis
+│   ├── mes-recettes.js            # Page des recettes de l'utilisateur connecté
 │   ├── user-recipes.js            # Liste des recettes partagées
 │   ├── share-photo.js             # Page de partage rapide de photo
 │   ├── submit-recipe.js           # Page de partage de recette complète
@@ -48,9 +51,15 @@ COCO/
 │   ├── favoris.js                 # Page des favoris
 │   ├── explorer.js                # Page d'exploration des recettes
 │   ├── profil.js                  # Page de profil utilisateur
+│   ├── login.js                   # Page de connexion
+│   ├── signup.js                  # Page d'inscription
+│   ├── forgot-password.js         # Page de mot de passe oublié
 │   ├── _app.js                    # Application wrapper avec navigation
 │   ├── api/
-│   │   └── recipes.js             # API de gestion des recettes
+│   │   └── recipes.js             # API de gestion des recettes (avec filtrage par auteur)
+│   ├── auth/
+│   │   ├── confirm.js             # Confirmation d'email
+│   │   └── reset-password.js      # Réinitialisation de mot de passe
 │   └── recipes/
 │       └── user/[id].js           # Détail d'une recette utilisateur
 ├── components/

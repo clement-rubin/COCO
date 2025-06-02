@@ -23,10 +23,20 @@ export default async function handler(req, res) {
 
     // GET - Récupération des recettes
     if (req.method === 'GET') {
-      const { data: recipes, error } = await supabase
+      const { author } = req.query
+      
+      let query = supabase
         .from('recipes')
         .select('*')
         .order('created_at', { ascending: false })
+      
+      // Filter by author if specified
+      if (author) {
+        logInfo('[API] Filtrage par auteur', { author })
+        query = query.eq('author', author)
+      }
+      
+      const { data: recipes, error } = await query
       
       if (error) {
         logError('[API] Erreur lors de la récupération des recettes', error)
@@ -34,7 +44,8 @@ export default async function handler(req, res) {
       }
       
       logInfo('[API] Recettes récupérées avec succès', {
-        recipesCount: recipes.length
+        recipesCount: recipes.length,
+        filteredByAuthor: !!author
       })
       
       res.status(200).json(recipes)

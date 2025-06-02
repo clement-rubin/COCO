@@ -78,21 +78,6 @@ function AuthenticatedNav({ user, signOut }) {
           </div>
 
           <Link 
-            href="/profil" 
-            style={{
-              display: 'block',
-              padding: 'var(--spacing-sm)',
-              color: 'var(--text-dark)',
-              textDecoration: 'none',
-              borderRadius: 'var(--border-radius-small)',
-              fontSize: '0.9rem'
-            }}
-            onClick={() => setShowUserMenu(false)}
-          >
-            👤 Mon profil
-          </Link>
-
-          <Link 
             href="/mes-recettes" 
             style={{
               display: 'block',
@@ -105,6 +90,21 @@ function AuthenticatedNav({ user, signOut }) {
             onClick={() => setShowUserMenu(false)}
           >
             📝 Mes recettes
+          </Link>
+
+          <Link 
+            href="/profil" 
+            style={{
+              display: 'block',
+              padding: 'var(--spacing-sm)',
+              color: 'var(--text-dark)',
+              textDecoration: 'none',
+              borderRadius: 'var(--border-radius-small)',
+              fontSize: '0.9rem'
+            }}
+            onClick={() => setShowUserMenu(false)}
+          >
+            👤 Mon profil
           </Link>
 
           <button
