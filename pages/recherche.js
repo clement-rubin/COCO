@@ -71,317 +71,161 @@ export default function Recherche() {
     <div>
       <Head>
         <title>Recherche - COCO</title>
-        <meta name="description" content="Recherchez vos recettes préférées sur COCO" />
+        <meta name="description" content="Recherchez des recettes délicieuses" />
       </Head>
 
-      {/* Search Header */}
-      <section style={{
-        background: 'var(--bg-gradient)',
-        padding: 'var(--spacing-lg) var(--spacing-md)',
-        paddingBottom: 'var(--spacing-xl)'
-      }}>
-        <h1 style={{ 
-          fontSize: '1.8rem', 
-          marginBottom: 'var(--spacing-lg)',
-          textAlign: 'center',
-          color: 'var(--text-dark)'
-        }}>
-          Rechercher une recette
-        </h1>
-        
-        {/* Main Search Bar */}
-        <div style={{ 
-          background: 'white',
-          borderRadius: 'var(--radius-lg)',
-          padding: 'var(--spacing-sm)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 'var(--spacing-sm)',
-          boxShadow: 'var(--shadow)',
-          marginBottom: 'var(--spacing-lg)'
-        }}>
-          <span style={{ fontSize: '1.2rem' }}>🔍</span>
+      {/* Search Interface */}
+      <div style={{ padding: '1rem' }}>
+        <div style={{ marginBottom: '1rem' }}>
           <input
             type="text"
-            placeholder="Tapez le nom d'une recette, un ingrédient..."
+            placeholder="Rechercher des recettes..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{
-              border: 'none',
-              outline: 'none',
-              flex: 1,
-              fontSize: '1rem',
-              background: 'transparent'
+              width: '100%',
+              padding: '1rem',
+              border: '1px solid var(--border-light)',
+              borderRadius: '8px',
+              fontSize: '1rem'
             }}
           />
-          {searchTerm && (
-            <button
-              onClick={() => setSearchTerm('')}
-              style={{
-                background: 'none',
-                border: 'none',
-                fontSize: '1.2rem',
-                cursor: 'pointer',
-                color: 'var(--text-light)'
-              }}
-            >
-              ✕
-            </button>
-          )}
-        </div>
-      </section>
-
-      {/* Filters */}
-      <section style={{ padding: 'var(--spacing-md)' }}>
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
-          marginBottom: 'var(--spacing-md)'
-        }}>
-          <h3 style={{ fontSize: '1rem', margin: 0 }}>Filtres</h3>
-          <button
-            onClick={clearFilters}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--primary-coral)',
-              fontSize: '0.8rem',
-              cursor: 'pointer'
-            }}
-          >
-            Effacer tout
-          </button>
         </div>
 
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(2, 1fr)', 
-          gap: 'var(--spacing-sm)',
-          marginBottom: 'var(--spacing-lg)'
-        }}>
-          <select
-            value={filters.category}
-            onChange={(e) => setFilters(prev => ({ ...prev, category: e.target.value }))}
-            style={{
-              padding: 'var(--spacing-sm)',
-              borderRadius: 'var(--radius-sm)',
-              border: '1px solid var(--bg-light)',
-              background: 'white',
-              fontSize: '0.9rem'
-            }}
-          >
-            <option value="">Toutes catégories</option>
-            <option value="Pâtes">Pâtes</option>
-            <option value="Salades">Salades</option>
-            <option value="Desserts">Desserts</option>
-            <option value="Soupes">Soupes</option>
-            <option value="Plats principaux">Plats principaux</option>
-          </select>
-
-          <select
-            value={filters.maxTime}
-            onChange={(e) => setFilters(prev => ({ ...prev, maxTime: e.target.value }))}
-            style={{
-              padding: 'var(--spacing-sm)',
-              borderRadius: 'var(--radius-sm)',
-              border: '1px solid var(--bg-light)',
-              background: 'white',
-              fontSize: '0.9rem'
-            }}
-          >
-            <option value="">Temps max</option>
-            <option value="15">15 min</option>
-            <option value="30">30 min</option>
-            <option value="60">1 heure</option>
-            <option value="120">2 heures</option>
-          </select>
-
-          <select
-            value={filters.difficulty}
-            onChange={(e) => setFilters(prev => ({ ...prev, difficulty: e.target.value }))}
-            style={{
-              padding: 'var(--spacing-sm)',
-              borderRadius: 'var(--radius-sm)',
-              border: '1px solid var(--bg-light)',
-              background: 'white',
-              fontSize: '0.9rem'
-            }}
-          >
-            <option value="">Difficulté</option>
-            <option value="Facile">Facile</option>
-            <option value="Moyen">Moyen</option>
-            <option value="Difficile">Difficile</option>
-          </select>
-
-          <select
-            value={filters.rating}
-            onChange={(e) => setFilters(prev => ({ ...prev, rating: e.target.value }))}
-            style={{
-              padding: 'var(--spacing-sm)',
-              borderRadius: 'var(--radius-sm)',
-              border: '1px solid var(--bg-light)',
-              background: 'white',
-              fontSize: '0.9rem'
-            }}
-          >
-            <option value="">Note min</option>
-            <option value="4.5">4.5+ ⭐</option>
-            <option value="4.0">4.0+ ⭐</option>
-            <option value="3.5">3.5+ ⭐</option>
-          </select>
-        </div>
-      </section>
-
-      {!searchTerm ? (
-        /* Suggestions when no search */
-        <section style={{ padding: '0 var(--spacing-md) var(--spacing-xl)' }}>
-          <div style={{ marginBottom: 'var(--spacing-lg)' }}>
-            <h3 style={{ fontSize: '1rem', marginBottom: 'var(--spacing-md)' }}>Recherches récentes</h3>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-sm)' }}>
-              {recentSearches.map(search => (
+        {/* Quick searches */}
+        {!searchTerm && (
+          <div>
+            <h3>Recherches récentes</h3>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+              {recentSearches.map(term => (
                 <button
-                  key={search}
-                  onClick={() => handleQuickSearch(search)}
+                  key={term}
+                  onClick={() => handleQuickSearch(term)}
                   style={{
+                    padding: '0.5rem 1rem',
                     background: 'var(--bg-light)',
                     border: 'none',
-                    padding: 'var(--spacing-sm) var(--spacing-md)',
-                    borderRadius: 'var(--radius-lg)',
-                    cursor: 'pointer',
-                    fontSize: '0.9rem',
-                    color: 'var(--text-medium)'
+                    borderRadius: '20px',
+                    cursor: 'pointer'
                   }}
                 >
-                  🕒 {search}
+                  {term}
                 </button>
               ))}
             </div>
-          </div>
 
-          <div>
-            <h3 style={{ fontSize: '1rem', marginBottom: 'var(--spacing-md)' }}>Recherches populaires</h3>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-sm)' }}>
-              {popularSearches.map(search => (
+            <h3>Recherches populaires</h3>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              {popularSearches.map(term => (
                 <button
-                  key={search}
-                  onClick={() => handleQuickSearch(search)}
+                  key={term}
+                  onClick={() => handleQuickSearch(term)}
                   style={{
+                    padding: '0.5rem 1rem',
                     background: 'var(--primary-coral-light)',
                     border: 'none',
-                    padding: 'var(--spacing-sm) var(--spacing-md)',
-                    borderRadius: 'var(--radius-lg)',
-                    cursor: 'pointer',
-                    fontSize: '0.9rem',
-                    color: 'var(--primary-coral)'
+                    borderRadius: '20px',
+                    cursor: 'pointer'
                   }}
                 >
-                  🔥 {search}
+                  🔥 {term}
                 </button>
               ))}
             </div>
           </div>
-        </section>
-      ) : (
-        /* Search Results */
-        <section style={{ padding: '0 var(--spacing-md) var(--spacing-xl)' }}>
-          {isLoading ? (
-            <div style={{ textAlign: 'center', padding: 'var(--spacing-xl)' }}>
-              <div style={{ fontSize: '2rem', marginBottom: 'var(--spacing-md)' }}>🔍</div>
-              <p>Recherche en cours...</p>
-            </div>
-          ) : results.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: 'var(--spacing-xl)' }}>
-              <div style={{ fontSize: '3rem', marginBottom: 'var(--spacing-md)' }}>😔</div>
-              <h3 style={{ fontSize: '1.2rem', marginBottom: 'var(--spacing-sm)' }}>
-                Aucun résultat trouvé
-              </h3>
-              <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--spacing-lg)' }}>
-                Essayez avec d'autres mots-clés ou modifiez vos filtres
-              </p>
+        )}
+
+        {/* Filters */}
+        {searchTerm && (
+          <div style={{ marginBottom: '1rem' }}>
+            <h3>Filtres</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.5rem' }}>
+              <select
+                value={filters.category}
+                onChange={(e) => setFilters(prev => ({ ...prev, category: e.target.value }))}
+                style={{ padding: '0.5rem', borderRadius: '4px' }}
+              >
+                <option value="">Toutes catégories</option>
+                <option value="Entrées">Entrées</option>
+                <option value="Plats principaux">Plats principaux</option>
+                <option value="Desserts">Desserts</option>
+                <option value="Salades">Salades</option>
+              </select>
+
+              <select
+                value={filters.maxTime}
+                onChange={(e) => setFilters(prev => ({ ...prev, maxTime: e.target.value }))}
+                style={{ padding: '0.5rem', borderRadius: '4px' }}
+              >
+                <option value="">Temps max</option>
+                <option value="15">15 min</option>
+                <option value="30">30 min</option>
+                <option value="60">1 heure</option>
+              </select>
+
+              <select
+                value={filters.difficulty}
+                onChange={(e) => setFilters(prev => ({ ...prev, difficulty: e.target.value }))}
+                style={{ padding: '0.5rem', borderRadius: '4px' }}
+              >
+                <option value="">Difficulté</option>
+                <option value="Facile">Facile</option>
+                <option value="Moyen">Moyen</option>
+                <option value="Difficile">Difficile</option>
+              </select>
+
               <button
                 onClick={clearFilters}
                 style={{
-                  background: 'var(--primary-coral)',
-                  color: 'white',
-                  border: 'none',
-                  padding: 'var(--spacing-md) var(--spacing-lg)',
-                  borderRadius: 'var(--radius-lg)',
-                  cursor: 'pointer',
-                  fontWeight: '500'
+                  padding: '0.5rem',
+                  background: 'var(--bg-light)',
+                  border: '1px solid var(--border-light)',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
                 }}
               >
-                Effacer les filtres
+                Effacer
               </button>
             </div>
-          ) : (
-            <>
-              <p style={{ 
-                color: 'var(--text-secondary)', 
-                fontSize: '0.9rem',
-                marginBottom: 'var(--spacing-lg)'
-              }}>
-                {results.length} résultat{results.length > 1 ? 's' : ''} trouvé{results.length > 1 ? 's' : ''} pour "{searchTerm}"
-              </p>
-              
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
-                gap: 'var(--spacing-md)' 
-              }}>
-                {results.map(recipe => (
-                  <div key={recipe.id} className="card" style={{ padding: 0, cursor: 'pointer' }}>
-                    <div style={{
-                      width: '100%',
-                      height: '150px',
-                      background: 'linear-gradient(45deg, var(--primary-coral-light), var(--secondary-mint-light))',
-                      borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '3rem'
-                    }}>
-                      {recipe.emoji}
-                    </div>
-                    <div style={{ padding: 'var(--spacing-md)' }}>
-                      <h3 style={{ 
-                        fontSize: '1rem', 
-                        marginBottom: 'var(--spacing-xs)',
-                        margin: '0 0 var(--spacing-xs) 0'
-                      }}>
-                        {recipe.name}
-                      </h3>
-                      <div style={{ 
-                        display: 'flex', 
-                        justifyContent: 'space-between', 
-                        alignItems: 'center',
-                        marginBottom: 'var(--spacing-sm)',
-                        fontSize: '0.8rem'
-                      }}>
-                        <span style={{ 
-                          background: 'var(--bg-light)', 
-                          padding: 'var(--spacing-xs) var(--spacing-sm)',
-                          borderRadius: 'var(--radius-sm)',
-                          color: 'var(--text-medium)'
-                        }}>
-                          ⏱️ {recipe.time} min
-                        </span>
-                        <span style={{ color: 'var(--text-light)' }}>⭐ {recipe.rating}</span>
-                      </div>
-                      <div style={{
-                        fontSize: '0.8rem',
-                        color: 'var(--text-secondary)'
-                      }}>
-                        {recipe.category} • {recipe.difficulty}
-                      </div>
+          </div>
+        )}
+
+        {/* Results */}
+        {isLoading && (
+          <div style={{ textAlign: 'center', padding: '2rem' }}>
+            <div>🔍 Recherche en cours...</div>
+          </div>
+        )}
+
+        {!isLoading && searchTerm && (
+          <div>
+            <h3>{results.length} résultat(s) pour "{searchTerm}"</h3>
+            <div style={{ display: 'grid', gap: '1rem' }}>
+              {results.map(recipe => (
+                <div
+                  key={recipe.id}
+                  style={{
+                    padding: '1rem',
+                    border: '1px solid var(--border-light)',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '1rem'
+                  }}
+                >
+                  <div style={{ fontSize: '2rem' }}>{recipe.emoji}</div>
+                  <div style={{ flex: 1 }}>
+                    <h4 style={{ margin: '0 0 0.5rem 0' }}>{recipe.name}</h4>
+                    <div style={{ fontSize: '0.9rem', color: 'var(--text-medium)' }}>
+                      {recipe.category} • {recipe.time} • ⭐ {recipe.rating}
                     </div>
                   </div>
-                ))}
-              </div>
-            </>
-          )}
-        </section>
-      )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
-  );
+  )
 }

@@ -4,16 +4,41 @@ Une application web moderne et mobile-first pour partager et découvrir des rece
 
 ## 🍴 Fonctionnalités Principales
 
-- **Partage rapide de photos** - Partagez rapidement une photo de votre plat avec nom et description
-- **Partage de recettes complètes** - Partagez vos créations culinaires avec photos détaillées
-- **Gestion des recettes personnelles** - Page dédiée pour voir et gérer vos propres recettes
-- **Navigation des recettes** - Explorez les recettes partagées par d'autres utilisateurs
-- **Feed social addictif** - Découvrez les créations de vos amis avec un défilement horizontal immersif
-- **Recherche intelligente** - Trouvez des recettes par titre, description ou auteur
-- **Authentification complète** - Système d'inscription, connexion et gestion de profil
-- **Design mobile-first** - Interface optimisée pour smartphone et tablette
-- **Upload multiple d'images** - Ajoutez jusqu'à 3 photos de vos plats
-- **Détails complets** - Ingrédients, instructions étape par étape, temps de préparation
+- **Feed addictif style TikTok** - Découvrez les recettes en défilement vertical immersif
+- **Pages recettes ultra-détaillées** - Instructions pas-à-pas avec minuteurs intégrés
+- **Système de gamification** - Points, badges et défis culinaires quotidiens
+- **Stories culinaires éphémères** - Partagez vos créations du moment qui disparaissent après 24h
+- **Mode "Chef Challenge"** - Défis hebdomadaires avec classements communautaires
+- **Notifications push addictives** - Rappels de cuisson, nouveaux défis, amis qui cuisinent
+- **Réactions en temps réel** - Like, love, wow, yum avec animations fluides
+- **Chat culinaire en direct** - Discussions pendant la préparation des recettes
+- **Recommandations IA** - Suggestions personnalisées basées sur vos goûts
+- **Mode hors ligne** - Sauvegardez vos recettes favorites pour cuisiner sans internet
+
+## 🎮 Fonctionnalités Addictives
+
+### Gamification
+- **Système de niveaux** : De "Apprenti Cuisinier" à "Master Chef"
+- **Points d'expérience** : Gagnez des XP en partageant, cuisinant et interagissant
+- **Badges de collection** : 50+ badges à débloquer (Premier soufflé, Roi des pâtes, etc.)
+- **Défis quotidiens** : Nouveaux défis chaque jour pour maintenir l'engagement
+- **Classements** : Leaderboards hebdomadaires et mensuels
+- **Streaks** : Récompenses pour les séries de jours consécutifs d'activité
+
+### Expérience Immersive
+- **Feed vertical addictif** : Défilement infini style TikTok/Instagram Reels
+- **Transitions fluides** : Animations micro-interactions pour chaque action
+- **Haptic feedback** : Vibrations tactiles pour les interactions importantes
+- **Sons culinaires** : Effets sonores subtils (sifflement, grésillements)
+- **Mode sombre automatique** : Adaptation selon l'heure pour cuisiner le soir
+- **Écran de déverrouillage culinaire** : Citations et astuces inspirantes
+
+### Social & Communauté
+- **Stories culinaires 24h** : Partagez vos expériences culinaires éphémères
+- **Live cooking** : Diffusions en direct de vos sessions de cuisine
+- **Duels culinaires** : Défis 1v1 avec vote de la communauté
+- **Groupes thématiques** : Communautés spécialisées (Vegan, Italien, Desserts)
+- **Mentorship** : Système de parrainage entre chefs expérimentés et débutants
 
 ## 🎨 Design Mobile-First
 
@@ -40,7 +65,24 @@ L'application adopte un design moderne inspiré des meilleures applications mobi
 ```
 COCO/
 ├── pages/
-│   ├── index.js                    # Page d'accueil avec feed amis
+│   ├── index.js                    # Feed addictif principal
+│   ├── recipe/[id].js             # Page détaillée de recette
+│   ├── stories/                   # Stories culinaires éphémères
+│   │   ├── index.js               # Vue des stories
+│   │   └── create.js              # Création de story
+│   ├── challenges/                # Défis et gamification
+│   │   ├── index.js               # Liste des défis
+│   │   ├── daily.js               # Défi quotidien
+│   │   └── leaderboard.js         # Classements
+│   ├── live/                      # Fonctionnalités en direct
+│   │   ├── index.js               # Lives en cours
+│   │   └── stream/[id].js         # Page de live spécifique
+│   ├── community/                 # Fonctionnalités communautaires
+│   │   ├── groups.js              # Groupes thématiques
+│   │   ├── chat.js                # Chat global
+│   │   └── mentors.js             # Système de mentorship
+│   ├── achievements.js            # Page des accomplissements
+│   ├── cooking-mode/[id].js       # Mode cuisson avec minuteurs
 │   ├── mes-recettes.js            # Page des recettes de l'utilisateur connecté
 │   ├── user-recipes.js            # Liste des recettes partagées
 │   ├── share-photo.js             # Page de partage rapide de photo
@@ -63,8 +105,10 @@ COCO/
 │   └── recipes/
 │       └── user/[id].js           # Détail d'une recette utilisateur
 ├── components/
+│   ├── AddictiveFeed.js           # Feed vertical style TikTok
 │   ├── Navigation.js              # Navigation de l'ancien système
 │   ├── RecipeCard.js             # Carte de recette
+│   ├── RecipeDetailPage.js        # Page complète de recette
 │   ├── ShareButton.js            # Bouton de partage vers share-photo
 │   ├── PhotoUpload.js            # Composant d'upload de photos
 │   ├── FriendsFeed.js            # Feed horizontal addictif des amis
@@ -72,6 +116,13 @@ COCO/
 │   ├── UserShare.js              # Partage entre utilisateurs
 │   ├── ErrorBoundary.js          # Gestion d'erreurs React
 │   ├── ErrorDisplay.js           # Affichage des erreurs
+│   ├── CookingMode.js             # Interface de cuisson guidée
+│   ├── StoryViewer.js             # Visualiseur de stories
+│   ├── ChallengeCard.js           # Cartes de défis
+│   ├── GamificationOverlay.js     # Overlay des points/badges
+│   ├── LiveCooking.js             # Interface de live cooking
+│   ├── NotificationCenter.js      # Centre de notifications
+│   ├── HapticFeedback.js          # Gestionnaire de vibrations
 │   └── Footer.js                 # Pied de page
 ├── utils/
 │   ├── logger.js                 # Système de logging centralisé
@@ -82,7 +133,8 @@ COCO/
 │   ├── SubmitRecipe.module.css   # Styles du formulaire de recette
 │   ├── SocialFeed.module.css     # Styles du feed social vertical
 │   ├── FriendsFeed.module.css    # Styles du feed horizontal addictif
-│   └── RecipeDetail.module.css   # Styles des détails
+│   ├── RecipeDetail.module.css   # Styles des détails
+│   └── CookingMode.module.css    # Styles du mode cuisson
 ├── lib/
 │   └── supabase.js              # Configuration Supabase
 └── .netlify/
@@ -258,6 +310,36 @@ vercel --prod
 - [ ] Partage social direct des recettes
 - [ ] Stories de cuisine éphémères
 - [ ] Mode photo instantané avec géolocalisation
+
+## 🎯 Roadmap Addictif
+
+### Phase 1 : Foundation Addictive ✅
+- [x] Feed vertical immersif
+- [x] Pages recettes détaillées
+- [x] Système de points basique
+- [x] Animations fluides
+- [x] Mode cuisson guidé
+
+### Phase 2 : Social & Gamification 🚧
+- [ ] Stories culinaires 24h
+- [ ] Défis quotidiens/hebdomadaires
+- [ ] Système de badges complet
+- [ ] Chat en temps réel
+- [ ] Notifications push intelligentes
+
+### Phase 3 : IA & Personnalisation 🔮
+- [ ] Recommandations IA avancées
+- [ ] Assistant culinaire vocal
+- [ ] Reconnaissance d'ingrédients par photo
+- [ ] Suggestions selon le frigo
+- [ ] Adaptation automatique des portions
+
+### Phase 4 : Réalité Augmentée 🥽
+- [ ] Visualisation AR des plats
+- [ ] Instructions AR superposées
+- [ ] Partage de recettes en AR
+- [ ] Filtres culinaires pour photos
+- [ ] Mesure d'ingrédients en AR
 
 ## 📄 Licence
 

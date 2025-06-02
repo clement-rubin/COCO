@@ -1,275 +1,209 @@
 import Head from 'next/head'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import FriendsFeed from '../components/FriendsFeed'
+import AddictiveFeed from '../components/AddictiveFeed'
+import { useAuth } from '../components/AuthContext'
 
 export default function Home() {
-  const [showAddRecipe, setShowAddRecipe] = useState(false);
-  const router = useRouter();
+  const router = useRouter()
+  const { user } = useAuth()
+  const [showQuickStats, setShowQuickStats] = useState(true)
+  const [dailyChallenge, setDailyChallenge] = useState(null)
+  const [userStats, setUserStats] = useState({
+    level: 5,
+    xp: 750,
+    nextLevelXp: 1000,
+    streak: 7,
+    badges: 12
+  })
 
-  const handleAddRecipe = () => {
-    router.push('/submit-recipe');
-  };
+  // Charger le défi quotidien
+  useEffect(() => {
+    const loadDailyChallenge = () => {
+      const challenges = [
+        {
+          id: 'daily_1',
+          title: 'Maître du Petit-Déjeuner',
+          description: 'Préparez un petit-déjeuner équilibré avec au moins 3 couleurs',
+          emoji: '🌅',
+          reward: 100,
+          progress: 0,
+          target: 1
+        },
+        {
+          id: 'daily_2', 
+          title: 'Zéro Gaspillage',
+          description: 'Utilisez tous vos restes dans une nouvelle recette',
+          emoji: '♻️',
+          reward: 150,
+          progress: 0,
+          target: 1
+        },
+        {
+          id: 'daily_3',
+          title: 'Chef Social',
+          description: 'Partagez 2 recettes et recevez 5 likes',
+          emoji: '👥',
+          reward: 200,
+          progress: 0,
+          target: 2
+        }
+      ]
+      
+      const today = new Date().getDay()
+      setDailyChallenge(challenges[today % challenges.length])
+    }
+
+    loadDailyChallenge()
+  }, [])
+
+  const handleQuickShare = () => {
+    if (!user) {
+      router.push('/login?redirect=' + encodeURIComponent('/submit-recipe'))
+      return
+    }
+    router.push('/submit-recipe')
+  }
 
   return (
-    <div>
+    <div style={{ background: 'var(--bg-dark, #000)', minHeight: '100vh' }}>
       <Head>
-        <title>COCO - Cuisine & Saveurs</title>
-        <meta name="description" content="Découvrez et partagez les meilleures recettes de cuisine" />
+        <title>COCO - Cuisine Addictive</title>
+        <meta name="description" content="Découvrez et partagez les meilleures recettes" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      {/* Hero Section Mobile */}
-      <section style={{
-        background: 'var(--bg-gradient)',
-        padding: 'var(--spacing-xl) var(--spacing-md)',
-        textAlign: 'center',
-        borderRadius: '0 0 var(--radius-xl) var(--radius-xl)',
-        margin: '0 0 var(--spacing-lg) 0'
-      }}>
-        <div className="fade-in-up">
-          <div style={{
-            fontSize: '3.5rem',
-            marginBottom: 'var(--spacing-md)',
-            filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))'
-          }}>🥥</div>
-          
-          <h1 style={{ 
-            marginBottom: 'var(--spacing-md)',
-            background: 'linear-gradient(135deg, var(--primary-coral) 0%, var(--secondary-mint-dark) 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-            fontSize: '2.2rem'
-          }}>
-            COCO
-          </h1>
-          
-          <p style={{ 
-            fontSize: '1rem', 
-            marginBottom: 'var(--spacing-lg)',
-            color: 'var(--text-secondary)',
-            lineHeight: '1.5'
-          }}>
-            Partagez vos recettes favorites avec une communauté passionnée
-          </p>
-          
-          {/* Stats Cards */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: 'var(--spacing-sm)',
-            marginTop: 'var(--spacing-xl)'
-          }}>
-            <div className="card" style={{ padding: 'var(--spacing-md)', textAlign: 'center' }}>
-              <div style={{ fontSize: '1.5rem', marginBottom: 'var(--spacing-xs)' }}>🍽️</div>
-              <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--primary-coral)' }}>2.4k</div>
-              <div style={{ fontSize: '0.7rem', color: 'var(--text-light)' }}>Recettes</div>
-            </div>
-            <div className="card" style={{ padding: 'var(--spacing-md)', textAlign: 'center' }}>
-              <div style={{ fontSize: '1.5rem', marginBottom: 'var(--spacing-xs)' }}>👨‍🍳</div>
-              <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--secondary-mint)' }}>850</div>
-              <div style={{ fontSize: '0.7rem', color: 'var(--text-light)' }}>Chefs</div>
-            </div>
-            <div className="card" style={{ padding: 'var(--spacing-md)', textAlign: 'center' }}>
-              <div style={{ fontSize: '1.5rem', marginBottom: 'var(--spacing-xs)' }}>❤️</div>
-              <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--primary-coral)' }}>12k</div>
-              <div style={{ fontSize: '0.7rem', color: 'var(--text-light)' }}>Likes</div>
-            </div>
+      {/* Quick Stats Bar - Collapsible */}
+      {showQuickStats && (
+        <div style={{
+          background: 'linear-gradient(135deg, var(--primary-coral) 0%, var(--secondary-mint) 100%)',
+          padding: 'var(--spacing-sm) var(--spacing-md)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          color: 'white',
+          fontSize: '0.8rem',
+          position: 'relative'
+        }}>
+          <div style={{ display: 'flex', gap: 'var(--spacing-md)' }}>
+            <span>🎯 Niveau {userStats.level}</span>
+            <span>⚡ {userStats.xp}/{userStats.nextLevelXp} XP</span>
+            <span>🔥 {userStats.streak} jours</span>
+            <span>🏆 {userStats.badges} badges</span>
           </div>
-        </div>
-      </section>
-
-      {/* Quick Actions */}
-      <section style={{ padding: '0 var(--spacing-md) var(--spacing-md)' }}>
-        <h2 style={{ fontSize: '1.3rem', marginBottom: 'var(--spacing-md)' }}>Actions rapides</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--spacing-md)' }}>
-          <button 
-            onClick={handleAddRecipe}
-            className="card" 
-            style={{ 
-              border: 'none', 
-              cursor: 'pointer',
-              background: 'linear-gradient(135deg, var(--primary-coral) 0%, var(--primary-coral-dark) 100%)',
+          <button
+            onClick={() => setShowQuickStats(false)}
+            style={{
+              background: 'rgba(255,255,255,0.2)',
+              border: 'none',
               color: 'white',
-              padding: 'var(--spacing-lg)'
+              padding: '4px 8px',
+              borderRadius: '12px',
+              fontSize: '0.7rem',
+              cursor: 'pointer'
             }}
           >
-            <div style={{ fontSize: '2rem', marginBottom: 'var(--spacing-sm)' }}>➕</div>
-            <div style={{ fontWeight: '600' }}>Ajouter recette</div>
+            ✕
           </button>
-          
-          <Link 
-            href="/explorer"
-            className="card" 
-            style={{ 
-              border: 'none', 
-              cursor: 'pointer',
-              background: 'linear-gradient(135deg, var(--secondary-mint) 0%, var(--secondary-mint-dark) 100%)',
-              color: 'white',
-              padding: 'var(--spacing-lg)',
-              textDecoration: 'none',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
-            <div style={{ fontSize: '2rem', marginBottom: 'var(--spacing-sm)' }}>🔍</div>
-            <div style={{ fontWeight: '600' }}>Explorer</div>
-          </Link>
         </div>
-      </section>
+      )}
 
-      {/* Friends Feed Section */}
-      <section style={{ padding: '0 var(--spacing-md) var(--spacing-xl)' }}>
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
-          marginBottom: 'var(--spacing-lg)'
+      {/* Défi quotidien - Sticky */}
+      {dailyChallenge && (
+        <div style={{
+          position: 'sticky',
+          top: showQuickStats ? '40px' : '0',
+          zIndex: 100,
+          background: 'linear-gradient(45deg, #FF6B35, #F7931E)',
+          padding: 'var(--spacing-md)',
+          margin: '0',
+          color: 'white'
         }}>
-          <h2 style={{ fontSize: '1.3rem', margin: 0 }}>👥 Mes amis cuisinent</h2>
-          <Link href="/social" style={{ 
-            background: 'none', 
-            border: 'none', 
-            color: 'var(--primary-coral)', 
-            fontWeight: '600',
-            cursor: 'pointer',
-            textDecoration: 'none'
-          }}>
-            Voir tout
-          </Link>
-        </div>
-        
-        <FriendsFeed />
-      </section>
-
-      {/* Trending Recipes */}
-      <section style={{ padding: '0 var(--spacing-md) var(--spacing-xl)' }}>
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
-          marginBottom: 'var(--spacing-lg)'
-        }}>
-          <h2 style={{ fontSize: '1.3rem', margin: 0 }}>Tendances</h2>
-          <Link href="/explorer" style={{ 
-            background: 'none', 
-            border: 'none', 
-            color: 'var(--primary-coral)', 
-            fontWeight: '600',
-            cursor: 'pointer',
-            textDecoration: 'none'
-          }}>
-            Voir tout
-          </Link>
-        </div>
-        
-        <div style={{ display: 'flex', gap: 'var(--spacing-md)', overflowX: 'auto', paddingBottom: 'var(--spacing-sm)' }}>
-          {/* Recipe Card 1 */}
-          <div className="card" style={{ minWidth: '280px', padding: 0 }}>
-            <div style={{
-              width: '100%',
-              height: '150px',
-              background: 'linear-gradient(45deg, var(--primary-coral-light), var(--accent-yellow))',
-              borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '3rem'
-            }}>🍝</div>
-            <div style={{ padding: 'var(--spacing-md)' }}>
-              <h3 style={{ fontSize: '1rem', marginBottom: 'var(--spacing-xs)' }}>Pâtes Carbonara</h3>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: 'var(--spacing-sm)' }}>
-                Authentique et crémeuse
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)' }}>
+            <span style={{ fontSize: '1.5rem' }}>{dailyChallenge.emoji}</span>
+            <div style={{ flex: 1 }}>
+              <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: '600' }}>
+                {dailyChallenge.title}
+              </h3>
+              <p style={{ margin: '2px 0', fontSize: '0.8rem', opacity: 0.9 }}>
+                {dailyChallenge.description}
               </p>
               <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-                fontSize: '0.7rem'
+                background: 'rgba(255,255,255,0.3)', 
+                borderRadius: '10px', 
+                height: '6px',
+                marginTop: '6px'
               }}>
-                <span style={{ 
-                  background: 'var(--primary-coral-light)', 
-                  padding: 'var(--spacing-xs) var(--spacing-sm)',
-                  borderRadius: 'var(--radius-sm)',
-                  color: 'var(--primary-coral)'
-                }}>⏱️ 20 min</span>
-                <span style={{ color: 'var(--text-light)' }}>⭐ 4.8</span>
+                <div style={{
+                  background: 'white',
+                  height: '100%',
+                  width: `${(dailyChallenge.progress / dailyChallenge.target) * 100}%`,
+                  borderRadius: '10px',
+                  transition: 'width 0.3s ease'
+                }} />
               </div>
             </div>
-          </div>
-
-          {/* Recipe Card 2 */}
-          <div className="card" style={{ minWidth: '280px', padding: 0 }}>
-            <div style={{
-              width: '100%',
-              height: '150px',
-              background: 'linear-gradient(45deg, var(--secondary-mint-light), var(--accent-purple))',
-              borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '3rem'
-            }}>🥗</div>
-            <div style={{ padding: 'var(--spacing-md)' }}>
-              <h3 style={{ fontSize: '1rem', marginBottom: 'var(--spacing-xs)' }}>Salade César</h3>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: 'var(--spacing-sm)' }}>
-                Fraîche et croquante
-              </p>
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-                fontSize: '0.7rem'
-              }}>
-                <span style={{ 
-                  background: 'var(--secondary-mint-light)', 
-                  padding: 'var(--spacing-xs) var(--spacing-sm)',
-                  borderRadius: 'var(--radius-sm)',
-                  color: 'var(--secondary-mint)'
-                }}>⏱️ 15 min</span>
-                <span style={{ color: 'var(--text-light)' }}>⭐ 4.6</span>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '0.8rem', fontWeight: '600' }}>
+                +{dailyChallenge.reward} XP
+              </div>
+              <div style={{ fontSize: '0.7rem', opacity: 0.8 }}>
+                {dailyChallenge.progress}/{dailyChallenge.target}
               </div>
             </div>
           </div>
         </div>
-      </section>
+      )}
 
-      {/* Categories */}
-      <section style={{ padding: '0 var(--spacing-md) var(--spacing-xl)' }}>
-        <h2 style={{ fontSize: '1.3rem', marginBottom: 'var(--spacing-lg)' }}>Catégories</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--spacing-sm)' }}>
-          {/*
-            { emoji: '🍝', name: 'Pâtes' },
-            { emoji: '🥗', name: 'Salades' },
-            { emoji: '🍰', name: 'Desserts' },
-            { emoji: '🍲', name: 'Soupes' }
-          */}
-          { [
-            { emoji: '🍝', name: 'Pâtes' },
-            { emoji: '🥗', name: 'Salades' },
-            { emoji: '🍰', name: 'Desserts' },
-            { emoji: '🍲', name: 'Soupes' }
-          ].map((category, index) => (
-            <button key={index} className="card" style={{ 
-              border: 'none', 
-              cursor: 'pointer',
-              padding: 'var(--spacing-md)',
-              textAlign: 'center'
-            }}>
-              <div style={{ fontSize: '2rem', marginBottom: 'var(--spacing-xs)' }}>
-                {category.emoji}
-              </div>
-              <div style={{ fontSize: '0.8rem', fontWeight: '500' }}>
-                {category.name}
-              </div>
-            </button>
-          )) }
-        </div>
-      </section>
+      {/* Bouton de partage rapide flottant */}
+      <button
+        onClick={handleQuickShare}
+        style={{
+          position: 'fixed',
+          bottom: '90px',
+          right: 'var(--spacing-md)',
+          width: '60px',
+          height: '60px',
+          borderRadius: '50%',
+          background: 'linear-gradient(135deg, var(--primary-coral) 0%, var(--primary-coral-dark) 100%)',
+          color: 'white',
+          border: 'none',
+          fontSize: '1.5rem',
+          cursor: 'pointer',
+          zIndex: 1000,
+          boxShadow: '0 4px 20px rgba(255, 107, 53, 0.4)',
+          transform: 'scale(1)',
+          transition: 'all 0.3s ease',
+          animation: 'pulse 2s infinite'
+        }}
+        onMouseDown={(e) => {
+          e.target.style.transform = 'scale(0.95)'
+        }}
+        onMouseUp={(e) => {
+          e.target.style.transform = 'scale(1)'
+        }}
+      >
+        ➕
+      </button>
+
+      {/* Feed Principal Addictif */}
+      <AddictiveFeed />
+
+      {/* Animations CSS */}
+      <style jsx>{`
+        @keyframes pulse {
+          0% {
+            box-shadow: 0 4px 20px rgba(255, 107, 53, 0.4);
+          }
+          50% {
+            box-shadow: 0 4px 30px rgba(255, 107, 53, 0.7);
+          }
+          100% {
+            box-shadow: 0 4px 20px rgba(255, 107, 53, 0.4);
+          }
+        }
+      `}</style>
     </div>
-  );
+  )
 }
