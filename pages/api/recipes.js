@@ -186,7 +186,7 @@ export default async function handler(req, res) {
         title: newRecipe.title,
         ingredientsCount: ingredients.length,
         instructionsCount: instructions.length,
-        imageBytesLength: newRecipe.image.length,
+        imageBytesLength: newRecipe.image ? newRecipe.image.length : 'N/A',
         category: newRecipe.category,
         author: newRecipe.author,
         hasPhotos: !!newRecipe.photos
