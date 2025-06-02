@@ -14,20 +14,27 @@ export default function Profil() {
     }
   }, [user, router])
 
-  const [userProfile, setUserProfile] = useState({
-    name: user?.user_metadata?.display_name || 'Chef Anonyme',
-    email: user?.email || '',
-    avatar: user?.user_metadata?.display_name ? 
-      user.user_metadata.display_name.charAt(0).toUpperCase() : '👨‍🍳',
-    joinDate: user?.created_at || '2023-06-15',
-    bio: user?.user_metadata?.bio || 'Passionné de cuisine et membre de la communauté COCO !',
-    stats: {
-      recipesCreated: 0,
-      recipesLiked: 0,
-      followers: 0,
-      following: 0
+  const [userProfile, setUserProfile] = useState(null)
+
+  // Update profile when user changes
+  useEffect(() => {
+    if (user) {
+      setUserProfile({
+        name: user?.user_metadata?.display_name || 'Chef Anonyme',
+        email: user?.email || '',
+        avatar: user?.user_metadata?.display_name ? 
+          user.user_metadata.display_name.charAt(0).toUpperCase() : '👨‍🍳',
+        joinDate: user?.created_at || '2023-06-15',
+        bio: user?.user_metadata?.bio || 'Passionné de cuisine et membre de la communauté COCO !',
+        stats: {
+          recipesCreated: 0,
+          recipesLiked: 0,
+          followers: 0,
+          following: 0
+        }
+      })
     }
-  });
+  }, [user])
 
   const [activeTab, setActiveTab] = useState('stats');
 
@@ -57,7 +64,7 @@ export default function Profil() {
     router.push('/')
   }
 
-  if (!user) {
+  if (!user || !userProfile) {
     return (
       <div style={{
         minHeight: '100vh',

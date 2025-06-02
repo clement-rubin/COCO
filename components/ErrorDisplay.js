@@ -85,10 +85,32 @@ export default function ErrorDisplay({ error, resetError = null }) {
     stackLines: stack ? (Array.isArray(stack) ? stack.length : stack.split('\n').length) : 0
   });
   
+  const getErrorIcon = (type) => {
+    switch (type) {
+      case 'auth_error': return '🔐';
+      case 'validation_error': return '⚠️';
+      case 'network_error': return '📡';
+      default: return '❌';
+    }
+  };
+
+  const getRecoveryAction = (strategy) => {
+    switch (strategy) {
+      case 'retry': return 'Réessayer';
+      case 'check_email': return 'Vérifier email';
+      case 'login': return 'Se connecter';
+      case 'contact_support': return 'Contacter le support';
+      case 'wait': return 'Patienter';
+      default: return 'Fermer';
+    }
+  };
+
   return (
     <div className={styles.errorContainer}>
       <div className={styles.errorHeader}>
-        <h3 className={styles.errorTitle}>⚠️ Erreur</h3>
+        <h3 className={styles.errorTitle}>
+          {getErrorIcon(error.type)} Erreur
+        </h3>
         {resetError && (
           <button onClick={handleReset} className={styles.dismissButton}>
             Fermer
@@ -136,6 +158,24 @@ export default function ErrorDisplay({ error, resetError = null }) {
           )}
         </div>
       )}
+      
+      <div className={styles.recoveryActions}>
+        <button
+          onClick={resetError}
+          className={styles.recoveryButton}
+        >
+          {getRecoveryAction(error.recoveryStrategy)}
+        </button>
+        
+        {error.details && (
+          <button
+            onClick={() => setShowDetails(!showDetails)}
+            className={styles.toggleDetailsButton}
+          >
+            {showDetails ? 'Masquer' : 'Détails'}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

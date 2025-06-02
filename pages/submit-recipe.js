@@ -1,13 +1,14 @@
 import Head from 'next/head'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
-import PhotoUpload from '../components/PhotoUpload'
-import { logUserInteraction, logInfo, logError, logDebug } from '../utils/logger'
-import { handleError, handleValidationError, retryOperation } from '../utils/errorHandler'
-import ErrorDisplay from '../components/ErrorDisplay'
+import { useAuth } from '../components/AuthContext'
+import { logUserInteraction, logInfo, logDebug, logError } from '../utils/logger'
+import { retryOperation } from '../utils/retryOperation'
+import { supabase } from '../lib/supabase'
 
 export default function SubmitRecipe() {
   const router = useRouter()
+  const { user } = useAuth()
   const [step, setStep] = useState(1)
   const [formData, setFormData] = useState({
     title: '',
@@ -236,49 +237,33 @@ export default function SubmitRecipe() {
 
       // Envoi avec retry automatique
       const response = await retryOperation(async () => {
-        const res = await fetch('/api/recipes', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(submissionData)
-        })
-
-        if (!res.ok) {
-          const errorData = await res.json().catch(() => ({ message: 'Erreur de réseau' }))
-          const error = new Error(errorData.message || `HTTP ${res.status}`)
-          error.status = res.status
-          error.data = errorData
-          throw error
-        }
-
-        return res.json()
+        return await supabase
+          .from('recipes')
+          .insert([submissionData])
+          .select()
       }, 3, 1500)
 
+      if (response.error) {
+        throw new Error(`Erreur lors de l'envoi: ${response.error.message}`)
+      }
+
       logInfo('Recette soumise avec succès', {
-        recipeId: response.id,
-        title: response.title || formData.title
+        recipeId: response.data[0]?.id,
+        title: submissionData.title
       })
 
-      // Succès
       setShowSuccessMessage(true)
-      logUserInteraction('RECIPE_SUBMITTED', 'form-submit', {
-        recipeId: response.id,
-        title: formData.title
-      })
-
-      // Redirection après succès
-      setTimeout(() => {
-        router.push('/')
-      }, 3000)
-
     } catch (error) {
-      logError('Erreur lors de la soumission', error)
-      const errorResult = handleError(error, {
-        action: 'submit_recipe',
-        formData: { ...formData, photos: photos.length }
+      logError('Erreur lors de la soumission', error, {
+        title: formData.title,
+        step: 'submission'
       })
-      setCurrentError(errorResult.userError)
+      
+      setCurrentError({
+        message: error.message || 'Une erreur est survenue lors de la soumission',
+        type: 'submission_error',
+        recoveryStrategy: 'retry'
+      })
     } finally {
       setIsSubmitting(false)
     }
@@ -290,25 +275,51 @@ export default function SubmitRecipe() {
 
   if (showSuccessMessage) {
     return (
-      <div style={{ 
-        padding: 'var(--spacing-xl)', 
-        textAlign: 'center',
+      <div style={{
         minHeight: '100vh',
+        background: 'var(--bg-gradient)',
         display: 'flex',
-        flexDirection: 'column',
+        alignItems: 'center',
         justifyContent: 'center',
-        background: 'var(--bg-gradient)'
+        padding: 'var(--spacing-md)'
       }}>
-        <div style={{ fontSize: '4rem', marginBottom: 'var(--spacing-lg)' }}>🎉</div>
-        <h1 style={{ color: 'var(--primary-coral)', marginBottom: 'var(--spacing-md)' }}>
-          Recette publiée avec succès !
-        </h1>
-        <p style={{ fontSize: '1.1rem', color: 'var(--text-medium)', marginBottom: 'var(--spacing-lg)' }}>
-          Votre délicieuse recette "{formData.title}" a été ajoutée à COCO.
-        </p>
-        <p style={{ color: 'var(--text-light)' }}>
-          Redirection en cours...
-        </p>
+        <div style={{
+          background: 'white',
+          borderRadius: 'var(--border-radius-large)',
+          padding: 'var(--spacing-xl)',
+          textAlign: 'center',
+          maxWidth: '400px',
+          width: '100%'
+        }}>
+          <div style={{ fontSize: '3rem', marginBottom: 'var(--spacing-lg)' }}>🎉</div>
+          <h1 style={{ 
+            fontSize: '1.5rem', 
+            marginBottom: 'var(--spacing-md)',
+            color: 'var(--primary-orange)'
+          }}>
+            Recette publiée !
+          </h1>
+          <p style={{ 
+            color: 'var(--text-medium)',
+            marginBottom: 'var(--spacing-lg)'
+          }}>
+            Votre recette "{formData.title}" a été publiée avec succès !
+          </p>
+          <button
+            onClick={() => router.push('/')}
+            style={{
+              padding: 'var(--spacing-md) var(--spacing-lg)',
+              background: 'var(--primary-orange)',
+              color: 'white',
+              border: 'none',
+              borderRadius: 'var(--border-radius-medium)',
+              fontWeight: '600',
+              cursor: 'pointer'
+            }}
+          >
+            Retour à l'accueil
+          </button>
+        </div>
       </div>
     )
   }

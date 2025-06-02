@@ -353,3 +353,72 @@ export default {
   ERROR_TYPES,
   setupGlobalErrorHandling
 };
+
+import { logError } from './logger'
+
+/**
+ * Gère les erreurs d'authentification Supabase
+ * @param {Error} error - L'erreur à traiter
+ * @returns {Object} Objet avec l'erreur utilisateur et les détails techniques
+ */
+export function handleAuthError(error) {
+  logError('Erreur d\'authentification', error, {
+    errorCode: error?.code,
+    errorMessage: error?.message
+  })
+
+  let userMessage = 'Une erreur inattendue s\'est produite'
+  let recoveryStrategy = 'retry'
+
+  switch (error?.code) {
+    case 'invalid_credentials':
+      userMessage = 'Email ou mot de passe incorrect'
+      recoveryStrategy = 'retry'
+      break
+      
+    case 'email_not_confirmed':
+      userMessage = 'Veuillez confirmer votre email avant de vous connecter'
+      recoveryStrategy = 'check_email'
+      break
+      
+    case 'signup_disabled':
+      userMessage = 'Les inscriptions sont temporairement désactivées'
+      recoveryStrategy = 'contact_support'
+      break
+      
+    case 'email_address_invalid':
+      userMessage = 'Adresse email invalide'
+      recoveryStrategy = 'retry'
+      break
+      
+    case 'password_too_short':
+      userMessage = 'Le mot de passe doit contenir au moins 6 caractères'
+      recoveryStrategy = 'retry'
+      break
+      
+    case 'user_already_exists':
+      userMessage = 'Un compte existe déjà avec cette adresse email'
+      recoveryStrategy = 'login'
+      break
+      
+    case 'rate_limit_exceeded':
+      userMessage = 'Trop de tentatives. Veuillez réessayer dans quelques minutes'
+      recoveryStrategy = 'wait'
+      break
+      
+    default:
+      if (error?.message) {
+        userMessage = error.message
+      }
+  }
+
+  return {
+    userError: {
+      message: userMessage,
+      type: 'auth_error',
+      recoveryStrategy,
+      code: error?.code
+    },
+    technicalError: error
+  }
+}
