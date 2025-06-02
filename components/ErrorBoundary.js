@@ -1,6 +1,8 @@
 import React from 'react';
+import { useState, useCallback } from 'react';
 import ErrorDisplay from './ErrorDisplay';
 import { logComponentEvent, logError, logUserInteraction } from '../utils/logger';
+import { createUserFriendlyError } from '../utils/errorHandler';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -104,6 +106,48 @@ class ErrorBoundary extends React.Component {
     });
 
     return this.props.children;
+  }
+}
+
+/**
+ * Hook pour la gestion d'erreurs dans les composants
+ */
+export function useErrorHandler() {
+  const [lastError, setLastError] = useState(null)
+  const [lastAction, setLastAction] = useState(null)
+
+  const handleError = useCallback((error, context = {}) => {
+    const friendlyError = createUserFriendlyError(error, context)
+    setLastError({ error: friendlyError, context })
+    return friendlyError
+  }, [])
+
+  const clearError = useCallback(() => {
+    setLastError(null)
+    setLastAction(null)
+  }, [])
+
+  const retryLastAction = useCallback(async () => {
+    if (lastAction) {
+      try {
+        clearError()
+        await lastAction()
+      } catch (error) {
+        handleError(error)
+      }
+    }
+  }, [lastAction, clearError, handleError])
+
+  const setRetryAction = useCallback((action) => {
+    setLastAction(() => action)
+  }, [])
+
+  return {
+    lastError,
+    handleError,
+    clearError,
+    retryLastAction,
+    setRetryAction
   }
 }
 

@@ -192,6 +192,21 @@ export function createUserFriendlyError(error, context = {}) {
 }
 
 /**
+ * Gestionnaire spécialisé pour les erreurs d'authentification
+ */
+export function handleAuthError(error, context = {}) {
+  const friendlyError = createUserFriendlyError(error, {
+    ...context,
+    type: 'auth_operation'
+  })
+  
+  return {
+    originalError: error,
+    userError: friendlyError
+  }
+}
+
+/**
  * Hook React pour la gestion d'erreurs
  */
 export function useErrorHandler() {

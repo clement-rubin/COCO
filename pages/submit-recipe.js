@@ -2,7 +2,7 @@ import Head from 'next/head'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { useAuth } from '../components/AuthContext'
-import { useErrorHandler } from '../components/ErrorBoundary'
+import { useErrorHandler } from '../utils/errorHandler'
 import PhotoUpload from '../components/PhotoUpload'
 import styles from '../styles/SubmitRecipe.module.css'
 
