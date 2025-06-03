@@ -9,6 +9,7 @@ export default function RecipeCard({ recipe, isUserRecipe = true, isPhotoOnly = 
   const router = useRouter()
   const [isFavorite, setIsFavorite] = useState(false)
   const [imageError, setImageError] = useState(false)
+  const [imageLoading, setImageLoading] = useState(true)
 
   // Defensive programming: ensure recipe exists and has required properties
   if (!recipe) {
@@ -44,8 +45,19 @@ export default function RecipeCard({ recipe, isUserRecipe = true, isPhotoOnly = 
     }
   }
 
+  const toggleFavorite = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsFavorite(!isFavorite)
+  }
+
+  const handleImageLoad = () => {
+    setImageLoading(false)
+  }
+
   const handleImageError = () => {
     setImageError(true)
+    setImageLoading(false)
   }
 
   const navigateToRecipe = () => {
@@ -71,14 +83,11 @@ export default function RecipeCard({ recipe, isUserRecipe = true, isPhotoOnly = 
     ? `/recipes/user/${safeRecipe.id}`
     : `/recipes/${safeRecipe.id}`
 
-  const toggleFavorite = (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setIsFavorite(!isFavorite)
-  }
-
   return (
-    <div className={styles.card} onClick={navigateToRecipe}>
+    <div 
+      className={`${styles.card} ${isPhotoOnly ? styles.photoOnly : ''} ${imageLoading ? styles.loading : ''}`} 
+      onClick={navigateToRecipe}
+    >
       <div className={styles.imageContainer}>
         <Image
           src={imageError ? '/placeholder-recipe.jpg' : safeRecipe.image}
@@ -87,58 +96,76 @@ export default function RecipeCard({ recipe, isUserRecipe = true, isPhotoOnly = 
           sizes="(max-width: 768px) 100vw, 300px"
           priority={false}
           className={styles.image}
+          onLoad={handleImageLoad}
           onError={handleImageError}
         />
+        
         {isPhotoOnly && (
           <div className={styles.photoTag}>
-            📷 Photo
+            📷 Photo Instantanée
           </div>
         )}
+        
         <div className={styles.cardActions}>
           <button 
             className={`${styles.favoriteBtn} ${isFavorite ? styles.active : ''}`}
             onClick={toggleFavorite}
-            aria-label="Partager avec des amis"
+            aria-label={isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
           >
-            {isFavorite ? '📤' : '👥'}
+            {isFavorite ? '❤️' : '🤍'}
           </button>
         </div>
       </div>
+      
       <div className={styles.content}>
         <h3 className={styles.recipeTitle}>{safeRecipe.title}</h3>
-        {safeRecipe.description && (
+        
+        {safeRecipe.description && !isPhotoOnly && (
           <p className={styles.recipeDescription}>
-            {safeRecipe.description.length > 80 
-              ? `${safeRecipe.description.substring(0, 80)}...` 
+            {safeRecipe.description.length > 100 
+              ? `${safeRecipe.description.substring(0, 100)}...` 
               : safeRecipe.description}
           </p>
         )}
+        
+        {isPhotoOnly && (
+          <p className={styles.recipeDescription}>
+            Une délicieuse création partagée par un membre de la communauté COCO ✨
+          </p>
+        )}
+        
         <div className={styles.recipeDetails}>
-          {recipe.difficulty && (
+          {recipe.difficulty && !isPhotoOnly && (
             <span className={styles.recipeDifficulty}>
-              {recipe.difficulty === 'Facile' ? '🟢 ' : 
-               recipe.difficulty === 'Moyen' ? '🟠 ' : '🔴 '}
-              {recipe.difficulty}
+              {recipe.difficulty === 'Facile' ? '🟢' : 
+               recipe.difficulty === 'Moyen' ? '🟠' : '🔴'} {recipe.difficulty}
             </span>
           )}
-          {safeRecipe.prepTime && (
+          
+          {safeRecipe.prepTime && !isPhotoOnly && (
             <span className={styles.recipeTime}>
               ⏱️ {safeRecipe.prepTime}
             </span>
           )}
+          
           {safeRecipe.category && (
             <span className={styles.recipeCategory}>
-              📂 {safeRecipe.category}
+              {isPhotoOnly ? '📸' : '📂'} {safeRecipe.category}
             </span>
           )}
         </div>
+        
         <div className={styles.recipeFooter}>
           <span className={styles.recipeAuthor}>
-            {safeRecipe.author ? `👤 ${safeRecipe.author}` : '👤 Anonyme'}
+            👤 {safeRecipe.author || 'Chef Anonyme'}
           </span>
+          
           {recipe.created_at && (
             <span className={styles.recipeDate}>
-              {new Date(recipe.created_at).toLocaleDateString()}
+              {new Date(recipe.created_at).toLocaleDateString('fr-FR', {
+                day: '2-digit',
+                month: 'short'
+              })}
             </span>
           )}
         </div>
