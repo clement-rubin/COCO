@@ -27,10 +27,10 @@ export default function Home() {
 
   const handleQuickShare = () => {
     if (!user) {
-      router.push('/login?redirect=' + encodeURIComponent('/submit-recipe'))
+      router.push('/login?redirect=' + encodeURIComponent('/share-photo'))
       return
     }
-    router.push('/submit-recipe')
+    router.push('/share-photo')
   }
 
   const handlePhotoShare = () => {

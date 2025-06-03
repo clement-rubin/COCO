@@ -32,8 +32,8 @@ export default function Navbar() {
           <Link href="/favoris" className={styles.navLink}>
             Favoris
           </Link>
-          <Link href="/submit-recipe" className={styles.addButton}>
-            ➕ Ajouter une recette
+          <Link href="/share-photo" className={styles.addButton}>
+            ➕ Partager une photo
           </Link>
         </div>
         
@@ -62,8 +62,8 @@ export default function Navbar() {
               <Link href="/favoris" className={styles.mobileNavLink}>
                 ❤️ Favoris
               </Link>
-              <Link href="/submit-recipe" className={styles.mobileNavLink}>
-                ➕ Ajouter une recette
+              <Link href="/share-photo" className={styles.mobileNavLink}>
+                ➕ Partager une photo
               </Link>
             </div>
           </div>

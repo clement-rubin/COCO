@@ -60,11 +60,11 @@ export default function Navigation() {
           </li>
           <li>
             <Link 
-              href="/submit-recipe" 
-              className={router.pathname === "/submit-recipe" ? styles.active : ""}
+              href="/share-photo" 
+              className={router.pathname === "/share-photo" ? styles.active : ""}
               onClick={closeMenu}
             >
-              Partager une recette
+              Partager une photo
             </Link>
           </li>
           <li>

@@ -157,8 +157,8 @@ export default function ShareButton({ recipe, recipeUrl, onShare, compact = fals
   }
 
   const handleShareClick = () => {
-    // Rediriger vers la page de partage de recette
-    router.push('/submit-recipe')
+    // Rediriger vers la page de partage de photo
+    router.push('/share-photo')
   }
 
   if (compact) {
@@ -166,7 +166,7 @@ export default function ShareButton({ recipe, recipeUrl, onShare, compact = fals
       <button 
         className={styles.shareButton}
         onClick={handleShareClick}
-        aria-label="Partager une recette"
+        aria-label="Partager une photo"
       >
         <span className={styles.shareIcon}>📤</span>
       </button>
@@ -178,10 +178,10 @@ export default function ShareButton({ recipe, recipeUrl, onShare, compact = fals
       <button 
         className={styles.shareButton}
         onClick={handleShareClick}
-        aria-label="Partager une nouvelle recette"
+        aria-label="Partager une photo"
       >
         <span className={styles.shareIcon}>📤</span>
-        <span>Partager ma recette</span>
+        <span>Partager une photo</span>
       </button>
     </div>
   )

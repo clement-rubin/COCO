@@ -333,7 +333,7 @@ function AppContent({ Component, pageProps }) {
 
   const handleShare = async () => {
     if (!user) {
-      router.push('/login?redirect=' + encodeURIComponent('/submit-recipe'))
+      router.push('/login?redirect=' + encodeURIComponent('/share-photo'))
       return
     }
     
@@ -342,7 +342,7 @@ function AppContent({ Component, pageProps }) {
       isAuthenticated: !!user
     });
     
-    router.push('/submit-recipe')
+    router.push('/share-photo')
   };
 
   const copyToClipboard = async () => {

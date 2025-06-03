@@ -378,7 +378,7 @@ CREATE POLICY "Enable delete for all users" ON recipes FOR DELETE USING (true);
               <button onClick={deleteTestRecipes} disabled={isLoading}>
                 🗑️ Supprimer Tests
               </button>
-              <button onClick={() => router.push('/submit-recipe')}>
+              <button onClick={() => router.push('/share-photo')}>
                 📝 Formulaire
               </button>
             </div>
