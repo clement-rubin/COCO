@@ -94,56 +94,45 @@ export default function SubmitRecipe() {
 
   const nextStep = () => {
     if (step < 3) {
-      // Animation de sortie
-      const currentContent = document.querySelector(`.${styles.stepContent}`)
-      if (currentContent) {
-        currentContent.style.animation = 'slideOutLeft 0.3s ease forwards'
-        setTimeout(() => {
-          setStep(step + 1)
-        }, 300)
-      } else {
-        setStep(step + 1)
-      }
+      setStep(step + 1)
     }
   }
 
   const prevStep = () => {
     if (step > 1) {
-      // Animation de sortie
-      const currentContent = document.querySelector(`.${styles.stepContent}`)
-      if (currentContent) {
-        currentContent.style.animation = 'slideOutRight 0.3s ease forwards'
-        setTimeout(() => {
-          setStep(step - 1)
-        }, 300)
-      } else {
-        setStep(step - 1)
-      }
+      setStep(step - 1)
     }
   }
 
   const handleSubmit = async () => {
     setIsSubmitting(true)
     
-    // Animation de pulsation sur le bouton
-    const submitBtn = document.querySelector(`.${styles.submitBtn}`)
-    if (submitBtn) {
-      submitBtn.style.animation = 'submitPulse 0.5s ease'
-    }
+    // Simulation d'envoi
+    await new Promise(resolve => setTimeout(resolve, 1500))
     
-    // Simulation d'envoi avec feedback visuel
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    
-    // Animation de succès
+    // Toast de succès simple
     const successToast = document.createElement('div')
-    successToast.innerHTML = '🎉 Recette publiée avec succès !'
-    successToast.className = styles.successToast
+    successToast.innerHTML = '✅ Recette publiée avec succès !'
+    successToast.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: linear-gradient(135deg, #4CAF50, #45a049);
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-weight: 500;
+      z-index: 10000;
+      animation: slideIn 0.3s ease;
+      box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+    `
     document.body.appendChild(successToast)
     
-    // Confetti effect
-    createConfetti()
-    
     setTimeout(() => {
+      if (successToast.parentNode) {
+        successToast.style.animation = 'slideOut 0.3s ease forwards'
+        setTimeout(() => successToast.remove(), 300)
+      }
       router.push('/')
     }, 1500)
   }
@@ -737,82 +726,44 @@ export default function SubmitRecipe() {
       </div>
 
       <style jsx global>{`
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
+        @keyframes slideIn {
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
         }
         
-        @keyframes slideOutLeft {
-          from { opacity: 1; transform: translateX(0); }
-          to { opacity: 0; transform: translateX(-30px); }
+        @keyframes slideOut {
+          from { transform: translateX(0); opacity: 1; }
+          to { transform: translateX(100%); opacity: 0; }
         }
         
-        @keyframes slideOutRight {
-          from { opacity: 1; transform: translateX(0); }
-          to { opacity: 0; transform: translateX(30px); }
-        }
-        
-        @keyframes submitPulse {
-          0%, 100% { transform: scale(1); }
-          50% { transform: scale(1.05); }
-        }
-        
-        @keyframes confettiFall {
-          to {
-            transform: translateY(100vh) rotate(720deg);
-            opacity: 0;
-          }
-        }
-        
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-
-        @keyframes pulse {
-          0% { opacity: 0.5; transform: scale(1); }
-          50% { opacity: 0.8; transform: scale(1.05); }
-          100% { opacity: 0.5; transform: scale(1); }
-        }
-        
+        /* Transitions fluides pour les étapes */
         .${styles.stepContent} {
-          animation: fadeIn 0.5s ease forwards;
+          animation: fadeIn 0.3s ease forwards;
         }
         
-        /* Style amélioré pour les interactions */
+        /* Interactions subtiles */
         .${styles.input}:focus, 
         .${styles.textarea}:focus {
-          animation: inputFocus 0.3s ease;
+          transform: translateY(-1px);
         }
         
-        @keyframes inputFocus {
-          from { transform: scale(1); }
-          to { transform: scale(1.01); }
-        }
-        
-        /* Amélioration des hover effects */
+        /* Hover effects légers */
         .${styles.categoryBtn}:hover,
         .${styles.difficultyBtn}:hover,
         .${styles.portionBtn}:hover {
-          animation: buttonHover 0.3s ease;
+          transform: translateY(-1px);
         }
         
-        @keyframes buttonHover {
-          0% { transform: translateY(0); }
-          50% { transform: translateY(-2px); }
-          100% { transform: translateY(-3px); }
-        }
-        
-        /* Animation pour les éléments de formulaire */
+        /* Animation d'apparition progressive */
         .${styles.formGroup} {
-          animation: formGroupSlide 0.4s ease forwards;
-          animation-delay: calc(var(--index, 0) * 0.1s);
+          animation: formSlideIn 0.4s ease forwards;
+          animation-delay: calc(var(--index, 0) * 0.05s);
         }
         
-        @keyframes formGroupSlide {
+        @keyframes formSlideIn {
           from { 
             opacity: 0; 
-            transform: translateY(20px); 
+            transform: translateY(10px); 
           }
           to { 
             opacity: 1; 
@@ -820,57 +771,25 @@ export default function SubmitRecipe() {
           }
         }
         
-        /* Success animation pour les étapes complétées */
-        .${styles.stepDot}.${styles.completed} {
-          animation: successBounce 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        /* Amélioration de l'accessibilité */
+        .${styles.input}:focus,
+        .${styles.textarea}:focus,
+        .${styles.categoryBtn}:focus,
+        .${styles.difficultyBtn}:focus,
+        .${styles.portionBtn}:focus,
+        .${styles.primaryBtn}:focus,
+        .${styles.secondaryBtn}:focus,
+        .${styles.submitBtn}:focus {
+          outline: 2px solid rgba(255, 107, 53, 0.5);
+          outline-offset: 2px;
         }
         
-        @keyframes successBounce {
-          0% { transform: scale(0.3); }
-          50% { transform: scale(1.3); }
-          70% { transform: scale(0.9); }
-          100% { transform: scale(1.15); }
-        }
-        
-        /* Amélioration du contraste et accessibilité */
-        .${styles.container} {
-          background-color: rgb(12, 12, 18);
-        }
-        
-        .${styles.formGroup} label {
-          text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
-        }
-        
-        .${styles.input}::placeholder, 
-        .${styles.textarea}::placeholder {
-          color: rgba(255, 255, 255, 0.4);
-        }
-        
-        /* Ajout d'effets de particules sur les interactions */
-        .${styles.submitBtn}:active::after {
-          content: '';
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          width: 100px;
-          height: 100px;
-          background: radial-gradient(circle, rgba(255, 255, 255, 0.5) 0%, transparent 70%);
-          border-radius: 50%;
-          transform: translate(-50%, -50%);
-          animation: ripple 0.6s ease-out;
-          pointer-events: none;
-        }
-        
-        @keyframes ripple {
-          from { 
-            width: 0; 
-            height: 0; 
-            opacity: 1; 
-          }
-          to { 
-            width: 200px; 
-            height: 200px; 
-            opacity: 0; 
+        /* Réduction du mouvement pour ceux qui le préfèrent */
+        @media (prefers-reduced-motion: reduce) {
+          * {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
           }
         }
       `}</style>
