@@ -168,7 +168,7 @@ export default function SubmitRecipe() {
         description: formData.description.trim(),
         ingredients: ['Photo partagée sans liste d\'ingrédients'],
         instructions: [{ step: 1, instruction: 'Voir la photo pour inspiration' }],
-        author: formData.author.trim() || 'Anonyme',
+        author: formData.author.trim() || user?.user_metadata?.display_name || user?.email || 'Anonyme',
         image: validPhotos[0].imageBytes, // Image en bytea
         category: 'Photo partagée',
         prepTime: null,

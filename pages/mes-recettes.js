@@ -36,9 +36,8 @@ export default function MesRecettes() {
           userDisplayName: user.user_metadata?.display_name
         })
 
-        // Récupérer d'abord toutes les recettes puisque le filtrage côté serveur 
-        // pourrait ne pas fonctionner si les formats d'auteur ne correspondent pas
-        const response = await fetch(`/api/recipes`)
+        // Récupérer toutes les recettes (sans filtrage côté serveur)
+        const response = await fetch('/api/recipes')
         
         if (!response.ok) {
           throw new Error(`Erreur HTTP: ${response.status}`)
@@ -47,42 +46,50 @@ export default function MesRecettes() {
         const allRecipes = await response.json()
         
         // Logique de filtrage améliorée côté client
-        // Inclut plusieurs formats possibles du nom d'utilisateur
+        // Créer plusieurs identifiants possibles pour l'utilisateur
         const userIdentifiers = [
-          user.email?.toLowerCase(),
-          user.user_metadata?.display_name?.toLowerCase(),
-          user.id?.toLowerCase(),
-          user.user_metadata?.full_name?.toLowerCase(),
+          user.email,
+          user.user_metadata?.display_name,
+          user.user_metadata?.full_name,
+          'Anonyme' // Si l'utilisateur n'a pas renseigné de nom
         ].filter(Boolean) // Enlever les valeurs null/undefined
         
-        logInfo('Filtrage des recettes avec plusieurs identifiants', {
+        logInfo('Identifiants utilisateur pour filtrage', {
           identifiers: userIdentifiers,
           totalRecipes: allRecipes.length
         })
         
         const userRecipes = allRecipes.filter(recipe => {
-          // Si l'auteur n'est pas défini, impossible de filtrer
+          // Si l'auteur n'est pas défini, on ne peut pas filtrer
           if (!recipe.author) return false
           
-          const recipeAuthor = recipe.author.toLowerCase()
-          return userIdentifiers.some(id => recipeAuthor.includes(id))
+          // Vérifier si l'auteur correspond à un des identifiants de l'utilisateur
+          return userIdentifiers.some(identifier => 
+            recipe.author === identifier || 
+            recipe.author.toLowerCase() === identifier.toLowerCase()
+          )
         })
         
-        // Sort recipes with the newest first
+        // Trier les recettes par date de création (plus récente en premier)
         userRecipes.sort((a, b) => {
           return new Date(b.created_at || 0) - new Date(a.created_at || 0)
         })
 
         setRecipes(userRecipes)
-        logInfo('Recettes utilisateur filtrées', {
+        logInfo('Recettes utilisateur filtrées avec succès', {
           totalRecipes: allRecipes.length,
           userRecipesFound: userRecipes.length,
-          identifiersCount: userIdentifiers.length,
-          includesPhotoShares: userRecipes.some(r => r.category === 'Photo partagée')
+          identifiersUsed: userIdentifiers.length,
+          hasPhotoShares: userRecipes.some(r => r.category === 'Photo partagée'),
+          recipeAuthors: userRecipes.map(r => r.author) // Pour debug
         })
 
       } catch (err) {
-        logError('Erreur lors de la récupération des recettes utilisateur', err)
+        logError('Erreur lors de la récupération des recettes utilisateur', err, {
+          userEmail: user?.email,
+          errorMessage: err.message,
+          errorStack: err.stack
+        })
         setError('Impossible de charger vos recettes. Erreur: ' + (err.message || 'Inconnue'))
       } finally {
         setLoading(false)

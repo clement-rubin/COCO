@@ -25,31 +25,52 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
       const { author } = req.query
       
-      let query = supabase
-        .from('recipes')
-        .select('*')
-        .order('created_at', { ascending: false })
-      
-      // Filter by author if specified
-      if (author) {
-        logInfo('[API] Filtrage par auteur', { author })
-        query = query.eq('author', author)
+      try {
+        let query = supabase
+          .from('recipes')
+          .select('*')
+          .order('created_at', { ascending: false })
+        
+        // Filter by author if specified (optionnel)
+        if (author) {
+          logInfo('[API] Filtrage par auteur demandé', { author })
+          query = query.eq('author', author)
+        }
+        
+        const { data: recipes, error } = await query
+        
+        if (error) {
+          logError('[API] Erreur lors de la récupération des recettes', error, {
+            errorCode: error.code,
+            errorMessage: error.message,
+            queryAuthor: author
+          })
+          throw error
+        }
+        
+        logInfo('[API] Recettes récupérées avec succès', {
+          recipesCount: recipes?.length || 0,
+          filteredByAuthor: !!author,
+          hasRecipes: recipes && recipes.length > 0,
+          sampleAuthors: recipes?.slice(0, 3).map(r => r.author) || []
+        })
+        
+        res.status(200).json(recipes || [])
+        return
+        
+      } catch (queryError) {
+        logError('[API] Exception lors de la requête GET', queryError, {
+          errorMessage: queryError.message,
+          stack: queryError.stack
+        })
+        
+        res.status(500).json({
+          message: 'Erreur lors de la récupération des recettes',
+          error: queryError.message,
+          details: 'Vérifiez la connexion à la base de données'
+        })
+        return
       }
-      
-      const { data: recipes, error } = await query
-      
-      if (error) {
-        logError('[API] Erreur lors de la récupération des recettes', error)
-        throw error
-      }
-      
-      logInfo('[API] Recettes récupérées avec succès', {
-        recipesCount: recipes.length,
-        filteredByAuthor: !!author
-      })
-      
-      res.status(200).json(recipes)
-      return
     }
     
     // POST - Ajout d'une nouvelle recette
