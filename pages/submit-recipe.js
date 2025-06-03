@@ -401,7 +401,7 @@ export default function SubmitRecipe() {
               )}
             </div>
           ))
-        }
+        )}
       </div>
     </div>
   )

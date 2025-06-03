@@ -579,7 +579,7 @@ export default function MesRecettes() {
                 gap: '0.5rem',
                 flexWrap: 'wrap'
               }}>
-                {/*
+                {[
                   { key: 'all', label: 'Tout', icon: '🍽️' },
                   { key: 'recipes', label: 'Recettes', icon: '📝' },
                   { key: 'photos', label: 'Photos', icon: '📷' }

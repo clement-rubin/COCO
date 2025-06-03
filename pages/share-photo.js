@@ -675,7 +675,7 @@ export default function SharePhoto() {
               )}
             </div>
           ))
-        }
+        )}
       </div>
     </div>
   )
