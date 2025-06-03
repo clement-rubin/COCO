@@ -617,43 +617,39 @@ export default function SubmitRecipe() {
         <meta name="description" content="Partagez votre recette avec la communauté COCO" />
       </Head>
 
-      <div className={styles.header}>
-        <button
-          onClick={() => router.push('/')}
-          className={styles.backBtn}
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-          Retour
-        </button>
-        <h1>Créer une recette</h1>
-        <div className={styles.stepIndicatorContainer}>
-          <div className={styles.stepIndicator}>
-            <div className={`${styles.stepDot} ${step >= 1 ? styles.active : ''} ${step > 1 ? styles.completed : ''}`}>
-              {step > 1 ? (
-                <svg className={styles.checkIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M5 13L9 17L19 7" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              ) : (
-                <span>1</span>
-              )}
-            </div>
-            <div className={`${styles.stepLine} ${step >= 2 ? styles.active : ''}`}></div>
-            <div className={`${styles.stepDot} ${step >= 2 ? styles.active : ''} ${step > 2 ? styles.completed : ''}`}>
-              {step > 2 ? (
-                <svg className={styles.checkIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M5 13L9 17L19 7" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              ) : (
-                <span>2</span>
-              )}
-            </div>
-            <div className={`${styles.stepLine} ${step >= 3 ? styles.active : ''}`}></div>
-            <div className={`${styles.stepDot} ${step >= 3 ? styles.active : ''}`}>
-              <span>3</span>
-            </div>
-          </div>
+      <button
+        onClick={() => router.push('/')}
+        className={styles.backBtn}
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+        Retour
+      </button>
+
+      <div className={styles.stepIndicator}>
+        <div className={`${styles.stepDot} ${step >= 1 ? styles.active : ''} ${step > 1 ? styles.completed : ''}`}>
+          {step > 1 ? (
+            <svg className={styles.checkIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M5 13L9 17L19 7" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          ) : (
+            <span>1</span>
+          )}
+        </div>
+        <div className={`${styles.stepLine} ${step >= 2 ? styles.active : ''}`}></div>
+        <div className={`${styles.stepDot} ${step >= 2 ? styles.active : ''} ${step > 2 ? styles.completed : ''}`}>
+          {step > 2 ? (
+            <svg className={styles.checkIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M5 13L9 17L19 7" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          ) : (
+            <span>2</span>
+          )}
+        </div>
+        <div className={`${styles.stepLine} ${step >= 3 ? styles.active : ''}`}></div>
+        <div className={`${styles.stepDot} ${step >= 3 ? styles.active : ''}`}>
+          <span>3</span>
         </div>
       </div>
 
@@ -736,34 +732,41 @@ export default function SubmitRecipe() {
           to { transform: translateX(100%); opacity: 0; }
         }
         
+        @keyframes confettiFall {
+          to {
+            transform: translateY(100vh) rotate(360deg);
+            opacity: 0;
+          }
+        }
+        
         /* Transitions fluides pour les étapes */
         .${styles.stepContent} {
-          animation: fadeIn 0.3s ease forwards;
+          animation: fadeInUp 0.5s ease forwards;
         }
         
-        /* Interactions subtiles */
+        /* Interactions addictives */
         .${styles.input}:focus, 
         .${styles.textarea}:focus {
-          transform: translateY(-1px);
+          transform: translateY(-2px);
         }
         
-        /* Hover effects légers */
+        /* Hover effects plus prononcés */
         .${styles.categoryBtn}:hover,
         .${styles.difficultyBtn}:hover,
         .${styles.portionBtn}:hover {
-          transform: translateY(-1px);
+          transform: translateY(-3px);
         }
         
         /* Animation d'apparition progressive */
         .${styles.formGroup} {
           animation: formSlideIn 0.4s ease forwards;
-          animation-delay: calc(var(--index, 0) * 0.05s);
+          animation-delay: calc(var(--index, 0) * 0.1s);
         }
         
         @keyframes formSlideIn {
           from { 
             opacity: 0; 
-            transform: translateY(10px); 
+            transform: translateY(20px); 
           }
           to { 
             opacity: 1; 
@@ -771,7 +774,7 @@ export default function SubmitRecipe() {
           }
         }
         
-        /* Amélioration de l'accessibilité */
+        /* Amélioration de l'accessibilité avec plus de visibilité */
         .${styles.input}:focus,
         .${styles.textarea}:focus,
         .${styles.categoryBtn}:focus,
@@ -780,8 +783,8 @@ export default function SubmitRecipe() {
         .${styles.primaryBtn}:focus,
         .${styles.secondaryBtn}:focus,
         .${styles.submitBtn}:focus {
-          outline: 2px solid rgba(255, 107, 53, 0.5);
-          outline-offset: 2px;
+          outline: 3px solid rgba(255, 107, 53, 0.6);
+          outline-offset: 3px;
         }
         
         /* Réduction du mouvement pour ceux qui le préfèrent */
