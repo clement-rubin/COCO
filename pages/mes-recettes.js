@@ -26,31 +26,47 @@ export default function MesRecettes() {
   // Fetch user's recipes
   useEffect(() => {
     const fetchUserRecipes = async () => {
-      if (!user?.email) return
+      if (!user) return
       
       try {
         setLoading(true)
         logInfo('Récupération des recettes utilisateur', {
           userEmail: user.email,
+          userId: user.id,
           userDisplayName: user.user_metadata?.display_name
         })
 
-        // Use author-based filtering since user_id is not in schema
-        const userDisplayName = user.user_metadata?.display_name || user.email
-        const response = await fetch(`/api/recipes?author=${encodeURIComponent(userDisplayName)}`)
+        // Récupérer d'abord toutes les recettes puisque le filtrage côté serveur 
+        // pourrait ne pas fonctionner si les formats d'auteur ne correspondent pas
+        const response = await fetch(`/api/recipes`)
         
         if (!response.ok) {
           throw new Error(`Erreur HTTP: ${response.status}`)
         }
 
-        const data = await response.json()
+        const allRecipes = await response.json()
         
-        // Filter recipes by current user email or display name
-        const userEmail = user.email
-        const userRecipes = data.filter(recipe => 
-          recipe.author === userEmail || 
-          recipe.author === userDisplayName
-        )
+        // Logique de filtrage améliorée côté client
+        // Inclut plusieurs formats possibles du nom d'utilisateur
+        const userIdentifiers = [
+          user.email?.toLowerCase(),
+          user.user_metadata?.display_name?.toLowerCase(),
+          user.id?.toLowerCase(),
+          user.user_metadata?.full_name?.toLowerCase(),
+        ].filter(Boolean) // Enlever les valeurs null/undefined
+        
+        logInfo('Filtrage des recettes avec plusieurs identifiants', {
+          identifiers: userIdentifiers,
+          totalRecipes: allRecipes.length
+        })
+        
+        const userRecipes = allRecipes.filter(recipe => {
+          // Si l'auteur n'est pas défini, impossible de filtrer
+          if (!recipe.author) return false
+          
+          const recipeAuthor = recipe.author.toLowerCase()
+          return userIdentifiers.some(id => recipeAuthor.includes(id))
+        })
         
         // Sort recipes with the newest first
         userRecipes.sort((a, b) => {
@@ -58,26 +74,25 @@ export default function MesRecettes() {
         })
 
         setRecipes(userRecipes)
-        logInfo('Recettes utilisateur récupérées', {
-          totalRecipes: data.length,
-          userRecipes: userRecipes.length,
-          userEmail,
-          userDisplayName,
+        logInfo('Recettes utilisateur filtrées', {
+          totalRecipes: allRecipes.length,
+          userRecipesFound: userRecipes.length,
+          identifiersCount: userIdentifiers.length,
           includesPhotoShares: userRecipes.some(r => r.category === 'Photo partagée')
         })
 
       } catch (err) {
         logError('Erreur lors de la récupération des recettes utilisateur', err)
-        setError('Impossible de charger vos recettes')
+        setError('Impossible de charger vos recettes. Erreur: ' + (err.message || 'Inconnue'))
       } finally {
         setLoading(false)
       }
     }
 
-    if (user?.email && !authLoading) {
+    if (user && !authLoading) {
       fetchUserRecipes()
     }
-  }, [user?.email, authLoading])
+  }, [user, authLoading])
 
   // Show loading state while checking authentication
   if (authLoading) {

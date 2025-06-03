@@ -1,12 +1,15 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { useState } from 'react'
+import { useRouter } from 'next/router'
 import ShareButton from './ShareButton'
 import styles from '../styles/RecipeCard.module.css'
 
-export default function RecipeCard({ recipe, isUserRecipe = true }) {
+export default function RecipeCard({ recipe, isUserRecipe = true, isPhotoOnly = false }) {
+  const router = useRouter()
   const [isFavorite, setIsFavorite] = useState(false)
-  
+  const [imageError, setImageError] = useState(false)
+
   // Defensive programming: ensure recipe exists and has required properties
   if (!recipe) {
     return null;
@@ -18,8 +21,13 @@ export default function RecipeCard({ recipe, isUserRecipe = true }) {
     
     try {
       // If imageData is already a string (URL), return it
-      if (typeof imageData === 'string') {
-        return imageData.startsWith('http') ? imageData : `data:image/jpeg;base64,${imageData}`
+      if (typeof imageData === 'string' && imageData.startsWith('http')) {
+        return imageData
+      }
+      
+      // If imageData is a base64 string, convert to URL
+      if (typeof imageData === 'string' && !imageData.startsWith('http')) {
+        return `data:image/jpeg;base64,${imageData}`
       }
       
       // If imageData is an array of bytes (bytea), convert to base64
@@ -31,9 +39,17 @@ export default function RecipeCard({ recipe, isUserRecipe = true }) {
       
       return '/placeholder-recipe.jpg'
     } catch (error) {
-      console.error('Erreur lors de la conversion de l\'image bytea:', error)
+      console.error('Erreur lors de la conversion de l\'image:', error)
       return '/placeholder-recipe.jpg'
     }
+  }
+
+  const handleImageError = () => {
+    setImageError(true)
+  }
+
+  const navigateToRecipe = () => {
+    router.push(`/recipe/${recipe.id}`)
   }
 
   // Safe access to recipe properties with defaults
@@ -62,47 +78,71 @@ export default function RecipeCard({ recipe, isUserRecipe = true }) {
   }
 
   return (
-    <div className={styles.card}>
-      <Link href={recipeLink} className={styles.cardLink}>
-        <div className={styles.imageContainer}>
-          <Image
-            src={safeRecipe.image}
-            alt={safeRecipe.title}
-            fill
-            sizes="(max-width: 768px) 100vw, 300px"
-            priority={false}
-            className={styles.image}
-            onError={(e) => {
-              e.target.src = '/placeholder-recipe.jpg';
-            }}
-          />
-          <div className={styles.cardActions}>
-            <button 
-              className={`${styles.favoriteBtn} ${isFavorite ? styles.active : ''}`}
-              onClick={toggleFavorite}
-              aria-label="Partager avec des amis"
-            >
-              {isFavorite ? '📤' : '👥'}
-            </button>
+    <div className={styles.card} onClick={navigateToRecipe}>
+      <div className={styles.imageContainer}>
+        <Image
+          src={imageError ? '/placeholder-recipe.jpg' : safeRecipe.image}
+          alt={safeRecipe.title}
+          fill
+          sizes="(max-width: 768px) 100vw, 300px"
+          priority={false}
+          className={styles.image}
+          onError={handleImageError}
+        />
+        {isPhotoOnly && (
+          <div className={styles.photoTag}>
+            📷 Photo
           </div>
+        )}
+        <div className={styles.cardActions}>
+          <button 
+            className={`${styles.favoriteBtn} ${isFavorite ? styles.active : ''}`}
+            onClick={toggleFavorite}
+            aria-label="Partager avec des amis"
+          >
+            {isFavorite ? '📤' : '👥'}
+          </button>
         </div>
-        <div className={styles.content}>
-          <h3>{safeRecipe.title}</h3>
-          <p className={styles.description}>{safeRecipe.description}</p>
-          <p className={styles.author}>Par {safeRecipe.author}</p>
-          <div className={styles.meta}>
-            <span>⏱️ Préparation: {safeRecipe.prepTime}</span>
-            <span>🍳 Cuisson: {safeRecipe.cookTime}</span>
-            <span>📋 {safeRecipe.category}</span>
-          </div>
-          <div className={styles.shareContainer}>
-            <ShareButton 
-              recipe={safeRecipe} 
-              recipeUrl={typeof window !== 'undefined' ? `${window.location.origin}${recipeLink}` : recipeLink}
-            />
-          </div>
+      </div>
+      <div className={styles.content}>
+        <h3 className={styles.recipeTitle}>{safeRecipe.title}</h3>
+        {safeRecipe.description && (
+          <p className={styles.recipeDescription}>
+            {safeRecipe.description.length > 80 
+              ? `${safeRecipe.description.substring(0, 80)}...` 
+              : safeRecipe.description}
+          </p>
+        )}
+        <div className={styles.recipeDetails}>
+          {recipe.difficulty && (
+            <span className={styles.recipeDifficulty}>
+              {recipe.difficulty === 'Facile' ? '🟢 ' : 
+               recipe.difficulty === 'Moyen' ? '🟠 ' : '🔴 '}
+              {recipe.difficulty}
+            </span>
+          )}
+          {safeRecipe.prepTime && (
+            <span className={styles.recipeTime}>
+              ⏱️ {safeRecipe.prepTime}
+            </span>
+          )}
+          {safeRecipe.category && (
+            <span className={styles.recipeCategory}>
+              📂 {safeRecipe.category}
+            </span>
+          )}
         </div>
-      </Link>
+        <div className={styles.recipeFooter}>
+          <span className={styles.recipeAuthor}>
+            {safeRecipe.author ? `👤 ${safeRecipe.author}` : '👤 Anonyme'}
+          </span>
+          {recipe.created_at && (
+            <span className={styles.recipeDate}>
+              {new Date(recipe.created_at).toLocaleDateString()}
+            </span>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

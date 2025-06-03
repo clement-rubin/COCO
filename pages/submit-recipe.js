@@ -3,443 +3,343 @@ import { useRouter } from 'next/router'
 import Head from 'next/head'
 import Image from 'next/image'
 import { useAuth } from '../components/AuthContext'
+import PhotoUpload from '../components/PhotoUpload'
 import styles from '../styles/SubmitRecipe.module.css'
+import { logDebug, logInfo, logError, logWarning, logUserInteraction } from '../utils/logger'
 
 export default function SubmitRecipe() {
   const router = useRouter()
   const { user } = useAuth()
-  const [step, setStep] = useState(1)
-  const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const fileInputRef = useRef(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [errors, setErrors] = useState({})
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false)
+  const [showLogs, setShowLogs] = useState(false)
+  const [logs, setLogs] = useState([])
   
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    category: '',
-    difficulty: 'Facile',
-    prepTime: '',
-    cookTime: '',
-    portions: 2,
-    ingredients: [''],
-    instructions: [''],
-    tags: '',
-    media: []
+    author: ''
   })
+  const [photos, setPhotos] = useState([])
 
-  const categories = [
-    { id: 'italien', label: 'Italien', emoji: '🍝' },
-    { id: 'dessert', label: 'Dessert', emoji: '🍰' },
-    { id: 'healthy', label: 'Healthy', emoji: '🥗' },
-    { id: 'asiatique', label: 'Asiatique', emoji: '🍜' },
-    { id: 'bbq', label: 'BBQ', emoji: '🔥' },
-    { id: 'vegetarien', label: 'Végétarien', emoji: '🌱' },
-    { id: 'francais', label: 'Français', emoji: '🇫🇷' },
-    { id: 'autre', label: 'Autre', emoji: '🍽️' }
-  ]
-
-  const difficulties = [
-    { value: 'Facile', emoji: '😊', color: '#4CAF50' },
-    { value: 'Moyen', emoji: '🤔', color: '#FF9800' },
-    { value: 'Difficile', emoji: '😤', color: '#F44336' }
-  ]
-
-  const handleInputChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
+  // Logger hook to capture logs
+  const addLog = (level, message, data = null) => {
+    const timestamp = new Date().toLocaleTimeString()
+    const logEntry = {
+      id: Date.now() + Math.random(),
+      timestamp,
+      level,
+      message,
+      data: data ? JSON.stringify(data, null, 2) : null
+    }
+    setLogs(prev => [logEntry, ...prev].slice(0, 100)) // Keep last 100 logs
+    
+    // Call original logger
+    switch(level) {
+      case 'debug': logDebug(message, data); break;
+      case 'info': logInfo(message, data); break;
+      case 'warning': logWarning(message, data); break;
+      case 'error': logError(message, null, data); break;
+      case 'interaction': logUserInteraction(message, 'submit-recipe', data); break;
+    }
   }
 
-  const handleArrayChange = (field, index, value) => {
+  const handleInputChange = (e) => {
+    const { name, value } = e.target
+    
+    addLog('debug', `Changement de champ: ${name}`, { 
+      fieldName: name, 
+      valueLength: value.length,
+      isEmpty: !value.trim()
+    })
+    
     setFormData(prev => ({
       ...prev,
-      [field]: prev[field].map((item, i) => i === index ? value : item)
+      [name]: value
     }))
-  }
-
-  const addArrayItem = (field) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: [...prev[field], '']
-    }))
-  }
-
-  const removeArrayItem = (field, index) => {
-    if (formData[field].length > 1) {
-      setFormData(prev => ({
+    
+    // Clear error when user starts typing
+    if (errors[name]) {
+      setErrors(prev => ({
         ...prev,
-        [field]: prev[field].filter((_, i) => i !== index)
+        [name]: ''
       }))
     }
   }
 
-  const handleMediaUpload = (event) => {
-    const files = Array.from(event.target.files)
-    const newMedia = files.map(file => ({
-      file,
-      url: URL.createObjectURL(file),
-      type: file.type.startsWith('video/') ? 'video' : 'image'
-    }))
+  const validateForm = () => {
+    addLog('info', 'Début de la validation du formulaire photo')
+    const newErrors = {}
     
-    setFormData(prev => ({
-      ...prev,
-      media: [...prev.media, ...newMedia]
-    }))
-  }
-
-  const removeMedia = (index) => {
-    setFormData(prev => ({
-      ...prev,
-      media: prev.media.filter((_, i) => i !== index)
-    }))
-  }
-
-  const nextStep = () => {
-    if (step < 3) {
-      setStep(step + 1)
+    if (!formData.title.trim()) {
+      newErrors.title = 'Le nom du plat est obligatoire'
+      addLog('warning', 'Validation échouée: nom du plat manquant')
     }
-  }
-
-  const prevStep = () => {
-    if (step > 1) {
-      setStep(step - 1)
+    if (!formData.description.trim()) {
+      newErrors.description = 'La description est obligatoire'
+      addLog('warning', 'Validation échouée: description manquante')
     }
+    if (photos.length === 0) {
+      newErrors.photos = 'Au moins une photo est obligatoire'
+      addLog('warning', 'Validation échouée: aucune photo')
+    }
+    
+    // Validation des photos traitées
+    if (photos.length > 0) {
+      const processingPhotos = photos.filter(photo => photo.processing)
+      const errorPhotos = photos.filter(photo => photo.error)
+      const processedPhotos = photos.filter(photo => 
+        photo.processed && 
+        photo.imageBytes && 
+        Array.isArray(photo.imageBytes) &&
+        photo.imageBytes.length > 0
+      )
+      
+      if (processingPhotos.length > 0) {
+        newErrors.photos = `Attendez que ${processingPhotos.length} photo(s) finissent d'être traitées`
+      } else if (errorPhotos.length > 0) {
+        newErrors.photos = `${errorPhotos.length} photo(s) ont échoué. Supprimez-les et réessayez.`
+      } else if (processedPhotos.length === 0) {
+        newErrors.photos = 'Aucune photo n\'a été correctement traitée. Veuillez réessayer.'
+      }
+    }
+    
+    const isValid = Object.keys(newErrors).length === 0
+    
+    addLog('info', 'Résultat de la validation', {
+      isValid,
+      errorsCount: Object.keys(newErrors).length,
+      errors: Object.keys(newErrors),
+      photosCount: photos.length,
+      processedPhotosCount: photos.filter(p => p.processed).length
+    })
+    
+    setErrors(newErrors)
+    return isValid
   }
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    
+    addLog('info', 'Début de soumission de photo de recette')
+    
+    if (!validateForm()) {
+      addLog('interaction', 'ECHEC_VALIDATION', {
+        errorsCount: Object.keys(errors).length,
+        errors: Object.keys(errors)
+      })
+      return
+    }
+    
     setIsSubmitting(true)
     
-    // Simulation d'envoi
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    
-    // Toast de succès simple
-    const successToast = document.createElement('div')
-    successToast.innerHTML = '✅ Recette publiée avec succès !'
-    successToast.style.cssText = `
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: linear-gradient(135deg, #4CAF50, #45a049);
-      color: white;
-      padding: 12px 20px;
-      border-radius: 8px;
-      font-weight: 500;
-      z-index: 10000;
-      animation: slideIn 0.3s ease;
-      box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
-    `
-    document.body.appendChild(successToast)
-    
-    setTimeout(() => {
-      if (successToast.parentNode) {
-        successToast.style.animation = 'slideOut 0.3s ease forwards'
-        setTimeout(() => successToast.remove(), 300)
-      }
-      router.push('/')
-    }, 1500)
-  }
-
-  const createConfetti = () => {
-    for (let i = 0; i < 50; i++) {
-      const confetti = document.createElement('div')
-      confetti.style.cssText = `
-        position: fixed;
-        width: 10px;
-        height: 10px;
-        background: ${['#FF6B35', '#F7931E', '#4CAF50', '#2196F3'][Math.floor(Math.random() * 4)]};
-        left: ${Math.random() * 100}vw;
-        top: -10px;
-        border-radius: 50%;
-        pointer-events: none;
-        z-index: 10000;
-        animation: confettiFall ${2 + Math.random() * 3}s linear forwards;
-      `
-      document.body.appendChild(confetti)
+    try {
+      // Préparer les photos validées (avec bytes)
+      const validPhotos = photos.filter(photo => 
+        photo.processed && 
+        photo.imageBytes && 
+        Array.isArray(photo.imageBytes) &&
+        photo.imageBytes.length > 0 &&
+        !photo.error
+      )
       
-      setTimeout(() => {
-        if (confetti.parentNode) {
-          confetti.parentNode.removeChild(confetti)
+      if (validPhotos.length === 0) {
+        logError('Aucune photo valide trouvée pour partage', null, {
+          totalPhotos: photos.length,
+          photosState: photos.map(p => ({
+            processed: p.processed,
+            hasImageBytes: !!p.imageBytes,
+            imageBytesType: typeof p.imageBytes,
+            imageBytesIsArray: Array.isArray(p.imageBytes),
+            imageBytesLength: p.imageBytes?.length,
+            error: p.error,
+            errorMessage: p.errorMessage
+          }))
+        })
+        throw new Error('Aucune photo valide trouvée. Veuillez réessayer le traitement.')
+      }
+      
+      // Préparer les données selon le schéma bytea
+      const recipeData = {
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        ingredients: ['Photo partagée sans liste d\'ingrédients'],
+        instructions: [{ step: 1, instruction: 'Voir la photo pour inspiration' }],
+        author: formData.author.trim() || 'Anonyme',
+        image: validPhotos[0].imageBytes, // Image en bytea
+        category: 'Photo partagée',
+        prepTime: null,
+        cookTime: null
+      }
+      
+      logDebug('Données de photo préparées pour API', {
+        hasTitle: !!recipeData.title,
+        hasDescription: !!recipeData.description,
+        photosCount: photos.length,
+        validPhotosCount: validPhotos.length,
+        mainImageBytesLength: recipeData.image.length,
+        category: recipeData.category,
+        author: recipeData.author
+      })
+      
+      // Valider que les données sont complètes avant l'envoi
+      if (!recipeData.image || !Array.isArray(recipeData.image) || recipeData.image.length === 0) {
+        throw new Error('Image principale manquante ou invalide')
+      }
+      
+      // Call API to submit photo as recipe
+      logInfo('Envoi des données vers l\'API /api/recipes')
+      const response = await fetch('/api/recipes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(recipeData)
+      })
+      
+      logDebug('Réponse de l\'API reçue', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+        contentType: response.headers.get('content-type')
+      })
+      
+      // Check if response is JSON before parsing
+      const contentType = response.headers.get('content-type')
+      let result
+      
+      if (contentType && contentType.includes('application/json')) {
+        result = await response.json()
+      } else {
+        // Server returned HTML or other content - likely an error page
+        const textContent = await response.text()
+        addLog('error', 'API a retourné du contenu non-JSON', {
+          status: response.status,
+          statusText: response.statusText,
+          contentType,
+          contentPreview: textContent.substring(0, 500)
+        })
+        
+        if (response.status === 500) {
+          throw new Error('Erreur serveur interne. Vérifiez la configuration de la base de données et les variables d\'environnement.')
+        } else if (response.status === 404) {
+          throw new Error('API non trouvée. Vérifiez que le fichier /api/recipes.js existe.')
+        } else {
+          throw new Error(`Erreur serveur (${response.status}): Le serveur a retourné une page d'erreur au lieu d'une réponse JSON.`)
         }
-      }, 5000)
+      }
+      
+      logDebug('Contenu de la réponse API', {
+        hasResult: !!result,
+        resultKeys: Object.keys(result || {}),
+        message: result?.message,
+        id: result?.id,
+        error: result?.error
+      })
+      
+      if (!response.ok) {
+        const errorMessage = result?.message || result?.error || `Erreur HTTP ${response.status}: ${response.statusText}`
+        logError('Erreur de l\'API lors du partage de photo', null, {
+          status: response.status,
+          statusText: response.statusText,
+          responseBody: result,
+          errorMessage
+        })
+        throw new Error(errorMessage)
+      }
+      
+      addLog('interaction', 'PHOTO_SOUMISE', {
+        title: recipeData.title,
+        photosCount: validPhotos.length,
+        recipeId: result.id,
+        imageBytesLength: recipeData.image.length
+      })
+      
+      // Afficher le message de succès
+      setShowSuccessMessage(true)
+      
+      // Redirection après 3 secondes
+      setTimeout(() => {
+        router.push('/?success=photo-shared')
+      }, 3000)
+      
+    } catch (error) {
+      addLog('error', 'Erreur lors de la soumission de photo', {
+        errorName: error.constructor.name,
+        errorMessage: error.message,
+        errorStack: error.stack,
+        formData: {
+          title: formData.title,
+          hasDescription: !!formData.description
+        },
+        photosState: {
+          total: photos.length,
+          processed: photos.filter(p => p.processed).length,
+          withBytes: photos.filter(p => p.imageBytes?.length > 0).length,
+          withErrors: photos.filter(p => p.error).length
+        }
+      })
+      
+      // Amélioration du diagnostic et des messages d'erreur
+      let errorMessage = 'Une erreur est survenue lors de l\'envoi. Veuillez réessayer.'
+      
+      // Analyse plus précise des erreurs API
+      if (error.message.includes('structure de base de données')) {
+        errorMessage = 'Problème de configuration de la base de données. La table recipes n\'a pas toutes les colonnes requises. Contactez l\'administrateur.'
+      } else if (error.message.includes('JSON')) {
+        errorMessage = 'Erreur serveur: Le serveur a retourné une réponse invalide. Vérifiez la configuration du serveur et de la base de données.'
+      } else if (error.message.includes('serveur interne')) {
+        errorMessage = 'Erreur de base de données. Vérifiez la configuration Supabase dans les variables d\'environnement.'
+      } else if (error.message.includes('API non trouvée')) {
+        errorMessage = 'Configuration manquante: L\'API de recettes n\'est pas configurée correctement.'
+      } else if (error.message.includes('photo')) {
+        errorMessage = 'Problème avec la photo. Veuillez la recharger et réessayer.'
+      } else if (error.message.includes('fetch')) {
+        errorMessage = 'Problème de connexion. Vérifiez votre connexion internet et réessayez.'
+      } else if (error.message.includes('Données manquantes')) {
+        errorMessage = 'Erreur de validation: Certaines données requises sont manquantes.'
+      } else if (error.message.includes('Données trop longues')) {
+        errorMessage = 'Le titre ou la description est trop long. Veuillez raccourcir votre texte.'
+      } else if (error.message.includes('bytes')) {
+        errorMessage = 'Problème avec le format de l\'image. L\'image est peut-être trop volumineuse ou dans un format non supporté.'
+      } else if (error.message.includes('RangeError') || error.message.includes('JSON.stringify')) {
+        errorMessage = 'L\'image est trop volumineuse pour être envoyée. Essayez une image plus petite ou compressée.'
+      } else if (error.message.includes('403')) {
+        errorMessage = 'Vous n\'avez pas l\'autorisation d\'effectuer cette action. Veuillez vous reconnecter.'
+      } else if (error.message.includes('429')) {
+        errorMessage = 'Trop de requêtes. Veuillez attendre quelques instants avant de réessayer.'
+      } else if (error.message.includes('creation')) {
+        errorMessage = 'Erreur lors de la sauvegarde de la recette. Vérifiez que tous les champs sont correctement remplis.'
+      } else if (error.message) {
+        // Si on a un message d'erreur précis, on l'affiche directement
+        errorMessage = `Erreur: ${error.message}`
+      }
+      
+      // Tentative de reconnexion à la base de données en cas d'erreur
+      if (
+        error.message.includes('serveur interne') ||
+        error.message.includes('base de données') ||
+        error.message.includes('500')
+      ) {
+        // Log supplémentaire pour diagnostic
+        addLog('warning', 'Tentative de reconnexion à la base de données')
+      }
+      
+      setErrors({ submit: errorMessage })
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
-  const renderStep1 = () => (
-    <div className={styles.stepContent}>
-      <div className={styles.stepHeader}>
-        <h2>Informations de base</h2>
-        <p>Étape 1 sur 3</p>
-      </div>
-
-      <div className={styles.formSection}>
-        <div className={styles.formGroup}>
-          <label>Nom de la recette *</label>
-          <input
-            type="text"
-            placeholder="Ex: Tarte aux pommes"
-            value={formData.title}
-            onChange={(e) => handleInputChange('title', e.target.value)}
-            className={styles.input}
-          />
-        </div>
-
-        <div className={styles.formGroup}>
-          <label>Description</label>
-          <textarea
-            placeholder="Décrivez votre recette..."
-            value={formData.description}
-            onChange={(e) => handleInputChange('description', e.target.value)}
-            className={styles.textarea}
-            rows={3}
-          />
-        </div>
-
-        <div className={styles.formGroup}>
-          <label>Catégorie</label>
-          <div className={styles.categoryGrid}>
-            {categories.map(cat => (
-              <button
-                key={cat.id}
-                type="button"
-                onClick={() => handleInputChange('category', cat.id)}
-                className={`${styles.categoryBtn} ${formData.category === cat.id ? styles.active : ''}`}
-              >
-                {cat.emoji} {cat.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className={styles.formGroup}>
-          <label>Difficulté</label>
-          <div className={styles.difficultyGrid}>
-            {difficulties.map(diff => (
-              <button
-                key={diff.value}
-                type="button"
-                onClick={() => handleInputChange('difficulty', diff.value)}
-                className={`${styles.difficultyBtn} ${formData.difficulty === diff.value ? styles.active : ''}`}
-              >
-                {diff.emoji} {diff.value}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className={styles.timeRow}>
-          <div className={styles.formGroup}>
-            <label>Préparation (min)</label>
-            <input
-              type="number"
-              placeholder="15"
-              value={formData.prepTime}
-              onChange={(e) => handleInputChange('prepTime', e.target.value)}
-              className={styles.input}
-            />
-          </div>
-          <div className={styles.formGroup}>
-            <label>Cuisson (min)</label>
-            <input
-              type="number"
-              placeholder="30"
-              value={formData.cookTime}
-              onChange={(e) => handleInputChange('cookTime', e.target.value)}
-              className={styles.input}
-            />
-          </div>
-        </div>
-
-        <div className={styles.formGroup}>
-          <label>Portions</label>
-          <div className={styles.portionGrid}>
-            {[1,2,3,4,5,6,8,10].map(num => (
-              <button
-                key={num}
-                type="button"
-                onClick={() => handleInputChange('portions', num)}
-                className={`${styles.portionBtn} ${formData.portions === num ? styles.active : ''}`}
-              >
-                {num}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-
-  const renderStep2 = () => (
-    <div className={styles.stepContent}>
-      <div className={styles.stepHeader}>
-        <h2>Ingrédients & Étapes</h2>
-        <p>Étape 2 sur 3</p>
-      </div>
-
-      <div className={styles.formSection}>
-        <div className={styles.formGroup}>
-          <label>Ingrédients *</label>
-          <div className={styles.ingredientsList}>
-            {formData.ingredients.map((ingredient, index) => (
-              <div key={index} className={styles.arrayInput}>
-                <span className={styles.itemNumber}>{index + 1}</span>
-                <input
-                  type="text"
-                  placeholder="Ex: 250g de farine"
-                  value={ingredient}
-                  onChange={(e) => handleArrayChange('ingredients', index, e.target.value)}
-                  className={styles.input}
-                />
-                {formData.ingredients.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeArrayItem('ingredients', index)}
-                    className={styles.removeBtn}
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-          <button
-            type="button"
-            onClick={() => addArrayItem('ingredients')}
-            className={styles.addBtn}
-          >
-            + Ajouter un ingrédient
-          </button>
-        </div>
-
-        <div className={styles.formGroup}>
-          <label>Étapes de préparation *</label>
-          <div className={styles.instructionsList}>
-            {formData.instructions.map((instruction, index) => (
-              <div key={index} className={styles.arrayInput}>
-                <span className={styles.itemNumber}>{index + 1}</span>
-                <textarea
-                  placeholder="Décrivez cette étape..."
-                  value={instruction}
-                  onChange={(e) => handleArrayChange('instructions', index, e.target.value)}
-                  className={styles.textarea}
-                  rows={2}
-                />
-                {formData.instructions.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeArrayItem('instructions', index)}
-                    className={styles.removeBtn}
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-          <button
-            type="button"
-            onClick={() => addArrayItem('instructions')}
-            className={styles.addBtn}
-          >
-            + Ajouter une étape
-          </button>
-        </div>
-
-        <div className={styles.formGroup}>
-          <label>Mots-clés</label>
-          <input
-            type="text"
-            placeholder="Ex: automne, pommes, dessert"
-            value={formData.tags}
-            onChange={(e) => handleInputChange('tags', e.target.value)}
-            className={styles.input}
-          />
-        </div>
-      </div>
-    </div>
-  )
-
-  const renderStep3 = () => (
-    <div className={styles.stepContent}>
-      <div className={styles.stepHeader}>
-        <h2>Photos & Publication</h2>
-        <p>Étape 3 sur 3</p>
-      </div>
-
-      <div className={styles.formSection}>
-        <div className={styles.formGroup}>
-          <label>Photos (optionnel)</label>
-          
-          <div className={styles.mediaUpload}>
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              accept="image/*"
-              onChange={handleMediaUpload}
-              style={{ display: 'none' }}
-            />
-            
-            {formData.media.length === 0 ? (
-              <div 
-                className={styles.uploadZone}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <div className={styles.uploadIcon}>📷</div>
-                <p>Ajoutez des photos de votre recette</p>
-                <button type="button" className={styles.uploadBtn}>
-                  Choisir des photos
-                </button>
-              </div>
-            ) : (
-              <div className={styles.mediaGrid}>
-                {formData.media.map((media, index) => (
-                  <div key={index} className={styles.mediaItem}>
-                    <Image
-                      src={media.url}
-                      alt={`Photo ${index + 1}`}
-                      width={100}
-                      height={100}
-                      className={styles.mediaPreview}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeMedia(index)}
-                      className={styles.removeMediaBtn}
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-                <button 
-                  className={styles.addMediaBtn}
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  +
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className={styles.formGroup}>
-          <label>Aperçu</label>
-          <div className={styles.preview}>
-            <h3>{formData.title || 'Ma recette'}</h3>
-            <div className={styles.previewMeta}>
-              {formData.category && (
-                <span>{categories.find(c => c.id === formData.category)?.emoji} {categories.find(c => c.id === formData.category)?.label}</span>
-              )}
-              <span>{formData.difficulty}</span>
-              <span>{formData.portions} portions</span>
-              {formData.prepTime && <span>{formData.prepTime}min</span>}
-            </div>
-            <div className={styles.previewStats}>
-              <span>{formData.ingredients.filter(i => i.trim()).length} ingrédients</span>
-              <span>{formData.instructions.filter(i => i.trim()).length} étapes</span>
-              <span>{formData.media.length} photos</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+  // Calculer l'état des uploads
+  const processingPhotosCount = photos.filter(photo => photo.processing).length
+  const allPhotosProcessed = photos.length > 0 && photos.every(photo => 
+    photo.processed && 
+    photo.imageBytes && 
+    Array.isArray(photo.imageBytes)
   )
 
   useEffect(() => {
@@ -448,12 +348,64 @@ export default function SubmitRecipe() {
       return
     }
     setIsLoading(false)
+    addLog('info', 'Page de partage de photo chargée', { userId: user?.id })
   }, [user, router])
 
-  // Debug: Add console log to check if component renders
-  useEffect(() => {
-    console.log('SubmitRecipe component mounted, step:', step, 'user:', user, 'isLoading:', isLoading)
-  }, [step, user, isLoading])
+  // Message de confirmation de soumission
+  if (showSuccessMessage) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.successMessage}>
+          <div className={styles.successIcon}>📸</div>
+          <h1>Photo partagée avec succès !</h1>
+          <p>Votre délicieuse photo "<strong>{formData.title}</strong>" a été ajoutée à COCO.</p>
+          <p>Redirection en cours vers l'accueil...</p>
+          <div className={styles.successSpinner}></div>
+        </div>
+      </div>
+    )
+  }
+
+  // Logs component
+  const LogsDisplay = () => (
+    <div className={styles.logsContainer}>
+      <div className={styles.logsHeader}>
+        <h3>📋 Logs en temps réel</h3>
+        <div className={styles.logsControls}>
+          <button 
+            onClick={() => setLogs([])} 
+            className={styles.clearLogsBtn}
+          >
+            🗑️ Vider
+          </button>
+          <button 
+            onClick={() => setShowLogs(false)} 
+            className={styles.closeLogsBtn}
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+      <div className={styles.logsList}>
+        {logs.length === 0 ? (
+          <div className={styles.noLogs}>Aucun log pour le moment</div>
+        ) : (
+          logs.map(log => (
+            <div key={log.id} className={`${styles.logEntry} ${styles[`log${log.level.charAt(0).toUpperCase() + log.level.slice(1)}`]}`}>
+              <div className={styles.logMeta}>
+                <span className={styles.logTime}>{log.timestamp}</span>
+                <span className={styles.logLevel}>{log.level.toUpperCase()}</span>
+              </div>
+              <div className={styles.logMessage}>{log.message}</div>
+              {log.data && (
+                <pre className={styles.logData}>{log.data}</pre>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  )
 
   if (isLoading) {
     return (
@@ -477,59 +429,138 @@ export default function SubmitRecipe() {
   }
 
   return (
-    <div className={styles.container}>
+    <>
       <Head>
-        <title>Nouvelle recette - COCO</title>
-        <meta name="description" content="Partagez votre recette" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Partager une photo - COCO</title>
+        <meta name="description" content="Partagez une photo de votre plat avec la communauté COCO" />
       </Head>
-
-      <div className={styles.header}>
-        <button onClick={() => router.push('/')} className={styles.backBtn}>
-          ← Retour
-        </button>
-        <h1>Nouvelle recette</h1>
-        <div className={styles.stepDots}>
-          {[1, 2, 3].map(num => (
-            <div 
-              key={num}
-              className={`${styles.dot} ${step >= num ? styles.active : ''}`}
-            />
-          ))}
+      
+      <div className={styles.container}>
+        <div className={styles.header}>
+          <button onClick={() => router.push('/')} className={styles.backBtn}>
+            ← Retour
+          </button>
+          <div className={styles.headerTop}>
+            <h1>📸 Partager une photo</h1>
+            <button 
+              onClick={() => setShowLogs(!showLogs)} 
+              className={styles.debugBtn}
+              title="Afficher/Masquer les logs"
+            >
+              {showLogs ? '📋' : '🔍'} Debug
+            </button>
+          </div>
+          <p className={styles.subtitle}>
+            Partagez rapidement une photo de votre création culinaire
+          </p>
         </div>
-      </div>
 
-      <div className={styles.content}>
-        {step === 1 && renderStep1()}
-        {step === 2 && renderStep2()}
-        {step === 3 && renderStep3()}
-      </div>
+        {showLogs && <LogsDisplay />}
 
-      <div className={styles.navigation}>
-        {step > 1 && (
-          <button onClick={prevStep} className={styles.secondaryBtn}>
-            Précédent
+        <div className={styles.content}>
+          <form onSubmit={handleSubmit} className={styles.form}>
+            {/* Section Photos */}
+            <div className={styles.section}>
+              <h2>📷 Photo de votre plat</h2>
+              <PhotoUpload 
+                onPhotoSelect={setPhotos}
+                maxFiles={3}
+              />
+              {errors.photos && <span className={styles.error}>{errors.photos}</span>}
+              
+              {processingPhotosCount > 0 && (
+                <div className={styles.uploadStatus}>
+                  ⏳ {processingPhotosCount} photo(s) en cours de traitement...
+                </div>
+              )}
+              
+              {allPhotosProcessed && photos.length > 0 && (
+                <div className={styles.uploadSuccess}>
+                  ✅ Toutes les photos sont prêtes !
+                </div>
+              )}
+            </div>
+
+            {/* Informations de base */}
+            <div className={styles.section}>
+              <h2>📝 Informations de base</h2>
+              
+              <div className={styles.formGroup}>
+                <label htmlFor="title">Nom de votre plat *</label>
+                <input
+                  type="text"
+                  id="title"
+                  name="title"
+                  value={formData.title}
+                  onChange={handleInputChange}
+                  placeholder="Ex: Tarte aux pommes de grand-mère"
+                  className={errors.title ? styles.inputError : ''}
+                />
+                {errors.title && <span className={styles.error}>{errors.title}</span>}
+              </div>
+
+              <div className={styles.formGroup}>
+                <label htmlFor="description">Description *</label>
+                <textarea
+                  id="description"
+                  name="description"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  placeholder="Décrivez brièvement votre plat, ce qui le rend spécial..."
+                  rows={4}
+                  className={errors.description ? styles.inputError : ''}
+                />
+                {errors.description && <span className={styles.error}>{errors.description}</span>}
+              </div>
+
+              <div className={styles.formGroup}>
+                <label htmlFor="author">Votre nom ou pseudo</label>
+                <input
+                  type="text"
+                  id="author"
+                  name="author"
+                  value={formData.author}
+                  onChange={handleInputChange}
+                  placeholder="Comment souhaitez-vous être crédité ?"
+                />
+              </div>
+            </div>
+
+            {errors.submit && (
+              <div className={styles.submitError}>
+                {errors.submit}
+              </div>
+            )}
+          </form>
+        </div>
+
+        <div className={styles.navigation}>
+          <button onClick={() => router.back()} className={styles.secondaryBtn}>
+            Annuler
           </button>
-        )}
-        
-        {step < 3 ? (
-          <button
-            onClick={nextStep}
-            className={`${styles.primaryBtn} ${step === 1 && !formData.title ? styles.disabled : ''}`}
-            disabled={step === 1 && !formData.title}
-          >
-            Suivant
-          </button>
-        ) : (
+          
           <button
             onClick={handleSubmit}
-            className={`${styles.submitBtn} ${isSubmitting || !formData.title ? styles.disabled : ''}`}
-            disabled={isSubmitting || !formData.title}
+            className={`${styles.submitBtn} ${isSubmitting || processingPhotosCount > 0 ? styles.disabled : ''}`}
+            disabled={isSubmitting || processingPhotosCount > 0}
           >
-            {isSubmitting ? 'Publication...' : 'Publier'}
+            {isSubmitting ? (
+              <>
+                <span className={styles.spinner}></span>
+                Partage en cours...
+              </>
+            ) : processingPhotosCount > 0 ? (
+              <>
+                ⏳ Traitement en cours ({processingPhotosCount} photo(s))
+              </>
+            ) : (
+              <>
+                📸 Partager ma photo
+              </>
+            )}
           </button>
-        )}
+        </div>
       </div>
-    </div>
+    </>
   )
 }
