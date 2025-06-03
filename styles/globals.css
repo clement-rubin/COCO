@@ -418,64 +418,588 @@ body {
   100% { background-position: -200% 0; }
 }
 
-/* Responsive */
-@media (max-width: 430px) {
-  .container {
-    padding: 0 var(--spacing-sm);
+/* Reset et styles globaux */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  line-height: 1.6;
+  color: #1e293b;
+  background: #ffffff;
+  overflow-x: hidden;
+}
+
+/* Variables CSS pour les couleurs harmonieuses */
+:root {
+  /* Palette principale harmonieuse */
+  --primary-orange: #FF6B35;
+  --primary-orange-light: #FF8A5B;
+  --primary-orange-dark: #E5522E;
+  --secondary-peach: #FFD3A6;
+  --secondary-cream: #FFF8F0;
+  --accent-coral: #FF7F7F;
+  --accent-mint: #7FDBDA;
+  --warm-white: #FFFBF7;
+  
+  /* Dégradés fluides */
+  --gradient-hero: linear-gradient(135deg, #FF6B35 0%, #FF8A5B 25%, #FFD3A6 75%, #FFF8F0 100%);
+  --gradient-section1: linear-gradient(135deg, #FFF8F0 0%, #FFE4D6 50%, #FFD3A6 100%);
+  --gradient-section2: linear-gradient(135deg, #FFD3A6 0%, #FFBFA6 50%, #FF8A5B 100%);
+  --gradient-section3: linear-gradient(135deg, #FF8A5B 0%, #FF7F7F 50%, #7FDBDA 100%);
+  --gradient-footer: linear-gradient(135deg, #7FDBDA 0%, #5FCCC9 50%, #3FB8B5 100%);
+  
+  /* Ombres douces */
+  --shadow-soft: 0 8px 32px rgba(255, 107, 53, 0.1);
+  --shadow-medium: 0 12px 40px rgba(255, 107, 53, 0.15);
+  --shadow-strong: 0 20px 60px rgba(255, 107, 53, 0.2);
+  
+  /* Espacements harmoniques */
+  --spacing-xs: 0.5rem;
+  --spacing-sm: 1rem;
+  --spacing-md: 1.5rem;
+  --spacing-lg: 2rem;
+  --spacing-xl: 3rem;
+  --spacing-2xl: 4rem;
+  
+  /* Bordures arrondies */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-2xl: 32px;
+}
+
+/* Animations fluides */
+@keyframes gentleFloat {
+  0%, 100% { 
+    transform: translateY(0px) rotate(0deg); 
+    opacity: 0.6;
+  }
+  50% { 
+    transform: translateY(-8px) rotate(2deg); 
+    opacity: 0.8;
+  }
+}
+
+@keyframes colorShift {
+  0%, 100% { filter: hue-rotate(0deg); }
+  50% { filter: hue-rotate(10deg); }
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Classes utilitaires pour les transitions */
+.smooth-transition {
+  transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.color-transition {
+  transition: background 1.2s ease, color 0.6s ease;
+}
+
+.section-blend {
+  position: relative;
+  overflow: hidden;
+}
+
+.section-blend::before {
+  content: '';
+  position: absolute;
+  top: -50px;
+  left: 0;
+  right: 0;
+  height: 100px;
+  background: inherit;
+  filter: blur(20px);
+  opacity: 0.7;
+  z-index: -1;
+}
+
+/* Overlay pour fondre les sections */
+.section-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    180deg, 
+    transparent 0%, 
+    rgba(255, 255, 255, 0.1) 20%,
+    rgba(255, 255, 255, 0.05) 80%,
+    transparent 100%
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Styles pour les cartes avec effet de fondu */
+.gradient-card {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 107, 53, 0.1);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.gradient-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-medium);
+  border-color: rgba(255, 107, 53, 0.2);
+}
+
+/* Boutons avec dégradés harmonieux */
+.gradient-button {
+  background: var(--gradient-hero);
+  border: none;
+  color: white;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--radius-lg);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: var(--shadow-soft);
+  position: relative;
+  overflow: hidden;
+}
+
+.gradient-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.6s;
+}
+
+.gradient-button:hover::before {
+  left: 100%;
+}
+
+.gradient-button:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-medium);
+}
+
+/* Navigation bottom avec fondu */
+.bottom-nav {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(30px);
+  border-top: 1px solid rgba(255, 107, 53, 0.1);
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.1);
+}
+
+/* Profile Recipe Cards - Same design as Explorer */
+.profile-recipes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--spacing-lg);
+  padding: var(--spacing-lg) 0;
+  animation: fadeIn 0.6s ease-out;
+}
+
+.profile-recipe-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-soft);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid rgba(255, 107, 53, 0.1);
+  position: relative;
+  cursor: pointer;
+}
+
+.profile-recipe-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: var(--shadow-medium);
+  border-color: rgba(255, 107, 53, 0.3);
+}
+
+.profile-recipe-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--gradient-hero);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.profile-recipe-card:hover::before {
+  opacity: 0.05;
+}
+
+.profile-recipe-image {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  z-index: 2;
+}
+
+.profile-recipe-card:hover .profile-recipe-image {
+  transform: scale(1.1);
+}
+
+.profile-recipe-content {
+  padding: var(--spacing-md);
+  position: relative;
+  z-index: 2;
+  background: var(--bg-card);
+}
+
+.profile-recipe-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: var(--spacing-sm);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  transition: color 0.3s ease;
+}
+
+.profile-recipe-card:hover .profile-recipe-title {
+  color: var(--primary-orange);
+}
+
+.profile-recipe-description {
+  color: var(--text-medium);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  margin-bottom: var(--spacing-md);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.profile-recipe-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-sm);
+  font-size: 0.8rem;
+  color: var(--text-light);
+}
+
+.profile-recipe-stats {
+  display: flex;
+  gap: var(--spacing-md);
+  align-items: center;
+}
+
+.profile-recipe-stat {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  color: var(--text-medium);
+  font-size: 0.8rem;
+  transition: color 0.3s ease;
+}
+
+.profile-recipe-card:hover .profile-recipe-stat {
+  color: var(--primary-orange);
+}
+
+.profile-recipe-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+}
+
+.profile-recipe-action-btn {
+  flex: 1;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 2px solid var(--primary-orange);
+  background: transparent;
+  color: var(--primary-orange);
+  border-radius: var(--radius-lg);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.profile-recipe-action-btn:hover {
+  background: var(--primary-orange);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-soft);
+}
+
+.profile-recipe-action-btn.primary {
+  background: var(--gradient-hero);
+  color: white;
+  border: none;
+}
+
+.profile-recipe-action-btn.primary:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-medium);
+}
+
+/* Profile Stats Section */
+.profile-stats-section {
+  background: var(--gradient-section1);
+  padding: var(--spacing-xl) var(--spacing-lg);
+  border-radius: var(--radius-2xl);
+  margin: var(--spacing-lg) 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.profile-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: var(--spacing-lg);
+  text-align: center;
+}
+
+.profile-stat-item {
+  background: rgba(255, 255, 255, 0.7);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-lg);
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.profile-stat-item:hover {
+  background: rgba(255, 255, 255, 0.9);
+  transform: translateY(-4px);
+}
+
+.profile-stat-number {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--primary-orange);
+  display: block;
+  margin-bottom: var(--spacing-xs);
+}
+
+.profile-stat-label {
+  font-size: 0.875rem;
+  color: var(--text-medium);
+  font-weight: 600;
+}
+
+/* Empty State for Profile Recipes */
+.profile-recipes-empty {
+  text-align: center;
+  padding: var(--spacing-2xl) var(--spacing-lg);
+  background: var(--gradient-section2);
+  border-radius: var(--radius-2xl);
+  margin: var(--spacing-lg) 0;
+}
+
+.profile-recipes-empty-icon {
+  font-size: 4rem;
+  color: var(--primary-orange);
+  margin-bottom: var(--spacing-lg);
+  opacity: 0.7;
+}
+
+.profile-recipes-empty-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: var(--spacing-sm);
+}
+
+.profile-recipes-empty-description {
+  color: var(--text-medium);
+  margin-bottom: var(--spacing-lg);
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Recipe Filter Tabs for Profile */
+.profile-recipe-filters {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-lg);
+  padding: var(--spacing-sm);
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: var(--radius-xl);
+  backdrop-filter: blur(20px);
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.profile-recipe-filters::-webkit-scrollbar {
+  display: none;
+}
+
+.profile-filter-tab {
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border: 2px solid transparent;
+  background: transparent;
+  color: var(--text-medium);
+  border-radius: var(--radius-lg);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  position: relative;
+}
+
+.profile-filter-tab.active {
+  background: var(--gradient-hero);
+  color: white;
+  box-shadow: var(--shadow-soft);
+}
+
+.profile-filter-tab:not(.active):hover {
+  background: rgba(255, 107, 53, 0.1);
+  color: var(--primary-orange);
+  border-color: rgba(255, 107, 53, 0.3);
+}
+
+/* Loading State for Profile Recipes */
+.profile-recipes-loading {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--spacing-lg);
+  padding: var(--spacing-lg) 0;
+}
+
+.profile-recipe-skeleton {
+  background: var(--bg-card);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-soft);
+  border: 1px solid var(--border-light);
+}
+
+.profile-recipe-skeleton-image {
+  width: 100%;
+  height: 200px;
+  background: var(--gradient-hero);
+  opacity: 0.3;
+  animation: pulse 2s infinite;
+}
+
+.profile-recipe-skeleton-content {
+  padding: var(--spacing-md);
+}
+
+.profile-recipe-skeleton-title {
+  height: 20px;
+  background: linear-gradient(90deg, var(--border-light) 25%, transparent 50%, var(--border-light) 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--spacing-sm);
+  width: 80%;
+}
+
+.profile-recipe-skeleton-description {
+  height: 14px;
+  background: linear-gradient(90deg, var(--border-light) 25%, transparent 50%, var(--border-light) 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--spacing-xs);
+}
+
+.profile-recipe-skeleton-description:nth-child(3) {
+  width: 60%;
+}
+
+/* Responsive adjustments for profile recipes */
+@media (max-width: 768px) {
+  .profile-recipes-grid {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: var(--spacing-md);
+    padding: var(--spacing-md) 0;
   }
   
-  .card {
-    padding: var(--spacing-md);
+  .profile-recipe-card {
+    border-radius: var(--radius-lg);
   }
   
-  .btn {
+  .profile-recipe-image {
+    height: 180px;
+  }
+  
+  .profile-recipe-content {
     padding: var(--spacing-sm) var(--spacing-md);
   }
-}
-
-/* Interactions tactiles améliorées */
-@media (hover: none) {
-  .btn:hover,
-  .card:hover,
-  .nav-item:hover {
-    transform: none;
+  
+  .profile-stats-section {
+    padding: var(--spacing-lg) var(--spacing-md);
+    margin: var(--spacing-md) 0;
   }
   
-  .btn:active,
-  .card:active {
-    transform: scale(0.98);
+  .profile-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-md);
+  }
+  
+  .profile-recipe-filters {
+    margin: 0 calc(-1 * var(--spacing-md));
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: 0;
   }
 }
 
-/* Mode sombre (préparation) */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg-primary: #1a1a1a;
-    --bg-secondary: #121212;
-    --bg-card: #1e1e1e;
-    --text-dark: #ffffff;
-    --text-medium: #b3b3b3;
-    --text-light: #666666;
-    --border-light: #333333;
-    --border-medium: #444444;
+@media (max-width: 480px) {
+  .profile-recipes-grid {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-sm);
   }
-}
-
-/* Amélioration de l'accessibilité */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+  
+  .profile-recipe-actions {
+    flex-direction: column;
   }
-}
-
-/* Focus visible amélioré */
-.btn:focus-visible,
-.form-input:focus-visible,
-.nav-item:focus-visible {
-  outline: 2px solid var(--primary-orange);
-  outline-offset: 2px;
+  
+  .profile-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .profile-stat-number {
+    font-size: 1.5rem;
+  }
 }
