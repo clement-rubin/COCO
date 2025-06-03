@@ -1,6 +1,6 @@
 .container {
   padding: 0;
-  max-width: var(--container-sm);
+  max-width: 400px;
   margin: 0 auto;
 }
 
@@ -58,7 +58,7 @@
 
 .featured {
   padding: var(--spacing-xl) var(--spacing-md);
-  max-width: var(--container-sm);
+  max-width: 400px;
   margin: 0 auto;
 }
 

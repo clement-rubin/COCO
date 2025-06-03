@@ -387,7 +387,7 @@ export default function RecipeForm({ initialData = {}, onSubmit, onCancel, isEdi
 
       <style jsx>{`
         .recipe-form-container {
-          max-width: 480px;
+          max-width: 400px;
           margin: 0 auto;
           padding: var(--spacing-md);
         }
