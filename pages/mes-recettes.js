@@ -623,7 +623,7 @@ export default function MesRecettes() {
                     )}
                   </button>
                 ))}
-              </div
+              </div>
               
               <div style={{
                 display: 'flex',
