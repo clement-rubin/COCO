@@ -165,24 +165,16 @@ export default function SubmitRecipe() {
   const renderStep1 = () => (
     <div className={styles.stepContent}>
       <div className={styles.stepHeader}>
-        <div className={styles.stepIconBadge}>✨</div>
-        <h2>Informations générales</h2>
-        <p className={styles.stepDescription}>Donnez vie à votre création culinaire</p>
-        <div className={styles.progressInfo}>
-          <span className={styles.currentStep}>Étape 1</span>
-          <span className={styles.totalSteps}>sur 3</span>
-        </div>
+        <h2>Informations de base</h2>
+        <p>Étape 1 sur 3</p>
       </div>
 
       <div className={styles.formSection}>
         <div className={styles.formGroup}>
-          <label className={styles.requiredLabel}>
-            <span className={styles.sectionIcon}>📝</span>
-            Nom de votre recette <span className={styles.required}>*</span>
-          </label>
+          <label>Nom de la recette *</label>
           <input
             type="text"
-            placeholder="Ex: Tarte aux pommes de grand-mère"
+            placeholder="Ex: Tarte aux pommes"
             value={formData.title}
             onChange={(e) => handleInputChange('title', e.target.value)}
             className={styles.input}
@@ -190,25 +182,18 @@ export default function SubmitRecipe() {
         </div>
 
         <div className={styles.formGroup}>
-          <label>
-            <span className={styles.sectionIcon}>💭</span>
-            Description
-          </label>
+          <label>Description</label>
           <textarea
-            placeholder="Racontez l'histoire de cette recette, ses origines, ce qui la rend spéciale..."
+            placeholder="Décrivez votre recette..."
             value={formData.description}
             onChange={(e) => handleInputChange('description', e.target.value)}
             className={styles.textarea}
-            rows={4}
+            rows={3}
           />
         </div>
 
         <div className={styles.formGroup}>
-          <label>
-            <span className={styles.sectionIcon}>🍽️</span>
-            Catégorie
-          </label>
-          <p className={styles.sectionHelp}>Choisissez la catégorie qui correspond le mieux à votre recette</p>
+          <label>Catégorie</label>
           <div className={styles.categoryGrid}>
             {categories.map(cat => (
               <button
@@ -217,20 +202,15 @@ export default function SubmitRecipe() {
                 onClick={() => handleInputChange('category', cat.id)}
                 className={`${styles.categoryBtn} ${formData.category === cat.id ? styles.active : ''}`}
               >
-                <span className={styles.emoji}>{cat.emoji}</span>
-                <span>{cat.label}</span>
+                {cat.emoji} {cat.label}
               </button>
             ))}
           </div>
         </div>
 
         <div className={styles.formGroup}>
-          <label>
-            <span className={styles.sectionIcon}>🔥</span>
-            Niveau de difficulté
-          </label>
-          <p className={styles.sectionHelp}>Aidez les autres cuisiniers à savoir à quoi s'attendre</p>
-          <div className={styles.difficultySelector}>
+          <label>Difficulté</label>
+          <div className={styles.difficultyGrid}>
             {difficulties.map(diff => (
               <button
                 key={diff.value}
@@ -238,53 +218,38 @@ export default function SubmitRecipe() {
                 onClick={() => handleInputChange('difficulty', diff.value)}
                 className={`${styles.difficultyBtn} ${formData.difficulty === diff.value ? styles.active : ''}`}
               >
-                <span className={styles.emoji}>{diff.emoji}</span>
-                <span>{diff.value}</span>
+                {diff.emoji} {diff.value}
               </button>
             ))}
           </div>
         </div>
 
-        <div className={styles.formSection}>
-          <h3><span className={styles.sectionIcon}>⏰</span> Temps de préparation</h3>
-          <p className={styles.sectionHelp}>Donnez une estimation réaliste du temps nécessaire</p>
-          <div className={styles.formRow}>
-            <div className={styles.formGroup}>
-              <label>Préparation</label>
-              <div className={styles.inputWithUnit}>
-                <input
-                  type="number"
-                  placeholder="15"
-                  value={formData.prepTime}
-                  onChange={(e) => handleInputChange('prepTime', e.target.value)}
-                  className={styles.input}
-                />
-                <span className={styles.unit}>min</span>
-              </div>
-            </div>
-            <div className={styles.formGroup}>
-              <label>Cuisson</label>
-              <div className={styles.inputWithUnit}>
-                <input
-                  type="number"
-                  placeholder="30"
-                  value={formData.cookTime}
-                  onChange={(e) => handleInputChange('cookTime', e.target.value)}
-                  className={styles.input}
-                />
-                <span className={styles.unit}>min</span>
-              </div>
-            </div>
+        <div className={styles.timeRow}>
+          <div className={styles.formGroup}>
+            <label>Préparation (min)</label>
+            <input
+              type="number"
+              placeholder="15"
+              value={formData.prepTime}
+              onChange={(e) => handleInputChange('prepTime', e.target.value)}
+              className={styles.input}
+            />
+          </div>
+          <div className={styles.formGroup}>
+            <label>Cuisson (min)</label>
+            <input
+              type="number"
+              placeholder="30"
+              value={formData.cookTime}
+              onChange={(e) => handleInputChange('cookTime', e.target.value)}
+              className={styles.input}
+            />
           </div>
         </div>
 
         <div className={styles.formGroup}>
-          <label>
-            <span className={styles.sectionIcon}>👥</span>
-            Nombre de portions
-          </label>
-          <p className={styles.sectionHelp}>Pour combien de personnes cette recette est-elle prévue ?</p>
-          <div className={styles.portionSelector}>
+          <label>Portions</label>
+          <div className={styles.portionGrid}>
             {[1,2,3,4,5,6,8,10].map(num => (
               <button
                 key={num}
@@ -304,31 +269,20 @@ export default function SubmitRecipe() {
   const renderStep2 = () => (
     <div className={styles.stepContent}>
       <div className={styles.stepHeader}>
-        <div className={styles.stepIconBadge}>🥘</div>
-        <h2>Ingrédients & Préparation</h2>
-        <p className={styles.stepDescription}>Le cœur de votre recette</p>
-        <div className={styles.progressInfo}>
-          <span className={styles.currentStep}>Étape 2</span>
-          <span className={styles.totalSteps}>sur 3</span>
-        </div>
+        <h2>Ingrédients & Étapes</h2>
+        <p>Étape 2 sur 3</p>
       </div>
 
       <div className={styles.formSection}>
-        <div className={styles.ingredientsSection}>
-          <h3>
-            <span className={styles.sectionIcon}>🛒</span> Liste des ingrédients 
-            <span className={styles.required}>*</span>
-          </h3>
-          <p className={styles.sectionHelp}>
-            Listez tous les ingrédients avec leurs quantités précises. Soyez aussi détaillé que possible !
-          </p>
+        <div className={styles.formGroup}>
+          <label>Ingrédients *</label>
           <div className={styles.ingredientsList}>
             {formData.ingredients.map((ingredient, index) => (
               <div key={index} className={styles.arrayInput}>
-                <div className={styles.itemNumberBadge}>{index + 1}</div>
+                <span className={styles.itemNumber}>{index + 1}</span>
                 <input
                   type="text"
-                  placeholder={`Ex: 250g de farine T65`}
+                  placeholder="Ex: 250g de farine"
                   value={ingredient}
                   onChange={(e) => handleArrayChange('ingredients', index, e.target.value)}
                   className={styles.input}
@@ -338,11 +292,8 @@ export default function SubmitRecipe() {
                     type="button"
                     onClick={() => removeArrayItem('ingredients', index)}
                     className={styles.removeBtn}
-                    title="Supprimer cet ingrédient"
                   >
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
+                    ×
                   </button>
                 )}
               </div>
@@ -353,42 +304,30 @@ export default function SubmitRecipe() {
             onClick={() => addArrayItem('ingredients')}
             className={styles.addBtn}
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            Ajouter un ingrédient
+            + Ajouter un ingrédient
           </button>
         </div>
 
-        <div className={styles.instructionsSection}>
-          <h3>
-            <span className={styles.sectionIcon}>👨‍🍳</span> Étapes de préparation 
-            <span className={styles.required}>*</span>
-          </h3>
-          <p className={styles.sectionHelp}>
-            Décrivez chaque étape clairement et dans l'ordre. Pensez aux débutants qui suivront votre recette !
-          </p>
+        <div className={styles.formGroup}>
+          <label>Étapes de préparation *</label>
           <div className={styles.instructionsList}>
             {formData.instructions.map((instruction, index) => (
-              <div key={index} className={`${styles.arrayInput} ${styles.instructionItem}`}>
-                <div className={styles.itemNumberPill}>Étape {index + 1}</div>
+              <div key={index} className={styles.arrayInput}>
+                <span className={styles.itemNumber}>{index + 1}</span>
                 <textarea
-                  placeholder={`Ex: Préchauffer le four à 180°C. Dans un saladier, mélanger la farine et le sucre...`}
+                  placeholder="Décrivez cette étape..."
                   value={instruction}
                   onChange={(e) => handleArrayChange('instructions', index, e.target.value)}
                   className={styles.textarea}
-                  rows={3}
+                  rows={2}
                 />
                 {formData.instructions.length > 1 && (
                   <button
                     type="button"
                     onClick={() => removeArrayItem('instructions', index)}
                     className={styles.removeBtn}
-                    title="Supprimer cette étape"
                   >
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
+                    ×
                   </button>
                 )}
               </div>
@@ -399,21 +338,15 @@ export default function SubmitRecipe() {
             onClick={() => addArrayItem('instructions')}
             className={styles.addBtn}
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            Ajouter une étape
+            + Ajouter une étape
           </button>
         </div>
 
-        <div className={styles.tagsSection}>
-          <h3><span className={styles.sectionIcon}>🏷️</span> Mots-clés</h3>
-          <p className={styles.sectionHelp}>
-            Ajoutez des mots-clés pour aider la communauté à découvrir votre recette
-          </p>
+        <div className={styles.formGroup}>
+          <label>Mots-clés</label>
           <input
             type="text"
-            placeholder="Ex: automne pommes pâtisserie traditionnelle weekend"
+            placeholder="Ex: automne, pommes, dessert"
             value={formData.tags}
             onChange={(e) => handleInputChange('tags', e.target.value)}
             className={styles.input}
@@ -426,30 +359,21 @@ export default function SubmitRecipe() {
   const renderStep3 = () => (
     <div className={styles.stepContent}>
       <div className={styles.stepHeader}>
-        <div className={styles.stepIconBadge}>📷</div>
-        <h2>Photos & Finalisation</h2>
-        <p className={styles.stepDescription}>Rendez votre recette irrésistible</p>
-        <div className={styles.progressInfo}>
-          <span className={styles.currentStep}>Étape 3</span>
-          <span className={styles.totalSteps}>sur 3</span>
-        </div>
+        <h2>Photos & Publication</h2>
+        <p>Étape 3 sur 3</p>
       </div>
 
       <div className={styles.formSection}>
-        <div className={styles.mediaSection}>
-          <h3><span className={styles.sectionIcon}>📸</span> Photos de votre création</h3>
-          <p className={styles.sectionHelp}>
-            Une belle photo fait toute la différence ! Montrez le résultat final et pourquoi pas quelques étapes clés.
-          </p>
+        <div className={styles.formGroup}>
+          <label>Photos (optionnel)</label>
           
           <div className={styles.mediaUpload}>
             <input
               ref={fileInputRef}
               type="file"
               multiple
-              accept="image/*,video/*"
+              accept="image/*"
               onChange={handleMediaUpload}
-              className={styles.hiddenInput}
               style={{ display: 'none' }}
             />
             
@@ -458,126 +382,59 @@ export default function SubmitRecipe() {
                 className={styles.uploadZone}
                 onClick={() => fileInputRef.current?.click()}
               >
-                <div className={styles.uploadIcon}>
-                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M4 16L8.586 11.414C9.367 10.633 10.632 10.633 11.414 11.414L16 16M14 14L15.586 12.414C16.367 11.633 17.632 11.633 18.414 12.414L20 14M14 8H14.01M6 20H18C19.1046 20 20 19.1046 20 18V6C20 4.89543 19.1046 4 18 4H6C4.89543 4 4 4.89543 4 6V18C4 19.1046 4.89543 20 6 20Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </div>
-                <h4 style={{ margin: '16px 0 8px 0', color: '#374151' }}>Ajoutez vos photos</h4>
-                <p style={{ margin: '0 0 16px 0', color: '#6b7280' }}>Photos du plat fini, des ingrédients, ou des étapes</p>
+                <div className={styles.uploadIcon}>📷</div>
+                <p>Ajoutez des photos de votre recette</p>
                 <button type="button" className={styles.uploadBtn}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 15V3M12 3L8 7M12 3L16 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
                   Choisir des photos
                 </button>
               </div>
             ) : (
-              <>
-                <div className={styles.mediaGrid}>
-                  {formData.media.map((media, index) => (
-                    <div key={index} className={styles.mediaItem}>
-                      {media.type === 'video' ? (
-                        <video
-                          src={media.url}
-                          className={styles.mediaPreview}
-                          controls
-                        />
-                      ) : (
-                        <Image
-                          src={media.url}
-                          alt={`Photo ${index + 1}`}
-                          width={200}
-                          height={200}
-                          className={styles.mediaPreview}
-                        />
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => removeMedia(index)}
-                        className={styles.removeMediaBtn}
-                        title="Supprimer cette photo"
-                      >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M18 6L6 18M6 6L18 18" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      </button>
-                    </div>
-                  ))}
-                  <div 
-                    className={styles.addMediaBtn}
-                    onClick={() => fileInputRef.current?.click()}
-                    title="Ajouter plus de photos"
-                  >
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
+              <div className={styles.mediaGrid}>
+                {formData.media.map((media, index) => (
+                  <div key={index} className={styles.mediaItem}>
+                    <Image
+                      src={media.url}
+                      alt={`Photo ${index + 1}`}
+                      width={100}
+                      height={100}
+                      className={styles.mediaPreview}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeMedia(index)}
+                      className={styles.removeMediaBtn}
+                    >
+                      ×
+                    </button>
                   </div>
-                </div>
-              </>
+                ))}
+                <button 
+                  className={styles.addMediaBtn}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  +
+                </button>
+              </div>
             )}
           </div>
         </div>
 
-        <div className={styles.recapSection}>
-          <h3><span className={styles.sectionIcon}>📋</span> Aperçu de votre recette</h3>
-          <div className={styles.recapCard}>
-            <div className={styles.recapHeader}>
-              <h4>{formData.title || 'Ma délicieuse recette'}</h4>
+        <div className={styles.formGroup}>
+          <label>Aperçu</label>
+          <div className={styles.preview}>
+            <h3>{formData.title || 'Ma recette'}</h3>
+            <div className={styles.previewMeta}>
               {formData.category && (
-                <span className={styles.recapCategory}>
-                  {categories.find(c => c.id === formData.category)?.emoji} 
-                  {categories.find(c => c.id === formData.category)?.label}
-                </span>
+                <span>{categories.find(c => c.id === formData.category)?.emoji} {categories.find(c => c.id === formData.category)?.label}</span>
               )}
+              <span>{formData.difficulty}</span>
+              <span>{formData.portions} portions</span>
+              {formData.prepTime && <span>{formData.prepTime}min</span>}
             </div>
-            <div className={styles.recapDetails}>
-              <div className={styles.recapItem}>
-                <span className={styles.recapIcon}>🔥</span>
-                <span>{formData.difficulty}</span>
-              </div>
-              <div className={styles.recapItem}>
-                <span className={styles.recapIcon}>👥</span>
-                <span>{formData.portions} portion{formData.portions > 1 ? 's' : ''}</span>
-              </div>
-              {formData.prepTime && (
-                <div className={styles.recapItem}>
-                  <span className={styles.recapIcon}>⏱️</span>
-                  <span>{formData.prepTime}min prep</span>
-                </div>
-              )}
-              {formData.cookTime && (
-                <div className={styles.recapItem}>
-                  <span className={styles.recapIcon}>🍳</span>
-                  <span>{formData.cookTime}min cuisson</span>
-                </div>
-              )}
-            </div>
-            <div className={styles.recapStats}>
-              <div className={styles.recapStatItem}>
-                <div className={styles.recapStatNumber}>
-                  {formData.ingredients.filter(i => i.trim()).length}
-                </div>
-                <div className={styles.recapStatLabel}>
-                  ingrédient{formData.ingredients.filter(i => i.trim()).length !== 1 ? 's' : ''}
-                </div>
-              </div>
-              <div className={styles.recapStatItem}>
-                <div className={styles.recapStatNumber}>
-                  {formData.instructions.filter(i => i.trim()).length}
-                </div>
-                <div className={styles.recapStatLabel}>
-                  étape{formData.instructions.filter(i => i.trim()).length !== 1 ? 's' : ''}
-                </div>
-              </div>
-              <div className={styles.recapStatItem}>
-                <div className={styles.recapStatNumber}>
-                  {formData.media.length}
-                </div>
-                <div className={styles.recapStatLabel}>
-                  photo{formData.media.length !== 1 ? 's' : ''}
-                </div>
-              </div>
+            <div className={styles.previewStats}>
+              <span>{formData.ingredients.filter(i => i.trim()).length} ingrédients</span>
+              <span>{formData.instructions.filter(i => i.trim()).length} étapes</span>
+              <span>{formData.media.length} photos</span>
             </div>
           </div>
         </div>
@@ -622,187 +479,57 @@ export default function SubmitRecipe() {
   return (
     <div className={styles.container}>
       <Head>
-        <title>Partager une recette - COCO</title>
-        <meta name="description" content="Partagez votre recette avec la communauté COCO" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+        <title>Nouvelle recette - COCO</title>
+        <meta name="description" content="Partagez votre recette" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       </Head>
 
-      {/* Header mobile fixe */}
-      <div className={styles.mobileHeader}>
-        <button
-          onClick={() => router.push('/')}
-          className={styles.mobileBackBtn}
-        >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
+      <div className={styles.header}>
+        <button onClick={() => router.push('/')} className={styles.backBtn}>
+          ← Retour
         </button>
-        
-        <div className={styles.mobileTitle}>
-          <h1>Nouvelle recette</h1>
-          <div className={styles.mobileProgress}>
-            Étape {step} sur 3
-          </div>
-        </div>
-
-        <div className={styles.mobileStepDots}>
+        <h1>Nouvelle recette</h1>
+        <div className={styles.stepDots}>
           {[1, 2, 3].map(num => (
             <div 
               key={num}
-              className={`${styles.mobileDot} ${step >= num ? styles.active : ''}`}
+              className={`${styles.dot} ${step >= num ? styles.active : ''}`}
             />
           ))}
         </div>
       </div>
 
-      {/* Contenu principal avec scroll */}
-      <div className={styles.mobileContent}>
-        <div className={styles.formWrapper}>
-          {step === 1 && renderStep1()}
-          {step === 2 && renderStep2()}
-          {step === 3 && renderStep3()}
-        </div>
+      <div className={styles.content}>
+        {step === 1 && renderStep1()}
+        {step === 2 && renderStep2()}
+        {step === 3 && renderStep3()}
       </div>
 
-      {/* Navigation mobile fixe en bas */}
-      <div className={styles.mobileNavigation}>
-        <div className={styles.mobileActions}>
-          {step > 1 && (
-            <button
-              type="button"
-              onClick={prevStep}
-              className={styles.mobileSecondaryBtn}
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M15 19L8 12L15 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              Précédent
-            </button>
-          )}
-          
-          {step < 3 ? (
-            <button
-              type="button"
-              onClick={nextStep}
-              className={`${styles.mobilePrimaryBtn} ${step === 1 && !formData.title ? styles.disabled : ''}`}
-              disabled={step === 1 && !formData.title}
-            >
-              Suivant
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M9 5L16 12L9 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={handleSubmit}
-              className={`${styles.mobileSubmitBtn} ${isSubmitting || !formData.title || formData.ingredients.every(i => !i) ? styles.disabled : ''}`}
-              disabled={isSubmitting || !formData.title || formData.ingredients.every(i => !i)}
-            >
-              {isSubmitting ? (
-                <>
-                  <span className={styles.spinner}></span>
-                  Publication...
-                </>
-              ) : (
-                <>
-                  <span className={styles.submitIcon}>🚀</span>
-                  Publier
-                </>
-              )}
-            </button>
-          )}
-        </div>
+      <div className={styles.navigation}>
+        {step > 1 && (
+          <button onClick={prevStep} className={styles.secondaryBtn}>
+            Précédent
+          </button>
+        )}
         
-        {/* Indicateur de validation mobile */}
-        <div className={styles.mobileValidation}>
-          {step === 1 && !formData.title && (
-            <small>📝 Titre requis pour continuer</small>
-          )}
-          {step === 2 && formData.ingredients.every(i => !i) && (
-            <small>🥘 Ajoutez au moins un ingrédient</small>
-          )}
-          {step === 3 && (
-            <small>📸 Photos optionnelles mais recommandées</small>
-          )}
-        </div>
+        {step < 3 ? (
+          <button
+            onClick={nextStep}
+            className={`${styles.primaryBtn} ${step === 1 && !formData.title ? styles.disabled : ''}`}
+            disabled={step === 1 && !formData.title}
+          >
+            Suivant
+          </button>
+        ) : (
+          <button
+            onClick={handleSubmit}
+            className={`${styles.submitBtn} ${isSubmitting || !formData.title ? styles.disabled : ''}`}
+            disabled={isSubmitting || !formData.title}
+          >
+            {isSubmitting ? 'Publication...' : 'Publier'}
+          </button>
+        )}
       </div>
-
-      <style jsx global>{`
-        @keyframes slideIn {
-          from { transform: translateX(100%); opacity: 0; }
-          to { transform: translateX(0); opacity: 1; }
-        }
-        
-        @keyframes slideOut {
-          from { transform: translateX(0); opacity: 1; }
-          to { transform: translateX(100%); opacity: 0; }
-        }
-        
-        @keyframes confettiFall {
-          to {
-            transform: translateY(100vh) rotate(360deg);
-            opacity: 0;
-          }
-        }
-        
-        /* Transitions fluides pour les étapes */
-        .${styles.stepContent} {
-          animation: fadeInUp 0.5s ease forwards;
-        }
-        
-        /* Interactions addictives */
-        .${styles.input}:focus, 
-        .${styles.textarea}:focus {
-          transform: translateY(-2px);
-        }
-        
-        /* Hover effects plus prononcés */
-        .${styles.categoryBtn}:hover,
-        .${styles.difficultyBtn}:hover,
-        .${styles.portionBtn}:hover {
-          transform: translateY(-3px);
-        }
-        
-        /* Animation d'apparition progressive */
-        .${styles.formGroup} {
-          animation: formSlideIn 0.4s ease forwards;
-          animation-delay: calc(var(--index, 0) * 0.1s);
-        }
-        
-        @keyframes formSlideIn {
-          from { 
-            opacity: 0; 
-            transform: translateY(20px); 
-          }
-          to { 
-            opacity: 1; 
-            transform: translateY(0); 
-          }
-        }
-        
-        /* Amélioration de l'accessibilité avec plus de visibilité */
-        .${styles.input}:focus,
-        .${styles.textarea}:focus,
-        .${styles.categoryBtn}:focus,
-        .${styles.difficultyBtn}:focus,
-        .${styles.portionBtn}:focus,
-        .${styles.primaryBtn}:focus,
-        .${styles.secondaryBtn}:focus,
-        .${styles.submitBtn}:focus {
-          outline: 3px solid rgba(255, 107, 53, 0.6);
-          outline-offset: 3px;
-        }
-        
-        /* Réduction du mouvement pour ceux qui le préfèrent */
-        @media (prefers-reduced-motion: reduce) {
-          * {
-            animation-duration: 0.01ms !important;
-            animation-iteration-count: 1 !important;
-            transition-duration: 0.01ms !important;
-          }
-        }
-      `}</style>
     </div>
   )
 }
