@@ -1,19 +1,117 @@
 .container {
+  min-height: 100vh;
+  background: var(--bg-primary);
+  position: relative;
+  max-width: 430px;
+  margin: 0 auto;
+  box-shadow: var(--shadow-lg);
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
 }
 
 .main {
   flex: 1;
-  padding: 2rem 1rem;
-  max-width: 1200px;
-  width: 100%;
-  margin: 0 auto;
+  padding-top: 64px;
+  padding-bottom: 90px;
+  min-height: calc(100vh - 154px);
+  background: var(--bg-primary);
 }
 
-@media (max-width: 768px) {
-  .main {
-    padding: 1rem 0.5rem;
+.content {
+  padding: var(--space-4);
+}
+
+.page {
+  min-height: calc(100vh - 154px);
+  background: var(--bg-primary);
+}
+
+.section {
+  padding: var(--space-8) 0;
+}
+
+.sectionTitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--space-6);
+  text-align: center;
+}
+
+.grid {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-xl);
+  padding: var(--space-5);
+  transition: var(--transition-normal);
+}
+
+.card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+  border-color: var(--primary-light);
+}
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  gap: var(--space-4);
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border-light);
+  border-top-color: var(--primary);
+  border-radius: var(--radius-full);
+  animation: spin 1s linear infinite;
+}
+
+.empty {
+  text-align: center;
+  padding: var(--space-12) var(--space-4);
+  color: var(--text-secondary);
+}
+
+.emptyIcon {
+  font-size: 3rem;
+  margin-bottom: var(--space-4);
+  opacity: 0.5;
+}
+
+.emptyTitle {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+  color: var(--text-primary);
+}
+
+.emptyDescription {
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 430px) {
+  .container {
+    max-width: 100%;
+    box-shadow: none;
+  }
+  
+  .content {
+    padding: var(--space-3);
   }
 }
