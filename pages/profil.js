@@ -8,21 +8,29 @@ export default function Profil() {
   const { user, loading, logout } = useAuth()
   const router = useRouter()
   const [userStats, setUserStats] = useState({
-    recipesCount: 0,
-    followersCount: 0,
-    followingCount: 0
+    recipesCount: 12,
+    followersCount: 45,
+    followingCount: 23
   })
   const [settings, setSettings] = useState({
     notifications: true,
     darkMode: false,
     publicProfile: true
   })
+  const [isAnimating, setIsAnimating] = useState(false)
 
   useEffect(() => {
     if (!loading && !user) {
       router.push('/login')
     }
   }, [user, loading, router])
+
+  // Animation d'entrée pour les stats
+  useEffect(() => {
+    if (user) {
+      setTimeout(() => setIsAnimating(true), 500)
+    }
+  }, [user])
 
   const handleLogout = async () => {
     try {
@@ -38,6 +46,29 @@ export default function Profil() {
       ...prev,
       [setting]: !prev[setting]
     }))
+    
+    // Feedback tactile sur mobile
+    if (navigator.vibrate) {
+      navigator.vibrate(30)
+    }
+  }
+
+  const getUserInitials = () => {
+    if (user?.user_metadata?.display_name) {
+      const names = user.user_metadata.display_name.split(' ')
+      if (names.length >= 2) {
+        return names[0].charAt(0).toUpperCase() + names[1].charAt(0).toUpperCase()
+      }
+      return names[0].charAt(0).toUpperCase()
+    }
+    return '👤'
+  }
+
+  const getGreeting = () => {
+    const hour = new Date().getHours()
+    if (hour < 12) return '🌅 Bonjour'
+    if (hour < 18) return '☀️ Bon après-midi'
+    return '🌙 Bonsoir'
   }
 
   if (loading) {
@@ -46,8 +77,8 @@ export default function Profil() {
         <Head>
           <title>Chargement - COCO</title>
         </Head>
-        <div className={styles.loadingIcon}>👤</div>
-        <p className={styles.loadingText}>Chargement du profil...</p>
+        <div className={styles.loadingIcon}>👨‍🍳</div>
+        <p className={styles.loadingText}>Préparation de votre profil culinaire...</p>
       </div>
     )
   }
@@ -63,40 +94,69 @@ export default function Profil() {
       </Head>
 
       <div className={styles.content}>
-        {/* Profile Header */}
+        {/* Enhanced Profile Header */}
         <div className={styles.profileHeader}>
-          <div className={styles.avatar}>
-            {user.user_metadata?.display_name?.charAt(0)?.toUpperCase() || '👤'}
+          <div 
+            className={styles.avatar}
+            onClick={() => {
+              if (navigator.vibrate) navigator.vibrate(50)
+            }}
+          >
+            {getUserInitials()}
           </div>
           
           <h1 className={styles.profileName}>
-            {user.user_metadata?.display_name || 'Chef COCO'}
+            {getGreeting()}, {user.user_metadata?.display_name?.split(' ')[0] || 'Chef'}!
           </h1>
           
           <p className={styles.profileEmail}>
             {user.email}
           </p>
 
-          {/* Stats Grid */}
+          {/* Enhanced Stats Grid with Animation */}
           <div className={styles.statsGrid}>
-            <div className={styles.statItem}>
+            <div 
+              className={styles.statItem}
+              style={{
+                animationDelay: '0.1s',
+                transform: isAnimating ? 'translateY(0)' : 'translateY(20px)',
+                opacity: isAnimating ? 1 : 0,
+                transition: 'all 0.6s cubic-bezier(0.16, 1, 0.3, 1)'
+              }}
+            >
               <span className={styles.statNumber}>{userStats.recipesCount}</span>
               <span className={styles.statLabel}>Recettes</span>
             </div>
-            <div className={styles.statItem}>
+            <div 
+              className={styles.statItem}
+              style={{
+                animationDelay: '0.2s',
+                transform: isAnimating ? 'translateY(0)' : 'translateY(20px)',
+                opacity: isAnimating ? 1 : 0,
+                transition: 'all 0.6s cubic-bezier(0.16, 1, 0.3, 1)'
+              }}
+            >
               <span className={styles.statNumber}>{userStats.followersCount}</span>
               <span className={styles.statLabel}>Followers</span>
             </div>
-            <div className={styles.statItem}>
+            <div 
+              className={styles.statItem}
+              style={{
+                animationDelay: '0.3s',
+                transform: isAnimating ? 'translateY(0)' : 'translateY(20px)',
+                opacity: isAnimating ? 1 : 0,
+                transition: 'all 0.6s cubic-bezier(0.16, 1, 0.3, 1)'
+              }}
+            >
               <span className={styles.statNumber}>{userStats.followingCount}</span>
               <span className={styles.statLabel}>Suivi(e)s</span>
             </div>
           </div>
         </div>
 
-        {/* Activity Section */}
+        {/* Enhanced Activity Section */}
         <div className={styles.activitySection}>
-          <h2 className={styles.sectionTitle}>Mon activité</h2>
+          <h2 className={styles.sectionTitle}>Mon univers culinaire</h2>
 
           <div className={styles.activityItems}>
             <button
@@ -105,9 +165,9 @@ export default function Profil() {
             >
               <div className={styles.activityIcon}>📝</div>
               <div className={styles.activityContent}>
-                <h3 className={styles.activityTitle}>Mes recettes</h3>
+                <h3 className={styles.activityTitle}>Mes créations</h3>
                 <p className={styles.activityDescription}>
-                  Gérer mes créations culinaires
+                  Gérer et partager mes recettes favorites
                 </p>
               </div>
             </button>
@@ -118,9 +178,9 @@ export default function Profil() {
             >
               <div className={styles.activityIcon}>❤️</div>
               <div className={styles.activityContent}>
-                <h3 className={styles.activityTitle}>Mes favoris</h3>
+                <h3 className={styles.activityTitle}>Coup de cœur</h3>
                 <p className={styles.activityDescription}>
-                  Recettes que j'adore
+                  Recettes sauvegardées et aimées
                 </p>
               </div>
             </button>
@@ -131,9 +191,9 @@ export default function Profil() {
             >
               <div className={styles.activityIcon}>👥</div>
               <div className={styles.activityContent}>
-                <h3 className={styles.activityTitle}>Mes amis</h3>
+                <h3 className={styles.activityTitle}>Communauté</h3>
                 <p className={styles.activityDescription}>
-                  Gérer mon réseau culinaire
+                  Mon réseau de passionnés culinaires
                 </p>
               </div>
             </button>
@@ -146,22 +206,48 @@ export default function Profil() {
               <div className={styles.activityContent}>
                 <h3 className={styles.activityTitle}>Collections</h3>
                 <p className={styles.activityDescription}>
-                  Mes recettes organisées
+                  Mes recettes organisées par thème
+                </p>
+              </div>
+            </button>
+
+            <button
+              className={styles.activityItem}
+              onClick={() => router.push('/achivements')}
+            >
+              <div className={styles.activityIcon}>🏆</div>
+              <div className={styles.activityContent}>
+                <h3 className={styles.activityTitle}>Réussites</h3>
+                <p className={styles.activityDescription}>
+                  Badges et accomplissements culinaires
+                </p>
+              </div>
+            </button>
+
+            <button
+              className={styles.activityItem}
+              onClick={() => router.push('/analytics')}
+            >
+              <div className={styles.activityIcon}>📊</div>
+              <div className={styles.activityContent}>
+                <h3 className={styles.activityTitle}>Statistiques</h3>
+                <p className={styles.activityDescription}>
+                  Analyser mes performances et tendances
                 </p>
               </div>
             </button>
           </div>
         </div>
 
-        {/* Settings Section */}
+        {/* Enhanced Settings Section */}
         <div className={styles.settingsSection}>
-          <h2 className={styles.sectionTitle}>Préférences</h2>
+          <h2 className={styles.sectionTitle}>⚙️ Préférences</h2>
 
           <div className={styles.settingsItems}>
             <div className={styles.settingsItem}>
               <div className={styles.settingLabel}>
                 <span className={styles.settingIcon}>🔔</span>
-                Notifications
+                Notifications push
               </div>
               <div 
                 className={`${styles.settingToggle} ${settings.notifications ? styles.active : ''}`}
@@ -172,7 +258,7 @@ export default function Profil() {
             <div className={styles.settingsItem}>
               <div className={styles.settingLabel}>
                 <span className={styles.settingIcon}>🌙</span>
-                Mode sombre
+                Thème sombre
               </div>
               <div 
                 className={`${styles.settingToggle} ${settings.darkMode ? styles.active : ''}`}
@@ -190,10 +276,32 @@ export default function Profil() {
                 onClick={() => toggleSetting('publicProfile')}
               />
             </div>
+
+            <div className={styles.settingsItem}>
+              <div className={styles.settingLabel}>
+                <span className={styles.settingIcon}>📧</span>
+                Newsletter culinaire
+              </div>
+              <div 
+                className={`${styles.settingToggle} ${false ? styles.active : ''}`}
+                onClick={() => {/* TODO: Implement newsletter setting */}}
+              />
+            </div>
+
+            <div className={styles.settingsItem}>
+              <div className={styles.settingLabel}>
+                <span className={styles.settingIcon}>🔒</span>
+                Recettes privées par défaut
+              </div>
+              <div 
+                className={`${styles.settingToggle} ${false ? styles.active : ''}`}
+                onClick={() => {/* TODO: Implement privacy setting */}}
+              />
+            </div>
           </div>
         </div>
 
-        {/* Logout Section */}
+        {/* Enhanced Logout Section */}
         <div className={styles.logoutSection}>
           <button 
             className={styles.logoutBtn}
