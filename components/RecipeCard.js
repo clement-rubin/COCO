@@ -3,6 +3,8 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { useRouter } from 'next/router'
 import ShareButton from './ShareButton'
+import { getRecipeImageUrl } from '../lib/supabase'
+import { logDebug } from '../utils/logger'
 import styles from '../styles/RecipeCard.module.css'
 
 export default function RecipeCard({ recipe, isUserRecipe = true, isPhotoOnly = false }) {
@@ -16,33 +18,18 @@ export default function RecipeCard({ recipe, isUserRecipe = true, isPhotoOnly = 
     return null;
   }
 
-  // Function to convert bytea to image URL
+  // Utiliser la nouvelle fonction améliorée de conversion d'image
   const getImageUrl = (imageData) => {
-    if (!imageData) return '/placeholder-recipe.jpg'
+    logDebug('RecipeCard: Conversion image', {
+      recipeId: recipe.id,
+      recipeTitle: recipe.title,
+      hasImageData: !!imageData,
+      imageDataType: typeof imageData,
+      imageDataLength: imageData?.length,
+      isArray: Array.isArray(imageData)
+    })
     
-    try {
-      // If imageData is already a string (URL), return it
-      if (typeof imageData === 'string' && imageData.startsWith('http')) {
-        return imageData
-      }
-      
-      // If imageData is a base64 string, convert to URL
-      if (typeof imageData === 'string' && !imageData.startsWith('http')) {
-        return `data:image/jpeg;base64,${imageData}`
-      }
-      
-      // If imageData is an array of bytes (bytea), convert to base64
-      if (Array.isArray(imageData)) {
-        const uint8Array = new Uint8Array(imageData)
-        const base64 = btoa(String.fromCharCode.apply(null, uint8Array))
-        return `data:image/jpeg;base64,${base64}`
-      }
-      
-      return '/placeholder-recipe.jpg'
-    } catch (error) {
-      console.error('Erreur lors de la conversion de l\'image:', error)
-      return '/placeholder-recipe.jpg'
-    }
+    return getRecipeImageUrl(imageData, '/placeholder-recipe.jpg')
   }
 
   const toggleFavorite = (e) => {

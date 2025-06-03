@@ -2,6 +2,8 @@ import Head from 'next/head'
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/router'
 import { useAuth } from '../../components/AuthContext'
+import { getRecipeImageUrl } from '../../lib/supabase'
+import { logDebug, logInfo, logError } from '../../utils/logger'
 
 export default function RecipeDetail() {
   const router = useRouter()
@@ -59,26 +61,18 @@ export default function RecipeDetail() {
     }
   }, [])
 
-  // Fonction pour convertir bytea en URL d'image
+  // Fonction pour convertir bytea en URL d'image - VERSION AMÉLIORÉE
   const getImageUrl = (imageData) => {
-    if (!imageData) return '/placeholder-recipe.jpg'
+    logDebug('RecipeDetail: Conversion image pour affichage', {
+      recipeId: recipe?.id,
+      recipeTitle: recipe?.title,
+      hasImageData: !!imageData,
+      imageDataType: typeof imageData,
+      imageDataLength: imageData?.length,
+      isArray: Array.isArray(imageData)
+    })
     
-    try {
-      if (typeof imageData === 'string') {
-        return imageData.startsWith('http') ? imageData : `data:image/jpeg;base64,${imageData}`
-      }
-      
-      if (Array.isArray(imageData)) {
-        const uint8Array = new Uint8Array(imageData)
-        const base64 = btoa(String.fromCharCode.apply(null, uint8Array))
-        return `data:image/jpeg;base64,${base64}`
-      }
-      
-      return '/placeholder-recipe.jpg'
-    } catch (error) {
-      console.error('Erreur lors de la conversion de l\'image:', error)
-      return '/placeholder-recipe.jpg'
-    }
+    return getRecipeImageUrl(imageData, '/placeholder-recipe.jpg')
   }
 
   // Gestion des minuteurs
@@ -224,7 +218,7 @@ export default function RecipeDetail() {
       </Head>
 
       <div style={{ maxWidth: '800px', margin: '0 auto', padding: '1rem' }}>
-        {/* Image principale */}
+        {/* Image principale avec logging amélioré */}
         {recipe.image && (
           <div style={{
             width: '100%',
@@ -240,6 +234,20 @@ export default function RecipeDetail() {
                 width: '100%',
                 height: '100%',
                 objectFit: 'cover'
+              }}
+              onLoad={() => {
+                logInfo('Image de recette chargée avec succès', {
+                  recipeId: recipe.id,
+                  recipeTitle: recipe.title
+                })
+              }}
+              onError={(e) => {
+                logError('Erreur de chargement d\'image de recette', new Error('Image load failed'), {
+                  recipeId: recipe.id,
+                  recipeTitle: recipe.title,
+                  imageSrc: e.target.src
+                })
+                e.target.src = '/placeholder-recipe.jpg'
               }}
             />
           </div>

@@ -23,13 +23,19 @@ export default async function handler(req, res) {
 
     // GET - Récupération des recettes
     if (req.method === 'GET') {
-      const { author } = req.query
+      const { id, author } = req.query
       
       try {
         let query = supabase
           .from('recipes')
           .select('*')
           .order('created_at', { ascending: false })
+        
+        // Si on demande une recette spécifique par ID
+        if (id) {
+          logInfo('[API] Récupération d\'une recette spécifique', { id })
+          query = query.eq('id', id).single()
+        }
         
         // Filter by author if specified (optionnel)
         if (author) {
@@ -43,25 +49,56 @@ export default async function handler(req, res) {
           logError('[API] Erreur lors de la récupération des recettes', error, {
             errorCode: error.code,
             errorMessage: error.message,
-            queryAuthor: author
+            queryAuthor: author,
+            queryId: id
           })
           throw error
         }
         
-        logInfo('[API] Recettes récupérées avec succès', {
-          recipesCount: recipes?.length || 0,
-          filteredByAuthor: !!author,
-          hasRecipes: recipes && recipes.length > 0,
-          sampleAuthors: recipes?.slice(0, 3).map(r => r.author) || []
+        // Si on récupère une seule recette, s'assurer qu'elle existe
+        if (id && !recipes) {
+          logWarning('[API] Recette non trouvée', { id })
+          res.status(404).json({
+            message: 'Recette non trouvée',
+            id
+          })
+          return
+        }
+        
+        // Logging des données d'image pour debug
+        const recipeArray = Array.isArray(recipes) ? recipes : [recipes].filter(Boolean)
+        recipeArray.forEach(recipe => {
+          if (recipe && recipe.image) {
+            logDebug('[API] Données image trouvées', {
+              recipeId: recipe.id,
+              recipeTitle: recipe.title,
+              hasImage: !!recipe.image,
+              imageType: typeof recipe.image,
+              imageIsArray: Array.isArray(recipe.image),
+              imageLength: recipe.image?.length,
+              imageSample: Array.isArray(recipe.image) ? recipe.image.slice(0, 5) : 'Non-array'
+            })
+          }
         })
         
-        res.status(200).json(recipes || [])
+        logInfo('[API] Recettes récupérées avec succès', {
+          recipesCount: recipeArray.length,
+          filteredByAuthor: !!author,
+          specificId: !!id,
+          hasRecipes: recipeArray.length > 0,
+          recipesWithImages: recipeArray.filter(r => r && r.image).length,
+          sampleAuthors: recipeArray.slice(0, 3).map(r => r?.author).filter(Boolean)
+        })
+        
+        res.status(200).json(id ? recipes : (recipes || []))
         return
         
       } catch (queryError) {
         logError('[API] Exception lors de la requête GET', queryError, {
           errorMessage: queryError.message,
-          stack: queryError.stack
+          stack: queryError.stack,
+          queryId: id,
+          queryAuthor: author
         })
         
         res.status(500).json({
