@@ -593,6 +593,11 @@ export default function SubmitRecipe() {
     setIsLoading(false)
   }, [user, router])
 
+  // Debug: Add console log to check if component renders
+  useEffect(() => {
+    console.log('SubmitRecipe component mounted, step:', step, 'user:', user, 'isLoading:', isLoading)
+  }, [step, user, isLoading])
+
   if (isLoading) {
     return (
       <div className={styles.container}>
@@ -605,7 +610,13 @@ export default function SubmitRecipe() {
   }
 
   if (!user) {
-    return null
+    return (
+      <div className={styles.container}>
+        <div className={styles.loadingScreen}>
+          <p>Redirection vers la connexion...</p>
+        </div>
+      </div>
+    )
   }
 
   return (

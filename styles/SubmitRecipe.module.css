@@ -22,7 +22,7 @@
     radial-gradient(circle at 80% 80%, rgba(59, 130, 246, 0.06) 0%, transparent 50%),
     radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.04) 0%, transparent 50%);
   pointer-events: none;
-  z-index: 0;
+  z-index: -1;
   animation: gentleFloat 6s ease-in-out infinite alternate;
 }
 
@@ -117,6 +117,18 @@
   min-height: calc(100vh - 170px);
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  position: relative;
+  z-index: 1;
+}
+
+.formWrapper {
+  position: relative;
+  z-index: 2;
+}
+
+.stepContent {
+  position: relative;
+  z-index: 3;
 }
 
 /* Navigation mobile simplifiée */
@@ -758,6 +770,8 @@
   justify-content: center;
   min-height: 100vh;
   color: #64748b;
+  position: relative;
+  z-index: 10;
 }
 
 .loadingSpinner {
