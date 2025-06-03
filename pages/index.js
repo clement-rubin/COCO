@@ -33,6 +33,14 @@ export default function Home() {
     router.push('/submit-recipe')
   }
 
+  const handlePhotoShare = () => {
+    if (!user) {
+      router.push('/login?redirect=' + encodeURIComponent('/share-photo'))
+      return
+    }
+    router.push('/share-photo')
+  }
+
   const toggleViewMode = () => {
     setViewMode(prev => prev === 'stories' ? 'vertical' : 'stories')
   }
@@ -209,31 +217,59 @@ export default function Home() {
       </div>
 
       {/* Bouton de partage simplifié */}
-      <button
-        onClick={handleQuickShare}
-        style={{
-          position: 'fixed',
-          bottom: '80px',
-          right: '20px',
-          width: '50px',
-          height: '50px',
-          borderRadius: '12px',
-          background: 'var(--primary-orange)',
-          color: 'white',
-          border: 'none',
-          fontSize: '1.5rem',
-          cursor: 'pointer',
-          zIndex: 1000,
-          boxShadow: '0 2px 10px rgba(255, 107, 53, 0.3)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          transition: 'transform 0.2s ease, box-shadow 0.2s ease'
-        }}
-        title="Partager une recette"
-      >
-        <span>📝</span>
-      </button>
+      <div style={{
+        position: 'fixed',
+        bottom: '80px',
+        right: '20px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '10px',
+        zIndex: 1000,
+      }}>
+        <button
+          onClick={handlePhotoShare}
+          style={{
+            width: '50px',
+            height: '50px',
+            borderRadius: '12px',
+            background: 'var(--secondary-mint, #36b37e)',
+            color: 'white',
+            border: 'none',
+            fontSize: '1.5rem',
+            cursor: 'pointer',
+            boxShadow: '0 2px 10px rgba(54, 179, 126, 0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+          }}
+          title="Partager une photo rapide"
+        >
+          <span>📷</span>
+        </button>
+        
+        <button
+          onClick={handleQuickShare}
+          style={{
+            width: '50px',
+            height: '50px',
+            borderRadius: '12px',
+            background: 'var(--primary-orange)',
+            color: 'white',
+            border: 'none',
+            fontSize: '1.5rem',
+            cursor: 'pointer',
+            boxShadow: '0 2px 10px rgba(255, 107, 53, 0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+          }}
+          title="Partager une recette"
+        >
+          <span>📝</span>
+        </button>
+      </div>
 
       <style jsx>{`
         html {

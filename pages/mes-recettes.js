@@ -51,13 +51,19 @@ export default function MesRecettes() {
           recipe.author === userEmail || 
           recipe.author === userDisplayName
         )
+        
+        // Sort recipes with the newest first
+        userRecipes.sort((a, b) => {
+          return new Date(b.created_at || 0) - new Date(a.created_at || 0)
+        })
 
         setRecipes(userRecipes)
         logInfo('Recettes utilisateur récupérées', {
           totalRecipes: data.length,
           userRecipes: userRecipes.length,
           userEmail,
-          userDisplayName
+          userDisplayName,
+          includesPhotoShares: userRecipes.some(r => r.category === 'Photo partagée')
         })
 
       } catch (err) {
@@ -165,7 +171,7 @@ export default function MesRecettes() {
               fontWeight: '600'
             }}
           >
-            <span style={{ fontSize: '1.2rem' }}>➕</span>
+            <span style={{ fontSize: '1.2rem' }}>📝</span>
             Nouvelle recette
           </button>
           
@@ -313,6 +319,7 @@ export default function MesRecettes() {
                 key={recipe.id} 
                 recipe={recipe} 
                 isUserRecipe={true}
+                isPhotoOnly={recipe.category === 'Photo partagée'}
               />
             ))}
           </div>
