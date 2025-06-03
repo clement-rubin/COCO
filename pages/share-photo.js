@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
 import PhotoUpload from '../components/PhotoUpload'
@@ -7,6 +7,7 @@ import { logDebug, logInfo, logError, logWarning, logUserInteraction } from '../
 
 export default function SharePhoto() {
   const router = useRouter()
+  const [currentStep, setCurrentStep] = useState(1)
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -18,6 +19,10 @@ export default function SharePhoto() {
   const [showSuccessMessage, setShowSuccessMessage] = useState(false)
   const [showLogs, setShowLogs] = useState(false)
   const [logs, setLogs] = useState([])
+  const [cameraMode, setCameraMode] = useState(false)
+  const videoRef = useRef(null)
+  const canvasRef = useRef(null)
+  const [stream, setStream] = useState(null)
 
   // Logger hook to capture logs
   const addLog = (level, message, data = null) => {
@@ -41,9 +46,69 @@ export default function SharePhoto() {
     }
   }
 
+  // Camera functions
+  const startCamera = async () => {
+    try {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'environment' },
+        audio: false 
+      })
+      setStream(mediaStream)
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream
+      }
+      setCameraMode(true)
+      addLog('info', 'Caméra activée avec succès')
+    } catch (error) {
+      addLog('error', 'Erreur activation caméra', { error: error.message })
+      alert('Impossible d\'accéder à la caméra. Utilisez l\'upload de fichier.')
+    }
+  }
+
+  const stopCamera = () => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop())
+      setStream(null)
+    }
+    setCameraMode(false)
+    addLog('info', 'Caméra désactivée')
+  }
+
+  const capturePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const canvas = canvasRef.current
+      const video = videoRef.current
+      canvas.width = video.videoWidth
+      canvas.height = video.videoHeight
+      
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(video, 0, 0)
+      
+      canvas.toBlob((blob) => {
+        const file = new File([blob], `photo-${Date.now()}.jpg`, { type: 'image/jpeg' })
+        const fakeEvent = {
+          target: {
+            files: [file]
+          }
+        }
+        // Simulate file upload
+        setPhotos([{
+          id: Date.now(),
+          file: file,
+          preview: URL.createObjectURL(blob),
+          processing: false,
+          processed: true,
+          imageBytes: null // Will be processed by PhotoUpload component
+        }])
+        stopCamera()
+        setCurrentStep(2)
+        addLog('interaction', 'PHOTO_CAPTUREE', { method: 'camera' })
+      }, 'image/jpeg', 0.8)
+    }
+  }
+
   const handleInputChange = (e) => {
     const { name, value } = e.target
-    
     addLog('debug', `Changement de champ: ${name}`, { 
       fieldName: name, 
       valueLength: value.length,
@@ -71,10 +136,6 @@ export default function SharePhoto() {
     if (!formData.title.trim()) {
       newErrors.title = 'Le nom du plat est obligatoire'
       addLog('warning', 'Validation échouée: nom du plat manquant')
-    }
-    if (!formData.description.trim()) {
-      newErrors.description = 'La description est obligatoire'
-      addLog('warning', 'Validation échouée: description manquante')
     }
     if (photos.length === 0) {
       newErrors.photos = 'Au moins une photo est obligatoire'
@@ -159,7 +220,7 @@ export default function SharePhoto() {
       // Préparer les données selon le schéma bytea
       const recipeData = {
         title: formData.title.trim(),
-        description: formData.description.trim(),
+        description: formData.description.trim() || 'Photo partagée sans description',
         ingredients: ['Photo partagée sans liste d\'ingrédients'],
         instructions: [{ step: 1, instruction: 'Voir la photo pour inspiration' }],
         author: formData.author.trim() || 'Anonyme',
@@ -264,17 +325,7 @@ export default function SharePhoto() {
       addLog('error', 'Erreur lors de la soumission de photo', {
         errorName: error.constructor.name,
         errorMessage: error.message,
-        errorStack: error.stack,
-        formData: {
-          title: formData.title,
-          hasDescription: !!formData.description
-        },
-        photosState: {
-          total: photos.length,
-          processed: photos.filter(p => p.processed).length,
-          withBytes: photos.filter(p => p.imageBytes?.length > 0).length,
-          withErrors: photos.filter(p => p.error).length
-        }
+        errorStack: error.stack
       })
       
       // Amélioration du diagnostic et des messages d'erreur
@@ -282,44 +333,11 @@ export default function SharePhoto() {
       
       // Analyse plus précise des erreurs API
       if (error.message.includes('structure de base de données')) {
-        errorMessage = 'Problème de configuration de la base de données. La table recipes n\'a pas toutes les colonnes requises. Contactez l\'administrateur.'
+        errorMessage = 'Problème de configuration de la base de données.'
       } else if (error.message.includes('JSON')) {
-        errorMessage = 'Erreur serveur: Le serveur a retourné une réponse invalide. Vérifiez la configuration du serveur et de la base de données.'
-      } else if (error.message.includes('serveur interne')) {
-        errorMessage = 'Erreur de base de données. Vérifiez la configuration Supabase dans les variables d\'environnement.'
-      } else if (error.message.includes('API non trouvée')) {
-        errorMessage = 'Configuration manquante: L\'API de recettes n\'est pas configurée correctement.'
-      } else if (error.message.includes('photo')) {
-        errorMessage = 'Problème avec la photo. Veuillez la recharger et réessayer.'
-      } else if (error.message.includes('fetch')) {
-        errorMessage = 'Problème de connexion. Vérifiez votre connexion internet et réessayez.'
-      } else if (error.message.includes('Données manquantes')) {
-        errorMessage = 'Erreur de validation: Certaines données requises sont manquantes.'
-      } else if (error.message.includes('Données trop longues')) {
-        errorMessage = 'Le titre ou la description est trop long. Veuillez raccourcir votre texte.'
-      } else if (error.message.includes('bytes')) {
-        errorMessage = 'Problème avec le format de l\'image. L\'image est peut-être trop volumineuse ou dans un format non supporté.'
-      } else if (error.message.includes('RangeError') || error.message.includes('JSON.stringify')) {
-        errorMessage = 'L\'image est trop volumineuse pour être envoyée. Essayez une image plus petite ou compressée.'
-      } else if (error.message.includes('403')) {
-        errorMessage = 'Vous n\'avez pas l\'autorisation d\'effectuer cette action. Veuillez vous reconnecter.'
-      } else if (error.message.includes('429')) {
-        errorMessage = 'Trop de requêtes. Veuillez attendre quelques instants avant de réessayer.'
-      } else if (error.message.includes('creation')) {
-        errorMessage = 'Erreur lors de la sauvegarde de la recette. Vérifiez que tous les champs sont correctement remplis.'
+        errorMessage = 'Erreur serveur: Le serveur a retourné une réponse invalide.'
       } else if (error.message) {
-        // Si on a un message d'erreur précis, on l'affiche directement
         errorMessage = `Erreur: ${error.message}`
-      }
-      
-      // Tentative de reconnexion à la base de données en cas d'erreur
-      if (
-        error.message.includes('serveur interne') ||
-        error.message.includes('base de données') ||
-        error.message.includes('500')
-      ) {
-        // Log supplémentaire pour diagnostic
-        addLog('warning', 'Tentative de reconnexion à la base de données')
       }
       
       setErrors({ submit: errorMessage })
@@ -328,23 +346,27 @@ export default function SharePhoto() {
     }
   }
 
-  // Calculer l'état des uploads
-  const processingPhotosCount = photos.filter(photo => photo.processing).length
-  const allPhotosProcessed = photos.length > 0 && photos.every(photo => 
-    photo.processed && 
-    photo.imageBytes && 
-    Array.isArray(photo.imageBytes)
-  )
+  const nextStep = () => {
+    if (currentStep === 1 && photos.length === 0) {
+      setErrors({ photos: 'Veuillez ajouter au moins une photo' })
+      return
+    }
+    if (currentStep < 3) setCurrentStep(currentStep + 1)
+  }
+
+  const prevStep = () => {
+    if (currentStep > 1) setCurrentStep(currentStep - 1)
+  }
 
   // Message de confirmation de soumission
   if (showSuccessMessage) {
     return (
       <div className={styles.container}>
         <div className={styles.successMessage}>
-          <div className={styles.successIcon}>📸</div>
-          <h1>Photo partagée avec succès !</h1>
+          <div className={styles.successIcon}>🎉</div>
+          <h1>Photo partagée !</h1>
           <p>Votre délicieuse photo "<strong>{formData.title}</strong>" a été ajoutée à COCO.</p>
-          <p>Redirection en cours vers l'accueil...</p>
+          <p>Redirection vers l'accueil...</p>
           <div className={styles.successSpinner}></div>
         </div>
       </div>
@@ -355,25 +377,19 @@ export default function SharePhoto() {
   const LogsDisplay = () => (
     <div className={styles.logsContainer}>
       <div className={styles.logsHeader}>
-        <h3>📋 Logs en temps réel</h3>
+        <h3>📋 Logs</h3>
         <div className={styles.logsControls}>
-          <button 
-            onClick={() => setLogs([])} 
-            className={styles.clearLogsBtn}
-          >
+          <button onClick={() => setLogs([])} className={styles.clearLogsBtn}>
             🗑️ Vider
           </button>
-          <button 
-            onClick={() => setShowLogs(false)} 
-            className={styles.closeLogsBtn}
-          >
+          <button onClick={() => setShowLogs(false)} className={styles.closeLogsBtn}>
             ✕
           </button>
         </div>
       </div>
       <div className={styles.logsList}>
         {logs.length === 0 ? (
-          <div className={styles.noLogs}>Aucun log pour le moment</div>
+          <div className={styles.noLogs}>Aucun log</div>
         ) : (
           logs.map(log => (
             <div key={log.id} className={`${styles.logEntry} ${styles[`log${log.level.charAt(0).toUpperCase() + log.level.slice(1)}`]}`}>
@@ -392,11 +408,203 @@ export default function SharePhoto() {
     </div>
   )
 
+  // Step components
+  const StepIndicator = () => (
+    <div className={styles.stepIndicator}>
+      <div className={`${styles.step} ${currentStep >= 1 ? styles.active : ''} ${currentStep > 1 ? styles.completed : ''}`}>
+        <span className={styles.stepNumber}>1</span>
+        <span className={styles.stepLabel}>Photo</span>
+      </div>
+      <div className={styles.stepLine}></div>
+      <div className={`${styles.step} ${currentStep >= 2 ? styles.active : ''} ${currentStep > 2 ? styles.completed : ''}`}>
+        <span className={styles.stepNumber}>2</span>
+        <span className={styles.stepLabel}>Détails</span>
+      </div>
+      <div className={styles.stepLine}></div>
+      <div className={`${styles.step} ${currentStep >= 3 ? styles.active : ''}`}>
+        <span className={styles.stepNumber}>3</span>
+        <span className={styles.stepLabel}>Publier</span>
+      </div>
+    </div>
+  )
+
+  const Step1PhotoCapture = () => (
+    <div className={styles.stepContent}>
+      <div className={styles.stepHeader}>
+        <h2>📸 Prenez une photo de votre plat</h2>
+        <p>Capturez directement avec votre appareil photo ou choisissez une image</p>
+      </div>
+
+      <div className={styles.photoOptions}>
+        <div className={styles.cameraSection}>
+          {!cameraMode ? (
+            <button onClick={startCamera} className={styles.cameraBtn}>
+              📷 Utiliser l'appareil photo
+            </button>
+          ) : (
+            <div className={styles.cameraContainer}>
+              <video ref={videoRef} autoPlay playsInline className={styles.cameraVideo}></video>
+              <canvas ref={canvasRef} style={{ display: 'none' }}></canvas>
+              <div className={styles.cameraControls}>
+                <button onClick={capturePhoto} className={styles.captureBtn}>
+                  📸 Capturer
+                </button>
+                <button onClick={stopCamera} className={styles.cancelBtn}>
+                  ✕ Annuler
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className={styles.divider}>
+          <span>ou</span>
+        </div>
+
+        <div className={styles.uploadSection}>
+          <PhotoUpload 
+            onPhotoSelect={setPhotos}
+            maxFiles={1}
+            compact={true}
+          />
+        </div>
+      </div>
+
+      {errors.photos && <div className={styles.error}>{errors.photos}</div>}
+
+      {photos.length > 0 && (
+        <div className={styles.photoPreview}>
+          <h3>✅ Photo sélectionnée</h3>
+          <div className={styles.previewGrid}>
+            {photos.map((photo, index) => (
+              <div key={photo.id || index} className={styles.previewItem}>
+                <img src={photo.preview} alt="Aperçu" className={styles.previewImage} />
+                <button 
+                  onClick={() => setPhotos([])} 
+                  className={styles.removeBtn}
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+
+  const Step2Details = () => (
+    <div className={styles.stepContent}>
+      <div className={styles.stepHeader}>
+        <h2>📝 Décrivez votre plat</h2>
+        <p>Quelques détails pour que votre photo soit encore plus appétissante</p>
+      </div>
+
+      <div className={styles.formGroup}>
+        <label htmlFor="title" className={styles.label}>
+          <span className={styles.required}>*</span> Nom de votre plat
+        </label>
+        <input
+          type="text"
+          id="title"
+          name="title"
+          value={formData.title}
+          onChange={handleInputChange}
+          placeholder="Ex: Tarte aux pommes maison"
+          className={`${styles.input} ${errors.title ? styles.inputError : ''}`}
+        />
+        {errors.title && <span className={styles.error}>{errors.title}</span>}
+      </div>
+
+      <div className={styles.formGroup}>
+        <label htmlFor="description" className={styles.label}>
+          Description (optionnel)
+        </label>
+        <textarea
+          id="description"
+          name="description"
+          value={formData.description}
+          onChange={handleInputChange}
+          placeholder="Qu'est-ce qui rend ce plat spécial ?"
+          rows={3}
+          className={styles.textarea}
+        />
+      </div>
+
+      <div className={styles.formGroup}>
+        <label htmlFor="author" className={styles.label}>
+          Votre nom ou pseudo (optionnel)
+        </label>
+        <input
+          type="text"
+          id="author"
+          name="author"
+          value={formData.author}
+          onChange={handleInputChange}
+          placeholder="Comment souhaitez-vous être crédité ?"
+          className={styles.input}
+        />
+      </div>
+    </div>
+  )
+
+  const Step3Publish = () => (
+    <div className={styles.stepContent}>
+      <div className={styles.stepHeader}>
+        <h2>🚀 Prêt à publier ?</h2>
+        <p>Vérifiez une dernière fois avant de partager</p>
+      </div>
+
+      <div className={styles.summary}>
+        <div className={styles.summaryPhoto}>
+          {photos[0] && (
+            <img src={photos[0].preview} alt="Aperçu final" className={styles.summaryImage} />
+          )}
+        </div>
+        <div className={styles.summaryDetails}>
+          <h3>{formData.title || 'Sans titre'}</h3>
+          {formData.description && <p>{formData.description}</p>}
+          <div className={styles.summaryAuthor}>
+            Par {formData.author || 'Anonyme'}
+          </div>
+        </div>
+      </div>
+
+      {errors.submit && (
+        <div className={styles.submitError}>
+          {errors.submit}
+        </div>
+      )}
+
+      <button 
+        onClick={handleSubmit}
+        className={styles.publishBtn}
+        disabled={isSubmitting}
+      >
+        {isSubmitting ? (
+          <>
+            <span className={styles.spinner}></span>
+            Publication en cours...
+          </>
+        ) : (
+          <>
+            🎉 Publier ma photo
+          </>
+        )}
+      </button>
+
+      <p className={styles.disclaimer}>
+        En publiant, vous acceptez que votre photo soit visible par tous les utilisateurs de COCO.
+      </p>
+    </div>
+  )
+
   return (
     <>
       <Head>
         <title>Partager une photo - COCO</title>
-        <meta name="description" content="Partagez une photo de votre plat avec la communauté COCO" />
+        <meta name="description" content="Partagez une photo de votre plat en quelques étapes simples" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
       
       <div className={styles.container}>
@@ -404,124 +612,44 @@ export default function SharePhoto() {
           <button onClick={() => router.back()} className={styles.backBtn}>
             ← Retour
           </button>
-          <div className={styles.headerTop}>
+          <div className={styles.headerContent}>
             <h1>📸 Partager une photo</h1>
             <button 
               onClick={() => setShowLogs(!showLogs)} 
               className={styles.debugBtn}
-              title="Afficher/Masquer les logs"
+              title="Debug"
             >
-              {showLogs ? '📋' : '🔍'} Debug
+              🔍
             </button>
           </div>
-          <p className={styles.subtitle}>
-            Partagez rapidement une photo de votre création culinaire
-          </p>
         </div>
 
         {showLogs && <LogsDisplay />}
 
-        <form onSubmit={handleSubmit} className={styles.form}>
-          {/* Section Photos */}
-          <div className={styles.section}>
-            <h2>📷 Photo de votre plat</h2>
-            <PhotoUpload 
-              onPhotoSelect={setPhotos}
-              maxFiles={3}
-            />
-            {errors.photos && <span className={styles.error}>{errors.photos}</span>}
-            
-            {processingPhotosCount > 0 && (
-              <div className={styles.uploadStatus}>
-                ⏳ {processingPhotosCount} photo(s) en cours de traitement...
-              </div>
+        <StepIndicator />
+
+        <div className={styles.wizard}>
+          {currentStep === 1 && <Step1PhotoCapture />}
+          {currentStep === 2 && <Step2Details />}
+          {currentStep === 3 && <Step3Publish />}
+        </div>
+
+        {currentStep < 3 && (
+          <div className={styles.navigation}>
+            {currentStep > 1 && (
+              <button onClick={prevStep} className={styles.prevBtn}>
+                ← Précédent
+              </button>
             )}
-            
-            {allPhotosProcessed && photos.length > 0 && (
-              <div className={styles.uploadSuccess}>
-                ✅ Toutes les photos sont prêtes !
-              </div>
-            )}
-          </div>
-
-          {/* Informations de base */}
-          <div className={styles.section}>
-            <h2>📝 Informations de base</h2>
-            
-            <div className={styles.formGroup}>
-              <label htmlFor="title">Nom de votre plat *</label>
-              <input
-                type="text"
-                id="title"
-                name="title"
-                value={formData.title}
-                onChange={handleInputChange}
-                placeholder="Ex: Tarte aux pommes de grand-mère"
-                className={errors.title ? styles.inputError : ''}
-              />
-              {errors.title && <span className={styles.error}>{errors.title}</span>}
-            </div>
-
-            <div className={styles.formGroup}>
-              <label htmlFor="description">Description *</label>
-              <textarea
-                id="description"
-                name="description"
-                value={formData.description}
-                onChange={handleInputChange}
-                placeholder="Décrivez brièvement votre plat, ce qui le rend spécial..."
-                rows={4}
-                className={errors.description ? styles.inputError : ''}
-              />
-              {errors.description && <span className={styles.error}>{errors.description}</span>}
-            </div>
-
-            <div className={styles.formGroup}>
-              <label htmlFor="author">Votre nom ou pseudo</label>
-              <input
-                type="text"
-                id="author"
-                name="author"
-                value={formData.author}
-                onChange={handleInputChange}
-                placeholder="Comment souhaitez-vous être crédité ?"
-              />
-            </div>
-          </div>
-
-          {errors.submit && (
-            <div className={styles.submitError}>
-              {errors.submit}
-            </div>
-          )}
-
-          <div className={styles.submitSection}>
             <button 
-              type="submit" 
-              className={styles.submitBtn}
-              disabled={isSubmitting || processingPhotosCount > 0}
+              onClick={nextStep} 
+              className={styles.nextBtn}
+              disabled={currentStep === 1 && photos.length === 0}
             >
-              {isSubmitting ? (
-                <>
-                  <span className={styles.spinner}></span>
-                  Partage en cours...
-                </>
-              ) : processingPhotosCount > 0 ? (
-                <>
-                  ⏳ Traitement en cours ({processingPhotosCount} photo(s))
-                </>
-              ) : (
-                <>
-                  📸 Partager ma photo
-                </>
-              )}
+              Suivant →
             </button>
-            
-            <p className={styles.submitNote}>
-              En partageant votre photo, vous acceptez qu'elle soit visible par tous les utilisateurs de COCO.
-            </p>
           </div>
-        </form>
+        )}
       </div>
     </>
   )

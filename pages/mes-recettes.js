@@ -11,6 +11,7 @@ export default function MesRecettes() {
   const [recipes, setRecipes] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [refreshKey, setRefreshKey] = useState(0)
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -23,21 +24,32 @@ export default function MesRecettes() {
     }
   }, [user, authLoading, router])
 
-  // Fetch user's recipes
+  // Fetch user's recipes - Now includes refreshKey and router.asPath as dependencies
   useEffect(() => {
     const fetchUserRecipes = async () => {
       if (!user) return
       
       try {
         setLoading(true)
+        setError(null) // Reset error state
+        
         logInfo('Récupération des recettes utilisateur', {
           userEmail: user.email,
           userId: user.id,
-          userDisplayName: user.user_metadata?.display_name
+          userDisplayName: user.user_metadata?.display_name,
+          refreshKey,
+          timestamp: new Date().toISOString()
         })
 
-        // Récupérer toutes les recettes (sans filtrage côté serveur)
-        const response = await fetch('/api/recipes')
+        // Force cache bypass with timestamp
+        const timestamp = Date.now()
+        const response = await fetch(`/api/recipes?_t=${timestamp}`, {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
+          }
+        })
         
         if (!response.ok) {
           throw new Error(`Erreur HTTP: ${response.status}`)
@@ -46,24 +58,22 @@ export default function MesRecettes() {
         const allRecipes = await response.json()
         
         // Logique de filtrage améliorée côté client
-        // Créer plusieurs identifiants possibles pour l'utilisateur
         const userIdentifiers = [
           user.email,
           user.user_metadata?.display_name,
           user.user_metadata?.full_name,
-          'Anonyme' // Si l'utilisateur n'a pas renseigné de nom
-        ].filter(Boolean) // Enlever les valeurs null/undefined
+          'Anonyme'
+        ].filter(Boolean)
         
         logInfo('Identifiants utilisateur pour filtrage', {
           identifiers: userIdentifiers,
-          totalRecipes: allRecipes.length
+          totalRecipes: allRecipes.length,
+          fetchTimestamp: timestamp
         })
         
         const userRecipes = allRecipes.filter(recipe => {
-          // Si l'auteur n'est pas défini, on ne peut pas filtrer
           if (!recipe.author) return false
           
-          // Vérifier si l'auteur correspond à un des identifiants de l'utilisateur
           return userIdentifiers.some(identifier => 
             recipe.author === identifier || 
             recipe.author.toLowerCase() === identifier.toLowerCase()
@@ -81,14 +91,16 @@ export default function MesRecettes() {
           userRecipesFound: userRecipes.length,
           identifiersUsed: userIdentifiers.length,
           hasPhotoShares: userRecipes.some(r => r.category === 'Photo partagée'),
-          recipeAuthors: userRecipes.map(r => r.author) // Pour debug
+          recipeAuthors: userRecipes.map(r => r.author)
         })
 
       } catch (err) {
         logError('Erreur lors de la récupération des recettes utilisateur', err, {
           userEmail: user?.email,
           errorMessage: err.message,
-          errorStack: err.stack
+          errorStack: err.stack,
+          refreshKey,
+          timestamp: new Date().toISOString()
         })
         setError('Impossible de charger vos recettes. Erreur: ' + (err.message || 'Inconnue'))
       } finally {
@@ -99,7 +111,29 @@ export default function MesRecettes() {
     if (user && !authLoading) {
       fetchUserRecipes()
     }
-  }, [user, authLoading])
+  }, [user, authLoading, refreshKey, router.asPath]) // Added refreshKey and router.asPath
+
+  // Function to manually refresh recipes
+  const handleRefresh = () => {
+    setRefreshKey(prev => prev + 1)
+    logUserInteraction('REFRESH_RECIPES', 'mes-recettes-page', {
+      refreshKey: refreshKey + 1,
+      userEmail: user?.email
+    })
+  }
+
+  // Auto-refresh when coming back to the page (focus event)
+  useEffect(() => {
+    const handleFocus = () => {
+      if (user && !authLoading && !loading) {
+        logInfo('Page refocused, refreshing recipes')
+        setRefreshKey(prev => prev + 1)
+      }
+    }
+
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
+  }, [user, authLoading, loading])
 
   // Show loading state while checking authentication
   if (authLoading) {
@@ -134,7 +168,7 @@ export default function MesRecettes() {
         <meta name="description" content="Gérez vos recettes publiées sur COCO" />
       </Head>
 
-      {/* Header */}
+      {/* Header with refresh button */}
       <section style={{
         background: 'var(--bg-gradient)',
         padding: 'var(--spacing-xl) var(--spacing-md)',
@@ -144,13 +178,41 @@ export default function MesRecettes() {
           fontSize: '3rem',
           marginBottom: 'var(--spacing-md)'
         }}>👨‍🍳</div>
-        <h1 style={{ 
-          fontSize: '1.8rem', 
-          marginBottom: 'var(--spacing-sm)',
-          color: 'var(--text-dark)'
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 'var(--spacing-md)',
+          marginBottom: 'var(--spacing-sm)'
         }}>
-          Mes Recettes
-        </h1>
+          <h1 style={{ 
+            fontSize: '1.8rem', 
+            margin: 0,
+            color: 'var(--text-dark)'
+          }}>
+            Mes Recettes
+          </h1>
+          <button
+            onClick={handleRefresh}
+            style={{
+              background: 'rgba(255, 255, 255, 0.2)',
+              border: '1px solid rgba(255, 255, 255, 0.3)',
+              borderRadius: '50%',
+              width: '40px',
+              height: '40px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              fontSize: '1.2rem'
+            }}
+            title="Actualiser les recettes"
+            disabled={loading}
+          >
+            {loading ? '⏳' : '🔄'}
+          </button>
+        </div>
         <p style={{ 
           color: 'var(--text-secondary)', 
           fontSize: '0.9rem',
@@ -165,6 +227,9 @@ export default function MesRecettes() {
             margin: 'var(--spacing-xs) 0 0 0'
           }}>
             {recipes.length} recette{recipes.length > 1 ? 's' : ''} publiée{recipes.length > 1 ? 's' : ''}
+            <span style={{ opacity: 0.7, marginLeft: 'var(--spacing-xs)' }}>
+              • Dernière MAJ: {new Date().toLocaleTimeString()}
+            </span>
           </p>
         )}
       </section>
@@ -245,20 +310,34 @@ export default function MesRecettes() {
           }}>
             <div style={{ fontSize: '3rem', marginBottom: 'var(--spacing-md)' }}>⚠️</div>
             <p>{error}</p>
-            <button 
-              onClick={() => window.location.reload()}
-              style={{
-                marginTop: 'var(--spacing-md)',
-                padding: 'var(--spacing-md) var(--spacing-lg)',
-                background: 'var(--primary-coral)',
-                color: 'white',
-                border: 'none',
-                borderRadius: 'var(--radius-md)',
-                cursor: 'pointer'
-              }}
-            >
-              Réessayer
-            </button>
+            <div style={{ display: 'flex', gap: 'var(--spacing-md)', justifyContent: 'center', marginTop: 'var(--spacing-md)' }}>
+              <button 
+                onClick={handleRefresh}
+                style={{
+                  padding: 'var(--spacing-md) var(--spacing-lg)',
+                  background: 'var(--primary-coral)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 'var(--radius-md)',
+                  cursor: 'pointer'
+                }}
+              >
+                🔄 Réessayer
+              </button>
+              <button 
+                onClick={() => window.location.reload()}
+                style={{
+                  padding: 'var(--spacing-md) var(--spacing-lg)',
+                  background: 'var(--text-medium)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 'var(--radius-md)',
+                  cursor: 'pointer'
+                }}
+              >
+                🔄 Recharger la page
+              </button>
+            </div>
           </div>
         ) : recipes.length === 0 ? (
           /* Empty State */
@@ -331,19 +410,55 @@ export default function MesRecettes() {
           </div>
         ) : (
           /* Recipes Grid */
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
-            gap: 'var(--spacing-md)' 
-          }}>
-            {recipes.map(recipe => (
-              <RecipeCard 
-                key={recipe.id} 
-                recipe={recipe} 
-                isUserRecipe={true}
-                isPhotoOnly={recipe.category === 'Photo partagée'}
-              />
-            ))}
+          <div>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 'var(--spacing-md)',
+              padding: '0 var(--spacing-xs)'
+            }}>
+              <p style={{
+                color: 'var(--text-secondary)',
+                fontSize: '0.9rem',
+                margin: 0
+              }}>
+                {recipes.length} recette{recipes.length > 1 ? 's' : ''} trouvée{recipes.length > 1 ? 's' : ''}
+              </p>
+              <button
+                onClick={handleRefresh}
+                style={{
+                  background: 'none',
+                  border: '1px solid var(--border-light)',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: 'var(--spacing-xs) var(--spacing-sm)',
+                  cursor: 'pointer',
+                  fontSize: '0.8rem',
+                  color: 'var(--text-secondary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 'var(--spacing-xs)'
+                }}
+                disabled={loading}
+              >
+                {loading ? '⏳' : '🔄'} Actualiser
+              </button>
+            </div>
+            
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
+              gap: 'var(--spacing-md)' 
+            }}>
+              {recipes.map(recipe => (
+                <RecipeCard 
+                  key={`${recipe.id}-${refreshKey}`} // Force re-render with refreshKey
+                  recipe={recipe} 
+                  isUserRecipe={true}
+                  isPhotoOnly={recipe.category === 'Photo partagée'}
+                />
+              ))}
+            </div>
           </div>
         )}
       </section>
