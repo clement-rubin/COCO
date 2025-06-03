@@ -25,7 +25,7 @@ export default function SharePhoto() {
 
   // Logger hook to capture logs
   const addLog = (level, message, data = null) => {
-    const timestamp = new Date().toLocaleTimeString()
+    const timestamp = new Date().toISOString()
     const logEntry = {
       id: Date.now() + Math.random(),
       timestamp,
@@ -33,649 +33,346 @@ export default function SharePhoto() {
       message,
       data: data ? JSON.stringify(data, null, 2) : null
     }
-    setLogs(prev => [logEntry, ...prev].slice(0, 100)) // Keep last 100 logs
-    
-    // Call original logger
-    switch(level) {
-      case 'debug': logDebug(message, data); break;
-      case 'info': logInfo(message, data); break;
-      case 'warning': logWarning(message, data); break;
-      case 'error': logError(message, null, data); break;
-      case 'interaction': logUserInteraction(message, 'share-photo', data); break;
-    }
+    setLogs(prev => [logEntry, ...prev].slice(0, 50)) // Garder les 50 derniers logs
   }
 
   // Camera functions
   const startCamera = async () => {
     try {
-      addLog('info', 'Tentative d\'activation de la caméra', {
-        userAgent: navigator.userAgent,
-        platform: navigator.platform,
-        hasGetUserMedia: !!navigator.mediaDevices?.getUserMedia,
-        isSecureContext: window.isSecureContext,
-        protocol: window.location.protocol,
-        hostname: window.location.hostname
-      })
-
-      // Vérifier le support des MediaDevices
-      if (!navigator.mediaDevices) {
-        addLog('error', 'navigator.mediaDevices non supporté', {
-          navigatorKeys: Object.keys(navigator),
-          hasGetUserMedia: !!navigator.getUserMedia,
-          hasWebkitGetUserMedia: !!navigator.webkitGetUserMedia,
-          hasMozGetUserMedia: !!navigator.mozGetUserMedia
-        })
-        throw new Error('Votre navigateur ne supporte pas l\'accès à la caméra. Utilisez un navigateur moderne comme Chrome, Firefox ou Safari.')
-      }
-
-      if (!navigator.mediaDevices.getUserMedia) {
-        addLog('error', 'getUserMedia non disponible', {
-          mediaDevicesKeys: Object.keys(navigator.mediaDevices),
-          isSecureContext: window.isSecureContext,
-          protocol: window.location.protocol
-        })
-        throw new Error('L\'accès à la caméra nécessite une connexion sécurisée (HTTPS) ou localhost.')
-      }
-
-      addLog('info', 'Demande d\'autorisation caméra', {
-        constraints: { 
-          video: { facingMode: 'environment' },
-          audio: false 
-        }
-      })
-
+      addLog('INFO', 'Démarrage de la caméra')
       const mediaStream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'environment' },
-        audio: false 
+        video: { facingMode: 'environment' } 
       })
-
-      addLog('info', 'Stream caméra obtenu', {
-        streamId: mediaStream.id,
-        active: mediaStream.active,
-        tracks: mediaStream.getTracks().map(track => ({
-          kind: track.kind,
-          label: track.label,
-          enabled: track.enabled,
-          readyState: track.readyState,
-          constraints: track.getConstraints(),
-          settings: track.getSettings()
-        }))
-      })
-
       setStream(mediaStream)
-      
       if (videoRef.current) {
-        addLog('info', 'Attachement du stream à l\'élément vidéo', {
-          videoElement: {
-            readyState: videoRef.current.readyState,
-            networkState: videoRef.current.networkState,
-            paused: videoRef.current.paused,
-            muted: videoRef.current.muted,
-            autoplay: videoRef.current.autoplay,
-            playsInline: videoRef.current.playsInline
-          }
-        })
-
         videoRef.current.srcObject = mediaStream
-        
-        // Écouter les événements de la vidéo pour diagnostiquer
-        const videoElement = videoRef.current
-        
-        videoElement.onloadedmetadata = () => {
-          addLog('info', 'Métadonnées vidéo chargées', {
-            videoWidth: videoElement.videoWidth,
-            videoHeight: videoElement.videoHeight,
-            duration: videoElement.duration,
-            readyState: videoElement.readyState
-          })
-        }
-        
-        videoElement.oncanplay = () => {
-          addLog('info', 'Vidéo prête à être lue', {
-            videoWidth: videoElement.videoWidth,
-            videoHeight: videoElement.videoHeight,
-            currentTime: videoElement.currentTime
-          })
-        }
-        
-        videoElement.onplay = () => {
-          addLog('info', 'Lecture vidéo démarrée')
-        }
-        
-        videoElement.onerror = (e) => {
-          addLog('error', 'Erreur élément vidéo', {
-            error: e.error,
-            code: e.error?.code,
-            message: e.error?.message,
-            networkState: videoElement.networkState,
-            readyState: videoElement.readyState
-          })
-        }
-
-        // Tentative de lecture automatique
-        try {
-          await videoElement.play()
-          addLog('info', 'Lecture automatique réussie')
-        } catch (playError) {
-          addLog('warning', 'Lecture automatique échouée', {
-            error: playError.message,
-            name: playError.name,
-            videoState: {
-              paused: videoElement.paused,
-              readyState: videoElement.readyState,
-              networkState: videoElement.networkState
-            }
-          })
-        }
-      } else {
-        addLog('error', 'Élément vidéo non trouvé', {
-          videoRefCurrent: videoRef.current,
-          hasVideoRef: !!videoRef
-        })
       }
-
       setCameraMode(true)
-      addLog('info', 'Caméra activée avec succès')
-      
+      addLog('SUCCESS', 'Caméra démarrée avec succès')
     } catch (error) {
-      addLog('error', 'Erreur activation caméra', { 
-        error: error.message,
-        errorName: error.name,
-        errorCode: error.code || 'N/A',
-        stack: error.stack,
-        errorDetails: {
-          isNotAllowedError: error.name === 'NotAllowedError',
-          isNotFoundError: error.name === 'NotFoundError',
-          isNotSupportedError: error.name === 'NotSupportedError',
-          isOverconstrainedError: error.name === 'OverconstrainedError',
-          isSecurityError: error.name === 'SecurityError'
-        },
-        context: {
-          userAgent: navigator.userAgent,
-          isSecureContext: window.isSecureContext,
-          protocol: window.location.protocol,
-          hasMediaDevices: !!navigator.mediaDevices,
-          hasGetUserMedia: !!navigator.mediaDevices?.getUserMedia
-        }
-      })
-      
-      // Messages d'erreur plus spécifiques
-      let userMessage = 'Impossible d\'accéder à la caméra. '
-      
-      if (error.name === 'NotAllowedError') {
-        userMessage += 'Veuillez autoriser l\'accès à la caméra dans votre navigateur.'
-      } else if (error.name === 'NotFoundError') {
-        userMessage += 'Aucune caméra trouvée sur cet appareil.'
-      } else if (error.name === 'NotSupportedError') {
-        userMessage += 'Votre navigateur ne supporte pas l\'accès à la caméra.'
-      } else if (error.name === 'OverconstrainedError') {
-        userMessage += 'Les paramètres de caméra demandés ne sont pas supportés.'
-      } else if (error.name === 'SecurityError') {
-        userMessage += 'Accès à la caméra bloqué pour des raisons de sécurité. Utilisez HTTPS.'
-      } else if (!window.isSecureContext && window.location.protocol !== 'https:') {
-        userMessage += 'L\'accès à la caméra nécessite une connexion sécurisée (HTTPS).'
-      } else {
-        userMessage += `Erreur technique: ${error.message}`
-      }
-      
-      alert(userMessage + ' Utilisez l\'upload de fichier à la place.')
+      addLog('ERROR', 'Erreur démarrage caméra', { error: error.message })
+      alert('Impossible d\'accéder à la caméra: ' + error.message)
     }
   }
 
   const stopCamera = () => {
-    addLog('info', 'Arrêt de la caméra demandé', {
-      hasStream: !!stream,
-      streamActive: stream?.active,
-      tracksCount: stream?.getTracks()?.length || 0
-    })
-
     if (stream) {
-      const tracks = stream.getTracks()
-      addLog('info', 'Arrêt des tracks', {
-        tracks: tracks.map(track => ({
-          kind: track.kind,
-          label: track.label,
-          enabled: track.enabled,
-          readyState: track.readyState
-        }))
-      })
-
-      tracks.forEach(track => {
-        track.stop()
-        addLog('debug', 'Track arrêté', {
-          kind: track.kind,
-          label: track.label,
-          readyState: track.readyState
-        })
-      })
+      stream.getTracks().forEach(track => track.stop())
       setStream(null)
     }
-
-    if (videoRef.current) {
-      addLog('info', 'Nettoyage élément vidéo', {
-        videoSrc: videoRef.current.src,
-        hasSrcObject: !!videoRef.current.srcObject
-      })
-      videoRef.current.srcObject = null
-    }
-
     setCameraMode(false)
-    addLog('info', 'Caméra désactivée')
+    addLog('INFO', 'Caméra arrêtée')
   }
 
   const capturePhoto = () => {
-    addLog('info', 'Tentative de capture photo', {
-      hasVideoRef: !!videoRef.current,
-      hasCanvasRef: !!canvasRef.current,
-      videoState: videoRef.current ? {
-        videoWidth: videoRef.current.videoWidth,
-        videoHeight: videoRef.current.videoHeight,
-        readyState: videoRef.current.readyState,
-        paused: videoRef.current.paused,
-        currentTime: videoRef.current.currentTime
-      } : null
-    })
-
-    if (!videoRef.current || !canvasRef.current) {
-      addLog('error', 'Éléments manquants pour capture', {
-        hasVideoRef: !!videoRef.current,
-        hasCanvasRef: !!canvasRef.current
-      })
-      alert('Erreur: impossible de capturer la photo. Éléments manquants.')
-      return
-    }
-
-    const canvas = canvasRef.current
-    const video = videoRef.current
-
-    if (video.videoWidth === 0 || video.videoHeight === 0) {
-      addLog('error', 'Dimensions vidéo invalides', {
-        videoWidth: video.videoWidth,
-        videoHeight: video.videoHeight,
-        readyState: video.readyState,
-        networkState: video.networkState
-      })
-      alert('Erreur: la caméra n\'affiche pas d\'image valide. Réessayez.')
-      return
-    }
-
-    canvas.width = video.videoWidth
-    canvas.height = video.videoHeight
-    
-    addLog('info', 'Configuration canvas', {
-      canvasWidth: canvas.width,
-      canvasHeight: canvas.height,
-      videoWidth: video.videoWidth,
-      videoHeight: video.videoHeight
-    })
-    
-    const ctx = canvas.getContext('2d')
-    
-    try {
-      ctx.drawImage(video, 0, 0)
-      addLog('info', 'Image dessinée sur canvas')
+    if (videoRef.current && canvasRef.current) {
+      const canvas = canvasRef.current
+      const video = videoRef.current
       
-      canvas.toBlob((blob) => {
-        if (!blob) {
-          addLog('error', 'Échec création blob depuis canvas')
-          alert('Erreur lors de la capture. Réessayez.')
-          return
-        }
-
-        addLog('info', 'Blob créé depuis canvas', {
-          blobSize: blob.size,
-          blobType: blob.type
-        })
-
-        const file = new File([blob], `photo-${Date.now()}.jpg`, { type: 'image/jpeg' })
-        
-        addLog('info', 'Fichier créé depuis blob', {
-          fileName: file.name,
-          fileSize: file.size,
-          fileType: file.type,
-          lastModified: file.lastModified
-        })
-
-        // Créer l'URL de prévisualisation
-        const previewUrl = URL.createObjectURL(blob)
-        
-        addLog('info', 'URL de prévisualisation créée', {
-          previewUrl: previewUrl.substring(0, 50) + '...'
-        })
-
-        // Simuler file upload
-        setPhotos([{
-          id: Date.now(),
-          file: file,
-          preview: previewUrl,
-          processing: false,
-          processed: true,
-          imageBytes: null // Will be processed by PhotoUpload component
-        }])
-        
-        stopCamera()
-        setCurrentStep(2)
-        addLog('interaction', 'PHOTO_CAPTUREE', { 
-          method: 'camera',
-          fileSize: file.size,
-          dimensions: {
-            width: canvas.width,
-            height: canvas.height
-          }
-        })
-      }, 'image/jpeg', 0.8)
-    } catch (drawError) {
-      addLog('error', 'Erreur lors du dessin sur canvas', {
-        error: drawError.message,
-        errorName: drawError.name,
-        stack: drawError.stack,
-        videoState: {
-          videoWidth: video.videoWidth,
-          videoHeight: video.videoHeight,
-          readyState: video.readyState
-        }
-      })
-      alert('Erreur lors de la capture de l\'image. Réessayez.')
+      canvas.width = video.videoWidth
+      canvas.height = video.videoHeight
+      
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(video, 0, 0)
+      
+      // Convertir en Data URL
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.8)
+      
+      // Créer un objet photo compatible
+      const photoData = {
+        id: Date.now(),
+        name: `photo-${Date.now()}.jpg`,
+        size: Math.round(dataUrl.length * 0.75), // Estimation de la taille
+        preview: dataUrl,
+        imageUrl: dataUrl, // Nouvelle propriété pour l'URL
+        processed: true,
+        processing: false,
+        error: false,
+        mimeType: 'image/jpeg'
+      }
+      
+      setPhotos(prev => [...prev, photoData])
+      addLog('SUCCESS', 'Photo capturée', { photoId: photoData.id })
+      stopCamera()
     }
   }
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
-    addLog('debug', `Changement de champ: ${name}`, { 
-      fieldName: name, 
-      valueLength: value.length,
-      isEmpty: !value.trim()
-    })
-    
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }))
-    
-    // Clear error when user starts typing
+    setFormData(prev => ({ ...prev, [name]: value }))
     if (errors[name]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: ''
-      }))
+      setErrors(prev => ({ ...prev, [name]: '' }))
     }
   }
 
   const validateForm = () => {
-    addLog('info', 'Début de la validation du formulaire photo')
     const newErrors = {}
     
     if (!formData.title.trim()) {
-      newErrors.title = 'Le nom du plat est obligatoire'
-      addLog('warning', 'Validation échouée: nom du plat manquant')
+      newErrors.title = 'Le titre est requis'
     }
+    
     if (photos.length === 0) {
-      newErrors.photos = 'Au moins une photo est obligatoire'
-      addLog('warning', 'Validation échouée: aucune photo')
+      newErrors.photos = 'Au moins une photo est requise'
     }
     
-    // Validation des photos traitées
-    if (photos.length > 0) {
-      const processingPhotos = photos.filter(photo => photo.processing)
-      const errorPhotos = photos.filter(photo => photo.error)
-      const processedPhotos = photos.filter(photo => 
-        photo.processed && 
-        photo.imageBytes && 
-        Array.isArray(photo.imageBytes) &&
-        photo.imageBytes.length > 0
-      )
-      
-      if (processingPhotos.length > 0) {
-        newErrors.photos = `Attendez que ${processingPhotos.length} photo(s) finissent d'être traitées`
-      } else if (errorPhotos.length > 0) {
-        newErrors.photos = `${errorPhotos.length} photo(s) ont échoué. Supprimez-les et réessayez.`
-      } else if (processedPhotos.length === 0) {
-        newErrors.photos = 'Aucune photo n\'a été correctement traitée. Veuillez réessayer.'
-      }
+    const hasProcessingPhotos = photos.some(photo => photo.processing)
+    const hasErrorPhotos = photos.some(photo => photo.error)
+    
+    if (hasProcessingPhotos) {
+      newErrors.photos = 'Attendez que toutes les photos soient traitées'
     }
     
-    const isValid = Object.keys(newErrors).length === 0
-    
-    addLog('info', 'Résultat de la validation', {
-      isValid,
-      errorsCount: Object.keys(newErrors).length,
-      errors: Object.keys(newErrors),
-      photosCount: photos.length,
-      processedPhotosCount: photos.filter(p => p.processed).length
-    })
+    if (hasErrorPhotos) {
+      newErrors.photos = 'Certaines photos ont des erreurs, veuillez les corriger'
+    }
     
     setErrors(newErrors)
-    return isValid
+    return Object.keys(newErrors).length === 0
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     
-    addLog('info', 'Début de soumission de photo de recette')
-    
     if (!validateForm()) {
-      addLog('interaction', 'ECHEC_VALIDATION', {
-        errorsCount: Object.keys(errors).length,
-        errors: Object.keys(errors)
-      })
+      addLog('ERROR', 'Validation du formulaire échouée', errors)
       return
     }
     
     setIsSubmitting(true)
+    addLog('INFO', 'Début de la soumission', { 
+      title: formData.title, 
+      photosCount: photos.length 
+    })
     
     try {
-      // Préparer les photos validées (avec bytes)
-      const validPhotos = photos.filter(photo => 
-        photo.processed && 
-        photo.imageBytes && 
-        Array.isArray(photo.imageBytes) &&
-        photo.imageBytes.length > 0 &&
-        !photo.error
-      )
-      
-      if (validPhotos.length === 0) {
-        logError('Aucune photo valide trouvée pour partage', null, {
-          totalPhotos: photos.length,
-          photosState: photos.map(p => ({
-            processed: p.processed,
-            hasImageBytes: !!p.imageBytes,
-            imageBytesType: typeof p.imageBytes,
-            imageBytesIsArray: Array.isArray(p.imageBytes),
-            imageBytesLength: p.imageBytes?.length,
-            error: p.error,
-            errorMessage: p.errorMessage
-          }))
-        })
-        throw new Error('Aucune photo valide trouvée. Veuillez réessayer le traitement.')
-      }
-      
-      // Préparer les données selon le schéma bytea
-      const recipeData = {
-        title: formData.title.trim(),
-        description: formData.description.trim() || 'Photo partagée sans description',
-        ingredients: ['Photo partagée sans liste d\'ingrédients'],
-        instructions: [{ step: 1, instruction: 'Voir la photo pour inspiration' }],
-        author: 'Anonyme',
-        image: validPhotos[0].imageBytes, // Image en bytea
+      // Préparer les données pour la soumission
+      const submitData = {
+        title: formData.title,
+        description: formData.description || `Photo partagée: ${formData.title}`,
         category: 'Photo partagée',
-        prepTime: null,
-        cookTime: null
+        author: 'Utilisateur anonyme',
+        image: photos[0]?.imageUrl, // Utiliser l'URL de la première photo
+        ingredients: [],
+        instructions: [],
+        prepTime: '',
+        cookTime: '',
+        difficulty: 'Facile'
       }
       
-      logDebug('Données de photo préparées pour API', {
-        hasTitle: !!recipeData.title,
-        hasDescription: !!recipeData.description,
-        photosCount: photos.length,
-        validPhotosCount: validPhotos.length,
-        mainImageBytesLength: recipeData.image.length,
-        category: recipeData.category,
-        author: recipeData.author
-      })
+      addLog('INFO', 'Envoi des données', submitData)
       
-      // Valider que les données sont complètes avant l'envoi
-      if (!recipeData.image || !Array.isArray(recipeData.image) || recipeData.image.length === 0) {
-        throw new Error('Image principale manquante ou invalide')
-      }
-      
-      // Call API to submit photo as recipe
-      logInfo('Envoi des données vers l\'API /api/recipes')
       const response = await fetch('/api/recipes', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(recipeData)
+        body: JSON.stringify(submitData)
       })
       
-      logDebug('Réponse de l\'API reçue', {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok,
-        contentType: response.headers.get('content-type')
-      })
-      
-      // Check if response is JSON before parsing
-      const contentType = response.headers.get('content-type')
-      let result
-      
-      if (contentType && contentType.includes('application/json')) {
-        result = await response.json()
-      } else {
-        // Server returned HTML or other content - likely an error page
-        const textContent = await response.text()
-        addLog('error', 'API a retourné du contenu non-JSON', {
-          status: response.status,
-          statusText: response.statusText,
-          contentType,
-          contentPreview: textContent.substring(0, 500)
-        })
-        
-        if (response.status === 500) {
-          throw new Error('Erreur serveur interne. Vérifiez la configuration de la base de données et les variables d\'environnement.')
-        } else if (response.status === 404) {
-          throw new Error('API non trouvée. Vérifiez que le fichier /api/recipes.js existe.')
-        } else {
-          throw new Error(`Erreur serveur (${response.status}): Le serveur a retourné une page d'erreur au lieu d'une réponse JSON.`)
-        }
-      }
-      
-      logDebug('Contenu de la réponse API', {
-        hasResult: !!result,
-        resultKeys: Object.keys(result || {}),
-        message: result?.message,
-        id: result?.id,
-        error: result?.error
+      addLog('INFO', 'Réponse reçue', { 
+        status: response.status, 
+        statusText: response.statusText 
       })
       
       if (!response.ok) {
-        const errorMessage = result?.message || result?.error || `Erreur HTTP ${response.status}: ${response.statusText}`
-        logError('Erreur de l\'API lors du partage de photo', null, {
-          status: response.status,
-          statusText: response.statusText,
-          responseBody: result,
-          errorMessage
+        const errorData = await response.text()
+        addLog('ERROR', 'Erreur de soumission', { 
+          status: response.status, 
+          error: errorData 
         })
-        throw new Error(errorMessage)
+        throw new Error(`Erreur ${response.status}: ${errorData}`)
       }
       
-      addLog('interaction', 'PHOTO_SOUMISE', {
-        title: recipeData.title,
-        photosCount: validPhotos.length,
-        recipeId: result.id,
-        imageBytesLength: recipeData.image.length
-      })
+      const result = await response.json()
+      addLog('SUCCESS', 'Photo partagée avec succès', result)
       
-      // Afficher le message de succès
       setShowSuccessMessage(true)
       
-      // Redirection après 3 secondes
-      setTimeout(() => {
-        router.push('/?success=photo-shared')
-      }, 3000)
-      
     } catch (error) {
-      addLog('error', 'Erreur lors de la soumission de photo', {
-        errorName: error.constructor.name,
-        errorMessage: error.message,
-        errorStack: error.stack
+      addLog('ERROR', 'Erreur lors de la soumission', { 
+        message: error.message, 
+        stack: error.stack 
       })
-      
-      // Amélioration du diagnostic et des messages d'erreur
-      let errorMessage = 'Une erreur est survenue lors de l\'envoi. Veuillez réessayer.'
-      
-      // Analyse plus précise des erreurs API
-      if (error.message.includes('structure de base de données')) {
-        errorMessage = 'Problème de configuration de la base de données.'
-      } else if (error.message.includes('JSON')) {
-        errorMessage = 'Erreur serveur: Le serveur a retourné une réponse invalide.'
-      } else if (error.message) {
-        errorMessage = `Erreur: ${error.message}`
-      }
-      
-      setErrors({ submit: errorMessage })
+      setErrors({ submit: error.message })
     } finally {
       setIsSubmitting(false)
     }
   }
 
   const nextStep = () => {
-    if (currentStep === 1 && photos.length === 0) {
-      setErrors({ photos: 'Veuillez ajouter au moins une photo' })
+    if (currentStep === 1 && !formData.title.trim()) {
+      setErrors({ title: 'Le titre est requis pour continuer' })
       return
     }
-    if (currentStep < 3) setCurrentStep(currentStep + 1)
+    if (currentStep < 3) {
+      setCurrentStep(currentStep + 1)
+      setErrors({})
+    }
   }
 
   const prevStep = () => {
-    if (currentStep > 1) setCurrentStep(currentStep - 1)
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1)
+      setErrors({})
+    }
   }
 
   // Message de confirmation de soumission
   if (showSuccessMessage) {
     return (
-      <div className={styles.container}>
-        <div className={styles.successMessage}>
-          <div className={styles.successIcon}>🎉</div>
-          <h1>Photo partagée !</h1>
-          <p>Votre délicieuse photo "<strong>{formData.title}</strong>" a été ajoutée à COCO.</p>
-          <p>Redirection vers l'accueil...</p>
-          <div className={styles.successSpinner}></div>
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        padding: '20px'
+      }}>
+        <div style={{
+          background: 'white',
+          borderRadius: '20px',
+          padding: '40px',
+          textAlign: 'center',
+          maxWidth: '400px',
+          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)'
+        }}>
+          <div style={{ fontSize: '4rem', marginBottom: '20px' }}>🎉</div>
+          <h2 style={{ color: '#333', marginBottom: '15px' }}>Photo partagée !</h2>
+          <p style={{ color: '#666', marginBottom: '30px' }}>
+            Votre photo a été partagée avec succès dans la communauté COCO.
+          </p>
+          <button
+            onClick={() => router.push('/')}
+            style={{
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              color: 'white',
+              border: 'none',
+              padding: '15px 30px',
+              borderRadius: '10px',
+              cursor: 'pointer',
+              fontWeight: '600',
+              fontSize: '1rem',
+              marginRight: '10px'
+            }}
+          >
+            Retour à l'accueil
+          </button>
+          <button
+            onClick={() => router.push('/mes-recettes')}
+            style={{
+              background: 'transparent',
+              color: '#667eea',
+              border: '2px solid #667eea',
+              padding: '15px 30px',
+              borderRadius: '10px',
+              cursor: 'pointer',
+              fontWeight: '600',
+              fontSize: '1rem'
+            }}
+          >
+            Voir mes photos
+          </button>
         </div>
       </div>
     )
   }
 
   // Logs component
-  const LogsDisplay = () => (
-    <div className={styles.logsContainer}>
-      <div className={styles.logsHeader}>
-        <h3>📋 Logs</h3>
-        <div className={styles.logsControls}>
-          <button onClick={() => setLogs([])} className={styles.clearLogsBtn}>
-            🗑️ Vider
-          </button>
-          <button onClick={() => setShowLogs(false)} className={styles.closeLogsBtn}>
+  const LogsComponent = () => (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'rgba(0, 0, 0, 0.8)',
+      zIndex: 10000,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '20px'
+    }}>
+      <div style={{
+        background: 'white',
+        borderRadius: '10px',
+        width: '90%',
+        maxWidth: '800px',
+        height: '80%',
+        display: 'flex',
+        flexDirection: 'column'
+      }}>
+        <div style={{
+          padding: '20px',
+          borderBottom: '1px solid #eee',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <h3 style={{ margin: 0 }}>Logs de débogage</h3>
+          <button 
+            onClick={() => setShowLogs(false)}
+            style={{
+              background: 'none',
+              border: 'none',
+              fontSize: '1.5rem',
+              cursor: 'pointer'
+            }}
+          >
             ✕
           </button>
         </div>
-      </div>
-      <div className={styles.logsList}>
-        {logs.length === 0 ? (
-          <div className={styles.noLogs}>Aucun log</div>
-        ) : (
-          logs.map(log => (
-            <div key={log.id} className={`${styles.logEntry} ${styles[`log${log.level.charAt(0).toUpperCase() + log.level.slice(1)}`]}`}>
-              <div className={styles.logMeta}>
-                <span className={styles.logTime}>{log.timestamp}</span>
-                <span className={styles.logLevel}>{log.level.toUpperCase()}</span>
+        
+        <div style={{
+          flex: 1,
+          overflow: 'auto',
+          padding: '20px'
+        }}>
+          {logs.map(log => (
+            <div key={log.id} style={{
+              marginBottom: '15px',
+              padding: '10px',
+              borderRadius: '5px',
+              background: log.level === 'ERROR' ? '#ffebee' : 
+                         log.level === 'SUCCESS' ? '#e8f5e8' : '#f5f5f5',
+              borderLeft: `4px solid ${
+                log.level === 'ERROR' ? '#f44336' : 
+                log.level === 'SUCCESS' ? '#4caf50' : '#2196f3'
+              }`
+            }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '5px'
+              }}>
+                <span style={{
+                  fontWeight: 'bold',
+                  color: log.level === 'ERROR' ? '#f44336' : 
+                        log.level === 'SUCCESS' ? '#4caf50' : '#2196f3'
+                }}>
+                  {log.level}
+                </span>
+                <span style={{ fontSize: '0.8rem', color: '#666' }}>
+                  {new Date(log.timestamp).toLocaleTimeString()}
+                </span>
               </div>
-              <div className={styles.logMessage}>{log.message}</div>
+              <div style={{ marginBottom: '5px' }}>{log.message}</div>
               {log.data && (
-                <pre className={styles.logData}>{log.data}</pre>
+                <pre style={{
+                  background: 'rgba(0, 0, 0, 0.05)',
+                  padding: '10px',
+                  borderRadius: '3px',
+                  fontSize: '0.8rem',
+                  overflow: 'auto',
+                  maxHeight: '200px'
+                }}>
+                  {log.data}
+                </pre>
               )}
             </div>
-          ))
-        )}
+          ))}
+        </div>
       </div>
     </div>
   )
@@ -881,7 +578,7 @@ export default function SharePhoto() {
           </div>
         </div>
 
-        {showLogs && <LogsDisplay />}
+        {showLogs && <LogsComponent />}
 
         <StepIndicator />
 

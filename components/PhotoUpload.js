@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react'
-import { uploadImageAsBytes, bytesToImageUrl } from '../lib/supabase'
+import { processImageToUrl } from '../utils/imageUtils'
 import { logDebug, logInfo, logError, logUserInteraction } from '../utils/logger'
 import styles from '../styles/PhotoUpload.module.css'
 
@@ -11,9 +11,9 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
   const [globalProgress, setGlobalProgress] = useState(0)
   const fileInputRef = useRef(null)
 
-  const processImageToBytes = async (file, photoId) => {
+  const processImageToDataUrl = async (file, photoId) => {
     try {
-      logDebug('Conversion en bytes', { 
+      logDebug('Conversion en Data URL', { 
         photoId, 
         fileName: file.name, 
         fileSize: file.size,
@@ -33,22 +33,22 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
         })
       }, 200)
       
-      // Conversion en bytes
-      const result = await uploadImageAsBytes(file)
+      // Conversion en Data URL
+      const result = await processImageToUrl(file)
       
       clearInterval(progressInterval)
       setUploadProgress(prev => ({ ...prev, [photoId]: 100 }))
       
-      logInfo('Image convertie en bytes avec succès', { 
+      logInfo('Image convertie en Data URL avec succès', { 
         photoId, 
         fileName: file.name, 
-        bytesLength: result.bytes.length,
-        processedSize: result.processedSize
+        dataUrlLength: result.url.length,
+        originalSize: result.originalSize
       })
       
       return result
     } catch (error) {
-      logError('Erreur conversion bytes', error, { 
+      logError('Erreur conversion Data URL', error, { 
         photoId, 
         fileName: file.name,
         fileSize: file.size,
@@ -94,13 +94,13 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
     // Validation des fichiers
     const validFiles = Array.from(files).filter(file => {
       const isValidType = file.type.startsWith('image/')
-      const isValidSize = file.size <= 6 * 1024 * 1024 // 6MB max
+      const isValidSize = file.size <= 10 * 1024 * 1024 // 10MB max pour Data URLs
       
       if (!isValidType) {
-        logWarning('Fichier ignoré - type invalide', { fileName: file.name, type: file.type })
+        logError('Fichier ignoré - type invalide', new Error('Invalid file type'), { fileName: file.name, type: file.type })
       }
       if (!isValidSize) {
-        logWarning('Fichier ignoré - trop volumineux', { fileName: file.name, size: file.size })
+        logError('Fichier ignoré - trop volumineux', new Error('File too large'), { fileName: file.name, size: file.size })
       }
       
       return isValidType && isValidSize
@@ -128,7 +128,7 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
         processing: true,
         processed: false,
         error: false,
-        imageBytes: null,
+        imageUrl: null, // Nouvelle propriété pour stocker l'URL
         mimeType: file.type
       }
       
@@ -144,15 +144,19 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
     // Étape 2: Traitement séquentiel
     for (const photoData of newPhotos) {
       try {
-        const result = await processImageToBytes(photoData.file, photoData.id)
+        const result = await processImageToDataUrl(photoData.file, photoData.id)
         
-        // Mettre à jour la photo avec les bytes
+        // Mettre à jour la photo avec l'URL
         photoData.processing = false
         photoData.processed = true
-        photoData.imageBytes = result.bytes
+        photoData.imageUrl = result.url // Stocker l'URL au lieu des bytes
         photoData.mimeType = result.mimeType
-        photoData.processedSize = result.processedSize
+        photoData.originalSize = result.originalSize
         photoData.error = false
+        
+        // Nettoyer l'URL de prévisualisation
+        URL.revokeObjectURL(photoData.preview)
+        photoData.preview = result.url
         
         // Mettre à jour l'état après chaque traitement
         setPhotos(prevPhotos => {
@@ -218,6 +222,11 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
   }
 
   const removePhoto = (id) => {
+    const photoToRemove = photos.find(photo => photo.id === id)
+    if (photoToRemove && photoToRemove.preview && photoToRemove.preview.startsWith('blob:')) {
+      URL.revokeObjectURL(photoToRemove.preview)
+    }
+    
     const updatedPhotos = photos.filter(photo => photo.id !== id)
     setPhotos(updatedPhotos)
     onPhotoSelect && onPhotoSelect(updatedPhotos)
@@ -253,7 +262,7 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
       {/* Message de confirmation */}
       {readyForSubmission && (
         <div className={styles.uploadSuccess}>
-          ✅ Toutes les photos ont été traitées avec succès ! Vous pouvez maintenant soumettre votre recette.
+          ✅ Toutes les photos ont été optimisées ! Prêtes pour la soumission.
         </div>
       )}
 
@@ -326,7 +335,7 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
                 <div className={styles.uploadStatus}>
                   {photo.processing && (
                     <div className={styles.uploadingStatus}>
-                      <span className={styles.uploading}>⏳ Traitement...</span>
+                      <span className={styles.uploading}>⏳ Optimisation...</span>
                       <div className={styles.individualProgress}>
                         <div 
                           className={styles.progressFill}
@@ -336,7 +345,7 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
                     </div>
                   )}
                   {photo.processed && (
-                    <span className={styles.uploaded}>✅ Traité</span>
+                    <span className={styles.uploaded}>✅ Optimisé</span>
                   )}
                   {photo.error && (
                     <span className={styles.error}>❌ Erreur</span>
@@ -352,7 +361,7 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
         <div className={styles.photoTips}>
           <p>💡 La première photo sera utilisée comme image principale</p>
           <p>🔄 Glissez-déposez pour réorganiser</p>
-          <p>💾 Les images sont converties automatiquement</p>
+          <p>💾 Les images sont optimisées automatiquement en Data URLs</p>
         </div>
       )}
     </div>
