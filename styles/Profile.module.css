@@ -808,13 +808,14 @@
 /* Reduced Motion Support */
 @media (prefers-reduced-motion: reduce) {
   .container,
-  .container *,
   .profileHeader,
   .activitySection,
   .settingsSection,
   .activityItem,
   .statItem,
-  .avatar {
+  .avatar,
+  .logoutBtn,
+  .settingToggle {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
