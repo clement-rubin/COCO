@@ -236,7 +236,7 @@ export default function SubmitRecipe() {
                 className={`${styles.portionBtn} ${formData.portions === num ? styles.active : ''}`}
               >
                 {num}
-                {formData.portions === num && <div className={styles.portionActive}></div>}
+                <div className={styles.portionSelection}></div>
               </button>
             ))}
           </div>
@@ -689,6 +689,12 @@ export default function SubmitRecipe() {
         @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
+        }
+
+        @keyframes pulse {
+          0% { opacity: 0.5; transform: scale(1); }
+          50% { opacity: 0.8; transform: scale(1.05); }
+          100% { opacity: 0.5; transform: scale(1); }
         }
         
         .${styles.stepContent} {
