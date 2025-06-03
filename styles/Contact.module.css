@@ -57,157 +57,51 @@
   box-shadow: var(--shadow);
 }
 
-.form {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
+/* Form elements */
 .formGroup {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin-bottom: var(--spacing-lg);
-  position: relative;
+  margin-bottom: 1.5rem;
 }
 
 .formGroup label {
   display: block;
-  margin-bottom: var(--spacing-sm);
+  margin-bottom: 0.5rem;
   font-weight: 600;
-  color: var(--text-dark);
-  font-size: 1rem;
+  color: var(--text-color);
 }
 
 .formGroup input,
 .formGroup textarea {
   width: 100%;
-  padding: var(--spacing-md);
-  border: 2px solid rgba(255, 107, 53, 0.1);
-  border-radius: var(--border-radius-medium);
-  font-family: 'Poppins', sans-serif;
+  padding: 0.8rem;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-family: inherit;
   font-size: 1rem;
-  transition: all 0.3s ease;
-  background: white;
-  box-sizing: border-box;
+  transition: var(--transition);
 }
 
 .formGroup input:focus,
 .formGroup textarea:focus {
+  border-color: var(--primary-color);
   outline: none;
-  border-color: var(--primary-orange);
-  box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
-  background: #fefefe;
+  box-shadow: 0 0 0 2px rgba(var(--primary-color-rgb), 0.1);
 }
 
-.formGroup.required label::after {
-  content: ' *';
-  color: #ff4757;
-  font-weight: bold;
-}
-
-.inputError {
-  border-color: #ff4757 !important;
-  box-shadow: 0 0 0 3px rgba(255, 71, 87, 0.1) !important;
-  background: #fff8f8 !important;
-}
-
-.formGroup button {
+.submitButton {
   background-color: var(--primary-color);
   color: white;
   border: none;
-  padding: 0.8rem 1.5rem;
+  padding: 1rem 1.5rem;
   border-radius: 4px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: var(--transition);
-  align-self: flex-start;
-}
-
-.formGroup button:hover {
-  opacity: 0.9;
-  transform: translateY(-2px);
-}
-
-.errorMessage {
-  background-color: #fff5f5;
-  border: 2px solid #ff4444;
-  color: #ff4444;
-  padding: var(--spacing-md);
-  border-radius: var(--border-radius-medium);
-  margin-bottom: var(--spacing-lg);
-  font-weight: 500;
-  text-align: center;
-}
-
-.successMessage {
-  text-align: center;
-  padding: var(--spacing-2xl);
-  background: #f0f9ff;
-  border: 2px solid #10b981;
-  border-radius: var(--border-radius-medium);
-  color: #065f46;
-}
-
-.successMessage h2 {
-  color: #10b981;
-  margin-bottom: var(--spacing-lg);
-}
-
-.successMessage button {
-  background-color: #10b981;
-  color: white;
-  border: none;
-  padding: var(--spacing-md) var(--spacing-xl);
-  border-radius: var(--border-radius-medium);
-  margin-top: var(--spacing-lg);
+  font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
   transition: var(--transition);
 }
 
-.successMessage button:hover {
-  opacity: 0.9;
+.submitButton:hover {
+  background-color: var(--primary-color-dark);
   transform: translateY(-2px);
-}
-
-/* Captcha styles for contact form */
-.captchaSection {
-  margin: var(--spacing-xl) 0;
-  padding: var(--spacing-lg);
-  background: #f8f9fa;
-  border-radius: var(--border-radius-medium);
-  border: 2px solid rgba(255, 107, 53, 0.1);
-  text-align: center;
-}
-
-.captchaWrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--spacing-md);
-}
-
-.captchaError {
-  background: #fff5f5;
-  border: 2px solid #ff4757;
-  color: #ff4757;
-  padding: var(--spacing-md);
-  border-radius: var(--border-radius-medium);
-  margin-top: var(--spacing-sm);
-  font-weight: 500;
-  text-align: center;
-}
-
-.captchaSuccess {
-  background: #f0f9ff;
-  border: 2px solid #10b981;
-  color: #065f46;
-  padding: var(--spacing-md);
-  border-radius: var(--border-radius-medium);
-  margin-top: var(--spacing-sm);
-  font-weight: 500;
-  text-align: center;
 }
 
 @media (max-width: 768px) {
@@ -216,20 +110,6 @@
   }
   
   .info {
-    order: 2;
-  }
-  
-  .formContainer {
-    order: 1;
     margin-bottom: 2rem;
-  }
-  
-  .captchaWrapper {
-    transform: scale(0.9);
-  }
-  
-  .formGroup input,
-  .formGroup textarea {
-    font-size: 16px; /* Prevents zoom on iOS */
   }
 }

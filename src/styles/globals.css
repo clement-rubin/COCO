@@ -268,6 +268,7 @@ p {
 .card:hover {
   box-shadow: var(--shadow-md);
   border-color: var(--border-emphasis);
+  transform: translateY(-2px);
 }
 
 .card-interactive {
@@ -275,48 +276,87 @@ p {
 }
 
 .card-interactive:hover {
-  transform: translateY(-2px);
+  transform: translateY(-3px);
   box-shadow: var(--shadow-lg);
 }
 
-.card-content {
-  padding: var(--space-6);
+/* Animation pulsation pour les éléments interactifs */
+@keyframes pulse-subtle {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); }
 }
 
-.card-content-sm {
-  padding: var(--space-4);
+/* Animation de rebond pour les éléments importants */
+@keyframes bounce-subtle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
 }
 
-/* Inputs modernes */
-.input {
+/* Animation de fondu pour les transitions */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Animation de glissement */
+@keyframes slideUp {
+  from { 
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to { 
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Améliorations des boutons */
+.btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn::after {
+  content: '';
+  display: block;
+  position: absolute;
   width: 100%;
-  padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  font-family: inherit;
-  font-size: 0.875rem;
-  background: var(--bg);
-  color: var(--text-primary);
-  transition: all var(--transition-fast);
-  outline: none;
-  min-height: 40px;
+  height: 100%;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.3) 10%, transparent 10.01%);
+  background-repeat: no-repeat;
+  background-position: 50%;
+  transform: scale(10, 10);
+  opacity: 0;
+  transition: transform .5s, opacity 1s;
 }
 
+.btn:active::after {
+  transform: scale(0, 0);
+  opacity: .3;
+  transition: 0s;
+}
+
+/* Styles pour les cartes de contenu */
+.content-card {
+  animation: fadeIn 0.3s ease forwards;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  will-change: transform, box-shadow;
+}
+
+.content-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-xl);
+}
+
+/* Styles pour les entrées de formulaire */
 .input:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-light);
-}
-
-.input::placeholder {
-  color: var(--text-muted);
-}
-
-.input-error {
-  border-color: var(--error);
-}
-
-.input-error:focus {
-  box-shadow: 0 0 0 3px var(--error-light);
+  transform: scale(1.01);
 }
 
 /* Layout containers */
@@ -324,6 +364,7 @@ p {
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 var(--space-4);
+  animation: fadeIn 0.5s ease;
 }
 
 .container-sm {
@@ -366,9 +407,33 @@ p {
 
 .grid-auto {
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-6);
 }
 
-/* Flexbox utilities */
+/* Animation utilities */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Spacing utilities */
+.mt-1 { margin-top: var(--space-1); }
+.mt-2 { margin-top: var(--space-2); }
+.mt-3 { margin-top: var(--space-3); }
+.mt-4 { margin-top: var(--space-4); }
+
+.mb-1 { margin-bottom: var(--space-1); }
+.mb-2 { margin-bottom: var(--space-2); }
+.mb-3 { margin-bottom: var(--space-3); }
+.mb-4 { margin-bottom: var(--space-4); }
+
+/* Flex utilities */
 .flex {
   display: flex;
 }
@@ -692,4 +757,55 @@ p {
 .badge-secondary {
   background: var(--bg-muted);
   color: var(--text-secondary);
+}
+
+/* Stylisation des scrollbars pour une meilleure UX */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 107, 53, 0.5);
+  border-radius: 10px;
+  transition: background 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 107, 53, 0.8);
+}
+
+/* Support des thèmes sombres */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #121212;
+    --bg-card: #1e1e1e;
+    --text-primary: #f0f0f0;
+    --text-secondary: #a0a0a0;
+    --border: rgba(255, 255, 255, 0.1);
+  }
+
+  .card {
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* Améliorations mobiles */
+@media (max-width: 768px) {
+  .container {
+    padding: 0 var(--space-3);
+  }
+  
+  h1, h2 {
+    text-align: center;
+  }
+  
+  .btn {
+    width: 100%;
+  }
 }
