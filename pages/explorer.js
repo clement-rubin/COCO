@@ -1,212 +1,237 @@
 import Head from 'next/head'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/router'
+import styles from '../styles/Explorer.module.css'
 
 export default function Explorer() {
-  const [activeFilter, setActiveFilter] = useState('Tous');
-  const [searchTerm, setSearchTerm] = useState('');
+  const router = useRouter()
+  const [activeFilter, setActiveFilter] = useState('Tous')
+  const [searchTerm, setSearchTerm] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [likedRecipes, setLikedRecipes] = useState(new Set())
 
-  const filters = ['Tous', 'Pâtes', 'Salades', 'Desserts', 'Soupes', 'Plats principaux', 'Entrées'];
+  const filters = ['Tous', 'Pâtes', 'Salades', 'Desserts', 'Soupes', 'Plats principaux', 'Entrées']
 
   const recipes = [
-    { id: 1, name: 'Pâtes Carbonara', category: 'Pâtes', time: '20 min', rating: 4.8, emoji: '🍝', difficulty: 'Facile' },
-    { id: 2, name: 'Salade César', category: 'Salades', time: '15 min', rating: 4.6, emoji: '🥗', difficulty: 'Facile' },
-    { id: 3, name: 'Tiramisu', category: 'Desserts', time: '45 min', rating: 4.9, emoji: '🍰', difficulty: 'Moyen' },
-    { id: 4, name: 'Soupe à l\'oignon', category: 'Soupes', time: '30 min', rating: 4.4, emoji: '🍲', difficulty: 'Facile' },
-    { id: 5, name: 'Risotto aux champignons', category: 'Plats principaux', time: '35 min', rating: 4.7, emoji: '🍚', difficulty: 'Moyen' },
-    { id: 6, name: 'Bruschetta', category: 'Entrées', time: '10 min', rating: 4.3, emoji: '🥖', difficulty: 'Facile' },
-    { id: 7, name: 'Pâtes Bolognaise', category: 'Pâtes', time: '40 min', rating: 4.8, emoji: '🍝', difficulty: 'Moyen' },
-    { id: 8, name: 'Tarte aux pommes', category: 'Desserts', time: '60 min', rating: 4.5, emoji: '🥧', difficulty: 'Difficile' }
-  ];
+    { id: 1, name: 'Pâtes Carbonara', category: 'Pâtes', time: '20 min', rating: 4.8, emoji: '🍝', difficulty: 'Facile', chef: 'Marco', likes: 234 },
+    { id: 2, name: 'Salade César', category: 'Salades', time: '15 min', rating: 4.6, emoji: '🥗', difficulty: 'Facile', chef: 'Emma', likes: 189 },
+    { id: 3, name: 'Tiramisu', category: 'Desserts', time: '45 min', rating: 4.9, emoji: '🍰', difficulty: 'Moyen', chef: 'Sofia', likes: 456 },
+    { id: 4, name: 'Soupe à l\'oignon', category: 'Soupes', time: '30 min', rating: 4.4, emoji: '🍲', difficulty: 'Facile', chef: 'Pierre', likes: 127 },
+    { id: 5, name: 'Risotto aux champignons', category: 'Plats principaux', time: '35 min', rating: 4.7, emoji: '🍚', difficulty: 'Moyen', chef: 'Anna', likes: 312 },
+    { id: 6, name: 'Bruschetta', category: 'Entrées', time: '10 min', rating: 4.3, emoji: '🥖', difficulty: 'Facile', chef: 'Luigi', likes: 98 },
+    { id: 7, name: 'Pâtes Bolognaise', category: 'Pâtes', time: '40 min', rating: 4.8, emoji: '🍝', difficulty: 'Moyen', chef: 'Nonna', likes: 367 },
+    { id: 8, name: 'Tarte aux pommes', category: 'Desserts', time: '60 min', rating: 4.5, emoji: '🥧', difficulty: 'Difficile', chef: 'Marie', likes: 201 }
+  ]
 
-  // Safe filtering with null checks
+  useEffect(() => {
+    setTimeout(() => setLoading(false), 600)
+  }, [])
+
   const filteredRecipes = recipes.filter(recipe => {
-    if (!recipe) return false;
-    
-    const matchesFilter = activeFilter === 'Tous' || recipe.category === activeFilter;
-    const matchesSearch = recipe.name?.toLowerCase()?.includes(searchTerm.toLowerCase()) || false;
-    return matchesFilter && matchesSearch;
-  });
+    if (!recipe) return false
+    const matchesFilter = activeFilter === 'Tous' || recipe.category === activeFilter
+    const matchesSearch = recipe.name?.toLowerCase()?.includes(searchTerm.toLowerCase()) || false
+    return matchesFilter && matchesSearch
+  })
 
-  // Ensure filteredRecipes is always an array
-  const safeFilteredRecipes = Array.isArray(filteredRecipes) ? filteredRecipes : [];
+  const handleLike = (recipeId, e) => {
+    e.stopPropagation()
+    setLikedRecipes(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(recipeId)) {
+        newSet.delete(recipeId)
+      } else {
+        newSet.add(recipeId)
+      }
+      return newSet
+    })
+  }
+
+  const handleRecipeClick = (recipeId) => {
+    router.push(`/recipe/${recipeId}`)
+  }
 
   const getDifficultyColor = (difficulty) => {
     switch(difficulty) {
-      case 'Facile': return 'var(--secondary-mint)';
-      case 'Moyen': return 'var(--accent-yellow)';
-      case 'Difficile': return 'var(--primary-coral)';
-      default: return 'var(--text-light)';
+      case 'Facile': return '#10b981'
+      case 'Moyen': return '#f59e0b'
+      case 'Difficile': return '#ef4444'
+      default: return '#6b7280'
     }
-  };
+  }
+
+  if (loading) {
+    return (
+      <div className={styles.loadingContainer}>
+        <div className={styles.loadingSpinner}></div>
+        <p>Recherche des meilleures recettes...</p>
+      </div>
+    )
+  }
 
   return (
-    <div>
+    <div className={styles.container}>
       <Head>
         <title>Explorer - COCO</title>
         <meta name="description" content="Explorez toutes les recettes de COCO" />
       </Head>
 
-      {/* Header */}
-      <section style={{
-        background: 'var(--bg-gradient)',
-        padding: 'var(--spacing-lg) var(--spacing-md)',
-        textAlign: 'center'
-      }}>
-        <h1 style={{ 
-          fontSize: '1.8rem', 
-          marginBottom: 'var(--spacing-md)',
-          color: 'var(--text-dark)'
-        }}>
-          Explorer les recettes
-        </h1>
-        
-        {/* Search Bar */}
-        <div style={{ 
-          background: 'white',
-          borderRadius: 'var(--radius-lg)',
-          padding: 'var(--spacing-sm)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 'var(--spacing-sm)',
-          boxShadow: 'var(--shadow)',
-          marginBottom: 'var(--spacing-lg)'
-        }}>
-          <span style={{ fontSize: '1.2rem' }}>🔍</span>
-          <input
-            type="text"
-            placeholder="Rechercher une recette..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{
-              border: 'none',
-              outline: 'none',
-              flex: 1,
-              fontSize: '1rem',
-              background: 'transparent'
-            }}
-          />
+      {/* Header mobile moderne */}
+      <header className={styles.mobileHeader}>
+        <button 
+          className={styles.mobileBackBtn}
+          onClick={() => router.back()}
+        >
+          ←
+        </button>
+        <div className={styles.mobileTitle}>
+          <h1>Explorer</h1>
+          <p className={styles.subtitle}>Découvrez de nouvelles saveurs</p>
         </div>
-      </section>
-
-      {/* Filters */}
-      <section style={{ padding: 'var(--spacing-lg) var(--spacing-md) var(--spacing-md)' }}>
-        <div style={{ 
-          display: 'flex', 
-          gap: 'var(--spacing-sm)', 
-          overflowX: 'auto',
-          paddingBottom: 'var(--spacing-sm)'
-        }}>
-          {filters.map(filter => (
-            <button
-              key={filter}
-              onClick={() => setActiveFilter(filter)}
-              style={{
-                padding: 'var(--spacing-sm) var(--spacing-md)',
-                borderRadius: 'var(--radius-lg)',
-                border: 'none',
-                background: activeFilter === filter 
-                  ? 'var(--primary-coral)' 
-                  : 'var(--bg-light)',
-                color: activeFilter === filter 
-                  ? 'white' 
-                  : 'var(--text-medium)',
-                fontWeight: '500',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                transition: 'all 0.3s ease'
-              }}
-            >
-              {filter}
-            </button>
-          ))}
+        <div className={styles.headerActions}>
+          <button className={styles.filterToggle}>
+            🔧
+          </button>
         </div>
-      </section>
+      </header>
 
-      {/* Results Count */}
-      <section style={{ padding: '0 var(--spacing-md) var(--spacing-md)' }}>
-        <p style={{ 
-          color: 'var(--text-secondary)', 
-          fontSize: '0.9rem',
-          margin: 0
-        }}>
-          {safeFilteredRecipes.length} recette{safeFilteredRecipes.length > 1 ? 's' : ''} trouvée{safeFilteredRecipes.length > 1 ? 's' : ''}
-        </p>
-      </section>
+      {/* Contenu principal */}
+      <main className={styles.mobileContent}>
+        {/* Section de recherche */}
+        <section className={styles.searchSection}>
+          <div className={styles.searchContainer}>
+            <div className={styles.searchIcon}>🔍</div>
+            <input
+              type="text"
+              placeholder="Rechercher une recette..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className={styles.searchInput}
+            />
+            {searchTerm && (
+              <button 
+                className={styles.clearSearch}
+                onClick={() => setSearchTerm('')}
+              >
+                ✕
+              </button>
+            )}
+          </div>
+        </section>
 
-      {/* Recipes Grid */}
-      <section style={{ padding: '0 var(--spacing-md) var(--spacing-xl)' }}>
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
-          gap: 'var(--spacing-md)' 
-        }}>
-          {safeFilteredRecipes.map(recipe => (
-            <div key={recipe.id} className="card" style={{ padding: 0, cursor: 'pointer' }}>
-              <div style={{
-                width: '100%',
-                height: '150px',
-                background: 'linear-gradient(45deg, var(--primary-coral-light), var(--secondary-mint-light))',
-                borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '3rem',
-                position: 'relative'
-              }}>
-                {recipe.emoji || '🍽️'}
-                <div style={{
-                  position: 'absolute',
-                  top: 'var(--spacing-sm)',
-                  right: 'var(--spacing-sm)',
-                  background: 'rgba(255,255,255,0.9)',
-                  borderRadius: '50%',
-                  width: '32px',
-                  height: '32px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer'
-                }}>
-                  ❤️
-                </div>
-              </div>
-              <div style={{ padding: 'var(--spacing-md)' }}>
-                <h3 style={{ 
-                  fontSize: '1rem', 
-                  marginBottom: 'var(--spacing-xs)',
-                  margin: '0 0 var(--spacing-xs) 0'
-                }}>
-                  {recipe.name || 'Recette sans nom'}
-                </h3>
-                <div style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'center',
-                  marginBottom: 'var(--spacing-sm)',
-                  fontSize: '0.8rem'
-                }}>
-                  <span style={{ 
-                    background: 'var(--bg-light)', 
-                    padding: 'var(--spacing-xs) var(--spacing-sm)',
-                    borderRadius: 'var(--radius-sm)',
-                    color: 'var(--text-medium)'
-                  }}>
-                    ⏱️ {recipe.time || 'Non spécifié'}
-                  </span>
-                  <span style={{ color: 'var(--text-light)' }}>⭐ {recipe.rating || 'N/A'}</span>
-                </div>
-                <div style={{
-                  fontSize: '0.8rem',
-                  color: getDifficultyColor(recipe.difficulty),
-                  fontWeight: '500'
-                }}>
-                  {recipe.difficulty || 'Non spécifié'}
-                </div>
-              </div>
+        {/* Filtres horizontaux */}
+        <section className={styles.filtersSection}>
+          <div className={styles.filtersContainer}>
+            {filters.map(filter => (
+              <button
+                key={filter}
+                onClick={() => setActiveFilter(filter)}
+                className={`${styles.filterBtn} ${activeFilter === filter ? styles.active : ''}`}
+              >
+                {filter}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* Statistiques des résultats */}
+        <section className={styles.resultsSection}>
+          <div className={styles.resultsHeader}>
+            <div className={styles.resultsCount}>
+              <span className={styles.countNumber}>{filteredRecipes.length}</span>
+              <span className={styles.countLabel}>
+                recette{filteredRecipes.length > 1 ? 's' : ''} trouvée{filteredRecipes.length > 1 ? 's' : ''}
+              </span>
             </div>
-          ))}
-        </div>
-      </section>
+            {activeFilter !== 'Tous' && (
+              <div className={styles.activeFilterBadge}>
+                <span>{activeFilter}</span>
+                <button onClick={() => setActiveFilter('Tous')}>✕</button>
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Grille des recettes */}
+        <section className={styles.recipesSection}>
+          {filteredRecipes.length === 0 ? (
+            <div className={styles.emptyState}>
+              <div className={styles.emptyIcon}>🔍</div>
+              <h3>Aucune recette trouvée</h3>
+              <p>Essayez de modifier vos critères de recherche</p>
+              <button 
+                className={styles.resetBtn}
+                onClick={() => {
+                  setSearchTerm('')
+                  setActiveFilter('Tous')
+                }}
+              >
+                Réinitialiser les filtres
+              </button>
+            </div>
+          ) : (
+            <div className={styles.recipesGrid}>
+              {filteredRecipes.map(recipe => (
+                <div 
+                  key={recipe.id} 
+                  className={styles.recipeCard}
+                  onClick={() => handleRecipeClick(recipe.id)}
+                >
+                  <div className={styles.recipeImageContainer}>
+                    <div className={styles.recipeEmoji}>{recipe.emoji}</div>
+                    <button 
+                      className={`${styles.likeBtn} ${likedRecipes.has(recipe.id) ? styles.liked : ''}`}
+                      onClick={(e) => handleLike(recipe.id, e)}
+                    >
+                      {likedRecipes.has(recipe.id) ? '❤️' : '🤍'}
+                    </button>
+                    <div className={styles.recipeOverlay}>
+                      <span className={styles.viewText}>Voir la recette</span>
+                    </div>
+                  </div>
+                  
+                  <div className={styles.recipeContent}>
+                    <div className={styles.recipeHeader}>
+                      <h3 className={styles.recipeName}>{recipe.name}</h3>
+                      <div className={styles.recipeChef}>
+                        <span className={styles.chefIcon}>👨‍🍳</span>
+                        <span>{recipe.chef}</span>
+                      </div>
+                    </div>
+                    
+                    <div className={styles.recipeStats}>
+                      <div className={styles.statItem}>
+                        <span className={styles.statIcon}>⏱️</span>
+                        <span>{recipe.time}</span>
+                      </div>
+                      <div className={styles.statItem}>
+                        <span className={styles.statIcon}>⭐</span>
+                        <span>{recipe.rating}</span>
+                      </div>
+                      <div className={styles.statItem}>
+                        <span className={styles.statIcon}>❤️</span>
+                        <span>{recipe.likes}</span>
+                      </div>
+                    </div>
+                    
+                    <div className={styles.recipeFooter}>
+                      <span 
+                        className={styles.difficultyBadge}
+                        style={{ backgroundColor: getDifficultyColor(recipe.difficulty) }}
+                      >
+                        {recipe.difficulty}
+                      </span>
+                      <span className={styles.categoryTag}>
+                        {recipe.category}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      </main>
     </div>
-  );
+  )
 }

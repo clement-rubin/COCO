@@ -165,44 +165,50 @@ export default function SubmitRecipe() {
   const renderStep1 = () => (
     <div className={styles.stepContent}>
       <div className={styles.stepHeader}>
-        <div className={styles.stepIconBadge}>📝</div>
-        <h2>Informations de base</h2>
-        <p className={styles.stepDescription}>Donnez vie à votre recette</p>
+        <div className={styles.stepIconBadge}>✨</div>
+        <h2>Informations générales</h2>
+        <p className={styles.stepDescription}>Donnez vie à votre création culinaire</p>
         <div className={styles.progressInfo}>
           <span className={styles.currentStep}>Étape 1</span>
-          <span className={styles.totalSteps}>/ 3</span> - Informations générales
+          <span className={styles.totalSteps}>sur 3</span>
         </div>
       </div>
 
       <div className={styles.formSection}>
         <div className={styles.formGroup}>
           <label className={styles.requiredLabel}>
-            Titre de la recette <span className={styles.required}>*</span>
+            <span className={styles.sectionIcon}>📝</span>
+            Nom de votre recette <span className={styles.required}>*</span>
           </label>
           <input
             type="text"
-            placeholder="Ex: Pasta Carbonara Authentique"
+            placeholder="Ex: Tarte aux pommes de grand-mère"
             value={formData.title}
             onChange={(e) => handleInputChange('title', e.target.value)}
             className={styles.input}
           />
-          <div className={styles.inputUnderline}></div>
         </div>
 
         <div className={styles.formGroup}>
-          <label>Description</label>
+          <label>
+            <span className={styles.sectionIcon}>💭</span>
+            Description
+          </label>
           <textarea
-            placeholder="Décrivez votre recette en quelques mots..."
+            placeholder="Racontez l'histoire de cette recette, ses origines, ce qui la rend spéciale..."
             value={formData.description}
             onChange={(e) => handleInputChange('description', e.target.value)}
             className={styles.textarea}
             rows={4}
           />
-          <small className={styles.charCount}>{formData.description.length} / 300 caractères</small>
         </div>
 
         <div className={styles.formGroup}>
-          <label>Catégorie</label>
+          <label>
+            <span className={styles.sectionIcon}>🍽️</span>
+            Catégorie
+          </label>
+          <p className={styles.sectionHelp}>Choisissez la catégorie qui correspond le mieux à votre recette</p>
           <div className={styles.categoryGrid}>
             {categories.map(cat => (
               <button
@@ -213,14 +219,17 @@ export default function SubmitRecipe() {
               >
                 <span className={styles.emoji}>{cat.emoji}</span>
                 <span>{cat.label}</span>
-                <div className={styles.categorySelection}></div>
               </button>
             ))}
           </div>
         </div>
 
         <div className={styles.formGroup}>
-          <label>Difficulté</label>
+          <label>
+            <span className={styles.sectionIcon}>🔥</span>
+            Niveau de difficulté
+          </label>
+          <p className={styles.sectionHelp}>Aidez les autres cuisiniers à savoir à quoi s'attendre</p>
           <div className={styles.difficultySelector}>
             {difficulties.map(diff => (
               <button
@@ -228,18 +237,17 @@ export default function SubmitRecipe() {
                 type="button"
                 onClick={() => handleInputChange('difficulty', diff.value)}
                 className={`${styles.difficultyBtn} ${formData.difficulty === diff.value ? styles.active : ''}`}
-                style={{ '--accent-color': diff.color }}
               >
                 <span className={styles.emoji}>{diff.emoji}</span>
                 <span>{diff.value}</span>
-                {formData.difficulty === diff.value && <div className={styles.checkmark}>✓</div>}
               </button>
             ))}
           </div>
         </div>
 
-        <div className={styles.timeSection}>
-          <h3><span className={styles.sectionIcon}>⏱️</span> Temps de préparation</h3>
+        <div className={styles.formSection}>
+          <h3><span className={styles.sectionIcon}>⏰</span> Temps de préparation</h3>
+          <p className={styles.sectionHelp}>Donnez une estimation réaliste du temps nécessaire</p>
           <div className={styles.formRow}>
             <div className={styles.formGroup}>
               <label>Préparation</label>
@@ -271,7 +279,11 @@ export default function SubmitRecipe() {
         </div>
 
         <div className={styles.formGroup}>
-          <label>Nombre de portions</label>
+          <label>
+            <span className={styles.sectionIcon}>👥</span>
+            Nombre de portions
+          </label>
+          <p className={styles.sectionHelp}>Pour combien de personnes cette recette est-elle prévue ?</p>
           <div className={styles.portionSelector}>
             {[1,2,3,4,5,6,8,10].map(num => (
               <button
@@ -281,7 +293,6 @@ export default function SubmitRecipe() {
                 className={`${styles.portionBtn} ${formData.portions === num ? styles.active : ''}`}
               >
                 {num}
-                <div className={styles.portionSelection}></div>
               </button>
             ))}
           </div>
@@ -294,22 +305,22 @@ export default function SubmitRecipe() {
     <div className={styles.stepContent}>
       <div className={styles.stepHeader}>
         <div className={styles.stepIconBadge}>🥘</div>
-        <h2>Ingrédients & Instructions</h2>
+        <h2>Ingrédients & Préparation</h2>
         <p className={styles.stepDescription}>Le cœur de votre recette</p>
         <div className={styles.progressInfo}>
           <span className={styles.currentStep}>Étape 2</span>
-          <span className={styles.totalSteps}>/ 3</span> - Contenu de la recette
+          <span className={styles.totalSteps}>sur 3</span>
         </div>
       </div>
 
       <div className={styles.formSection}>
         <div className={styles.ingredientsSection}>
           <h3>
-            <span className={styles.sectionIcon}>📋</span> Ingrédients 
+            <span className={styles.sectionIcon}>🛒</span> Liste des ingrédients 
             <span className={styles.required}>*</span>
           </h3>
           <p className={styles.sectionHelp}>
-            Listez tous les ingrédients nécessaires avec leurs quantités
+            Listez tous les ingrédients avec leurs quantités précises. Soyez aussi détaillé que possible !
           </p>
           <div className={styles.ingredientsList}>
             {formData.ingredients.map((ingredient, index) => (
@@ -317,7 +328,7 @@ export default function SubmitRecipe() {
                 <div className={styles.itemNumberBadge}>{index + 1}</div>
                 <input
                   type="text"
-                  placeholder={`Ex: 200g de spaghetti`}
+                  placeholder={`Ex: 250g de farine T65`}
                   value={ingredient}
                   onChange={(e) => handleArrayChange('ingredients', index, e.target.value)}
                   className={styles.input}
@@ -329,7 +340,7 @@ export default function SubmitRecipe() {
                     className={styles.removeBtn}
                     title="Supprimer cet ingrédient"
                   >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   </button>
@@ -342,7 +353,7 @@ export default function SubmitRecipe() {
             onClick={() => addArrayItem('ingredients')}
             className={styles.addBtn}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
             Ajouter un ingrédient
@@ -351,18 +362,18 @@ export default function SubmitRecipe() {
 
         <div className={styles.instructionsSection}>
           <h3>
-            <span className={styles.sectionIcon}>👩‍🍳</span> Instructions 
+            <span className={styles.sectionIcon}>👨‍🍳</span> Étapes de préparation 
             <span className={styles.required}>*</span>
           </h3>
           <p className={styles.sectionHelp}>
-            Décrivez chaque étape de préparation de manière claire et détaillée
+            Décrivez chaque étape clairement et dans l'ordre. Pensez aux débutants qui suivront votre recette !
           </p>
           <div className={styles.instructionsList}>
             {formData.instructions.map((instruction, index) => (
               <div key={index} className={`${styles.arrayInput} ${styles.instructionItem}`}>
                 <div className={styles.itemNumberPill}>Étape {index + 1}</div>
                 <textarea
-                  placeholder={`Ex: Faire bouillir une grande casserole d'eau salée...`}
+                  placeholder={`Ex: Préchauffer le four à 180°C. Dans un saladier, mélanger la farine et le sucre...`}
                   value={instruction}
                   onChange={(e) => handleArrayChange('instructions', index, e.target.value)}
                   className={styles.textarea}
@@ -375,7 +386,7 @@ export default function SubmitRecipe() {
                     className={styles.removeBtn}
                     title="Supprimer cette étape"
                   >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   </button>
@@ -388,7 +399,7 @@ export default function SubmitRecipe() {
             onClick={() => addArrayItem('instructions')}
             className={styles.addBtn}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
             Ajouter une étape
@@ -396,23 +407,17 @@ export default function SubmitRecipe() {
         </div>
 
         <div className={styles.tagsSection}>
-          <h3><span className={styles.sectionIcon}>🏷️</span> Tags</h3>
+          <h3><span className={styles.sectionIcon}>🏷️</span> Mots-clés</h3>
           <p className={styles.sectionHelp}>
-            Ajoutez des mots-clés pour aider les autres à trouver votre recette
+            Ajoutez des mots-clés pour aider la communauté à découvrir votre recette
           </p>
-          <div className={styles.tagsInput}>
-            <div className={styles.tagIcon}>#</div>
-            <input
-              type="text"
-              placeholder="italien pasta authentique fait-maison"
-              value={formData.tags}
-              onChange={(e) => handleInputChange('tags', e.target.value)}
-              className={styles.input}
-            />
-          </div>
-          <small className={styles.inputHelp}>
-            Séparez les tags par des espaces. Ex: italien rapide vegetarien
-          </small>
+          <input
+            type="text"
+            placeholder="Ex: automne pommes pâtisserie traditionnelle weekend"
+            value={formData.tags}
+            onChange={(e) => handleInputChange('tags', e.target.value)}
+            className={styles.input}
+          />
         </div>
       </div>
     </div>
@@ -421,21 +426,20 @@ export default function SubmitRecipe() {
   const renderStep3 = () => (
     <div className={styles.stepContent}>
       <div className={styles.stepHeader}>
-        <div className={styles.stepIconBadge}>📸</div>
-        <h2>Photos & Vidéos</h2>
+        <div className={styles.stepIconBadge}>📷</div>
+        <h2>Photos & Finalisation</h2>
         <p className={styles.stepDescription}>Rendez votre recette irrésistible</p>
         <div className={styles.progressInfo}>
           <span className={styles.currentStep}>Étape 3</span>
-          <span className={styles.totalSteps}>/ 3</span> - Médias et finalisation
+          <span className={styles.totalSteps}>sur 3</span>
         </div>
       </div>
 
       <div className={styles.formSection}>
         <div className={styles.mediaSection}>
-          <h3><span className={styles.sectionIcon}>🖼️</span> Ajoutez vos médias</h3>
+          <h3><span className={styles.sectionIcon}>📸</span> Photos de votre création</h3>
           <p className={styles.sectionHelp}>
-            Les photos et vidéos rendent votre recette plus attractive. 
-            Vous pouvez ajouter plusieurs médias.
+            Une belle photo fait toute la différence ! Montrez le résultat final et pourquoi pas quelques étapes clés.
           </p>
           
           <div className={styles.mediaUpload}>
@@ -446,6 +450,7 @@ export default function SubmitRecipe() {
               accept="image/*,video/*"
               onChange={handleMediaUpload}
               className={styles.hiddenInput}
+              style={{ display: 'none' }}
             />
             
             {formData.media.length === 0 ? (
@@ -455,21 +460,17 @@ export default function SubmitRecipe() {
               >
                 <div className={styles.uploadIcon}>
                   <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 15V3M12 3L8 7M12 3L16 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M20 17V19C20 20.1046 19.1046 21 18 21H6C4.89543 21 4 20.1046 4 19V17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </div>
-                <h4>Ajoutez vos médias</h4>
-                <p>Photos ou vidéos de votre recette</p>
-                <button type="button" className={styles.uploadBtn}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M4 16L8.586 11.414C9.367 10.633 10.632 10.633 11.414 11.414L16 16M14 14L15.586 12.414C16.367 11.633 17.632 11.633 18.414 12.414L20 14M14 8H14.01M6 20H18C19.1046 20 20 19.1046 20 18V6C20 4.89543 19.1046 4 18 4H6C4.89543 4 4 4.89543 4 6V18C4 19.1046 4.89543 20 6 20Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
-                  Choisir des fichiers
+                </div>
+                <h4 style={{ margin: '16px 0 8px 0', color: '#374151' }}>Ajoutez vos photos</h4>
+                <p style={{ margin: '0 0 16px 0', color: '#6b7280' }}>Photos du plat fini, des ingrédients, ou des étapes</p>
+                <button type="button" className={styles.uploadBtn}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 15V3M12 3L8 7M12 3L16 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  Choisir des photos
                 </button>
-                <small className={styles.uploadHelp}>
-                  Formats acceptés: JPG, PNG, MP4, MOV
-                </small>
               </div>
             ) : (
               <>
@@ -485,7 +486,7 @@ export default function SubmitRecipe() {
                       ) : (
                         <Image
                           src={media.url}
-                          alt={`Media ${index + 1}`}
+                          alt={`Photo ${index + 1}`}
                           width={200}
                           height={200}
                           className={styles.mediaPreview}
@@ -495,9 +496,9 @@ export default function SubmitRecipe() {
                         type="button"
                         onClick={() => removeMedia(index)}
                         className={styles.removeMediaBtn}
-                        title="Supprimer ce média"
+                        title="Supprimer cette photo"
                       >
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                           <path d="M18 6L6 18M6 6L18 18" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
                       </button>
@@ -506,26 +507,23 @@ export default function SubmitRecipe() {
                   <div 
                     className={styles.addMediaBtn}
                     onClick={() => fileInputRef.current?.click()}
-                    title="Ajouter plus de médias"
+                    title="Ajouter plus de photos"
                   >
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   </div>
                 </div>
-                <p className={styles.mediaCount}>
-                  {formData.media.length} média{formData.media.length > 1 ? 's' : ''} ajouté{formData.media.length > 1 ? 's' : ''}
-                </p>
               </>
             )}
           </div>
         </div>
 
         <div className={styles.recapSection}>
-          <h3><span className={styles.sectionIcon}>📋</span> Récapitulatif de votre recette</h3>
+          <h3><span className={styles.sectionIcon}>📋</span> Aperçu de votre recette</h3>
           <div className={styles.recapCard}>
             <div className={styles.recapHeader}>
-              <h4>{formData.title || 'Titre de la recette'}</h4>
+              <h4>{formData.title || 'Ma délicieuse recette'}</h4>
               {formData.category && (
                 <span className={styles.recapCategory}>
                   {categories.find(c => c.id === formData.category)?.emoji} 
@@ -558,18 +556,18 @@ export default function SubmitRecipe() {
             <div className={styles.recapStats}>
               <div className={styles.recapStatItem}>
                 <div className={styles.recapStatNumber}>
-                  {formData.ingredients.filter(i => i).length}
+                  {formData.ingredients.filter(i => i.trim()).length}
                 </div>
                 <div className={styles.recapStatLabel}>
-                  ingrédient{formData.ingredients.filter(i => i).length > 1 ? 's' : ''}
+                  ingrédient{formData.ingredients.filter(i => i.trim()).length !== 1 ? 's' : ''}
                 </div>
               </div>
               <div className={styles.recapStatItem}>
                 <div className={styles.recapStatNumber}>
-                  {formData.instructions.filter(i => i).length}
+                  {formData.instructions.filter(i => i.trim()).length}
                 </div>
                 <div className={styles.recapStatLabel}>
-                  étape{formData.instructions.filter(i => i).length > 1 ? 's' : ''}
+                  étape{formData.instructions.filter(i => i.trim()).length !== 1 ? 's' : ''}
                 </div>
               </div>
               <div className={styles.recapStatItem}>
@@ -577,7 +575,7 @@ export default function SubmitRecipe() {
                   {formData.media.length}
                 </div>
                 <div className={styles.recapStatLabel}>
-                  média{formData.media.length > 1 ? 's' : ''}
+                  photo{formData.media.length !== 1 ? 's' : ''}
                 </div>
               </div>
             </div>
