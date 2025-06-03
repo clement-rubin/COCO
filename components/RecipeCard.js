@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/router'
 import ShareButton from './ShareButton'
 import { getRecipeImageUrl } from '../lib/supabase'
-import { logDebug } from '../utils/logger'
+import { logDebug, logInfo, logError } from '../utils/logger'
 import styles from '../styles/RecipeCard.module.css'
 
 export default function RecipeCard({ recipe, isUserRecipe = true, isPhotoOnly = false }) {
@@ -18,18 +18,32 @@ export default function RecipeCard({ recipe, isUserRecipe = true, isPhotoOnly = 
     return null;
   }
 
-  // Utiliser la nouvelle fonction améliorée de conversion d'image
+  // Fonction améliorée pour traiter les images avec debugging détaillé
   const getImageUrl = (imageData) => {
-    logDebug('RecipeCard: Conversion image', {
+    logDebug('RecipeCard: getImageUrl appelée', {
       recipeId: recipe.id,
       recipeTitle: recipe.title,
       hasImageData: !!imageData,
       imageDataType: typeof imageData,
       imageDataLength: imageData?.length,
-      isArray: Array.isArray(imageData)
+      isArray: Array.isArray(imageData),
+      isString: typeof imageData === 'string',
+      rawImageData: imageData // Log complet pour debug
     })
     
-    return getRecipeImageUrl(imageData, '/placeholder-recipe.jpg')
+    // Utiliser la fonction améliorée de conversion
+    const processedUrl = getRecipeImageUrl(imageData, '/placeholder-recipe.jpg')
+    
+    logInfo('RecipeCard: URL d\'image traitée', {
+      recipeId: recipe.id,
+      originalDataType: typeof imageData,
+      processedUrl: processedUrl?.substring(0, 100) + (processedUrl?.length > 100 ? '...' : ''),
+      isDataUrl: processedUrl?.startsWith('data:'),
+      isHttpUrl: processedUrl?.startsWith('http'),
+      isFallback: processedUrl === '/placeholder-recipe.jpg'
+    })
+    
+    return processedUrl
   }
 
   const toggleFavorite = (e) => {
@@ -64,6 +78,15 @@ export default function RecipeCard({ recipe, isUserRecipe = true, isPhotoOnly = 
     ingredients: Array.isArray(recipe.ingredients) ? recipe.ingredients : [],
     instructions: Array.isArray(recipe.instructions) ? recipe.instructions : []
   };
+
+  // Debug final de l'URL d'image
+  logDebug('RecipeCard: Image finale utilisée', {
+    recipeId: safeRecipe.id,
+    finalImageUrl: safeRecipe.image?.substring(0, 100) + (safeRecipe.image?.length > 100 ? '...' : ''),
+    imageLength: safeRecipe.image?.length,
+    isDataUrl: safeRecipe.image?.startsWith('data:'),
+    isPlaceholder: safeRecipe.image === '/placeholder-recipe.jpg'
+  })
   
   // Déterminez le lien en fonction du type de recette
   const recipeLink = isUserRecipe
@@ -83,8 +106,22 @@ export default function RecipeCard({ recipe, isUserRecipe = true, isPhotoOnly = 
           sizes="(max-width: 768px) 100vw, 300px"
           priority={false}
           className={styles.image}
-          onLoad={handleImageLoad}
-          onError={handleImageError}
+          onLoad={() => {
+            setImageLoading(false)
+            logInfo('RecipeCard: Image chargée avec succès', {
+              recipeId: safeRecipe.id,
+              imageUrl: safeRecipe.image?.substring(0, 50) + '...'
+            })
+          }}
+          onError={(e) => {
+            setImageError(true)
+            setImageLoading(false)
+            logError('RecipeCard: Erreur de chargement d\'image', new Error('Image load failed'), {
+              recipeId: safeRecipe.id,
+              imageUrl: safeRecipe.image?.substring(0, 50) + '...',
+              errorTarget: e.target?.src?.substring(0, 50) + '...'
+            })
+          }}
         />
         
         {isPhotoOnly && (

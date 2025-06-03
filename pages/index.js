@@ -51,6 +51,31 @@ export default function Home() {
     { id: 'trending', icon: '🔥', label: 'Tendance' }
   ]
 
+  // Ajoutez ce useEffect temporaire pour debug
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      // Fonction de test pour voir les données d'image
+      window.debugImageData = (recipeId) => {
+        const recipe = /* récupérer la recette par ID depuis votre état */
+        console.log('=== DEBUG IMAGE DATA ===')
+        console.log('Recipe ID:', recipeId)
+        console.log('Raw image data:', recipe?.image)
+        console.log('Type:', typeof recipe?.image)
+        console.log('Is Array:', Array.isArray(recipe?.image))
+        console.log('Length:', recipe?.image?.length)
+        if (Array.isArray(recipe?.image)) {
+          console.log('First 10 bytes:', recipe.image.slice(0, 10))
+          console.log('Last 5 bytes:', recipe.image.slice(-5))
+        }
+        
+        // Test de conversion
+        const convertedUrl = getRecipeImageUrl(recipe?.image)
+        console.log('Converted URL:', convertedUrl?.substring(0, 100) + '...')
+        console.log('=========================')
+      }
+    }
+  }, [])
+
   return (
     <div style={{
       background: 'var(--warm-white)',

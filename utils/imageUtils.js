@@ -1,129 +1,169 @@
-import { logDebug, logError, logInfo } from './logger'
+import { logDebug, logError, logInfo, logWarning } from './logger'
 
-// Fonction pour valider si des données représentent une image valide
-export function isValidImageData(imageData) {
-  if (!imageData) return false
+// Fonction pour détecter le format d'une image à partir de ses bytes
+export function detectImageFormat(bytes) {
+  if (!Array.isArray(bytes) || bytes.length < 4) {
+    return 'unknown'
+  }
   
-  // URL ou base64 existant
-  if (typeof imageData === 'string') {
-    return imageData.startsWith('http') || 
-           imageData.startsWith('data:image/') || 
-           imageData.length > 100 // Probablement du base64
+  const signatures = {
+    jpeg: [0xFF, 0xD8, 0xFF],
+    png: [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A],
+    gif: [0x47, 0x49, 0x46, 0x38],
+    webp: [0x52, 0x49, 0x46, 0x46],
+    bmp: [0x42, 0x4D]
+  }
+  
+  for (const [format, signature] of Object.entries(signatures)) {
+    if (signature.every((byte, index) => bytes[index] === byte)) {
+      return format
+    }
+  }
+  
+  return 'unknown'
+}
+
+// Fonction pour valider si un tableau contient des bytes d'image valides
+export function validateImageBytes(bytes) {
+  if (!Array.isArray(bytes)) {
+    return { valid: false, error: 'Not an array' }
+  }
+  
+  if (bytes.length === 0) {
+    return { valid: false, error: 'Empty array' }
+  }
+  
+  // Vérifier que tous les éléments sont des nombres entre 0 et 255
+  const invalidBytes = bytes.filter(byte => typeof byte !== 'number' || byte < 0 || byte > 255)
+  if (invalidBytes.length > 0) {
+    return { 
+      valid: false, 
+      error: `Invalid bytes found: ${invalidBytes.length} out of ${bytes.length}`,
+      samples: invalidBytes.slice(0, 5)
+    }
+  }
+  
+  // Vérifier la taille minimum (une image doit faire au moins quelques bytes)
+  if (bytes.length < 100) {
+    return { valid: false, error: 'Image too small' }
+  }
+  
+  // Essayer de détecter le format
+  const format = detectImageFormat(bytes)
+  if (format === 'unknown') {
+    return { 
+      valid: false, 
+      error: 'Unknown image format',
+      firstBytes: bytes.slice(0, 10)
+    }
+  }
+  
+  return { 
+    valid: true, 
+    format,
+    size: bytes.length
+  }
+}
+
+// Fonction pour convertir des bytes en data URL avec validation
+export function convertBytesToDataUrl(bytes) {
+  const validation = validateImageBytes(bytes)
+  
+  if (!validation.valid) {
+    logError('Bytes d\'image invalides', new Error(validation.error), {
+      validationResult: validation,
+      bytesLength: bytes?.length
+    })
+    return null
+  }
+  
+  logDebug('Conversion bytes vers data URL', {
+    bytesLength: bytes.length,
+    detectedFormat: validation.format,
+    firstBytes: bytes.slice(0, 8)
+  })
+  
+  try {
+    const uint8Array = new Uint8Array(bytes)
+    
+    // Conversion par chunks pour éviter les erreurs de mémoire
+    let base64 = ''
+    const chunkSize = 8192
+    
+    for (let i = 0; i < uint8Array.length; i += chunkSize) {
+      const chunk = uint8Array.slice(i, i + chunkSize)
+      base64 += btoa(String.fromCharCode.apply(null, chunk))
+    }
+    
+    const mimeType = validation.format === 'jpeg' ? 'image/jpeg' :
+                    validation.format === 'png' ? 'image/png' :
+                    validation.format === 'gif' ? 'image/gif' :
+                    validation.format === 'webp' ? 'image/webp' :
+                    validation.format === 'bmp' ? 'image/bmp' :
+                    'image/jpeg' // fallback
+    
+    const dataUrl = `data:${mimeType};base64,${base64}`
+    
+    logInfo('Data URL créée avec succès', {
+      originalSize: bytes.length,
+      base64Size: base64.length,
+      mimeType,
+      urlLength: dataUrl.length
+    })
+    
+    return dataUrl
+  } catch (error) {
+    logError('Erreur lors de la conversion en data URL', error, {
+      bytesLength: bytes.length,
+      errorMessage: error.message
+    })
+    return null
+  }
+}
+
+// Fonction principale pour traiter n'importe quel format d'image
+export function processImageData(imageData, fallbackUrl = '/placeholder-recipe.jpg') {
+  logDebug('Traitement des données d\'image', {
+    type: typeof imageData,
+    isArray: Array.isArray(imageData),
+    isString: typeof imageData === 'string',
+    isObject: typeof imageData === 'object',
+    length: imageData?.length
+  })
+  
+  if (!imageData) {
+    return fallbackUrl
+  }
+  
+  // URL déjà formée
+  if (typeof imageData === 'string' && (imageData.startsWith('http') || imageData.startsWith('data:'))) {
+    return imageData
+  }
+  
+  // Base64 brut
+  if (typeof imageData === 'string' && imageData.length > 100) {
+    return `data:image/jpeg;base64,${imageData}`
   }
   
   // Tableau de bytes
   if (Array.isArray(imageData)) {
-    return imageData.length > 0 && 
-           imageData.every(byte => typeof byte === 'number' && byte >= 0 && byte <= 255)
+    return convertBytesToDataUrl(imageData) || fallbackUrl
   }
   
-  return false
-}
-
-// Fonction pour obtenir des informations sur les données d'image
-export function getImageDataInfo(imageData) {
-  const info = {
-    type: typeof imageData,
-    isValid: false,
-    format: 'unknown',
-    size: 0,
-    details: {}
-  }
-  
-  if (!imageData) {
-    info.format = 'null'
-    return info
-  }
-  
-  if (typeof imageData === 'string') {
-    info.size = imageData.length
-    if (imageData.startsWith('http')) {
-      info.format = 'url'
-      info.isValid = true
-    } else if (imageData.startsWith('data:image/')) {
-      info.format = 'data-url'
-      info.isValid = true
-      info.details.mimeType = imageData.split(';')[0].split(':')[1]
-    } else if (imageData.length > 100) {
-      info.format = 'base64'
-      info.isValid = true
+  // Objet avec propriété bytes
+  if (imageData && typeof imageData === 'object') {
+    if (imageData.bytes && Array.isArray(imageData.bytes)) {
+      return convertBytesToDataUrl(imageData.bytes) || fallbackUrl
     }
-  } else if (Array.isArray(imageData)) {
-    info.size = imageData.length
-    info.format = 'bytes-array'
-    info.isValid = imageData.length > 0 && 
-                   imageData.every(byte => typeof byte === 'number' && byte >= 0 && byte <= 255)
+    if (imageData.data && Array.isArray(imageData.data)) {
+      return convertBytesToDataUrl(imageData.data) || fallbackUrl
+    }
   }
   
-  return info
-}
-
-// Fonction pour créer une image de test/debug
-export function createDebugImageDataUrl(text = 'DEBUG', width = 200, height = 200) {
-  if (typeof window === 'undefined') return '/placeholder-recipe.jpg'
-  
-  try {
-    const canvas = document.createElement('canvas')
-    canvas.width = width
-    canvas.height = height
-    
-    const ctx = canvas.getContext('2d')
-    
-    // Fond coloré
-    ctx.fillStyle = '#f3f4f6'
-    ctx.fillRect(0, 0, width, height)
-    
-    // Bordure
-    ctx.strokeStyle = '#6b7280'
-    ctx.lineWidth = 2
-    ctx.strokeRect(1, 1, width - 2, height - 2)
-    
-    // Texte
-    ctx.fillStyle = '#1f2937'
-    ctx.font = '16px Arial'
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    ctx.fillText(text, width / 2, height / 2)
-    
-    return canvas.toDataURL('image/png')
-  } catch (error) {
-    logError('Erreur création image debug', error)
-    return '/placeholder-recipe.jpg'
-  }
-}
-
-// Test de conversion pour debug
-export function testImageConversion(imageData) {
-  const info = getImageDataInfo(imageData)
-  
-  logInfo('Test de conversion d\'image', {
-    originalInfo: info,
-    isValid: info.isValid
+  logWarning('Format d\'image non supporté', {
+    type: typeof imageData,
+    sample: JSON.stringify(imageData).substring(0, 100)
   })
   
-  if (!info.isValid) {
-    logError('Données d\'image invalides pour le test', new Error('Invalid image data'), info)
-    return null
-  }
-  
-  try {
-    if (info.format === 'bytes-array') {
-      const uint8Array = new Uint8Array(imageData)
-      const base64 = btoa(String.fromCharCode.apply(null, uint8Array))
-      const dataUrl = `data:image/jpeg;base64,${base64}`
-      
-      logInfo('Conversion bytes-array réussie', {
-        originalLength: imageData.length,
-        base64Length: base64.length,
-        dataUrlLength: dataUrl.length
-      })
-      
-      return dataUrl
-    }
-    
-    return imageData // Déjà dans un format utilisable
-  } catch (error) {
-    logError('Erreur lors du test de conversion', error, { originalInfo: info })
-    return null
-  }
+  return fallbackUrl
 }
