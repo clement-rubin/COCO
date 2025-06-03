@@ -29,16 +29,56 @@ function AuthenticatedNav({ user, signOut }) {
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          cursor: 'pointer'
+          cursor: 'pointer',
+          transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+          position: 'relative',
+          overflow: 'hidden'
+        }}
+        onMouseEnter={(e) => {
+          e.target.style.transform = 'scale(1.1) translateY(-2px)'
+        }}
+        onMouseLeave={(e) => {
+          e.target.style.transform = 'scale(1) translateY(0)'
         }}
       >
-        <span className="nav-icon">
+        <span 
+          className="nav-icon"
+          style={{
+            background: user?.user_metadata?.display_name ? 
+              'linear-gradient(135deg, #FF6B35, #F7931E)' : 'transparent',
+            color: user?.user_metadata?.display_name ? 'white' : 'inherit',
+            width: user?.user_metadata?.display_name ? '28px' : 'auto',
+            height: user?.user_metadata?.display_name ? '28px' : 'auto',
+            borderRadius: user?.user_metadata?.display_name ? '50%' : '0',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: user?.user_metadata?.display_name ? '0.9rem' : '1.4rem',
+            fontWeight: user?.user_metadata?.display_name ? '700' : 'normal',
+            transition: 'all 0.3s ease',
+            position: 'relative'
+          }}
+        >
           {user?.user_metadata?.display_name ? 
             user.user_metadata.display_name.charAt(0).toUpperCase() : 
             '👤'}
+          {user?.user_metadata?.display_name && (
+            <div style={{
+              position: 'absolute',
+              inset: '-2px',
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #FF6B35, #F7931E)',
+              opacity: 0.3,
+              zIndex: -1,
+              animation: 'pulse 2s infinite'
+            }} />
+          )}
         </span>
-        <span className="nav-label">
-          {user?.user_metadata?.display_name || 'Profil'}
+        <span className="nav-label" style={{
+          transition: 'all 0.3s ease',
+          fontWeight: '500'
+        }}>
+          {user?.user_metadata?.display_name?.split(' ')[0] || 'Profil'}
         </span>
       </button>
 
@@ -47,31 +87,36 @@ function AuthenticatedNav({ user, signOut }) {
           position: 'absolute',
           bottom: '100%',
           right: '0',
-          background: 'white',
-          border: '1px solid var(--border-light)',
-          borderRadius: 'var(--border-radius-medium)',
-          padding: 'var(--spacing-sm)',
-          minWidth: '200px',
-          boxShadow: 'var(--shadow-medium)',
-          zIndex: 1000
+          background: 'rgba(20, 20, 30, 0.95)',
+          backdropFilter: 'blur(20px)',
+          border: '1px solid rgba(255, 107, 53, 0.2)',
+          borderRadius: '16px',
+          padding: '12px',
+          minWidth: '220px',
+          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
+          zIndex: 1000,
+          animation: 'menuSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+          transformOrigin: 'bottom right'
         }}>
           <div style={{
-            padding: 'var(--spacing-sm)',
-            borderBottom: '1px solid var(--border-light)',
-            marginBottom: 'var(--spacing-sm)'
+            padding: '12px',
+            borderBottom: '1px solid rgba(255, 107, 53, 0.15)',
+            marginBottom: '8px',
+            borderRadius: '8px',
+            background: 'rgba(255, 107, 53, 0.05)'
           }}>
             <p style={{ 
               margin: 0, 
-              fontWeight: '600',
-              color: 'var(--text-dark)',
-              fontSize: '0.9rem'
+              fontWeight: '700',
+              color: 'white',
+              fontSize: '1rem'
             }}>
               {user?.user_metadata?.display_name || 'Utilisateur'}
             </p>
             <p style={{ 
-              margin: 0, 
-              color: 'var(--text-medium)',
-              fontSize: '0.8rem'
+              margin: '4px 0 0 0', 
+              color: 'rgba(255, 255, 255, 0.7)',
+              fontSize: '0.85rem'
             }}>
               {user?.email}
             </p>
@@ -80,48 +125,92 @@ function AuthenticatedNav({ user, signOut }) {
           <Link 
             href="/mes-recettes" 
             style={{
-              display: 'block',
-              padding: 'var(--spacing-sm)',
-              color: 'var(--text-dark)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '12px',
+              color: 'white',
               textDecoration: 'none',
-              borderRadius: 'var(--border-radius-small)',
-              fontSize: '0.9rem'
+              borderRadius: '10px',
+              fontSize: '0.95rem',
+              fontWeight: '500',
+              transition: 'all 0.3s ease',
+              marginBottom: '4px'
             }}
             onClick={() => setShowUserMenu(false)}
+            onMouseEnter={(e) => {
+              e.target.style.background = 'rgba(255, 107, 53, 0.1)'
+              e.target.style.transform = 'translateX(4px)'
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.background = 'transparent'
+              e.target.style.transform = 'translateX(0)'
+            }}
           >
-            📝 Mes recettes
+            <span style={{ fontSize: '1.2rem' }}>📝</span>
+            Mes recettes
           </Link>
 
           <Link 
             href="/profil" 
             style={{
-              display: 'block',
-              padding: 'var(--spacing-sm)',
-              color: 'var(--text-dark)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '12px',
+              color: 'white',
               textDecoration: 'none',
-              borderRadius: 'var(--border-radius-small)',
-              fontSize: '0.9rem'
+              borderRadius: '10px',
+              fontSize: '0.95rem',
+              fontWeight: '500',
+              transition: 'all 0.3s ease',
+              marginBottom: '8px'
             }}
             onClick={() => setShowUserMenu(false)}
+            onMouseEnter={(e) => {
+              e.target.style.background = 'rgba(255, 107, 53, 0.1)'
+              e.target.style.transform = 'translateX(4px)'
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.background = 'transparent'
+              e.target.style.transform = 'translateX(0)'
+            }}
           >
-            👤 Mon profil
+            <span style={{ fontSize: '1.2rem' }}>👤</span>
+            Mon profil
           </Link>
 
           <button
             onClick={handleSignOut}
             style={{
               width: '100%',
-              padding: 'var(--spacing-sm)',
-              background: 'none',
-              border: 'none',
-              color: 'var(--primary-orange)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '12px',
+              background: 'rgba(255, 87, 34, 0.1)',
+              border: '1px solid rgba(255, 87, 34, 0.2)',
+              color: '#FF5722',
               textAlign: 'left',
               cursor: 'pointer',
-              borderRadius: 'var(--border-radius-small)',
-              fontSize: '0.9rem'
+              borderRadius: '10px',
+              fontSize: '0.95rem',
+              fontWeight: '600',
+              transition: 'all 0.3s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.background = 'rgba(255, 87, 34, 0.2)'
+              e.target.style.borderColor = 'rgba(255, 87, 34, 0.4)'
+              e.target.style.transform = 'scale(1.02)'
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.background = 'rgba(255, 87, 34, 0.1)'
+              e.target.style.borderColor = 'rgba(255, 87, 34, 0.2)'
+              e.target.style.transform = 'scale(1)'
             }}
           >
-            🚪 Se déconnecter
+            <span style={{ fontSize: '1.2rem' }}>🚪</span>
+            Se déconnecter
           </button>
         </div>
       )}
@@ -472,6 +561,95 @@ function AppContent({ Component, pageProps }) {
             transform: translateY(0);
             opacity: 1;
           }
+        }
+        
+        @keyframes menuSlideUp {
+          from {
+            transform: translateY(10px) scale(0.95);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+          }
+        }
+        
+        @keyframes pulse {
+          0%, 100% { 
+            opacity: 0.3; 
+            transform: scale(1); 
+          }
+          50% { 
+            opacity: 0.6; 
+            transform: scale(1.05); 
+          }
+        }
+        
+        /* Amélioration de la navigation */
+        .nav-item {
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+          position: relative;
+        }
+        
+        .nav-item:hover {
+          transform: scale(1.1) translateY(-2px);
+        }
+        
+        .nav-item.active {
+          transform: scale(1.05);
+        }
+        
+        .nav-item.active .nav-icon::after {
+          content: '';
+          position: absolute;
+          bottom: -25px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 20px;
+          height: 3px;
+          background: linear-gradient(90deg, #FF6B35, #F7931E);
+          border-radius: 3px;
+          animation: activeIndicator 0.3s ease;
+        }
+        
+        @keyframes activeIndicator {
+          from { width: 0; opacity: 0; }
+          to { width: 20px; opacity: 1; }
+        }
+        
+        .add-button {
+          background: linear-gradient(135deg, #FF6B35, #F7931E) !important;
+          border-radius: 50% !important;
+          width: 56px !important;
+          height: 56px !important;
+          box-shadow: 0 8px 25px rgba(255, 107, 53, 0.4) !important;
+          position: relative;
+          overflow: hidden;
+        }
+        
+        .add-button::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+          transition: left 0.6s;
+        }
+        
+        .add-button:hover::before {
+          left: 100%;
+        }
+        
+        .add-button:hover {
+          transform: scale(1.15) translateY(-4px) !important;
+          box-shadow: 0 12px 35px rgba(255, 107, 53, 0.6) !important;
+        }
+        
+        .add-button .nav-icon {
+          font-size: 1.8rem !important;
+          color: white !important;
         }
       `}</style>
     </>

@@ -93,28 +93,84 @@ export default function SubmitRecipe() {
   }
 
   const nextStep = () => {
-    if (step < 3) setStep(step + 1)
+    if (step < 3) {
+      // Animation de sortie
+      const currentContent = document.querySelector(`.${styles.stepContent}`)
+      if (currentContent) {
+        currentContent.style.animation = 'slideOutLeft 0.3s ease forwards'
+        setTimeout(() => {
+          setStep(step + 1)
+        }, 300)
+      } else {
+        setStep(step + 1)
+      }
+    }
   }
 
   const prevStep = () => {
-    if (step > 1) setStep(step - 1)
+    if (step > 1) {
+      // Animation de sortie
+      const currentContent = document.querySelector(`.${styles.stepContent}`)
+      if (currentContent) {
+        currentContent.style.animation = 'slideOutRight 0.3s ease forwards'
+        setTimeout(() => {
+          setStep(step - 1)
+        }, 300)
+      } else {
+        setStep(step - 1)
+      }
+    }
   }
 
   const handleSubmit = async () => {
     setIsSubmitting(true)
     
-    // Simulation d'envoi
+    // Animation de pulsation sur le bouton
+    const submitBtn = document.querySelector(`.${styles.submitBtn}`)
+    if (submitBtn) {
+      submitBtn.style.animation = 'submitPulse 0.5s ease'
+    }
+    
+    // Simulation d'envoi avec feedback visuel
     await new Promise(resolve => setTimeout(resolve, 2000))
     
-    // Redirection vers le feed avec animation de succès
+    // Animation de succès
     const successToast = document.createElement('div')
     successToast.innerHTML = '🎉 Recette publiée avec succès !'
     successToast.className = styles.successToast
     document.body.appendChild(successToast)
     
+    // Confetti effect
+    createConfetti()
+    
     setTimeout(() => {
       router.push('/')
     }, 1500)
+  }
+
+  const createConfetti = () => {
+    for (let i = 0; i < 50; i++) {
+      const confetti = document.createElement('div')
+      confetti.style.cssText = `
+        position: fixed;
+        width: 10px;
+        height: 10px;
+        background: ${['#FF6B35', '#F7931E', '#4CAF50', '#2196F3'][Math.floor(Math.random() * 4)]};
+        left: ${Math.random() * 100}vw;
+        top: -10px;
+        border-radius: 50%;
+        pointer-events: none;
+        z-index: 10000;
+        animation: confettiFall ${2 + Math.random() * 3}s linear forwards;
+      `
+      document.body.appendChild(confetti)
+      
+      setTimeout(() => {
+        if (confetti.parentNode) {
+          confetti.parentNode.removeChild(confetti)
+        }
+      }, 5000)
+    }
   }
 
   const renderStep1 = () => (
@@ -686,6 +742,28 @@ export default function SubmitRecipe() {
           to { opacity: 1; transform: translateY(0); }
         }
         
+        @keyframes slideOutLeft {
+          from { opacity: 1; transform: translateX(0); }
+          to { opacity: 0; transform: translateX(-30px); }
+        }
+        
+        @keyframes slideOutRight {
+          from { opacity: 1; transform: translateX(0); }
+          to { opacity: 0; transform: translateX(30px); }
+        }
+        
+        @keyframes submitPulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.05); }
+        }
+        
+        @keyframes confettiFall {
+          to {
+            transform: translateY(100vh) rotate(720deg);
+            opacity: 0;
+          }
+        }
+        
         @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
@@ -701,7 +779,60 @@ export default function SubmitRecipe() {
           animation: fadeIn 0.5s ease forwards;
         }
         
-        /* Améliorations globales pour le contraste */
+        /* Style amélioré pour les interactions */
+        .${styles.input}:focus, 
+        .${styles.textarea}:focus {
+          animation: inputFocus 0.3s ease;
+        }
+        
+        @keyframes inputFocus {
+          from { transform: scale(1); }
+          to { transform: scale(1.01); }
+        }
+        
+        /* Amélioration des hover effects */
+        .${styles.categoryBtn}:hover,
+        .${styles.difficultyBtn}:hover,
+        .${styles.portionBtn}:hover {
+          animation: buttonHover 0.3s ease;
+        }
+        
+        @keyframes buttonHover {
+          0% { transform: translateY(0); }
+          50% { transform: translateY(-2px); }
+          100% { transform: translateY(-3px); }
+        }
+        
+        /* Animation pour les éléments de formulaire */
+        .${styles.formGroup} {
+          animation: formGroupSlide 0.4s ease forwards;
+          animation-delay: calc(var(--index, 0) * 0.1s);
+        }
+        
+        @keyframes formGroupSlide {
+          from { 
+            opacity: 0; 
+            transform: translateY(20px); 
+          }
+          to { 
+            opacity: 1; 
+            transform: translateY(0); 
+          }
+        }
+        
+        /* Success animation pour les étapes complétées */
+        .${styles.stepDot}.${styles.completed} {
+          animation: successBounce 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+        
+        @keyframes successBounce {
+          0% { transform: scale(0.3); }
+          50% { transform: scale(1.3); }
+          70% { transform: scale(0.9); }
+          100% { transform: scale(1.15); }
+        }
+        
+        /* Amélioration du contraste et accessibilité */
         .${styles.container} {
           background-color: rgb(12, 12, 18);
         }
@@ -715,21 +846,32 @@ export default function SubmitRecipe() {
           color: rgba(255, 255, 255, 0.4);
         }
         
-        /* Mise en évidence des zones interactives */
-        .${styles.categoryBtn}:hover,
-        .${styles.difficultyBtn}:hover,
-        .${styles.portionBtn}:hover {
-          box-shadow: 0 0 15px rgba(255, 107, 53, 0.3);
+        /* Ajout d'effets de particules sur les interactions */
+        .${styles.submitBtn}:active::after {
+          content: '';
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          width: 100px;
+          height: 100px;
+          background: radial-gradient(circle, rgba(255, 255, 255, 0.5) 0%, transparent 70%);
+          border-radius: 50%;
+          transform: translate(-50%, -50%);
+          animation: ripple 0.6s ease-out;
+          pointer-events: none;
         }
         
-        .${styles.section} {
-          box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
-        }
-        
-        /* Style pour les zones d'aide et instructions */
-        .${styles.stepHeader},
-        .${styles.sectionHelp} {
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        @keyframes ripple {
+          from { 
+            width: 0; 
+            height: 0; 
+            opacity: 1; 
+          }
+          to { 
+            width: 200px; 
+            height: 200px; 
+            opacity: 0; 
+          }
         }
       `}</style>
     </div>
