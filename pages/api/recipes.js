@@ -108,6 +108,23 @@ export default async function handler(req, res) {
         return
       }
 
+      // Vérification que la taille de l'image n'est pas excessive
+      if (data.image && Array.isArray(data.image) && data.image.length > 10 * 1024 * 1024) {
+        logWarning('[API] Image trop volumineuse', {
+          imageSizeBytes: data.image.length,
+          maxSizeBytes: 10 * 1024 * 1024
+        })
+        
+        res.status(400).json({
+          message: 'L\'image est trop volumineuse (max 10 Mo)',
+          details: {
+            providedSizeBytes: data.image.length,
+            maxSizeBytes: 10 * 1024 * 1024
+          }
+        })
+        return
+      }
+
       // Test de structure de la table selon le schéma exact
       try {
         logInfo('[API] Vérification de la structure de la table recipes selon le schéma')
@@ -242,90 +259,122 @@ export default async function handler(req, res) {
         schemaCompliant: true
       })
       
-      const { data: insertedData, error } = await supabase
-        .from('recipes')
-        .insert([newRecipe])
-        .select()
-      
-      if (error) {
-        logError('[API] Erreur lors de l\'insertion de la recette', error, {
-          recipeTitle: newRecipe.title,
-          errorCode: error.code,
-          errorMessage: error.message,
-          errorDetails: error.details,
-          errorHint: error.hint,
-          schemaColumns: Object.keys(newRecipe)
+      try {
+        const { data: insertedData, error } = await supabase
+          .from('recipes')
+          .insert([newRecipe])
+          .select()
+        
+        if (error) {
+          logError('[API] Erreur lors de l\'insertion de la recette', error, {
+            recipeTitle: newRecipe.title,
+            errorCode: error.code,
+            errorMessage: error.message,
+            errorDetails: error.details,
+            errorHint: error.hint,
+            schemaColumns: Object.keys(newRecipe)
+          })
+          
+          // Messages d'erreur spécifiques
+          if (error.code === 'PGRST204' || error.code === '42703') {
+            res.status(500).json({ 
+              message: 'Erreur de structure de base de données',
+              details: 'La table recipes ne correspond pas au schéma attendu.',
+              error: error.message,
+              expectedSchema: {
+                id: 'uuid PRIMARY KEY DEFAULT gen_random_uuid()',
+                title: 'text NOT NULL',
+                description: 'text',
+                image: 'bytea',
+                prepTime: 'text',
+                cookTime: 'text',
+                category: 'text',
+                author: 'text',
+                ingredients: 'json',
+                instructions: 'json',
+                created_at: 'timestamp with time zone',
+                updated_at: 'timestamp with time zone',
+                difficulty: 'text DEFAULT \'Facile\''
+              }
+            })
+            return
+          }
+
+          if (error.code === '23502') {
+            res.status(400).json({
+              message: 'Champ obligatoire manquant',
+              details: 'Le champ title est requis et ne peut pas être null.',
+              error: error.message,
+              requiredFields: ['title']
+            })
+            return
+          }
+
+          if (error.code === '22001') {
+            res.status(400).json({
+              message: 'Données trop longues',
+              details: 'Une des valeurs dépasse la taille maximale autorisée.',
+              error: error.message,
+              dataSize: JSON.stringify(newRecipe).length
+            })
+            return
+          }
+          
+          if (error.code === '42P01') {
+            res.status(500).json({
+              message: 'Table non trouvée',
+              details: 'La table recipes n\'existe pas dans la base de données.',
+              error: error.message,
+              solution: 'Vérifiez que vous avez bien créé la table recipes dans votre base Supabase.'
+            })
+            return
+          }
+          
+          if (error.code === '28000' || error.code === '28P01') {
+            res.status(401).json({
+              message: 'Erreur d\'authentification',
+              details: 'Les identifiants de connexion à la base de données sont incorrects.',
+              error: error.message,
+              solution: 'Vérifiez vos variables d\'environnement SUPABASE_URL et SUPABASE_KEY.'
+            })
+            return
+          }
+          
+          res.status(500).json({
+            message: 'Erreur lors de la création de la recette',
+            error: error.message,
+            code: error.code,
+            details: error.details,
+            hint: error.hint
+          })
+          return
+        }
+        
+        logInfo('[API] Recette créée avec succès dans la base', {
+          recipeId: insertedData[0]?.id,
+          recipeTitle: insertedData[0]?.title,
+          createdAt: insertedData[0]?.created_at,
+          hasImageBytes: !!insertedData[0]?.image,
+          isUUID: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(insertedData[0]?.id)
         })
         
-        // Messages d'erreur spécifiques
-        if (error.code === 'PGRST204' || error.code === '42703') {
-          res.status(500).json({ 
-            message: 'Erreur de structure de base de données',
-            details: 'La table recipes ne correspond pas au schéma attendu.',
-            error: error.message,
-            expectedSchema: {
-              id: 'uuid PRIMARY KEY DEFAULT gen_random_uuid()',
-              title: 'text NOT NULL',
-              description: 'text',
-              image: 'bytea',
-              prepTime: 'text',
-              cookTime: 'text',
-              category: 'text',
-              author: 'text',
-              ingredients: 'json',
-              instructions: 'json',
-              created_at: 'timestamp with time zone',
-              updated_at: 'timestamp with time zone',
-              difficulty: 'text DEFAULT \'Facile\''
-            }
-          })
-          return
-        }
-
-        if (error.code === '23502') {
-          res.status(400).json({
-            message: 'Champ obligatoire manquant',
-            details: 'Le champ title est requis et ne peut pas être null.',
-            error: error.message,
-            requiredFields: ['title']
-          })
-          return
-        }
-
-        if (error.code === '22001') {
-          res.status(400).json({
-            message: 'Données trop longues',
-            details: 'Une des valeurs dépasse la taille maximale autorisée.',
-            error: error.message,
-            dataSize: JSON.stringify(newRecipe).length
-          })
-          return
-        }
-        
+        res.status(201).json({
+          message: 'Recette créée avec succès',
+          id: insertedData[0]?.id,
+          title: insertedData[0]?.title,
+          created_at: insertedData[0]?.created_at
+        })
+      } catch (insertError) {
+        logError('[API] Exception lors de l\'insertion', insertError, {
+          errorMessage: insertError.message,
+          stack: insertError.stack
+        })
         res.status(500).json({
-          message: 'Erreur lors de la création de la recette',
-          error: error.message,
-          code: error.code,
-          details: error.details,
-          hint: error.hint
+          message: 'Exception lors de l\'insertion de la recette',
+          error: insertError.message,
+          reference: `err-${Date.now()}`
         })
-        return
       }
-      
-      logInfo('[API] Recette créée avec succès dans la base', {
-        recipeId: insertedData[0]?.id,
-        recipeTitle: insertedData[0]?.title,
-        createdAt: insertedData[0]?.created_at,
-        hasImageBytes: !!insertedData[0]?.image,
-        isUUID: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(insertedData[0]?.id)
-      })
-      
-      res.status(201).json({
-        message: 'Recette créée avec succès',
-        id: insertedData[0]?.id,
-        title: insertedData[0]?.title,
-        created_at: insertedData[0]?.created_at
-      })
       return
     }
 

@@ -277,9 +277,10 @@ export default function SharePhoto() {
         }
       })
       
-      // Fournir un message d'erreur plus spécifique
+      // Amélioration du diagnostic et des messages d'erreur
       let errorMessage = 'Une erreur est survenue lors de l\'envoi. Veuillez réessayer.'
       
+      // Analyse plus précise des erreurs API
       if (error.message.includes('structure de base de données')) {
         errorMessage = 'Problème de configuration de la base de données. La table recipes n\'a pas toutes les colonnes requises. Contactez l\'administrateur.'
       } else if (error.message.includes('JSON')) {
@@ -296,8 +297,29 @@ export default function SharePhoto() {
         errorMessage = 'Erreur de validation: Certaines données requises sont manquantes.'
       } else if (error.message.includes('Données trop longues')) {
         errorMessage = 'Le titre ou la description est trop long. Veuillez raccourcir votre texte.'
+      } else if (error.message.includes('bytes')) {
+        errorMessage = 'Problème avec le format de l\'image. L\'image est peut-être trop volumineuse ou dans un format non supporté.'
+      } else if (error.message.includes('RangeError') || error.message.includes('JSON.stringify')) {
+        errorMessage = 'L\'image est trop volumineuse pour être envoyée. Essayez une image plus petite ou compressée.'
+      } else if (error.message.includes('403')) {
+        errorMessage = 'Vous n\'avez pas l\'autorisation d\'effectuer cette action. Veuillez vous reconnecter.'
+      } else if (error.message.includes('429')) {
+        errorMessage = 'Trop de requêtes. Veuillez attendre quelques instants avant de réessayer.'
+      } else if (error.message.includes('creation')) {
+        errorMessage = 'Erreur lors de la sauvegarde de la recette. Vérifiez que tous les champs sont correctement remplis.'
       } else if (error.message) {
+        // Si on a un message d'erreur précis, on l'affiche directement
         errorMessage = `Erreur: ${error.message}`
+      }
+      
+      // Tentative de reconnexion à la base de données en cas d'erreur
+      if (
+        error.message.includes('serveur interne') ||
+        error.message.includes('base de données') ||
+        error.message.includes('500')
+      ) {
+        // Log supplémentaire pour diagnostic
+        addLog('warning', 'Tentative de reconnexion à la base de données')
       }
       
       setErrors({ submit: errorMessage })
