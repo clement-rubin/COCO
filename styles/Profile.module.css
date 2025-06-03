@@ -863,7 +863,22 @@
 
 /* Reduced Motion Support */
 @media (prefers-reduced-motion: reduce) {
-  * {
+  .container,
+  .container::before,
+  .profileHeader,
+  .avatar,
+  .avatar::after,
+  .statItem,
+  .statItem::before,
+  .activityItem,
+  .activityItem::before,
+  .activityItem::after,
+  .activityIcon,
+  .logoutBtn,
+  .logoutBtn::before,
+  .settingToggle,
+  .settingToggle::after,
+  .loadingIcon {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
