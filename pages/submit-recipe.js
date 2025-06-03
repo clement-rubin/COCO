@@ -615,86 +615,71 @@ export default function SubmitRecipe() {
       <Head>
         <title>Partager une recette - COCO</title>
         <meta name="description" content="Partagez votre recette avec la communauté COCO" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
       </Head>
 
-      <button
-        onClick={() => router.push('/')}
-        className={styles.backBtn}
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-        Retour
-      </button>
+      {/* Header mobile fixe */}
+      <div className={styles.mobileHeader}>
+        <button
+          onClick={() => router.push('/')}
+          className={styles.mobileBackBtn}
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+        
+        <div className={styles.mobileTitle}>
+          <h1>Nouvelle recette</h1>
+          <div className={styles.mobileProgress}>
+            Étape {step} sur 3
+          </div>
+        </div>
 
-      <div className={styles.stepIndicator}>
-        <div className={`${styles.stepDot} ${step >= 1 ? styles.active : ''} ${step > 1 ? styles.completed : ''}`}>
-          {step > 1 ? (
-            <svg className={styles.checkIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M5 13L9 17L19 7" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          ) : (
-            <span>1</span>
-          )}
-        </div>
-        <div className={`${styles.stepLine} ${step >= 2 ? styles.active : ''}`}></div>
-        <div className={`${styles.stepDot} ${step >= 2 ? styles.active : ''} ${step > 2 ? styles.completed : ''}`}>
-          {step > 2 ? (
-            <svg className={styles.checkIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M5 13L9 17L19 7" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          ) : (
-            <span>2</span>
-          )}
-        </div>
-        <div className={`${styles.stepLine} ${step >= 3 ? styles.active : ''}`}></div>
-        <div className={`${styles.stepDot} ${step >= 3 ? styles.active : ''}`}>
-          <span>3</span>
+        <div className={styles.mobileStepDots}>
+          {[1, 2, 3].map(num => (
+            <div 
+              key={num}
+              className={`${styles.mobileDot} ${step >= num ? styles.active : ''}`}
+            />
+          ))}
         </div>
       </div>
 
-      <div className={styles.formContainer}>
+      {/* Contenu principal avec scroll */}
+      <div className={styles.mobileContent}>
         <div className={styles.formWrapper}>
           {step === 1 && renderStep1()}
           {step === 2 && renderStep2()}
           {step === 3 && renderStep3()}
         </div>
+      </div>
 
-        <div className={styles.actions}>
+      {/* Navigation mobile fixe en bas */}
+      <div className={styles.mobileNavigation}>
+        <div className={styles.mobileActions}>
           {step > 1 && (
             <button
               type="button"
               onClick={prevStep}
-              className={styles.secondaryBtn}
+              className={styles.mobileSecondaryBtn}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M15 19L8 12L15 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
               Précédent
             </button>
           )}
           
-          <div className={styles.actionInfo}>
-            {step === 1 && !formData.title && (
-              <small>Veuillez renseigner au minimum le titre</small>
-            )}
-            {step === 2 && formData.ingredients.every(i => !i) && (
-              <small>Ajoutez au moins un ingrédient</small>
-            )}
-            {step === 3 && (
-              <small>Les médias sont optionnels mais recommandés</small>
-            )}
-          </div>
-          
           {step < 3 ? (
             <button
               type="button"
               onClick={nextStep}
-              className={styles.primaryBtn}
+              className={`${styles.mobilePrimaryBtn} ${step === 1 && !formData.title ? styles.disabled : ''}`}
               disabled={step === 1 && !formData.title}
             >
               Suivant
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M9 5L16 12L9 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </button>
@@ -702,7 +687,7 @@ export default function SubmitRecipe() {
             <button
               type="button"
               onClick={handleSubmit}
-              className={styles.submitBtn}
+              className={`${styles.mobileSubmitBtn} ${isSubmitting || !formData.title || formData.ingredients.every(i => !i) ? styles.disabled : ''}`}
               disabled={isSubmitting || !formData.title || formData.ingredients.every(i => !i)}
             >
               {isSubmitting ? (
@@ -713,10 +698,23 @@ export default function SubmitRecipe() {
               ) : (
                 <>
                   <span className={styles.submitIcon}>🚀</span>
-                  Publier la recette
+                  Publier
                 </>
               )}
             </button>
+          )}
+        </div>
+        
+        {/* Indicateur de validation mobile */}
+        <div className={styles.mobileValidation}>
+          {step === 1 && !formData.title && (
+            <small>📝 Titre requis pour continuer</small>
+          )}
+          {step === 2 && formData.ingredients.every(i => !i) && (
+            <small>🥘 Ajoutez au moins un ingrédient</small>
+          )}
+          {step === 3 && (
+            <small>📸 Photos optionnelles mais recommandées</small>
           )}
         </div>
       </div>
