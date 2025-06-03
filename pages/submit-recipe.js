@@ -694,6 +694,37 @@ export default function SubmitRecipe() {
         .${styles.stepContent} {
           animation: fadeIn 0.5s ease forwards;
         }
+        
+        /* Améliorations globales pour le contraste */
+        .${styles.container} {
+          background-color: rgb(12, 12, 18);
+        }
+        
+        .${styles.formGroup} label {
+          text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+        }
+        
+        .${styles.input}::placeholder, 
+        .${styles.textarea}::placeholder {
+          color: rgba(255, 255, 255, 0.4);
+        }
+        
+        /* Mise en évidence des zones interactives */
+        .${styles.categoryBtn}:hover,
+        .${styles.difficultyBtn}:hover,
+        .${styles.portionBtn}:hover {
+          box-shadow: 0 0 15px rgba(255, 107, 53, 0.3);
+        }
+        
+        .${styles.section} {
+          box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* Style pour les zones d'aide et instructions */
+        .${styles.stepHeader},
+        .${styles.sectionHelp} {
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
       `}</style>
     </div>
   )
