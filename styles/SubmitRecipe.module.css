@@ -460,24 +460,23 @@
   }
 }
 
-/* Améliorations tactiles iOS/Android */
-:global(*) {
+/* Tactile improvements - applied via component-level styles */
+.container * {
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
 }
 
-:global(input), :global(textarea) {
+.input, .textarea {
   -webkit-user-select: text;
   user-select: text;
 }
 
 /* Prévention du zoom sur les inputs iOS */
 @media screen and (max-width: 768px) {
-  :global(input[type="text"]),
-  :global(input[type="number"]),
-  :global(textarea) {
+  .input,
+  .textarea {
     font-size: 16px !important;
   }
 }
