@@ -1,39 +1,42 @@
 .container {
-  max-width: 1200px;
+  max-width: var(--container-sm);
   margin: 0 auto;
-  padding: 1rem;
+  padding: var(--spacing-md);
 }
 
 .container h1 {
   text-align: center;
-  margin-bottom: 1rem;
+  margin-bottom: var(--spacing-md);
+  font-size: 1.75rem;
 }
 
 .intro {
   text-align: center;
-  max-width: 700px;
-  margin: 0 auto 2rem;
+  max-width: 350px;
+  margin: 0 auto var(--spacing-xl);
   color: var(--text-light);
+  font-size: 0.95rem;
+  line-height: 1.6;
 }
 
 .categoriesGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 2rem;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--spacing-lg);
 }
 
 .categoryCard {
   position: relative;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
   box-shadow: var(--shadow);
   transition: var(--transition);
-  height: 200px;
+  height: 180px;
 }
 
 .categoryCard:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
 }
 
 .imageContainer {
@@ -51,24 +54,34 @@
   bottom: 0;
   left: 0;
   right: 0;
-  padding: 1.5rem;
+  padding: var(--spacing-lg);
   background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
   color: white;
 }
 
 .categoryContent h2 {
-  margin-bottom: 0.3rem;
-  font-size: 1.5rem;
+  margin-bottom: 0.25rem;
+  font-size: 1.25rem;
+  font-weight: 600;
 }
 
 .categoryContent p {
   margin: 0;
-  font-size: 0.9rem;
-  opacity: 0.8;
+  font-size: 0.85rem;
+  opacity: 0.9;
 }
 
 @media (max-width: 768px) {
+  .container {
+    padding: var(--spacing-sm);
+  }
+  
   .categoriesGrid {
     grid-template-columns: 1fr;
+    gap: var(--spacing-md);
+  }
+  
+  .categoryCard {
+    height: 160px;
   }
 }

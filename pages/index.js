@@ -153,22 +153,23 @@ export default function Home() {
         boxShadow: isScrolled ? 'var(--shadow-soft)' : 'none'
       }}>
         <div style={{
-          maxWidth: '430px',
+          maxWidth: '400px',
           margin: '0 auto',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between'
+          justifyContent: 'space-between',
+          padding: '0 var(--spacing-md)'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)' }}>
             <div style={{
-              width: '40px',
-              height: '40px',
+              width: '36px',
+              height: '36px',
               background: 'var(--gradient-hero)',
-              borderRadius: '12px',
+              borderRadius: 'var(--radius-lg)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '1.2rem',
+              fontSize: '1.1rem',
               boxShadow: 'var(--shadow-soft)',
               transition: 'all 0.3s ease'
             }}>
@@ -177,7 +178,7 @@ export default function Home() {
             {user && (
               <span style={{ 
                 fontWeight: '600', 
-                fontSize: '0.9rem', 
+                fontSize: '0.85rem',
                 color: 'var(--primary-orange)',
                 opacity: isScrolled ? 1 : 0.9,
                 transition: 'opacity 0.3s ease'
@@ -240,17 +241,17 @@ export default function Home() {
         }} />
 
         <div style={{
-          maxWidth: '430px',
+          maxWidth: '400px',
           margin: '0 auto',
-          padding: '2.5rem 1.5rem',
+          padding: 'var(--spacing-xl) var(--spacing-lg)',
           textAlign: 'center',
           position: 'relative',
           zIndex: 3
         }}>
           <h1 style={{
-            fontSize: '2.2rem',
+            fontSize: '1.8rem',
             fontWeight: '700',
-            margin: '0 0 0.5rem 0',
+            margin: '0 0 var(--spacing-sm) 0',
             lineHeight: '1.2',
             background: 'linear-gradient(45deg, #FFFFFF, #FFE4D6, #FFFFFF)',
             WebkitBackgroundClip: 'text',
@@ -263,10 +264,10 @@ export default function Home() {
           </h1>
           
           <p style={{
-            fontSize: '1rem',
+            fontSize: '0.95rem',
             opacity: 0.95,
-            margin: '0 0 2rem 0',
-            maxWidth: '300px',
+            margin: '0 0 var(--spacing-xl) 0',
+            maxWidth: '280px',
             marginLeft: 'auto',
             marginRight: 'auto',
             textShadow: '0 1px 10px rgba(0,0,0,0.1)'
@@ -339,11 +340,11 @@ export default function Home() {
 
       {/* Contenu principal avec fond blanc fluide */}
       <div style={{ 
-        maxWidth: '430px', 
+        maxWidth: '400px', 
         margin: '0 auto',
         position: 'relative',
         zIndex: 1,
-        padding: '0.5rem 0',
+        padding: 'var(--spacing-sm) 0',
         background: 'white',
         borderRadius: '0',
         minHeight: '50vh'

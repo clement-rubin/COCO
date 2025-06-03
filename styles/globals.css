@@ -25,13 +25,20 @@
   --border-medium: #DEE2E6;
   --border-focus: var(--primary-orange);
   
-  /* Espacement */
+  /* Espacement optimisé pour mobile */
   --spacing-xs: 0.25rem;
   --spacing-sm: 0.5rem;
-  --spacing-md: 1rem;
-  --spacing-lg: 1.5rem;
-  --spacing-xl: 2rem;
-  --spacing-2xl: 3rem;
+  --spacing-md: 0.75rem;
+  --spacing-lg: 1rem;
+  --spacing-xl: 1.5rem;
+  --spacing-2xl: 2rem;
+  
+  /* Containers optimisés */
+  --container-mobile: 100%;
+  --container-sm: 480px;
+  --container-md: 768px;
+  --container-lg: 1024px;
+  --container-xl: 1200px;
   
   /* Rayons de bordure */
   --radius-sm: 0.375rem;
@@ -79,9 +86,9 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Application mobile */
+/* Application mobile optimisée */
 .mobile-app {
-  max-width: 430px;
+  max-width: var(--container-sm);
   margin: 0 auto;
   background: var(--bg-primary);
   min-height: 100vh;
@@ -107,9 +114,9 @@ body {
   gap: var(--spacing-xs);
 }
 
-/* Contenu principal */
+/* Contenu principal optimisé */
 .app-content {
-  padding-bottom: 80px;
+  padding: 0 var(--spacing-md) 80px;
   min-height: calc(100vh - 120px);
 }
 
@@ -182,11 +189,23 @@ body {
   font-weight: 500;
 }
 
-/* Conteneur principal */
+/* Layout containers standardisés */
 .container {
-  max-width: 1200px;
+  max-width: var(--container-sm);
   margin: 0 auto;
   padding: 0 var(--spacing-md);
+}
+
+.container-sm {
+  max-width: var(--container-sm);
+  margin: 0 auto;
+  padding: 0 var(--spacing-md);
+}
+
+.container-lg {
+  max-width: var(--container-md);
+  margin: 0 auto;
+  padding: 0 var(--spacing-lg);
 }
 
 /* Cartes */

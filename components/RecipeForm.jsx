@@ -387,28 +387,29 @@ export default function RecipeForm({ initialData = {}, onSubmit, onCancel, isEdi
 
       <style jsx>{`
         .recipe-form-container {
-          max-width: 800px;
+          max-width: 480px;
           margin: 0 auto;
-          padding: 20px;
+          padding: var(--spacing-md);
         }
 
         .recipe-form {
           background: white;
-          border-radius: 12px;
-          padding: 32px;
+          border-radius: var(--radius-lg);
+          padding: var(--spacing-xl);
           box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
         }
 
         .form-header h2 {
-          margin: 0 0 32px 0;
+          margin: 0 0 var(--spacing-xl) 0;
           color: #333;
-          font-size: 1.75rem;
+          font-size: 1.5rem;
           font-weight: 600;
+          text-align: center;
         }
 
         .form-section {
-          margin-bottom: 32px;
-          padding-bottom: 24px;
+          margin-bottom: var(--spacing-xl);
+          padding-bottom: var(--spacing-lg);
           border-bottom: 1px solid #f0f0f0;
         }
 
@@ -420,29 +421,29 @@ export default function RecipeForm({ initialData = {}, onSubmit, onCancel, isEdi
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 20px;
+          margin-bottom: var(--spacing-lg);
         }
 
         .section-header h3 {
           margin: 0;
           color: #333;
-          font-size: 1.25rem;
+          font-size: 1.1rem;
           font-weight: 600;
         }
 
         .form-group {
-          margin-bottom: 20px;
+          margin-bottom: var(--spacing-lg);
         }
 
         .form-row {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-          gap: 16px;
+          grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+          gap: var(--spacing-md);
         }
 
         label {
           display: block;
-          margin-bottom: 6px;
+          margin-bottom: var(--spacing-xs);
           color: #555;
           font-weight: 500;
           font-size: 0.9rem;
@@ -450,10 +451,10 @@ export default function RecipeForm({ initialData = {}, onSubmit, onCancel, isEdi
 
         input, select, textarea {
           width: 100%;
-          padding: 12px 16px;
+          padding: var(--spacing-md);
           border: 2px solid #e1e5e9;
-          border-radius: 8px;
-          font-size: 1rem;
+          border-radius: var(--radius-md);
+          font-size: 0.95rem;
           transition: all 0.2s ease;
           box-sizing: border-box;
         }
@@ -472,7 +473,7 @@ export default function RecipeForm({ initialData = {}, onSubmit, onCancel, isEdi
           display: block;
           color: #ef4444;
           font-size: 0.875rem;
-          margin-top: 6px;
+          margin-top: var(--spacing-xs);
         }
 
         .image-upload {
@@ -534,20 +535,20 @@ export default function RecipeForm({ initialData = {}, onSubmit, onCancel, isEdi
         .ingredients-list, .instructions-list {
           display: flex;
           flex-direction: column;
-          gap: 12px;
+          gap: var(--spacing-md);
         }
 
         .ingredient-row {
           display: grid;
           grid-template-columns: 2fr 1fr 1fr auto;
-          gap: 12px;
+          gap: var(--spacing-sm);
           align-items: center;
         }
 
         .instruction-row {
           display: grid;
           grid-template-columns: auto 1fr auto;
-          gap: 12px;
+          gap: var(--spacing-sm);
           align-items: start;
         }
 
@@ -638,29 +639,31 @@ export default function RecipeForm({ initialData = {}, onSubmit, onCancel, isEdi
 
         @media (max-width: 768px) {
           .recipe-form-container {
-            padding: 12px;
+            padding: var(--spacing-sm);
           }
 
           .recipe-form {
-            padding: 20px;
+            padding: var(--spacing-lg);
           }
 
           .form-row {
             grid-template-columns: 1fr;
+            gap: var(--spacing-sm);
           }
 
           .ingredient-row {
             grid-template-columns: 1fr;
-            gap: 8px;
+            gap: var(--spacing-xs);
           }
 
           .ingredient-row .remove-button {
             justify-self: end;
+            margin-top: var(--spacing-xs);
           }
 
           .instruction-row {
             grid-template-columns: 1fr;
-            gap: 8px;
+            gap: var(--spacing-xs);
           }
 
           .step-number {
@@ -669,6 +672,7 @@ export default function RecipeForm({ initialData = {}, onSubmit, onCancel, isEdi
 
           .form-actions {
             flex-direction: column;
+            gap: var(--spacing-sm);
           }
         }
       `}</style>

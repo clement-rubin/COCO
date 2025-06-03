@@ -1,35 +1,38 @@
 .container {
-  max-width: 1200px;
+  max-width: var(--container-sm);
   margin: 0 auto;
-  padding: 1rem;
+  padding: var(--spacing-md);
 }
 
 .container h1 {
   text-align: center;
-  margin-bottom: 2rem;
+  margin-bottom: var(--spacing-lg);
+  font-size: 1.75rem;
 }
 
 .intro {
   text-align: center;
   color: var(--text-light);
-  margin-bottom: 2rem;
-  max-width: 800px;
+  margin-bottom: var(--spacing-xl);
+  max-width: 350px;
   margin-left: auto;
   margin-right: auto;
+  font-size: 0.95rem;
+  line-height: 1.6;
 }
 
 .searchContainer {
-  margin-bottom: 2rem;
-  max-width: 600px;
+  margin-bottom: var(--spacing-lg);
+  max-width: 400px;
   margin-left: auto;
   margin-right: auto;
 }
 
 .searchInput {
   width: 100%;
-  padding: 0.8rem 1rem;
+  padding: var(--spacing-md);
   border: 1px solid var(--border-color);
-  border-radius: 4px;
+  border-radius: var(--radius-lg);
   font-size: 1rem;
   transition: var(--transition);
 }
@@ -42,8 +45,8 @@
 
 .recipeGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 2rem;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--spacing-lg);
 }
 
 .noResults {
@@ -92,7 +95,16 @@
 }
 
 @media (max-width: 768px) {
+  .container {
+    padding: var(--spacing-sm);
+  }
+  
   .recipeGrid {
     grid-template-columns: 1fr;
+    gap: var(--spacing-md);
+  }
+  
+  .searchContainer {
+    margin-bottom: var(--spacing-md);
   }
 }
