@@ -461,23 +461,23 @@
 }
 
 /* Améliorations tactiles iOS/Android */
-* {
+:global(*) {
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
 }
 
-input, textarea {
+:global(input), :global(textarea) {
   -webkit-user-select: text;
   user-select: text;
 }
 
 /* Prévention du zoom sur les inputs iOS */
 @media screen and (max-width: 768px) {
-  input[type="text"],
-  input[type="number"],
-  textarea {
+  :global(input[type="text"]),
+  :global(input[type="number"]),
+  :global(textarea) {
     font-size: 16px !important;
   }
 }
