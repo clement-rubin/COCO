@@ -2,14 +2,20 @@ import Head from 'next/head'
 import { useState, useEffect } from 'react'
 import { useAuth } from '../components/AuthContext'
 import { useRouter } from 'next/router'
+import styles from '../styles/Profile.module.css'
 
 export default function Profil() {
-  const { user, loading } = useAuth()
+  const { user, loading, logout } = useAuth()
   const router = useRouter()
   const [userStats, setUserStats] = useState({
     recipesCount: 0,
     followersCount: 0,
     followingCount: 0
+  })
+  const [settings, setSettings] = useState({
+    notifications: true,
+    darkMode: false,
+    publicProfile: true
   })
 
   useEffect(() => {
@@ -18,19 +24,30 @@ export default function Profil() {
     }
   }, [user, loading, router])
 
+  const handleLogout = async () => {
+    try {
+      await logout()
+      router.push('/')
+    } catch (error) {
+      console.error('Erreur lors de la déconnexion:', error)
+    }
+  }
+
+  const toggleSetting = (setting) => {
+    setSettings(prev => ({
+      ...prev,
+      [setting]: !prev[setting]
+    }))
+  }
+
   if (loading) {
     return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '100vh',
-        background: 'var(--background-light)'
-      }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>👤</div>
-          <p>Chargement du profil...</p>
-        </div>
+      <div className={styles.loadingContainer}>
+        <Head>
+          <title>Chargement - COCO</title>
+        </Head>
+        <div className={styles.loadingIcon}>👤</div>
+        <p className={styles.loadingText}>Chargement du profil...</p>
       </div>
     )
   }
@@ -38,155 +55,153 @@ export default function Profil() {
   if (!user) return null
 
   return (
-    <div style={{ paddingTop: '80px', minHeight: '100vh', background: 'var(--background-light)' }}>
+    <div className={styles.container}>
       <Head>
         <title>Mon Profil - COCO</title>
         <meta name="description" content="Gérez votre profil culinaire COCO" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
 
-      <div style={{
-        maxWidth: '600px',
-        margin: '0 auto',
-        padding: 'var(--spacing-lg)'
-      }}>
-        {/* Header du profil */}
-        <div style={{
-          background: 'white',
-          borderRadius: 'var(--border-radius-large)',
-          padding: 'var(--spacing-xl)',
-          marginBottom: 'var(--spacing-lg)',
-          textAlign: 'center',
-          boxShadow: 'var(--shadow-light)'
-        }}>
-          <div style={{
-            width: '100px',
-            height: '100px',
-            borderRadius: '50%',
-            background: 'linear-gradient(135deg, var(--primary-orange), var(--secondary-green))',
-            margin: '0 auto var(--spacing-lg)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '2.5rem',
-            color: 'white'
-          }}>
+      <div className={styles.content}>
+        {/* Profile Header */}
+        <div className={styles.profileHeader}>
+          <div className={styles.avatar}>
             {user.user_metadata?.display_name?.charAt(0)?.toUpperCase() || '👤'}
           </div>
           
-          <h1 style={{
-            color: 'var(--primary-orange)',
-            marginBottom: 'var(--spacing-sm)'
-          }}>
+          <h1 className={styles.profileName}>
             {user.user_metadata?.display_name || 'Chef COCO'}
           </h1>
           
-          <p style={{
-            color: 'var(--text-medium)',
-            marginBottom: 'var(--spacing-lg)'
-          }}>
+          <p className={styles.profileEmail}>
             {user.email}
           </p>
 
-          {/* Stats */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: 'var(--spacing-md)',
-            marginTop: 'var(--spacing-lg)'
-          }}>
-            <div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--primary-orange)' }}>
-                {userStats.recipesCount}
-              </div>
-              <div style={{ fontSize: '0.9rem', color: 'var(--text-medium)' }}>
-                Recettes
-              </div>
+          {/* Stats Grid */}
+          <div className={styles.statsGrid}>
+            <div className={styles.statItem}>
+              <span className={styles.statNumber}>{userStats.recipesCount}</span>
+              <span className={styles.statLabel}>Recettes</span>
             </div>
-            <div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--primary-orange)' }}>
-                {userStats.followersCount}
-              </div>
-              <div style={{ fontSize: '0.9rem', color: 'var(--text-medium)' }}>
-                Followers
-              </div>
+            <div className={styles.statItem}>
+              <span className={styles.statNumber}>{userStats.followersCount}</span>
+              <span className={styles.statLabel}>Followers</span>
             </div>
-            <div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--primary-orange)' }}>
-                {userStats.followingCount}
-              </div>
-              <div style={{ fontSize: '0.9rem', color: 'var(--text-medium)' }}>
-                Suivi(e)s
-              </div>
+            <div className={styles.statItem}>
+              <span className={styles.statNumber}>{userStats.followingCount}</span>
+              <span className={styles.statLabel}>Suivi(e)s</span>
             </div>
           </div>
         </div>
 
-        {/* Actions */}
-        <div style={{
-          background: 'white',
-          borderRadius: 'var(--border-radius-large)',
-          padding: 'var(--spacing-lg)',
-          boxShadow: 'var(--shadow-light)'
-        }}>
-          <h2 style={{
-            fontSize: '1.3rem',
-            marginBottom: 'var(--spacing-lg)',
-            color: 'var(--text-dark)'
-          }}>
-            Mon activité
-          </h2>
+        {/* Activity Section */}
+        <div className={styles.activitySection}>
+          <h2 className={styles.sectionTitle}>Mon activité</h2>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
+          <div className={styles.activityItems}>
             <button
+              className={styles.activityItem}
               onClick={() => router.push('/mes-recettes')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 'var(--spacing-md)',
-                padding: 'var(--spacing-md)',
-                background: 'transparent',
-                border: '1px solid var(--border-light)',
-                borderRadius: 'var(--border-radius-medium)',
-                cursor: 'pointer',
-                transition: 'all 0.3s ease'
-              }}
             >
-              <span style={{ fontSize: '1.5rem' }}>📝</span>
-              <div style={{ textAlign: 'left' }}>
-                <div style={{ fontWeight: '600', color: 'var(--text-dark)' }}>
-                  Mes recettes
-                </div>
-                <div style={{ fontSize: '0.9rem', color: 'var(--text-medium)' }}>
+              <div className={styles.activityIcon}>📝</div>
+              <div className={styles.activityContent}>
+                <h3 className={styles.activityTitle}>Mes recettes</h3>
+                <p className={styles.activityDescription}>
                   Gérer mes créations culinaires
-                </div>
+                </p>
               </div>
             </button>
 
             <button
+              className={styles.activityItem}
               onClick={() => router.push('/favoris')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 'var(--spacing-md)',
-                padding: 'var(--spacing-md)',
-                background: 'transparent',
-                border: '1px solid var(--border-light)',
-                borderRadius: 'var(--border-radius-medium)',
-                cursor: 'pointer',
-                transition: 'all 0.3s ease'
-              }}
             >
-              <span style={{ fontSize: '1.5rem' }}>👥</span>
-              <div style={{ textAlign: 'left' }}>
-                <div style={{ fontWeight: '600', color: 'var(--text-dark)' }}>
-                  Mes amis
-                </div>
-                <div style={{ fontSize: '0.9rem', color: 'var(--text-medium)' }}>
+              <div className={styles.activityIcon}>❤️</div>
+              <div className={styles.activityContent}>
+                <h3 className={styles.activityTitle}>Mes favoris</h3>
+                <p className={styles.activityDescription}>
+                  Recettes que j'adore
+                </p>
+              </div>
+            </button>
+
+            <button
+              className={styles.activityItem}
+              onClick={() => router.push('/amis')}
+            >
+              <div className={styles.activityIcon}>👥</div>
+              <div className={styles.activityContent}>
+                <h3 className={styles.activityTitle}>Mes amis</h3>
+                <p className={styles.activityDescription}>
                   Gérer mon réseau culinaire
-                </div>
+                </p>
+              </div>
+            </button>
+
+            <button
+              className={styles.activityItem}
+              onClick={() => router.push('/collections')}
+            >
+              <div className={styles.activityIcon}>📚</div>
+              <div className={styles.activityContent}>
+                <h3 className={styles.activityTitle}>Collections</h3>
+                <p className={styles.activityDescription}>
+                  Mes recettes organisées
+                </p>
               </div>
             </button>
           </div>
+        </div>
+
+        {/* Settings Section */}
+        <div className={styles.settingsSection}>
+          <h2 className={styles.sectionTitle}>Préférences</h2>
+
+          <div className={styles.settingsItems}>
+            <div className={styles.settingsItem}>
+              <div className={styles.settingLabel}>
+                <span className={styles.settingIcon}>🔔</span>
+                Notifications
+              </div>
+              <div 
+                className={`${styles.settingToggle} ${settings.notifications ? styles.active : ''}`}
+                onClick={() => toggleSetting('notifications')}
+              />
+            </div>
+
+            <div className={styles.settingsItem}>
+              <div className={styles.settingLabel}>
+                <span className={styles.settingIcon}>🌙</span>
+                Mode sombre
+              </div>
+              <div 
+                className={`${styles.settingToggle} ${settings.darkMode ? styles.active : ''}`}
+                onClick={() => toggleSetting('darkMode')}
+              />
+            </div>
+
+            <div className={styles.settingsItem}>
+              <div className={styles.settingLabel}>
+                <span className={styles.settingIcon}>🌍</span>
+                Profil public
+              </div>
+              <div 
+                className={`${styles.settingToggle} ${settings.publicProfile ? styles.active : ''}`}
+                onClick={() => toggleSetting('publicProfile')}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Logout Section */}
+        <div className={styles.logoutSection}>
+          <button 
+            className={styles.logoutBtn}
+            onClick={handleLogout}
+          >
+            <span>🚪</span>
+            Se déconnecter
+          </button>
         </div>
       </div>
     </div>
