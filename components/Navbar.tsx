@@ -55,7 +55,7 @@ const Navbar = () => {
             <Link href="/" className="nav-link">
               Accueil
             </Link>
-            <Link href="/favoris" className="nav-link">
+            <Link href="/amis" className="nav-link">
               Amis
             </Link>
             <button className="btn btn-primary" style={{ border: 'none' }}>
@@ -102,7 +102,7 @@ const Navbar = () => {
               <Link href="/" className="mobile-nav-link">
                 🏠 Accueil
               </Link>
-              <Link href="/favoris" className="mobile-nav-link">
+              <Link href="/amis" className="mobile-nav-link">
                 👥 Mes amis
               </Link>
               <button className="mobile-nav-link" style={{ 

@@ -29,7 +29,7 @@ export default function Navbar() {
           <Link href="/recherche" className={styles.navLink}>
             Recherche
           </Link>
-          <Link href="/favoris" className={styles.navLink}>
+          <Link href="/amis" className={styles.navLink}>
             Favoris
           </Link>
           <Link href="/share-photo" className={styles.addButton}>
@@ -59,7 +59,7 @@ export default function Navbar() {
               <Link href="/recherche" className={styles.mobileNavLink}>
                 🔎 Recherche
               </Link>
-              <Link href="/favoris" className={styles.mobileNavLink}>
+              <Link href="/amis" className={styles.mobileNavLink}>
                 ❤️ Favoris
               </Link>
               <Link href="/share-photo" className={styles.mobileNavLink}>

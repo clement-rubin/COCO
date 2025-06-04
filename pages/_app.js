@@ -429,7 +429,7 @@ function AppContent({ Component, pageProps }) {
           <button onClick={handleShare} className="nav-item add-button">
             <span className="nav-icon">📤</span>
           </button>
-          <Link href="/favoris" className={getNavItemClass('/favoris')}>
+          <Link href="/amis" className={getNavItemClass('/amis')}>
             <span className="nav-icon">👥</span>
             <span className="nav-label">Amis</span>
           </Link>

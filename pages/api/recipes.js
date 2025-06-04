@@ -12,7 +12,7 @@ function logApiError(operation, error, context = {}) {
       details: error?.details,
       hint: error?.hint,
       name: error?.name,
-      stack: error?.stack
+      stack: error?.stack?.substring(0, 500) // Limit stack trace length
     },
     timestamp: new Date().toISOString(),
     supabaseError: error?.code ? {
@@ -25,6 +25,18 @@ function logApiError(operation, error, context = {}) {
 
   logError(`API Error in ${operation}`, error, errorDetails)
   return errorDetails
+}
+
+// Helper function to validate and sanitize query parameters
+function validateQueryParams(query) {
+  const { author, user_id, category, limit = '50' } = query || {}
+  
+  return {
+    author: author && typeof author === 'string' && author.trim() ? author.trim() : null,
+    user_id: user_id && typeof user_id === 'string' && user_id.trim() ? user_id.trim() : null,
+    category: category && typeof category === 'string' && category.trim() ? category.trim() : null,
+    limit: Math.min(Math.max(parseInt(limit) || 50, 1), 100) // Between 1 and 100
+  }
 }
 
 export default async function handler(req, res) {
@@ -48,56 +60,158 @@ export default async function handler(req, res) {
     })
 
     if (req.method === 'GET') {
-      const { author, user_id, category, limit = 50 } = req.query
-      
       try {
+        // Validate and sanitize query parameters
+        const params = validateQueryParams(req.query)
+        const { author, user_id, category, limit } = params
+        
+        logInfo('GET recipes - Request details', {
+          originalQuery: req.query,
+          sanitizedParams: params,
+          hasUserId: !!user_id,
+          hasAuthor: !!author,
+          userIdType: typeof user_id,
+          userIdLength: user_id?.length,
+          timestamp: new Date().toISOString()
+        })
+        
+        // Build the base query
         let query = supabase
           .from('recipes')
           .select('*')
-          .order('created_at', { ascending: false })
-          .limit(parseInt(limit))
         
-        // Filter by user_id if specified
+        logDebug('Base query created', {
+          tableName: 'recipes',
+          selectFields: '*'
+        })
+        
+        // Apply filters only if they have valid values
         if (user_id) {
-          logInfo('Filtering recipes by user_id', { user_id })
+          logInfo('Applying user_id filter', { 
+            user_id, 
+            userIdType: typeof user_id,
+            userIdLength: user_id.length,
+            filterType: 'user_id'
+          })
           query = query.eq('user_id', user_id)
         }
         
-        // Filter by author if specified (fallback)
+        // Filter by author if specified (fallback) and no user_id
         if (author && !user_id) {
-          logInfo('Filtering recipes by author', { author })
+          logInfo('Applying author filter (fallback)', { 
+            author,
+            authorType: typeof author,
+            filterType: 'author'
+          })
           query = query.eq('author', author)
         }
         
         // Filter by category if specified
         if (category) {
-          logInfo('Filtering recipes by category', { category })
+          logInfo('Applying category filter', { 
+            category,
+            filterType: 'category'
+          })
           query = query.eq('category', category)
         }
         
-        const { data: recipes, error, count } = await query
+        // Apply ordering and limit
+        query = query
+          .order('created_at', { ascending: false })
+          .limit(limit)
+        
+        logDebug('Executing Supabase query', {
+          hasUserIdFilter: !!user_id,
+          hasAuthorFilter: !!author && !user_id,
+          hasCategoryFilter: !!category,
+          limit: limit,
+          timestamp: new Date().toISOString()
+        })
+        
+        // Execute the query with timeout protection
+        const queryPromise = query
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Query timeout after 30 seconds')), 30000)
+        )
+        
+        const { data: recipes, error } = await Promise.race([queryPromise, timeoutPromise])
+        
+        logInfo('Supabase query executed', {
+          success: !error,
+          error: error?.message,
+          resultCount: recipes?.length || 0,
+          hasData: !!recipes,
+          isArray: Array.isArray(recipes),
+          timestamp: new Date().toISOString()
+        })
         
         if (error) {
+          logError('Supabase query error', error, {
+            errorCode: error.code,
+            errorDetails: error.details,
+            errorHint: error.hint,
+            query: params
+          })
           throw error
         }
         
+        // Ensure we have a valid array
+        const safeRecipes = Array.isArray(recipes) ? recipes : []
+        
+        // Log detailed results for debugging
+        if (safeRecipes.length > 0) {
+          logInfo('Recipes found - Analysis', {
+            totalCount: safeRecipes.length,
+            recipesWithUserId: safeRecipes.filter(r => r && r.user_id).length,
+            recipesWithoutUserId: safeRecipes.filter(r => r && !r.user_id).length,
+            uniqueUserIds: [...new Set(safeRecipes.map(r => r?.user_id).filter(Boolean))],
+            requestedUserId: user_id,
+            matchingRecipes: safeRecipes.filter(r => r && r.user_id === user_id).length,
+            sampleRecipes: safeRecipes.slice(0, 3).map(r => r ? {
+              id: r.id,
+              title: r.title,
+              author: r.author,
+              user_id: r.user_id,
+              category: r.category,
+              created_at: r.created_at,
+              userIdMatch: r.user_id === user_id
+            } : null).filter(Boolean),
+            categories: safeRecipes.reduce((acc, r) => {
+              if (r && r.category) {
+                acc[r.category] = (acc[r.category] || 0) + 1
+              }
+              return acc
+            }, {})
+          })
+        } else {
+          logWarning('No recipes found', {
+            query: params,
+            resultType: typeof recipes,
+            isNull: recipes === null,
+            isEmptyArray: Array.isArray(recipes) && recipes.length === 0
+          })
+        }
+        
         logInfo('Recipes retrieved successfully', {
-          count: recipes?.length || 0,
-          filters: { author, user_id, category },
-          hasResults: recipes && recipes.length > 0
+          count: safeRecipes.length,
+          filters: params,
+          hasResults: safeRecipes.length > 0,
+          timestamp: new Date().toISOString()
         })
         
-        return res.status(200).json(recipes || [])
+        return res.status(200).json(safeRecipes)
         
       } catch (error) {
         const errorDetails = logApiError('GET_RECIPES', error, {
-          filters: { author, user_id, category, limit }
+          filters: validateQueryParams(req.query),
+          queryStep: 'supabase_execution',
+          originalQuery: req.query
         })
         
         return res.status(500).json({
           error: 'Erreur lors de la récupération des recettes',
-          message: error.message,
-          details: errorDetails,
+          message: error.message || 'Erreur inconnue',
+          details: process.env.NODE_ENV === 'development' ? errorDetails : undefined,
           timestamp: new Date().toISOString()
         })
       }
@@ -106,6 +220,13 @@ export default async function handler(req, res) {
     if (req.method === 'POST') {
       try {
         const data = req.body
+        
+        if (!data || typeof data !== 'object') {
+          return res.status(400).json({ 
+            error: 'Corps de requête invalide',
+            message: 'Le corps de la requête doit être un objet JSON valide'
+          })
+        }
         
         logInfo('Creating new recipe', {
           hasTitle: !!data.title,
@@ -117,11 +238,15 @@ export default async function handler(req, res) {
         })
         
         // Validation des champs obligatoires
-        if (!data.title) {
-          logWarning('Recipe creation failed - missing title', { receivedFields: Object.keys(data) })
+        if (!data.title || typeof data.title !== 'string' || !data.title.trim()) {
+          logWarning('Recipe creation failed - missing or invalid title', { 
+            receivedFields: Object.keys(data),
+            titleType: typeof data.title,
+            titleValue: data.title
+          })
           return res.status(400).json({ 
-            error: 'Champs obligatoires manquants',
-            required: ['title'],
+            error: 'Champs obligatoires manquants ou invalides',
+            required: ['title (string non vide)'],
             received: Object.keys(data)
           })
         }
@@ -141,17 +266,17 @@ export default async function handler(req, res) {
         
         const newRecipe = {
           title: data.title.trim(),
-          description: data.description?.trim() || null,
+          description: data.description && typeof data.description === 'string' ? data.description.trim() : null,
           image: data.image || null,
-          prepTime: data.prepTime?.trim() || null,
-          cookTime: data.cookTime?.trim() || null,
-          servings: data.servings?.trim() || null,
-          category: data.category?.trim() || 'Autre',
-          author: data.author?.trim() || null,
-          user_id: data.user_id || null,
+          prepTime: data.prepTime && typeof data.prepTime === 'string' ? data.prepTime.trim() : null,
+          cookTime: data.cookTime && typeof data.cookTime === 'string' ? data.cookTime.trim() : null,
+          servings: data.servings && typeof data.servings === 'string' ? data.servings.trim() : null,
+          category: data.category && typeof data.category === 'string' ? data.category.trim() : 'Autre',
+          author: data.author && typeof data.author === 'string' ? data.author.trim() : null,
+          user_id: data.user_id && typeof data.user_id === 'string' ? data.user_id.trim() : null,
           ingredients: ingredients,
           instructions: instructions,
-          difficulty: data.difficulty?.trim() || 'Facile',
+          difficulty: data.difficulty && typeof data.difficulty === 'string' ? data.difficulty.trim() : 'Facile',
           created_at: new Date().toISOString()
         }
         
@@ -173,6 +298,10 @@ export default async function handler(req, res) {
           throw error
         }
         
+        if (!insertedData || !Array.isArray(insertedData) || insertedData.length === 0) {
+          throw new Error('Aucune donnée retournée après insertion')
+        }
+        
         logInfo('Recipe created successfully', {
           recipeId: insertedData[0]?.id,
           title: insertedData[0]?.title,
@@ -184,13 +313,14 @@ export default async function handler(req, res) {
       } catch (error) {
         const errorDetails = logApiError('CREATE_RECIPE', error, {
           hasBody: !!req.body,
-          bodyKeys: req.body ? Object.keys(req.body) : []
+          bodyKeys: req.body ? Object.keys(req.body) : [],
+          bodyType: typeof req.body
         })
         
         return res.status(500).json({
           error: 'Erreur lors de la création de la recette',
-          message: error.message,
-          details: errorDetails,
+          message: error.message || 'Erreur inconnue',
+          details: process.env.NODE_ENV === 'development' ? errorDetails : undefined,
           timestamp: new Date().toISOString()
         })
       }
@@ -199,10 +329,10 @@ export default async function handler(req, res) {
     if (req.method === 'PUT') {
       try {
         const data = req.body
-        const { id } = data
+        const { id } = data || {}
 
-        if (!id) {
-          return res.status(400).json({ error: 'ID de recette requis' })
+        if (!id || typeof id !== 'string') {
+          return res.status(400).json({ error: 'ID de recette requis (string)' })
         }
 
         logInfo('Updating recipe', { recipeId: id, hasData: !!data })
@@ -237,8 +367,8 @@ export default async function handler(req, res) {
         
         return res.status(500).json({
           error: 'Erreur lors de la mise à jour de la recette',
-          message: error.message,
-          details: errorDetails,
+          message: error.message || 'Erreur inconnue',
+          details: process.env.NODE_ENV === 'development' ? errorDetails : undefined,
           timestamp: new Date().toISOString()
         })
       }
@@ -248,8 +378,8 @@ export default async function handler(req, res) {
       try {
         const id = req.query.id || (req.body && req.body.id)
         
-        if (!id) {
-          return res.status(400).json({ error: 'ID de recette requis' })
+        if (!id || typeof id !== 'string') {
+          return res.status(400).json({ error: 'ID de recette requis (string)' })
         }
         
         logInfo('Deleting recipe', { recipeId: id })
@@ -278,8 +408,8 @@ export default async function handler(req, res) {
         
         return res.status(500).json({
           error: 'Erreur lors de la suppression de la recette',
-          message: error.message,
-          details: errorDetails,
+          message: error.message || 'Erreur inconnue',
+          details: process.env.NODE_ENV === 'development' ? errorDetails : undefined,
           timestamp: new Date().toISOString()
         })
       }
@@ -292,13 +422,14 @@ export default async function handler(req, res) {
     const errorDetails = logApiError('GENERAL_API_ERROR', error, {
       method: req.method,
       url: req.url,
-      hasBody: !!req.body
+      hasBody: !!req.body,
+      queryKeys: req.query ? Object.keys(req.query) : []
     })
     
     return res.status(500).json({ 
       error: 'Erreur serveur interne', 
-      message: error.message,
-      details: errorDetails,
+      message: error.message || 'Erreur inconnue',
+      details: process.env.NODE_ENV === 'development' ? errorDetails : undefined,
       timestamp: new Date().toISOString(),
       reference: `err-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`
     })

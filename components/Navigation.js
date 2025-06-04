@@ -96,8 +96,8 @@ export default function Navigation() {
           </li>
           <li>
             <Link 
-              href="/favoris" 
-              className={router.pathname === "/favoris" ? styles.active : ""}
+              href="/amis" 
+              className={router.pathname === "/amis" ? styles.active : ""}
               onClick={closeMenu}
             >
               Amis
