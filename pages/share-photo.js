@@ -326,7 +326,7 @@ export default function SharePhoto() {
         difficulty: 'Facile',
         ingredients: ['Photo instantanée partagée'],
         instructions: [{ step: 1, instruction: 'Savourez cette délicieuse création !' }],
-        image: photos.length > 0 ? photos[0].imageBytes : null
+        image: photos.length > 0 ? photos[0].imageUrl : null
       }
 
       addLog('info', 'Données de recette préparées', {
@@ -337,22 +337,23 @@ export default function SharePhoto() {
       })
 
       // Estimer la taille totale du payload
-      const payloadSize = JSON.stringify(submitData).length
+      const payloadSize = JSON.stringify(recipeData).length
       const payloadSizeKB = Math.round(payloadSize / 1024)
+      const imageSizeKB = recipeData.image ? Math.round(recipeData.image.length / 1024) : 0
       
       addLog('INFO', 'Données préparées pour envoi API', {
-        title: submitData.title,
-        titleLength: submitData.title.length,
-        hasDescription: !!submitData.description,
-        descriptionLength: submitData.description.length,
-        imageLength: submitData.image.length,
+        title: recipeData.title,
+        titleLength: recipeData.title.length,
+        hasDescription: !!recipeData.description,
+        descriptionLength: recipeData.description.length,
+        imageLength: recipeData.image?.length || 0,
         imageSizeKB,
         payloadSizeKB,
-        imagePrefix: submitData.image.substring(0, 50) + '...',
-        imageType: typeof submitData.image,
-        isDataUrl: submitData.image.startsWith('data:image/'),
-        category: submitData.category,
-        author: submitData.author
+        imagePrefix: recipeData.image ? recipeData.image.substring(0, 50) + '...' : 'no image',
+        imageType: typeof recipeData.image,
+        isDataUrl: recipeData.image ? recipeData.image.startsWith('data:image/') : false,
+        category: recipeData.category,
+        author: recipeData.author
       })
       
       if (payloadSizeKB > 800) {
@@ -364,7 +365,7 @@ export default function SharePhoto() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(submitData)
+        body: JSON.stringify(recipeData)
       })
       
       addLog('INFO', 'Réponse API reçue', { 
