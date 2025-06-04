@@ -237,7 +237,7 @@ export default function SharePhoto() {
     if (hasProcessingPhotos) {
       newErrors.photos = 'Attendez que toutes les photos soient traitées'
       addLog('WARNING', 'Validation échouée: photos en cours de traitement', {
-        processingCount: photos.filter(p => p.processing).length
+        processingCount: photos.filter(p => p.processed).length
       })
     }
     
@@ -550,8 +550,6 @@ export default function SharePhoto() {
         padding: '20px',
         position: 'relative'
       }}>
-        {/* Suppression de l'effet au-dessus */}
-        
         <div style={{
           background: 'rgba(255, 255, 255, 0.95)',
           backdropFilter: 'blur(10px)',

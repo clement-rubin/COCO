@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from 'react'
 import { processImageToUrl, estimateDataUrlSize } from '../utils/imageUtils'
-import { logDebug, logInfo, logError, logUserInteraction } from '../utils/logger'
+import { logDebug, logInfo, logError, logWarning, logUserInteraction } from '../utils/logger'
 import styles from '../styles/PhotoUpload.module.css'
 
 export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {

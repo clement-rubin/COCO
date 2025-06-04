@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { useAuth } from '../components/AuthContext'
 import { supabase } from '../lib/supabase'
+import styles from '../styles/FriendsFeed.module.css'
 
 export default function Amis() {
   const router = useRouter();
@@ -14,6 +15,7 @@ export default function Amis() {
   const [pendingRequests, setPendingRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('search'); // 'search', 'requests', 'friends'
 
   // Charger les amis existants
   useEffect(() => {
@@ -163,289 +165,256 @@ export default function Amis() {
 
   if (!user) {
     return (
-      <div style={{ padding: 'var(--spacing-xl)', textAlign: 'center' }}>
-        <h2>Connexion requise</h2>
-        <p>Connectez-vous pour gérer vos amis</p>
-        <button 
-          onClick={() => router.push('/login')}
-          className="card"
-          style={{ border: 'none', cursor: 'pointer', background: 'var(--primary-coral)' }}
-        >
-          Se connecter
-        </button>
+      <div className={styles.container}>
+        <Head>
+          <title>Mes Amis - COCO</title>
+          <meta name="description" content="Gérez vos amis culinaires sur COCO" />
+        </Head>
+        
+        <div className={styles.header}>
+          <div className={styles.headerContent}>
+            <span className={styles.headerIcon}>🔒</span>
+            <h1 className={styles.headerTitle}>Connexion requise</h1>
+            <p className={styles.headerStats}>Connectez-vous pour gérer vos amis culinaires</p>
+          </div>
+        </div>
+        
+        <div className={styles.content}>
+          <div className={styles.section}>
+            <div className={styles.emptyState}>
+              <span className={styles.emptyIcon}>👥</span>
+              <h3 className={styles.emptyTitle}>Rejoignez la communauté COCO</h3>
+              <p className={styles.emptyDescription}>
+                Connectez-vous pour découvrir et partager des recettes avec d'autres passionnés de cuisine
+              </p>
+              <button 
+                onClick={() => router.push('/login')}
+                className={`${styles.actionBtn} ${styles.addBtn}`}
+                style={{ marginTop: '1.5rem' }}
+              >
+                Se connecter
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div>
+    <div className={styles.container}>
       <Head>
         <title>Mes Amis - COCO</title>
         <meta name="description" content="Gérez vos amis culinaires sur COCO" />
       </Head>
 
-      {/* Header */}
-      <section style={{
-        background: 'var(--bg-gradient)',
-        padding: 'var(--spacing-xl) var(--spacing-md)',
-        textAlign: 'center'
-      }}>
-        <div style={{ fontSize: '3rem', marginBottom: 'var(--spacing-md)' }}>👥</div>
-        <h1 style={{ 
-          fontSize: '1.8rem', 
-          marginBottom: 'var(--spacing-sm)',
-          color: 'var(--text-dark)'
-        }}>
-          Mes Amis Culinaires
-        </h1>
-        <p style={{ 
-          color: 'var(--text-secondary)', 
-          fontSize: '0.9rem',
-          margin: 0
-        }}>
-          {friends.length} ami{friends.length > 1 ? 's' : ''} • {pendingRequests.length} demande{pendingRequests.length > 1 ? 's' : ''}
-        </p>
-      </section>
+      {/* Enhanced Header */}
+      <div className={styles.header}>
+        <div className={styles.headerContent}>
+          <span className={styles.headerIcon}>👥</span>
+          <h1 className={styles.headerTitle}>Mes Amis Culinaires</h1>
+          <p className={styles.headerStats}>
+            {friends.length} ami{friends.length > 1 ? 's' : ''} • {pendingRequests.length} demande{pendingRequests.length > 1 ? 's' : ''}
+          </p>
+          
+          {/* Stats Grid */}
+          <div className={styles.statsGrid}>
+            <div className={styles.statItem}>
+              <span className={styles.statNumber}>{friends.length}</span>
+              <span className={styles.statLabel}>Amis</span>
+            </div>
+            <div className={styles.statItem}>
+              <span className={styles.statNumber}>{pendingRequests.length}</span>
+              <span className={styles.statLabel}>En attente</span>
+            </div>
+            <div className={styles.statItem}>
+              <span className={styles.statNumber}>{searchResults.length}</span>
+              <span className={styles.statLabel}>Trouvés</span>
+            </div>
+          </div>
+        </div>
+      </div>
 
-      {/* Recherche d'amis */}
-      <section style={{ padding: 'var(--spacing-lg) var(--spacing-md)' }}>
-        <h2 style={{ fontSize: '1.2rem', marginBottom: 'var(--spacing-md)' }}>
-          🔍 Ajouter des amis
-        </h2>
-        
-        <div style={{ position: 'relative', marginBottom: 'var(--spacing-lg)' }}>
-          <input
-            type="text"
-            placeholder="Rechercher par pseudo..."
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              searchUsers(e.target.value);
-            }}
-            style={{
-              width: '100%',
-              padding: 'var(--spacing-md)',
-              border: '2px solid var(--border-light)',
-              borderRadius: 'var(--radius-lg)',
-              fontSize: '1rem',
-              background: 'var(--bg-card)'
-            }}
-          />
-          {searchLoading && (
-            <div style={{
-              position: 'absolute',
-              right: '1rem',
-              top: '50%',
-              transform: 'translateY(-50%)'
-            }}>
-              ⏳
+      <div className={styles.content}>
+        {/* Recherche d'amis */}
+        <div className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <h2 className={styles.sectionTitle}>
+              🔍 Découvrir des amis
+            </h2>
+            <p className={styles.sectionSubtitle}>
+              Recherchez vos amis par leur nom d'utilisateur
+            </p>
+          </div>
+          
+          <div className={styles.searchContainer}>
+            <div style={{ position: 'relative' }}>
+              <span className={styles.searchIcon}>🔍</span>
+              <input
+                type="text"
+                placeholder="Rechercher par pseudo..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  searchUsers(e.target.value);
+                }}
+                className={styles.searchInput}
+              />
+              {searchLoading && <div className={styles.loadingSpinner} />}
+            </div>
+          </div>
+
+          {/* Résultats de recherche */}
+          {searchResults.length > 0 && (
+            <div className={styles.usersList}>
+              {searchResults.map(foundUser => (
+                <div key={foundUser.id} className={styles.userCard}>
+                  <div className={styles.userAvatar}>
+                    {foundUser.display_name?.charAt(0).toUpperCase() || '👤'}
+                  </div>
+                  
+                  <div className={styles.userInfo}>
+                    <h4 className={styles.userName}>
+                      {foundUser.display_name}
+                    </h4>
+                    <p className={styles.userMeta}>
+                      Membre depuis {new Date(foundUser.created_at).toLocaleDateString('fr-FR')}
+                    </p>
+                  </div>
+                  
+                  <div className={styles.userActions}>
+                    <button
+                      onClick={() => sendFriendRequest(foundUser.id)}
+                      className={`${styles.actionBtn} ${styles.addBtn}`}
+                    >
+                      ➕ Ajouter
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {searchQuery && !searchLoading && searchResults.length === 0 && (
+            <div className={styles.emptyState}>
+              <span className={styles.emptyIcon}>🤷‍♂️</span>
+              <h3 className={styles.emptyTitle}>Aucun résultat</h3>
+              <p className={styles.emptyDescription}>
+                Aucun utilisateur trouvé avec ce nom. Essayez un autre terme de recherche.
+              </p>
             </div>
           )}
         </div>
 
-        {/* Résultats de recherche */}
-        {searchResults.length > 0 && (
-          <div style={{ marginBottom: 'var(--spacing-xl)' }}>
-            <h3 style={{ fontSize: '1rem', marginBottom: 'var(--spacing-md)' }}>
-              Résultats de recherche
-            </h3>
-            {searchResults.map(foundUser => (
-              <div key={foundUser.id} className="card" style={{ 
-                padding: 'var(--spacing-md)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 'var(--spacing-md)',
-                marginBottom: 'var(--spacing-sm)'
-              }}>
-                <div style={{
-                  width: '50px',
-                  height: '50px',
-                  background: 'linear-gradient(45deg, var(--primary-coral), var(--secondary-mint))',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                  fontWeight: 'bold'
-                }}>
-                  {foundUser.display_name?.charAt(0).toUpperCase() || '👤'}
-                </div>
-                
-                <div style={{ flex: 1 }}>
-                  <h4 style={{ margin: '0 0 var(--spacing-xs) 0', fontSize: '1rem' }}>
-                    {foundUser.display_name}
-                  </h4>
-                  <p style={{ 
-                    fontSize: '0.8rem', 
-                    color: 'var(--text-light)',
-                    margin: 0
-                  }}>
-                    Membre depuis {new Date(foundUser.created_at).toLocaleDateString('fr-FR')}
-                  </p>
-                </div>
-                
-                <button
-                  onClick={() => sendFriendRequest(foundUser.id)}
-                  style={{
-                    background: 'var(--primary-coral)',
-                    color: 'white',
-                    border: 'none',
-                    padding: 'var(--spacing-sm) var(--spacing-md)',
-                    borderRadius: 'var(--radius-md)',
-                    fontSize: '0.9rem',
-                    cursor: 'pointer'
-                  }}
-                >
-                  ➕ Ajouter
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
         {/* Demandes en attente */}
         {pendingRequests.length > 0 && (
-          <div style={{ marginBottom: 'var(--spacing-xl)' }}>
-            <h3 style={{ fontSize: '1rem', marginBottom: 'var(--spacing-md)' }}>
-              📨 Demandes d'amitié ({pendingRequests.length})
-            </h3>
-            {pendingRequests.map(request => (
-              <div key={request.id} className="card" style={{ 
-                padding: 'var(--spacing-md)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 'var(--spacing-md)',
-                marginBottom: 'var(--spacing-sm)',
-                border: '2px solid var(--primary-coral-light)'
-              }}>
-                <div style={{
-                  width: '50px',
-                  height: '50px',
-                  background: 'linear-gradient(45deg, var(--primary-coral), var(--secondary-mint))',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                  fontWeight: 'bold'
-                }}>
-                  {request.profiles.display_name?.charAt(0).toUpperCase() || '👤'}
+          <div className={styles.section}>
+            <div className={styles.sectionHeader}>
+              <h2 className={styles.sectionTitle}>
+                📨 Demandes d'amitié
+                <span className={`${styles.badge} ${styles.pendingBadge}`}>
+                  {pendingRequests.length}
+                </span>
+              </h2>
+              <p className={styles.sectionSubtitle}>
+                Ces personnes souhaitent devenir vos amis
+              </p>
+            </div>
+            
+            <div className={styles.usersList}>
+              {pendingRequests.map(request => (
+                <div key={request.id} className={`${styles.userCard} ${styles.pendingCard}`}>
+                  <div className={styles.userAvatar}>
+                    {request.profiles.display_name?.charAt(0).toUpperCase() || '👤'}
+                  </div>
+                  
+                  <div className={styles.userInfo}>
+                    <h4 className={styles.userName}>
+                      {request.profiles.display_name}
+                    </h4>
+                    <p className={styles.userMeta}>
+                      ✨ Souhaite être votre ami
+                    </p>
+                  </div>
+                  
+                  <div className={styles.userActions}>
+                    <button
+                      onClick={() => acceptFriendRequest(request.id)}
+                      className={`${styles.actionBtn} ${styles.acceptBtn}`}
+                      title="Accepter"
+                    >
+                      ✓
+                    </button>
+                    <button
+                      onClick={() => rejectFriendRequest(request.id)}
+                      className={`${styles.actionBtn} ${styles.rejectBtn}`}
+                      title="Refuser"
+                    >
+                      ✕
+                    </button>
+                  </div>
                 </div>
-                
-                <div style={{ flex: 1 }}>
-                  <h4 style={{ margin: '0 0 var(--spacing-xs) 0', fontSize: '1rem' }}>
-                    {request.profiles.display_name}
-                  </h4>
-                  <p style={{ 
-                    fontSize: '0.8rem', 
-                    color: 'var(--primary-coral)',
-                    margin: 0,
-                    fontWeight: '500'
-                  }}>
-                    Souhaite être votre ami
-                  </p>
-                </div>
-                
-                <div style={{ display: 'flex', gap: 'var(--spacing-sm)' }}>
-                  <button
-                    onClick={() => acceptFriendRequest(request.id)}
-                    style={{
-                      background: 'var(--secondary-mint)',
-                      color: 'white',
-                      border: 'none',
-                      padding: 'var(--spacing-sm)',
-                      borderRadius: 'var(--radius-md)',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    ✓
-                  </button>
-                  <button
-                    onClick={() => rejectFriendRequest(request.id)}
-                    style={{
-                      background: 'var(--text-light)',
-                      color: 'white',
-                      border: 'none',
-                      padding: 'var(--spacing-sm)',
-                      borderRadius: 'var(--radius-md)',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    ✕
-                  </button>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
 
         {/* Liste des amis */}
-        {friends.length > 0 ? (
-          <div>
-            <h3 style={{ fontSize: '1rem', marginBottom: 'var(--spacing-md)' }}>
-              👥 Mes amis ({friends.length})
-            </h3>
-            {friends.map(friendship => (
-              <div key={friendship.id} className="card" style={{ 
-                padding: 'var(--spacing-md)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 'var(--spacing-md)',
-                marginBottom: 'var(--spacing-sm)'
-              }}>
-                <div style={{
-                  width: '50px',
-                  height: '50px',
-                  background: 'linear-gradient(45deg, var(--primary-coral), var(--secondary-mint))',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                  fontWeight: 'bold'
-                }}>
-                  {friendship.profiles.display_name?.charAt(0).toUpperCase() || '👤'}
-                </div>
-                
-                <div style={{ flex: 1 }}>
-                  <h4 style={{ margin: '0 0 var(--spacing-xs) 0', fontSize: '1rem' }}>
-                    {friendship.profiles.display_name}
-                  </h4>
-                  <p style={{ 
-                    fontSize: '0.8rem', 
-                    color: 'var(--text-light)',
-                    margin: 0
-                  }}>
-                    Amis depuis {new Date(friendship.profiles.created_at).toLocaleDateString('fr-FR')}
-                  </p>
-                </div>
-                
-                <button
-                  onClick={() => removeFriend(friendship.id)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    fontSize: '1.2rem',
-                    cursor: 'pointer',
-                    padding: 'var(--spacing-sm)',
-                    borderRadius: 'var(--radius-sm)'
-                  }}
-                >
-                  🗑️
-                </button>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div style={{ textAlign: 'center', padding: 'var(--spacing-xl)' }}>
-            <div style={{ fontSize: '3rem', marginBottom: 'var(--spacing-md)' }}>🤝</div>
-            <h3 style={{ marginBottom: 'var(--spacing-md)' }}>Aucun ami pour le moment</h3>
-            <p style={{ color: 'var(--text-secondary)' }}>
-              Recherchez vos amis par leur pseudo pour commencer à partager vos recettes !
+        <div className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <h2 className={styles.sectionTitle}>
+              👥 Mes amis
+              {friends.length > 0 && (
+                <span className={`${styles.badge} ${styles.newBadge}`}>
+                  {friends.length}
+                </span>
+              )}
+            </h2>
+            <p className={styles.sectionSubtitle}>
+              Votre réseau de passionnés culinaires
             </p>
           </div>
-        )}
-      </section>
+
+          {friends.length > 0 ? (
+            <div className={styles.usersList}>
+              {friends.map(friendship => (
+                <div key={friendship.id} className={styles.userCard}>
+                  <div className={styles.userAvatar}>
+                    {friendship.profiles.display_name?.charAt(0).toUpperCase() || '👤'}
+                  </div>
+                  
+                  <div className={styles.userInfo}>
+                    <h4 className={styles.userName}>
+                      {friendship.profiles.display_name}
+                    </h4>
+                    <p className={styles.userMeta}>
+                      🤝 Amis depuis {new Date(friendship.profiles.created_at).toLocaleDateString('fr-FR')}
+                    </p>
+                  </div>
+                  
+                  <div className={styles.userActions}>
+                    <button
+                      onClick={() => removeFriend(friendship.id)}
+                      className={styles.removeBtn}
+                      title="Retirer de mes amis"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className={styles.emptyState}>
+              <span className={styles.emptyIcon}>🤝</span>
+              <h3 className={styles.emptyTitle}>Aucun ami pour le moment</h3>
+              <p className={styles.emptyDescription}>
+                Recherchez vos amis par leur pseudo pour commencer à partager vos recettes et découvrir leurs créations culinaires !
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
