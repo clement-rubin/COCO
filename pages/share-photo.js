@@ -215,20 +215,20 @@ export default function SharePhoto() {
   }
 
   const validateForm = () => {
-    addLog('info', 'Début de la validation du formulaire photo')
+    addLog('INFO', 'Début de la validation du formulaire photo')
     const newErrors = {}
     
     if (!formData.title.trim()) {
       newErrors.title = 'Le titre est obligatoire'
-      addLog('warning', 'Validation échouée: titre manquant')
+      addLog('WARNING', 'Validation échouée: titre manquant')
     }
     if (!formData.description.trim()) {
       newErrors.description = 'La description est obligatoire'
-      addLog('warning', 'Validation échouée: description manquante')
+      addLog('WARNING', 'Validation échouée: description manquante')
     }
     if (photos.length === 0) {
       newErrors.photos = 'Au moins une photo est obligatoire'
-      addLog('warning', 'Validation échouée: aucune photo')
+      addLog('WARNING', 'Validation échouée: aucune photo')
     }
     
     const hasProcessingPhotos = photos.some(photo => photo.processing)
@@ -237,7 +237,7 @@ export default function SharePhoto() {
     if (hasProcessingPhotos) {
       newErrors.photos = 'Attendez que toutes les photos soient traitées'
       addLog('WARNING', 'Validation échouée: photos en cours de traitement', {
-        processingCount: photos.filter(p => p.processed).length
+        processingCount: photos.filter(p => p.processing).length
       })
     }
     

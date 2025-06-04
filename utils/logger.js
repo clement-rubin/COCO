@@ -65,11 +65,42 @@ export const logPerformance = (operation, duration, data = {}) => {
   level(`Performance ${operation}: ${duration}ms`, data)
 }
 
+// Logger spécialisé pour les événements de composants
+export const logComponentEvent = (componentName, event, data = {}) => {
+  logDebug(`[${componentName}] ${event}`, data, {
+    component: componentName,
+    event,
+    timestamp: Date.now()
+  })
+}
+
+// Logger spécialisé pour les erreurs frontend avec context enrichi
+export const logFrontendError = (error, context = {}) => {
+  const errorId = `fe_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  
+  const enrichedContext = {
+    ...context,
+    errorId,
+    timestamp: new Date().toISOString(),
+    url: typeof window !== 'undefined' ? window.location.href : 'server',
+    userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'server',
+    errorName: error?.name,
+    errorMessage: error?.message,
+    stackTrace: error?.stack
+  }
+  
+  logError(`Frontend Error: ${error?.message || 'Unknown error'}`, error, enrichedContext)
+  
+  return { id: errorId, context: enrichedContext }
+}
+
 export default {
   error: logError,
   warning: logWarning,
   info: logInfo,
   debug: logDebug,
   userInteraction: logUserInteraction,
-  performance: logPerformance
+  performance: logPerformance,
+  componentEvent: logComponentEvent,
+  frontendError: logFrontendError
 }
