@@ -33,10 +33,10 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
         })
       }, 200)
       
-      // Utiliser la compression pour éviter l'erreur 1MB
+      // Utiliser les nouvelles utilitaires avec compression optimisée
       const compressionOptions = {
-        maxWidth: 1000,
-        maxHeight: 750,
+        maxWidth: 800,
+        maxHeight: 600,
         quality: 0.75,
         maxSizeKB: 250 // Limite stricte pour éviter les erreurs de taille
       }
@@ -113,7 +113,7 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
     
     for (const file of Array.from(files)) {
       const isValidType = file.type.startsWith('image/')
-      const isValidSize = file.size <= 10 * 1024 * 1024 // 10MB max
+      const isValidSize = file.size <= 10 * 1024 * 1024 // 10MB max pour la compression
       
       if (!isValidType) {
         logError('Fichier ignoré - type invalide', new Error('Invalid file type'), { fileName: file.name, type: file.type })
@@ -125,9 +125,9 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
         continue
       }
       
-      // Estimation de la taille finale
-      const estimatedSize = estimateDataUrlSize(file.size, 0.6) // Compression agressive
-      if (estimatedSize > 500) {
+      // Estimation de la taille finale avec compression optimisée
+      const estimatedSize = estimateDataUrlSize(file.size, 0.5) // Compression plus agressive
+      if (estimatedSize > 300) {
         logWarning('Fichier volumineux, compression agressive appliquée', { fileName: file.name, estimatedSizeKB: estimatedSize })
       }
       

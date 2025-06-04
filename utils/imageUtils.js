@@ -1,23 +1,25 @@
 import { logDebug, logInfo, logError, logWarning } from './logger'
 
-/**
- * Compresse une image en réduisant sa qualité et/ou ses dimensions
- * @param {File} file - Le fichier image à compresser
- * @param {Object} options - Options de compression
- * @returns {Promise<Blob>} - L'image compressée
- */
+// Fonction pour estimer la taille d'une Data URL
+export function estimateDataUrlSize(fileSizeBytes, compressionRatio = 0.7) {
+  // Base64 ajoute ~33% à la taille + préfixe data:image
+  const base64Size = (fileSizeBytes * compressionRatio * 4) / 3
+  const dataUrlOverhead = 50 // "data:image/jpeg;base64,"
+  return Math.round((base64Size + dataUrlOverhead) / 1024) // en KB
+}
+
+// Compression d'image avec options flexibles
 export async function compressImage(file, options = {}) {
   const {
     maxWidth = 800,
     maxHeight = 600,
-    quality = 0.7,
-    maxSizeKB = 500, // Taille max en KB
-    format = 'image/jpeg'
+    quality = 0.8,
+    maxSizeKB = 300
   } = options
 
   return new Promise((resolve, reject) => {
     if (typeof window === 'undefined') {
-      reject(new Error('Image compression only available in browser'))
+      reject(new Error('Compression d\'image disponible uniquement côté client'))
       return
     }
 
@@ -27,50 +29,66 @@ export async function compressImage(file, options = {}) {
 
     img.onload = () => {
       try {
-        // Calculer les nouvelles dimensions en conservant le ratio
+        // Calculer les nouvelles dimensions
         let { width, height } = img
-        const ratio = Math.min(maxWidth / width, maxHeight / height)
-        
-        if (ratio < 1) {
-          width = Math.round(width * ratio)
-          height = Math.round(height * ratio)
+        const aspectRatio = width / height
+
+        if (width > maxWidth) {
+          width = maxWidth
+          height = width / aspectRatio
+        }
+        if (height > maxHeight) {
+          height = maxHeight
+          width = height * aspectRatio
         }
 
         canvas.width = width
         canvas.height = height
 
-        // Dessiner l'image redimensionnée
+        // Dessiner avec options de qualité
+        ctx.imageSmoothingEnabled = true
+        ctx.imageSmoothingQuality = 'high'
         ctx.drawImage(img, 0, 0, width, height)
 
-        // Fonction pour ajuster la qualité si nécessaire
-        const tryCompress = (currentQuality) => {
+        // Essayer différents niveaux de qualité si nécessaire
+        let currentQuality = quality
+        const tryCompress = () => {
           canvas.toBlob((blob) => {
             if (!blob) {
-              reject(new Error('Échec de la compression'))
+              reject(new Error('Impossible de compresser l\'image'))
               return
             }
 
             const sizeKB = blob.size / 1024
-            logDebug('Compression tentative', {
-              originalSize: file.size,
-              compressedSize: blob.size,
-              sizeKB: Math.round(sizeKB),
+            logDebug('Compression terminée', {
+              originalSize: `${Math.round(file.size / 1024)}KB`,
+              compressedSize: `${Math.round(sizeKB)}KB`,
               quality: currentQuality,
               dimensions: `${width}x${height}`
             })
 
-            // Si la taille est acceptable ou si on ne peut plus compresser
-            if (sizeKB <= maxSizeKB || currentQuality <= 0.1) {
-              resolve(blob)
-            } else {
-              // Réduire la qualité et réessayer
-              tryCompress(Math.max(0.1, currentQuality - 0.1))
+            // Si l'image est encore trop grosse et qu'on peut réduire la qualité
+            if (sizeKB > maxSizeKB && currentQuality > 0.3) {
+              currentQuality -= 0.1
+              logDebug('Image encore trop grosse, réduction qualité', { 
+                newQuality: currentQuality 
+              })
+              tryCompress()
+              return
             }
-          }, format, currentQuality)
+
+            resolve({
+              blob,
+              width,
+              height,
+              sizeKB: Math.round(sizeKB),
+              quality: currentQuality,
+              compressionRatio: file.size / blob.size
+            })
+          }, 'image/jpeg', currentQuality)
         }
 
-        tryCompress(quality)
-
+        tryCompress()
       } catch (error) {
         reject(error)
       }
@@ -81,223 +99,143 @@ export async function compressImage(file, options = {}) {
   })
 }
 
-/**
- * Convertit un fichier image en Data URL optimisée
- * @param {File} file - Le fichier image
- * @param {Object} options - Options de traitement
- * @returns {Promise<Object>} - Objet contenant l'URL et les métadonnées
- */
+// Convertir un fichier en Data URL avec compression
 export async function processImageToUrl(file, options = {}) {
-  const processId = `img_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`
-  
   try {
-    logInfo(`[${processId}] Début traitement image`, {
+    logInfo('Début conversion image vers Data URL', {
       fileName: file.name,
-      originalSize: file.size,
+      originalSize: `${Math.round(file.size / 1024)}KB`,
       type: file.type
     })
 
-    // Validation du fichier
-    if (!file.type.startsWith('image/')) {
-      throw new Error('Le fichier n\'est pas une image valide')
-    }
-
-    if (file.size > 10 * 1024 * 1024) { // 10MB max
-      throw new Error('L\'image est trop volumineuse (max 10MB)')
-    }
-
-    // Options par défaut pour optimiser la taille
-    const compressionOptions = {
-      maxWidth: 1200,
-      maxHeight: 900,
-      quality: 0.8,
-      maxSizeKB: 300, // Limite à 300KB pour éviter les erreurs 1MB
-      format: 'image/jpeg',
-      ...options
-    }
-
-    // Compresser l'image
-    const compressedBlob = await compressImage(file, compressionOptions)
+    // Compression d'abord
+    const compressed = await compressImage(file, options)
     
-    // Convertir en Data URL
-    const dataUrl = await blobToDataUrl(compressedBlob)
-    
-    // Vérifier la taille finale de la Data URL
-    const dataUrlSizeKB = Math.round(dataUrl.length * 0.75 / 1024) // Approximation base64
-    
-    if (dataUrlSizeKB > 400) { // Si encore trop volumineux
-      logWarning(`[${processId}] Data URL encore volumineuse, re-compression`, {
-        dataUrlSizeKB
-      })
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
       
-      // Re-compresser avec des paramètres plus agressifs
-      const aggressiveOptions = {
-        ...compressionOptions,
-        maxWidth: 800,
-        maxHeight: 600,
-        quality: 0.6,
-        maxSizeKB: 200
+      reader.onload = () => {
+        const dataUrl = reader.result
+        const finalSizeKB = Math.round(dataUrl.length * 0.75 / 1024)
+        
+        logInfo('Conversion Data URL terminée', {
+          fileName: file.name,
+          finalSize: `${finalSizeKB}KB`,
+          originalSize: `${Math.round(file.size / 1024)}KB`,
+          compressionRatio: compressed.compressionRatio
+        })
+
+        resolve({
+          url: dataUrl,
+          originalSize: file.size,
+          compressedSize: compressed.blob.size,
+          finalSizeKB,
+          mimeType: file.type,
+          compressionRatio: compressed.compressionRatio
+        })
       }
       
-      const recompressedBlob = await compressImage(file, aggressiveOptions)
-      const finalDataUrl = await blobToDataUrl(recompressedBlob)
-      
-      logInfo(`[${processId}] Image recompressée avec succès`, {
-        originalSize: file.size,
-        finalBlobSize: recompressedBlob.size,
-        finalDataUrlSizeKB: Math.round(finalDataUrl.length * 0.75 / 1024)
-      })
-      
-      return {
-        url: finalDataUrl,
-        originalSize: file.size,
-        compressedSize: recompressedBlob.size,
-        mimeType: recompressedBlob.type,
-        compressionRatio: Math.round((1 - recompressedBlob.size / file.size) * 100)
-      }
-    }
-
-    logInfo(`[${processId}] Image traitée avec succès`, {
-      originalSize: file.size,
-      compressedSize: compressedBlob.size,
-      dataUrlSizeKB,
-      compressionRatio: Math.round((1 - compressedBlob.size / file.size) * 100)
+      reader.onerror = () => reject(new Error('Erreur lecture fichier'))
+      reader.readAsDataURL(compressed.blob)
     })
-
-    return {
-      url: dataUrl,
-      originalSize: file.size,
-      compressedSize: compressedBlob.size,
-      mimeType: compressedBlob.type,
-      compressionRatio: Math.round((1 - compressedBlob.size / file.size) * 100)
-    }
-
   } catch (error) {
-    logError(`[${processId}] Erreur traitement image`, error, {
-      fileName: file.name,
-      fileSize: file.size,
-      fileType: file.type
-    })
+    logError('Erreur conversion image', error, { fileName: file.name })
     throw error
   }
 }
 
-/**
- * Convertit un Blob en Data URL
- * @param {Blob} blob - Le blob à convertir
- * @returns {Promise<string>} - La Data URL
- */
-function blobToDataUrl(blob) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(reader.result)
-    reader.onerror = () => reject(new Error('Erreur lors de la conversion en Data URL'))
-    reader.readAsDataURL(blob)
-  })
-}
-
-/**
- * Traite les données d'image pour l'affichage (rétrocompatibilité)
- * @param {string|Array|null} imageData - Données image
- * @param {string} fallbackUrl - URL de fallback
- * @returns {string} - URL d'affichage
- */
+// Traiter les données d'image (Data URL ou bytes) pour l'affichage
 export function processImageData(imageData, fallbackUrl = '/placeholder-recipe.jpg') {
   if (!imageData) {
+    logDebug('Aucune donnée image, utilisation du fallback', { fallbackUrl })
     return fallbackUrl
   }
 
-  // Si c'est déjà une Data URL ou une URL
-  if (typeof imageData === 'string') {
-    if (imageData.startsWith('data:image/') || imageData.startsWith('http') || imageData.startsWith('/')) {
-      return imageData
-    }
-    
-    // Peut-être un JSON stringifié
-    try {
-      const parsed = JSON.parse(imageData)
-      return processImageData(parsed, fallbackUrl)
-    } catch {
-      return fallbackUrl
-    }
+  // Si c'est déjà une Data URL
+  if (typeof imageData === 'string' && imageData.startsWith('data:image/')) {
+    logDebug('Data URL détectée', { 
+      size: `${Math.round(imageData.length / 1024)}KB`,
+      type: imageData.substring(5, imageData.indexOf(';'))
+    })
+    return imageData
   }
 
-  // Si c'est un tableau de bytes (ancienne méthode)
-  if (Array.isArray(imageData) && imageData.length > 0) {
+  // Si c'est une URL HTTP
+  if (typeof imageData === 'string' && (imageData.startsWith('http') || imageData.startsWith('/'))) {
+    logDebug('URL HTTP détectée', { url: imageData.substring(0, 50) + '...' })
+    return imageData
+  }
+
+  // Si c'est un tableau de bytes (ancien format)
+  if (Array.isArray(imageData)) {
     try {
       const uint8Array = new Uint8Array(imageData)
-      const blob = new Blob([uint8Array], { type: 'image/jpeg' })
-      return URL.createObjectURL(blob)
+      const base64 = btoa(String.fromCharCode.apply(null, uint8Array))
+      const dataUrl = `data:image/jpeg;base64,${base64}`
+      
+      logDebug('Conversion bytes vers Data URL', {
+        bytesLength: imageData.length,
+        resultSize: `${Math.round(dataUrl.length / 1024)}KB`
+      })
+      
+      return dataUrl
     } catch (error) {
-      logError('Erreur conversion bytes vers URL', error)
+      logError('Erreur conversion bytes vers Data URL', error)
       return fallbackUrl
     }
   }
 
+  // Si c'est une chaîne JSON de bytes
+  if (typeof imageData === 'string' && imageData.startsWith('[') && imageData.endsWith(']')) {
+    try {
+      const bytesArray = JSON.parse(imageData)
+      return processImageData(bytesArray, fallbackUrl)
+    } catch (error) {
+      logError('Erreur parsing JSON bytes', error)
+      return fallbackUrl
+    }
+  }
+
+  logWarning('Format d\'image non reconnu', { 
+    type: typeof imageData,
+    isArray: Array.isArray(imageData),
+    length: imageData?.length,
+    preview: typeof imageData === 'string' ? imageData.substring(0, 100) : 'non-string'
+  })
+  
   return fallbackUrl
 }
 
-/**
- * Valide les dimensions et le poids d'une image
- * @param {File} file - Le fichier à valider
- * @returns {Promise<Object>} - Résultat de la validation
- */
-export async function validateImageFile(file) {
-  return new Promise((resolve) => {
-    if (!file.type.startsWith('image/')) {
-      resolve({
-        isValid: false,
-        error: 'Le fichier n\'est pas une image'
-      })
-      return
+// Valider une Data URL
+export function validateDataUrl(dataUrl) {
+  if (!dataUrl || typeof dataUrl !== 'string') {
+    return { isValid: false, error: 'Data URL invalide ou manquante' }
+  }
+
+  if (!dataUrl.startsWith('data:image/')) {
+    return { isValid: false, error: 'N\'est pas une Data URL d\'image' }
+  }
+
+  const sizeKB = Math.round(dataUrl.length * 0.75 / 1024)
+  
+  if (sizeKB > 500) {
+    return { 
+      isValid: false, 
+      error: `Data URL trop volumineuse: ${sizeKB}KB (max: 500KB)` 
     }
+  }
 
-    const img = new Image()
-    img.onload = () => {
-      const validation = {
-        isValid: true,
-        width: img.width,
-        height: img.height,
-        size: file.size,
-        type: file.type,
-        warnings: []
-      }
-
-      // Vérifications
-      if (file.size > 10 * 1024 * 1024) {
-        validation.isValid = false
-        validation.error = 'Image trop volumineuse (max 10MB)'
-      } else if (file.size > 5 * 1024 * 1024) {
-        validation.warnings.push('Image volumineuse, compression recommandée')
-      }
-
-      if (img.width > 4000 || img.height > 4000) {
-        validation.warnings.push('Très haute résolution, redimensionnement recommandé')
-      }
-
-      resolve(validation)
-    }
-
-    img.onerror = () => {
-      resolve({
-        isValid: false,
-        error: 'Impossible de lire l\'image'
-      })
-    }
-
-    img.src = URL.createObjectURL(file)
-  })
+  return { 
+    isValid: true, 
+    sizeKB,
+    mimeType: dataUrl.substring(5, dataUrl.indexOf(';'))
+  }
 }
 
-/**
- * Estime la taille finale d'une Data URL
- * @param {number} fileSizeBytes - Taille du fichier en bytes
- * @param {number} compressionRatio - Ratio de compression (0-1)
- * @returns {number} - Taille estimée de la Data URL en KB
- */
-export function estimateDataUrlSize(fileSizeBytes, compressionRatio = 0.7) {
-  const compressedSize = fileSizeBytes * compressionRatio
-  // Base64 augmente la taille de ~33%
-  const base64Size = compressedSize * 1.33
-  return Math.round(base64Size / 1024)
+export default {
+  estimateDataUrlSize,
+  compressImage,
+  processImageToUrl,
+  processImageData,
+  validateDataUrl
 }

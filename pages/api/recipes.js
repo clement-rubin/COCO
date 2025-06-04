@@ -72,14 +72,29 @@ export default async function handler(req, res) {
           image: null // Sera traité ci-dessous
         }
 
-        // Traitement de l'image
+        // Traitement de l'image avec validation améliorée
         if (image) {
           if (typeof image === 'string') {
             // Validation de la Data URL
             if (image.startsWith('data:image/')) {
+              // Valider la taille et optimiser si nécessaire
+              const sizeKB = Math.round(image.length * 0.75 / 1024)
+              
+              if (sizeKB > 500) {
+                logWarning('Image Data URL très volumineuse', { 
+                  sizeKB,
+                  imagePrefix: image.substring(0, 50) + '...'
+                })
+                
+                // Vous pourriez implémenter une re-compression ici si nécessaire
+                return res.status(400).json({ 
+                  error: `Image trop volumineuse: ${sizeKB}KB (max: 500KB). Veuillez réduire la qualité.` 
+                })
+              }
+              
               recipeData.image = image
               logDebug('Image Data URL acceptée', { 
-                imageLength: image.length,
+                sizeKB,
                 imagePrefix: image.substring(0, 50) + '...'
               })
             } else {
@@ -92,9 +107,30 @@ export default async function handler(req, res) {
               })
             }
           } else if (Array.isArray(image)) {
-            // Si c'est un tableau de bytes, le convertir en chaîne JSON
-            recipeData.image = JSON.stringify(image)
-            logDebug('Image stockée comme tableau de bytes', { bytesLength: image.length })
+            // Si c'est un tableau de bytes, le convertir et valider
+            try {
+              const uint8Array = new Uint8Array(image)
+              const base64 = btoa(String.fromCharCode.apply(null, uint8Array))
+              const dataUrl = `data:image/jpeg;base64,${base64}`
+              const sizeKB = Math.round(dataUrl.length * 0.75 / 1024)
+              
+              if (sizeKB > 500) {
+                return res.status(400).json({ 
+                  error: `Image convertie trop volumineuse: ${sizeKB}KB (max: 500KB)` 
+                })
+              }
+              
+              recipeData.image = dataUrl
+              logDebug('Image bytes convertie en Data URL', { 
+                bytesLength: image.length,
+                dataUrlSizeKB: sizeKB
+              })
+            } catch (error) {
+              logError('Erreur conversion bytes vers Data URL', error)
+              return res.status(400).json({ 
+                error: 'Erreur lors de la conversion des bytes image' 
+              })
+            }
           } else {
             logError('Format d\'image non supporté', null, { 
               imageType: typeof image 

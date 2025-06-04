@@ -3,6 +3,10 @@
  * Supporte différents niveaux de log et environnements
  */
 
+const isDevelopment = typeof window !== 'undefined' 
+  ? window.location.hostname === 'localhost' 
+  : process.env.NODE_ENV === 'development'
+
 const LOG_LEVELS = {
   ERROR: 0,
   WARNING: 1,
@@ -10,71 +14,62 @@ const LOG_LEVELS = {
   DEBUG: 3
 }
 
-const CURRENT_LOG_LEVEL = typeof window !== 'undefined' 
-  ? (localStorage.getItem('logLevel') ? parseInt(localStorage.getItem('logLevel')) : LOG_LEVELS.INFO)
-  : LOG_LEVELS.INFO
+const currentLogLevel = isDevelopment ? LOG_LEVELS.DEBUG : LOG_LEVELS.INFO
 
-function createLogEntry(level, message, context = {}) {
-  return {
-    timestamp: new Date().toISOString(),
-    level,
-    message,
-    context,
-    id: Date.now() + Math.random(),
-    url: typeof window !== 'undefined' ? window.location.href : '',
-    userAgent: typeof navigator !== 'undefined' ? navigator.userAgent.substring(0, 100) : ''
-  }
-}
+// Fonction de base pour logger
+function createLogger(level, emoji, color) {
+  return function(message, data = null, context = {}) {
+    if (level > currentLogLevel) return
 
-export function logError(message, error = null, context = {}) {
-  if (CURRENT_LOG_LEVEL >= LOG_LEVELS.ERROR) {
-    const logEntry = createLogEntry('ERROR', message, { error: error?.message, ...context })
+    const timestamp = new Date().toLocaleTimeString()
+    const prefix = `${emoji} [${timestamp}]`
     
-    console.error(`[ERROR] ${message}`, error, logEntry)
-    return logEntry
+    if (typeof window !== 'undefined') {
+      // Côté client - utiliser console avec couleurs
+      const style = `color: ${color}; font-weight: bold;`
+      console.log(`%c${prefix} ${message}`, style)
+      
+      if (data || Object.keys(context).length > 0) {
+        const logData = { ...context }
+        if (data) logData.data = data
+        console.log('%cDétails:', 'color: #666; font-style: italic;', logData)
+      }
+    } else {
+      // Côté serveur - log simple
+      console.log(`${prefix} ${message}`)
+      if (data || Object.keys(context).length > 0) {
+        console.log('Détails:', { data, context })
+      }
+    }
   }
 }
 
-export function logWarning(message, context = {}) {
-  if (CURRENT_LOG_LEVEL >= LOG_LEVELS.WARNING) {
-    const logEntry = createLogEntry('WARNING', message, context)
-    console.warn(`[WARNING] ${message}`, logEntry)
-    return logEntry
-  }
-}
+// Loggers spécialisés
+export const logError = createLogger(LOG_LEVELS.ERROR, '❌', '#ff4444')
+export const logWarning = createLogger(LOG_LEVELS.WARNING, '⚠️', '#ff9900')
+export const logInfo = createLogger(LOG_LEVELS.INFO, 'ℹ️', '#0066cc')
+export const logDebug = createLogger(LOG_LEVELS.DEBUG, '🔍', '#666666')
 
-export function logInfo(message, context = {}) {
-  if (CURRENT_LOG_LEVEL >= LOG_LEVELS.INFO) {
-    const logEntry = createLogEntry('INFO', message, context)
-    console.info(`[INFO] ${message}`, logEntry)
-    return logEntry
-  }
-}
-
-export function logDebug(message, context = {}) {
-  if (CURRENT_LOG_LEVEL >= LOG_LEVELS.DEBUG) {
-    const logEntry = createLogEntry('DEBUG', message, context)
-    console.debug(`[DEBUG] ${message}`, logEntry)
-    return logEntry
-  }
-}
-
-export function logUserInteraction(action, element, context = {}) {
-  return logInfo(`User interaction: ${action}`, {
-    action,
-    element,
-    ...context
+// Logger spécialisé pour les interactions utilisateur
+export const logUserInteraction = (action, component, data = {}) => {
+  logInfo(`Action utilisateur: ${action}`, data, { 
+    component, 
+    timestamp: Date.now(),
+    url: typeof window !== 'undefined' ? window.location.pathname : 'server'
   })
 }
 
-export function logComponentEvent(component, event, context = {}) {
-  return logDebug(`Component event: ${component}.${event}`, {
-    component,
-    event,
-    ...context
-  })
+// Logger spécialisé pour les erreurs de performance
+export const logPerformance = (operation, duration, data = {}) => {
+  const level = duration > 2000 ? logWarning : logInfo
+  level(`Performance ${operation}: ${duration}ms`, data)
 }
 
-export function logFrontendError(error, context = {}) {
-  return logError('Frontend error', error, context)
+export default {
+  error: logError,
+  warning: logWarning,
+  info: logInfo,
+  debug: logDebug,
+  userInteraction: logUserInteraction,
+  performance: logPerformance
 }
