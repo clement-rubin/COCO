@@ -45,8 +45,8 @@ function createLogger(level, emoji, color) {
 }
 
 // Loggers spécialisés
-export const logError = createLogger(LOG_LEVELS.ERROR, '❌', '#ff4444')
 export const logWarning = createLogger(LOG_LEVELS.WARNING, '⚠️', '#ff9900')
+export const logError = createLogger(LOG_LEVELS.ERROR, '❌', '#ff0000')
 export const logInfo = createLogger(LOG_LEVELS.INFO, 'ℹ️', '#0066cc')
 export const logDebug = createLogger(LOG_LEVELS.DEBUG, '🔍', '#666666')
 
