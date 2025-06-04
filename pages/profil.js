@@ -45,8 +45,9 @@ export default function Profil() {
 
       // Load user profile
       const profileResponse = await fetch(`/api/profile?user_id=${user.id}`)
+      let profileData = null
       if (profileResponse.ok) {
-        const profileData = await profileResponse.json()
+        profileData = await profileResponse.json()
         setProfile(profileData)
         setEditForm({
           display_name: profileData.display_name || '',
@@ -55,10 +56,11 @@ export default function Profil() {
       }
 
       // Load user recipes with proper error handling
+      let recipesData = []
       try {
         const recipesResponse = await fetch(`/api/recipes?user_id=${user.id}&limit=6`)
         if (recipesResponse.ok) {
-          const recipesData = await recipesResponse.json()
+          recipesData = await recipesResponse.json()
           // Ensure recipesData is an array
           setUserRecipes(Array.isArray(recipesData) ? recipesData : [])
         } else {
