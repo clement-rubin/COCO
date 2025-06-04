@@ -192,26 +192,30 @@ export default function SharePhoto() {
   const handleInputChange = (e) => {
     const { name, value } = e.target
     
-    addLog('DEBUG', `Changement de champ: ${name}`, {
-      fieldName: name,
-      valueLength: value.length,
-      isEmpty: !value.trim(),
-      previousValue: formData[name],
-      step: currentStep
-    })
+    // Only log significant changes to reduce noise
+    if (Math.abs(value.length - (formData[name]?.length || 0)) > 10) {
+      addLog('DEBUG', `Changement de champ: ${name}`, {
+        fieldName: name,
+        valueLength: value.length,
+        isEmpty: !value.trim(),
+        step: currentStep
+      })
+    }
     
     setFormData(prev => ({ ...prev, [name]: value }))
     
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }))
-      addLog('DEBUG', `Erreur effacée pour le champ: ${name}`)
     }
     
-    logUserInteraction('FORM_FIELD_CHANGE', `champ-${name}`, {
-      fieldName: name,
-      valueLength: value.length,
-      step: currentStep
-    })
+    // Only log user interactions for significant changes
+    if (value.length > 0 && value.length % 50 === 0) {
+      logUserInteraction('FORM_FIELD_CHANGE', `champ-${name}`, {
+        fieldName: name,
+        valueLength: value.length,
+        step: currentStep
+      })
+    }
   }
 
   const validateForm = () => {

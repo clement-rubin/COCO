@@ -21,6 +21,11 @@ export default function Amis() {
   const [pageLoadStartTime] = useState(Date.now())
   const [userInteractionCount, setUserInteractionCount] = useState(0)
 
+  // Add missing state for tracking API calls and other metrics
+  const [apiCallHistory, setApiCallHistory] = useState([])
+  const [errorHistory, setErrorHistory] = useState([])
+  const [searchHistory, setSearchHistory] = useState([])
+
   // Component lifecycle logging with enhanced metrics
   useEffect(() => {
     const sessionId = Math.random().toString(36).substring(2, 15)
@@ -341,12 +346,28 @@ export default function Amis() {
   const handleTabChange = (newTab) => {
     setUserInteractionCount(prev => prev + 1)
     setActiveTab(newTab)
+    
+    // Log tab changes with minimal data
+    logUserInteraction('TAB_CHANGE', 'amis-navigation', {
+      newTab,
+      timestamp: new Date().toISOString()
+    })
   }
 
   const handleSearchChange = (e) => {
     const newQuery = e.target.value
     setSearchQuery(newQuery)
-    searchUsers(newQuery)
+    
+    // Track search history
+    if (newQuery.trim()) {
+      setSearchHistory(prev => [...prev.slice(-9), { query: newQuery, timestamp: Date.now() }])
+    }
+    
+    // Debounce search to avoid excessive API calls
+    clearTimeout(window.searchTimeout)
+    window.searchTimeout = setTimeout(() => {
+      searchUsers(newQuery)
+    }, 500)
   }
 
   if (authLoading || !user) {

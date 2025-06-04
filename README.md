@@ -2,6 +2,46 @@
 
 Une application web moderne et mobile-first pour partager et découvrir des recettes délicieuses au sein d'une communauté passionnée de cuisine.
 
+## 🚀 Déploiement en Production
+
+### Configuration Netlify/Vercel
+
+Pour un déploiement réussi, assurez-vous de :
+
+1. **Variables d'environnement** :
+```bash
+NEXT_PUBLIC_SUPABASE_URL=https://votre-projet.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=votre_cle_anonyme_ici
+NODE_ENV=production
+```
+
+2. **Configuration du build** :
+```toml
+# netlify.toml
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "18"
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+```
+
+3. **Optimisations pour la production** :
+- Images automatiquement compressées en Data URLs
+- Logs réduits en production via `NODE_ENV`
+- Gestion d'erreurs robuste avec retry automatique
+- Cache des requêtes API optimisé
+
 ## 🍴 Fonctionnalités Principales
 
 - **Feed addictif style TikTok** - Découvrez les recettes en défilement vertical immersif
