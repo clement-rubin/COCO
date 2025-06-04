@@ -244,7 +244,7 @@
   font-size: 0.9rem;
   margin-top: 16px;
   border: 1px solid #10b981;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
+  box-shadow: 1 4px 12px rgba(16, 185, 129, 0.15);
   display: flex;
   align-items: center;
   gap: 8px;
