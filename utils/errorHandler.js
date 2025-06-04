@@ -61,8 +61,8 @@ const USER_FRIENDLY_MESSAGES = {
   // Erreurs serveur
   'Internal Server Error': 'Erreur temporaire du serveur. Réessayez dans quelques instants.',
   'Service Unavailable': 'Service temporairement indisponible.',
-  'Too Many Requests': 'Trop de tentatives. Attendez avant de réessayer.'
-  
+  'Too Many Requests': 'Trop de tentatives. Attendez avant de réessayer.',
+
   // Database/API errors
   'Failed to fetch data': 'Impossible de récupérer les données. Réessayez plus tard.',
   'Database error': 'Problème d\'accès aux données. Réessayez dans quelques instants.',
@@ -433,3 +433,24 @@ export function setupGlobalErrorHandling() {
     }))
   })
 }
+
+// Make sure the error messages are within an object definition like:
+
+const errorMessages = {
+  // Authentication errors
+  'Invalid credentials': 'Identifiants invalides. Vérifiez votre email et mot de passe.',
+  // ...other authentication errors...
+
+  // Rate limiting
+  'Too Many Requests': 'Trop de tentatives. Attendez avant de réessayer.',
+
+  // Database/API errors
+  'Failed to fetch data': 'Impossible de récupérer les données. Réessayez plus tard.',
+  'Database error': 'Problème d\'accès aux données. Réessayez dans quelques instants.',
+  'Connection timeout': 'La connexion au serveur a été trop longue. Vérifiez votre internet.',
+  'Query timeout': 'La recherche a pris trop de temps. Réessayez avec un filtre plus précis.',
+  // ...other errors...
+};
+
+// Then export the error messages
+export default errorMessages;
