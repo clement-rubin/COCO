@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react'
-import { processImageToUrl } from '../utils/imageUtils'
+import { processImageToUrl, estimateDataUrlSize } from '../utils/imageUtils'
 import { logDebug, logInfo, logError, logUserInteraction } from '../utils/logger'
 import styles from '../styles/PhotoUpload.module.css'
 
