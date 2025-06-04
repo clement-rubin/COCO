@@ -448,10 +448,27 @@ export default function SharePhoto() {
       photosCount: photos.length
     })
     
-    if (currentStep === 1 && !formData.title.trim()) {
-      setErrors({ title: 'Le titre est requis pour continuer' })
-      addLog('WARNING', 'Impossible de passer à l\'étape suivante: titre manquant')
-      return
+    if (currentStep === 1) {
+      // Validation pour l'étape 1: photo ET titre requis
+      const newErrors = {}
+      
+      if (photos.length === 0) {
+        newErrors.photos = 'Une photo est requise pour continuer'
+      }
+      
+      if (!formData.title.trim()) {
+        newErrors.title = 'Le titre est requis pour continuer'
+      }
+      
+      if (Object.keys(newErrors).length > 0) {
+        setErrors(newErrors)
+        addLog('WARNING', 'Impossible de passer à l\'étape suivante', {
+          errors: Object.keys(newErrors),
+          hasPhoto: photos.length > 0,
+          hasTitle: !!formData.title.trim()
+        })
+        return
+      }
     }
     
     if (currentStep < 3) {
@@ -735,12 +752,12 @@ export default function SharePhoto() {
     <div className={styles.stepIndicator}>
       <div className={`${styles.step} ${currentStep >= 1 ? styles.active : ''} ${currentStep > 1 ? styles.completed : ''}`}>
         <span className={styles.stepNumber}>1</span>
-        <span className={styles.stepLabel}>Photo</span>
+        <span className={styles.stepLabel}>Photo & Titre</span>
       </div>
       <div className={styles.stepLine}></div>
       <div className={`${styles.step} ${currentStep >= 2 ? styles.active : ''} ${currentStep > 2 ? styles.completed : ''}`}>
         <span className={styles.stepNumber}>2</span>
-        <span className={styles.stepLabel}>Détails</span>
+        <span className={styles.stepLabel}>Description</span>
       </div>
       <div className={styles.stepLine}></div>
       <div className={`${styles.step} ${currentStep >= 3 ? styles.active : ''}`}>
@@ -753,73 +770,66 @@ export default function SharePhoto() {
   const Step1PhotoCapture = () => (
     <div className={styles.stepContent}>
       <div className={styles.stepHeader}>
-        <h2>📸 Prenez une photo de votre plat</h2>
-        <p>Capturez directement avec votre appareil photo ou choisissez une image</p>
+        <h2>📸 Votre plat en image</h2>
+        <p>Capturez ou sélectionnez une photo et donnez-lui un nom</p>
       </div>
 
-      <div className={styles.photoOptions}>
-        <div className={styles.cameraSection}>
-          {!cameraMode ? (
-            <button onClick={startCamera} className={styles.cameraBtn}>
-              📷 Utiliser l'appareil photo
-            </button>
-          ) : (
-            <div className={styles.cameraContainer}>
-              <video ref={videoRef} autoPlay playsInline className={styles.cameraVideo}></video>
-              <canvas ref={canvasRef} style={{ display: 'none' }}></canvas>
-              <div className={styles.cameraControls}>
-                <button onClick={capturePhoto} className={styles.captureBtn}>
-                  📸 Capturer
-                </button>
-                <button onClick={stopCamera} className={styles.cancelBtn}>
-                  ✕ Annuler
-                </button>
+      <div className={styles.photoSection}>
+        <div className={styles.photoOptions}>
+          <div className={styles.cameraSection}>
+            {!cameraMode ? (
+              <button onClick={startCamera} className={styles.cameraBtn}>
+                📷 Utiliser l'appareil photo
+              </button>
+            ) : (
+              <div className={styles.cameraContainer}>
+                <video ref={videoRef} autoPlay playsInline className={styles.cameraVideo}></video>
+                <canvas ref={canvasRef} style={{ display: 'none' }}></canvas>
+                <div className={styles.cameraControls}>
+                  <button onClick={capturePhoto} className={styles.captureBtn}>
+                    📸 Capturer
+                  </button>
+                  <button onClick={stopCamera} className={styles.cancelBtn}>
+                    ✕ Annuler
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
 
-        <div className={styles.divider}>
-          <span>ou</span>
-        </div>
+          <div className={styles.divider}>
+            <span>ou</span>
+          </div>
 
-        <div className={styles.uploadSection}>
-          <PhotoUpload 
-            onPhotoSelect={setPhotos}
-            maxFiles={1}
-            compact={true}
-          />
-        </div>
-      </div>
-
-      {errors.photos && <div className={styles.error}>{errors.photos}</div>}
-
-      {photos.length > 0 && (
-        <div className={styles.photoPreview}>
-          <h3>✅ Photo sélectionnée</h3>
-          <div className={styles.previewGrid}>
-            {photos.map((photo, index) => (
-              <div key={photo.id || index} className={styles.previewItem}>
-                <img src={photo.preview} alt="Aperçu" className={styles.previewImage} />
-                <button 
-                  onClick={() => setPhotos([])} 
-                  className={styles.removeBtn}
-                >
-                  ✕
-                </button>
-              </div>
-            ))}
+          <div className={styles.uploadSection}>
+            <PhotoUpload 
+              onPhotoSelect={setPhotos}
+              maxFiles={1}
+              compact={true}
+            />
           </div>
         </div>
-      )}
-    </div>
-  )
 
-  const Step2Details = () => (
-    <div className={styles.stepContent}>
-      <div className={styles.stepHeader}>
-        <h2>📝 Décrivez votre plat</h2>
-        <p>Quelques détails pour que votre photo soit encore plus appétissante</p>
+        {photos.length > 0 && (
+          <div className={styles.photoPreview}>
+            <h3>✅ Photo sélectionnée</h3>
+            <div className={styles.previewGrid}>
+              {photos.map((photo, index) => (
+                <div key={photo.id || index} className={styles.previewItem}>
+                  <img src={photo.preview} alt="Aperçu" className={styles.previewImage} />
+                  <button 
+                    onClick={() => setPhotos([])} 
+                    className={styles.removeBtn}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {errors.photos && <div className={styles.error}>{errors.photos}</div>}
       </div>
 
       <div className={styles.formGroup}>
@@ -837,20 +847,32 @@ export default function SharePhoto() {
         />
         {errors.title && <span className={styles.error}>{errors.title}</span>}
       </div>
+    </div>
+  )
+
+  const Step2Details = () => (
+    <div className={styles.stepContent}>
+      <div className={styles.stepHeader}>
+        <h2>📝 Parlez-nous en plus</h2>
+        <p>Ajoutez une description pour rendre votre plat encore plus appétissant</p>
+      </div>
 
       <div className={styles.formGroup}>
         <label htmlFor="description" className={styles.label}>
-          Description (optionnel)
+          Description de votre plat
         </label>
         <textarea
           id="description"
           name="description"
           value={formData.description}
           onChange={handleInputChange}
-          placeholder="Qu'est-ce qui rend ce plat spécial ?"
-          rows={3}
+          placeholder="Qu'est-ce qui rend ce plat spécial ? Partagez vos secrets, vos ingrédients favoris ou l'histoire de cette recette..."
+          rows={4}
           className={styles.textarea}
         />
+        <small style={{ color: '#6b7280', fontSize: '0.9rem', marginTop: '8px', display: 'block' }}>
+          💡 Plus votre description est détaillée, plus elle inspirera les autres !
+        </small>
       </div>
     </div>
   )
@@ -951,9 +973,9 @@ export default function SharePhoto() {
             <button 
               onClick={nextStep} 
               className={styles.nextBtn}
-              disabled={currentStep === 1 && photos.length === 0}
+              disabled={currentStep === 1 && (photos.length === 0 || !formData.title.trim())}
             >
-              Suivant →
+              {currentStep === 3 ? 'Publier' : 'Suivant →'}
             </button>
           </div>
         )}
