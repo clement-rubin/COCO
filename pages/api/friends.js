@@ -427,12 +427,11 @@ export default async function handler(req, res) {
 
           const removeStartTime = Date.now()
 
-          // Supprimer un ami
+          // Supprimer un ami - Fixed SQL query
           const { error: removeError } = await supabase
             .from('friendships')
             .delete()
-            .or(`user_id.eq.${user_id},friend_id.eq.${user_id}`)
-            .or(`user_id.eq.${friend_id},friend_id.eq.${friend_id}`)
+            .or(`and(user_id.eq.${user_id},friend_id.eq.${friend_id}),and(user_id.eq.${friend_id},friend_id.eq.${user_id})`)
 
           const removeDuration = Date.now() - removeStartTime
 

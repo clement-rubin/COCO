@@ -222,7 +222,7 @@ export default function Amis() {
     })
   }, [activeTab])
 
-  const loadFriendsData = async () => {
+  const loadFriendsData = async (retryCount = 0, maxRetries = 3) => {
     if (!user) {
       logWarning('loadFriendsData called without user', {
         hasUser: !!user,
@@ -240,8 +240,9 @@ export default function Amis() {
       apiCallId,
       userEmail: user.email,
       userId: user.id?.substring(0, 8) + '...',
-      userDisplayName: user.user_metadata?.display_name,
-      step: 'process_start',
+      retryCount,
+      maxRetries,
+      initialActiveTab: activeTab,
       timestamp: new Date().toISOString(),
       sessionTime: Date.now() - pageLoadStartTime,
       currentFriendsCount: friends.length,
@@ -327,9 +328,26 @@ export default function Amis() {
           errorText,
           step: 'api_error_response',
           userId: user.id?.substring(0, 8) + '...',
-          retryCount: 0
+          retryCount
         })
-        throw new Error(`Erreur HTTP: ${response.status} - ${response.statusText}`)
+
+        // Retry logic for 5xx errors
+        if (response.status >= 500 && retryCount < maxRetries) {
+          const retryDelay = Math.min(1000 * Math.pow(2, retryCount), 5000)
+          logInfo(`Retrying loadFriendsData in ${retryDelay}ms`, {
+            apiCallId,
+            retryCount: retryCount + 1,
+            maxRetries,
+            retryDelay
+          })
+          
+          setTimeout(() => {
+            loadFriendsData(retryCount + 1, maxRetries)
+          }, retryDelay)
+          return
+        }
+
+        throw new Error(`Erreur HTTP: ${response.status} - ${response.statusText}${errorText ? ': ' + errorText : ''}`)
       }
 
       const data = await response.json()
@@ -421,7 +439,8 @@ export default function Amis() {
         type: 'LOAD_FRIENDS_ERROR',
         message: err.message,
         stack: err.stack?.substring(0, 500),
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        retryCount
       }
       setErrorHistory(prev => [...prev, errorRecord])
       
@@ -435,11 +454,16 @@ export default function Amis() {
         totalTime,
         step: 'error_caught',
         networkStatus: typeof navigator !== 'undefined' ? navigator.onLine : 'unknown',
-        retryCount: 0,
+        retryCount,
         errorCategory: err.name === 'TypeError' ? 'NETWORK_ERROR' : 'API_ERROR'
       })
       
-      setError(err.message)
+      // Show user-friendly error message
+      if (retryCount >= maxRetries) {
+        setError('Impossible de charger vos amis. Veuillez rafraîchir la page.')
+      } else {
+        setError(`Erreur temporaire (tentative ${retryCount + 1}/${maxRetries + 1}). Nouvelle tentative...`)
+      }
     } finally {
       const totalDuration = Date.now() - startTime
       
@@ -473,7 +497,7 @@ export default function Amis() {
     }
   }
 
-  const searchUsers = async (query) => {
+  const searchUsers = async (query, retryCount = 0, maxRetries = 2) => {
     if (!query.trim()) {
       logDebug('searchUsers: Query vide, reset des résultats', {
         queryLength: query.length,
@@ -555,8 +579,19 @@ export default function Amis() {
           statusText: response.statusText,
           errorText,
           query: query.trim(),
-          step: 'api_error_response'
+          step: 'api_error_response',
+          retryCount
         })
+
+        // Retry logic for search
+        if (response.status >= 500 && retryCount < maxRetries) {
+          const retryDelay = Math.min(500 * Math.pow(2, retryCount), 2000)
+          setTimeout(() => {
+            searchUsers(query, retryCount + 1, maxRetries)
+          }, retryDelay)
+          return
+        }
+
         throw new Error(`Erreur de recherche: ${response.status}`)
       }
 
@@ -653,7 +688,7 @@ export default function Amis() {
       setSearchHistory(prev => 
         prev.map(search => 
           search.id === searchId 
-            ? { ...search, error: err.message, responseTime: totalTime, success: false }
+            ? { ...search, error: err.message, responseTime: totalTime, success: false, retryCount }
             : search
         )
       )
@@ -665,7 +700,8 @@ export default function Amis() {
         errorStack: err.stack?.substring(0, 500),
         totalTime,
         step: 'search_error',
-        networkStatus: typeof navigator !== 'undefined' ? navigator.onLine : 'unknown'
+        networkStatus: typeof navigator !== 'undefined' ? navigator.onLine : 'unknown',
+        retryCount
       })
     } finally {
       const totalDuration = Date.now() - startTime
@@ -690,7 +726,7 @@ export default function Amis() {
   const sendFriendRequest = async (friendId) => {
     const startTime = Date.now()
     const requestId = Math.random().toString(36).substring(2, 15)
-    
+
     setUserInteractionCount(prev => prev + 1)
     
     logUserInteraction('SEND_FRIEND_REQUEST_START', 'amis-page', {
@@ -1082,7 +1118,7 @@ export default function Amis() {
     })
 
     setSearchQuery(newQuery)
-    searchUsers(newQuery)
+    searchUsers(newQuery) // This will now use retry logic
   }
 
   // Log component performance on unmount
