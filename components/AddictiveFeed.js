@@ -2,148 +2,16 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import Image from 'next/image'
 import { useAuth } from './AuthContext'
-import { logUserInteraction } from '../utils/logger'
+import { logUserInteraction, logError, logInfo } from '../utils/logger'
 import styles from '../styles/AddictiveFeed.module.css'
-
-// Générateur de contenu varié
-const generateRandomPosts = (startIndex = 0, count = 10) => {
-  const users = [
-    { id: 'marie123', name: 'Marie Dubois', avatar: '👩‍🍳', verified: true, followers: 2400 },
-    { id: 'chef_pierre', name: 'Chef Pierre', avatar: '👨‍🍳', verified: true, followers: 15600 },
-    { id: 'emma_healthy', name: 'Emma Green', avatar: '🌱', verified: false, followers: 890 },
-    { id: 'lucas_baker', name: 'Lucas Baker', avatar: '🧑‍🍳', verified: true, followers: 5200 },
-    { id: 'sophie_patiss', name: 'Sophie Patiss', avatar: '👩‍🦳', verified: true, followers: 8900 },
-    { id: 'tom_bbq', name: 'Tom BBQ', avatar: '🔥', verified: false, followers: 3400 },
-    { id: 'nina_vegan', name: 'Nina Vegan', avatar: '🥬', verified: true, followers: 12000 },
-    { id: 'alex_fusion', name: 'Alex Fusion', avatar: '🌍', verified: false, followers: 1800 }
-  ]
-
-  const recipeTemplates = [
-    {
-      titles: ['Pasta Carbonara Authentique', 'Spaghetti Aglio e Olio', 'Risotto aux Champignons', 'Lasagnes Maison'],
-      category: 'Italien',
-      tags: ['#italien', '#pasta', '#authentique', '#fait-maison'],
-      images: [
-        'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5',
-        'https://images.unsplash.com/photo-1551183053-bf91a1d81141',
-        'https://images.unsplash.com/photo-1579952363873-27d3bfad9c0d',
-        'https://images.unsplash.com/photo-1555949258-eb67b1ef0ceb'
-      ]
-    },
-    {
-      titles: ['Tarte aux Fraises', 'Tiramisu Classique', 'Éclair au Chocolat', 'Crème Brûlée'],
-      category: 'Dessert',
-      tags: ['#dessert', '#sucré', '#pâtisserie', '#french'],
-      images: [
-        'https://images.unsplash.com/photo-1565958011703-44f9829ba187',
-        'https://images.unsplash.com/photo-1571115764595-644a1f56a55c',
-        'https://images.unsplash.com/photo-1578985545062-69928b1d9587',
-        'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3'
-      ]
-    },
-    {
-      titles: ['Buddha Bowl Coloré', 'Smoothie Bowl Tropical', 'Salade Quinoa Avocat', 'Wrap Végétarien'],
-      category: 'Healthy',
-      tags: ['#healthy', '#végétarien', '#coloré', '#équilibré'],
-      images: [
-        'https://images.unsplash.com/photo-1511690743698-d9d85f2fbf38',
-        'https://images.unsplash.com/photo-1512621776951-a57141f2eefd',
-        'https://images.unsplash.com/photo-1540420773420-3366772f4999',
-        'https://images.unsplash.com/photo-1547592180-85f173990554'
-      ]
-    },
-    {
-      titles: ['Ramen Épicé Maison', 'Pad Thaï Authentique', 'Sushi Rolls', 'Curry Vert Thaï'],
-      category: 'Asiatique',
-      tags: ['#asiatique', '#épicé', '#authentique', '#umami'],
-      images: [
-        'https://images.unsplash.com/photo-1569718212165-3a8278d5f624',
-        'https://images.unsplash.com/photo-1559181567-c3190ca9959b',
-        'https://images.unsplash.com/photo-1579584425555-c3ce17fd4351',
-        'https://images.unsplash.com/photo-1504674900247-0877df9cc836'
-      ]
-    },
-    {
-      titles: ['Burger Gourmet BBQ', 'Côtes de Porc Laquées', 'Pulled Pork Sandwich', 'Ribs Fumés'],
-      category: 'BBQ',
-      tags: ['#bbq', '#grillé', '#fumé', '#carnivore'],
-      images: [
-        'https://images.unsplash.com/photo-1568901346375-23c9450c58cd',
-        'https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5',
-        'https://images.unsplash.com/photo-1586190848861-99aa4a171e90',
-        'https://images.unsplash.com/photo-1561758033-d89a9ad46330'
-      ]
-    }
-  ]
-
-  const descriptions = [
-    "Ma recette secrète transmise par ma grand-mère ! 👵✨",
-    "Premier essai et c'est un succès total ! 🎉",
-    "La technique qui change tout, vous allez adorer ! 💫",
-    "Recette healthy et délicieuse, parfaite pour l'été ! ☀️",
-    "Mon nouveau plat préféré, addictif ! 😍",
-    "Technique de chef à la maison ! 👨‍🍳",
-    "Comfort food qui réchauffe le cœur ! ❤️",
-    "Explosion de saveurs garantie ! 💥"
-  ]
-
-  return Array.from({ length: count }, (_, i) => {
-    const index = startIndex + i
-    const user = users[index % users.length]
-    const template = recipeTemplates[index % recipeTemplates.length]
-    const title = template.titles[index % template.titles.length]
-    const description = descriptions[index % descriptions.length]
-    
-    // Sélectionner 2-4 images aléatoires du template
-    const imageCount = 2 + (index % 3) // 2, 3, ou 4 images
-    const shuffledImages = [...template.images].sort(() => Math.random() - 0.5)
-    const selectedImages = shuffledImages.slice(0, imageCount)
-
-    return {
-      id: `post_${index}`,
-      type: index % 5 === 0 ? 'challenge' : 'recipe',
-      user: {
-        ...user,
-        isFollowing: Math.random() > 0.7
-      },
-      recipe: {
-        id: `recipe_${index}`,
-        title,
-        description,
-        media: selectedImages.map((url, mediaIndex) => ({
-          type: mediaIndex === 0 && Math.random() > 0.7 ? 'video' : 'image',
-          url,
-          duration: mediaIndex === 0 ? 15 : 5
-        })),
-        tags: [...template.tags],
-        difficulty: ['Facile', 'Moyen', 'Difficile'][index % 3],
-        prepTime: `${10 + (index % 20)} min`,
-        cookTime: `${15 + (index % 30)} min`,
-        portions: 2 + (index % 6),
-        likes: 50 + Math.floor(Math.random() * 2000),
-        comments: 5 + Math.floor(Math.random() * 200),
-        saves: 10 + Math.floor(Math.random() * 500),
-        shares: Math.floor(Math.random() * 100),
-        category: template.category
-      },
-      timeAgo: ['5min', '15min', '1h', '2h', '4h', '1j'][index % 6],
-      location: ['Paris, France', 'Lyon, France', 'Marseille, France', 'Toulouse, France'][index % 4],
-      music: [
-        'Cooking Vibes - Lofi Hip Hop',
-        'Kitchen Beats - Chill Mix',
-        'Food Mood - Jazz Café',
-        'Cooking Time - Acoustic'
-      ][index % 4]
-    }
-  })
-}
 
 export default function AddictiveFeed() {
   const router = useRouter()
   const { user } = useAuth()
-  const [posts, setPosts] = useState([])
+  const [recipes, setRecipes] = useState([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(true)
   const [page, setPage] = useState(0)
@@ -161,36 +29,214 @@ export default function AddictiveFeed() {
 
   // Chargement initial
   useEffect(() => {
-    loadInitialPosts()
+    loadInitialRecipes()
   }, [])
 
-  const loadInitialPosts = async () => {
+  const loadInitialRecipes = async () => {
     setLoading(true)
-    // Simuler un délai de chargement
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
-    const initialPosts = generateRandomPosts(0, 10)
-    setPosts(initialPosts)
-    setPage(1)
-    setLoading(false)
+    try {
+      // Add a timestamp to prevent caching
+      const timestamp = Date.now()
+      const response = await fetch(`/api/recipes?_t=${timestamp}&limit=10`)
+      
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`)
+      }
+      
+      const recipesData = await response.json()
+      
+      logInfo('Recipes loaded successfully', {
+        count: recipesData.length,
+        source: 'AddictiveFeed'
+      })
+      
+      // Map API data to our component's expected format
+      const formattedRecipes = recipesData.map(recipe => formatRecipeData(recipe))
+      setRecipes(formattedRecipes)
+      setPage(1)
+    } catch (err) {
+      logError('Failed to load recipes', err, {
+        component: 'AddictiveFeed',
+        method: 'loadInitialRecipes'
+      })
+      setError('Impossible de charger les recettes. Veuillez réessayer.')
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const loadMorePosts = async () => {
+  const loadMoreRecipes = async () => {
     if (loadingMore || !hasMore) return
     
     setLoadingMore(true)
-    // Simuler un délai de chargement
-    await new Promise(resolve => setTimeout(resolve, 800))
-    
-    const newPosts = generateRandomPosts(page * 10, 10)
-    setPosts(prev => [...prev, ...newPosts])
-    setPage(prev => prev + 1)
-    setLoadingMore(false)
-    
-    // Simuler une fin éventuelle (très lointaine)
-    if (page > 50) {
-      setHasMore(false)
+    try {
+      // Add offset based on current page
+      const offset = page * 10
+      const timestamp = Date.now()
+      const response = await fetch(`/api/recipes?_t=${timestamp}&limit=10&offset=${offset}`)
+      
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`)
+      }
+      
+      const recipesData = await response.json()
+      
+      if (recipesData.length === 0) {
+        setHasMore(false)
+        return
+      }
+      
+      // Map API data to our component's expected format
+      const formattedRecipes = recipesData.map(recipe => formatRecipeData(recipe))
+      setRecipes(prev => [...prev, ...formattedRecipes])
+      setPage(prev => prev + 1)
+    } catch (err) {
+      logError('Failed to load more recipes', err, {
+        component: 'AddictiveFeed',
+        method: 'loadMoreRecipes',
+        page
+      })
+      // Don't set error state here to keep existing recipes visible
+    } finally {
+      setLoadingMore(false)
     }
+  }
+
+  // Helper to format recipe data from API to feed format
+  const formatRecipeData = (apiRecipe) => {
+    // Extract or generate media URLs from recipe image
+    const mediaItems = []
+    
+    if (apiRecipe.image) {
+      try {
+        // Try to process the image data - could be base64, URL or array
+        const { processImageData } = require('../utils/imageUtils')
+        const processedUrl = processImageData(apiRecipe.image, '/placeholder-recipe.jpg')
+        mediaItems.push({
+          type: 'image',
+          url: processedUrl,
+          duration: 5
+        })
+      } catch (err) {
+        logError('Error processing image', err, { recipeId: apiRecipe.id })
+        mediaItems.push({
+          type: 'image',
+          url: '/placeholder-recipe.jpg',
+          duration: 5
+        })
+      }
+    } else {
+      // Use a placeholder for recipes without images
+      mediaItems.push({
+        type: 'image',
+        url: '/placeholder-recipe.jpg',
+        duration: 5
+      })
+    }
+
+    // Extract author info
+    const authorName = apiRecipe.author || 'Chef Anonyme'
+    const authorEmoji = getAuthorEmoji(apiRecipe.category)
+    
+    // Calculate approximate statistics based on recipe complexity
+    const ingredientsCount = Array.isArray(apiRecipe.ingredients) ? apiRecipe.ingredients.length : 0
+    const instructionsCount = Array.isArray(apiRecipe.instructions) ? apiRecipe.instructions.length : 0
+    const complexity = ingredientsCount + instructionsCount
+    
+    const likesBase = 50 + Math.floor(complexity * 10)
+    const commentsBase = 5 + Math.floor(complexity * 2)
+    const savesBase = 10 + Math.floor(complexity * 5)
+    
+    // Format created date
+    const created = apiRecipe.created_at ? new Date(apiRecipe.created_at) : new Date()
+    const timeAgo = getTimeAgo(created)
+    
+    return {
+      id: apiRecipe.id,
+      type: 'recipe',
+      user: {
+        id: apiRecipe.user_id || `author_${authorName.replace(/\s+/g, '_').toLowerCase()}`,
+        name: authorName,
+        avatar: authorEmoji,
+        verified: complexity > 15, // Just a way to mark more complex recipes as "verified"
+        followers: Math.floor(100 + complexity * 20),
+        isFollowing: false
+      },
+      recipe: {
+        id: apiRecipe.id,
+        title: apiRecipe.title,
+        description: apiRecipe.description || "Une délicieuse recette à découvrir !",
+        media: mediaItems,
+        tags: generateTags(apiRecipe.category, apiRecipe.title),
+        difficulty: apiRecipe.difficulty || 'Moyen',
+        prepTime: apiRecipe.prepTime || '15 min',
+        cookTime: apiRecipe.cookTime || '20 min',
+        portions: apiRecipe.servings || 4,
+        likes: likesBase,
+        comments: commentsBase,
+        saves: savesBase,
+        shares: Math.floor(savesBase / 2),
+        category: apiRecipe.category || 'Autre'
+      },
+      timeAgo,
+      location: apiRecipe.location || 'France',
+      ingredients: apiRecipe.ingredients,
+      instructions: apiRecipe.instructions
+    }
+  }
+  
+  // Helper functions for formatting recipe data
+  const getAuthorEmoji = (category) => {
+    const emojiMap = {
+      'Dessert': '🍰',
+      'Entrée': '🥗',
+      'Plat principal': '🍽️',
+      'Italien': '🍝',
+      'Asiatique': '🍜',
+      'Végétarien': '🥬',
+      'Healthy': '🌱',
+      'BBQ': '🔥',
+      'Photo partagée': '📸',
+      'Autre': '👨‍🍳'
+    }
+    return emojiMap[category] || '👨‍🍳'
+  }
+  
+  const generateTags = (category, title) => {
+    const tags = []
+    if (category) {
+      tags.push(`#${category.toLowerCase().replace(/\s+/g, '')}`)
+    }
+    
+    // Extract potential keywords from title
+    const keywords = title.toLowerCase().split(/\s+/)
+    const commonTags = ['fait-maison', 'cuisine', 'recette', 'délice']
+    
+    // Add a common tag
+    tags.push(`#${commonTags[Math.floor(Math.random() * commonTags.length)]}`)
+    
+    // Add a tag from the title if it's long enough
+    keywords.forEach(word => {
+      if (word.length > 4 && !tags.includes(`#${word}`)) {
+        tags.push(`#${word}`)
+      }
+    })
+    
+    return tags.slice(0, 4) // Limit to 4 tags
+  }
+  
+  const getTimeAgo = (date) => {
+    const now = new Date()
+    const diffMs = now - date
+    const diffSec = Math.floor(diffMs / 1000)
+    const diffMin = Math.floor(diffSec / 60)
+    const diffHour = Math.floor(diffMin / 60)
+    const diffDay = Math.floor(diffHour / 24)
+    
+    if (diffDay > 0) return `${diffDay}j`
+    if (diffHour > 0) return `${diffHour}h`
+    if (diffMin > 0) return `${diffMin}min`
+    return 'à l\'instant'
   }
 
   // Rotation automatique des médias pour chaque post
@@ -220,45 +266,44 @@ export default function AddictiveFeed() {
       (entries) => {
         entries.forEach((entry) => {
           const index = parseInt(entry.target.dataset.index)
-          const post = posts[index]
+          const recipe = recipes[index]
           
           if (entry.isIntersecting) {
             setCurrentIndex(index)
             
             // Démarrer la rotation des médias
-            if (post?.recipe?.media?.length > 1) {
-              startMediaRotation(post.id, post.recipe.media.length)
+            if (recipe?.recipe?.media?.length > 1) {
+              startMediaRotation(recipe.id, recipe.recipe.media.length)
             }
             
             // Autoplay vidéo si c'est le média actuel
-            const currentMedia = currentMediaIndex[post?.id] || 0
-            if (post?.recipe?.media?.[currentMedia]?.type === 'video') {
-              const video = videoRefs.current[`${post.id}_${currentMedia}`]
+            const currentMedia = currentMediaIndex[recipe?.id] || 0
+            if (recipe?.recipe?.media?.[currentMedia]?.type === 'video') {
+              const video = videoRefs.current[`${recipe.id}_${currentMedia}`]
               if (video) {
                 video.play().catch(() => {})
               }
             }
             
             // Précharger le post suivant
-            if (index >= posts.length - 3 && hasMore && !loadingMore) {
-              loadMorePosts()
+            if (index >= recipes.length - 3 && hasMore && !loadingMore) {
+              loadMoreRecipes()
             }
             
-            logUserInteraction('VIEW_POST', 'addictive-feed', {
-              postId: post?.id,
-              postType: post?.type,
-              index,
-              mediaCount: post?.recipe?.media?.length || 0
+            logUserInteraction('VIEW_RECIPE', 'addictive-feed', {
+              recipeId: recipe?.id,
+              recipeTitle: recipe?.recipe?.title,
+              index
             })
           } else {
             // Arrêter la rotation des médias
-            if (post) {
-              stopMediaRotation(post.id)
+            if (recipe) {
+              stopMediaRotation(recipe.id)
             }
             
             // Pause toutes les vidéos du post
-            post?.recipe?.media?.forEach((_, mediaIndex) => {
-              const video = videoRefs.current[`${post.id}_${mediaIndex}`]
+            recipe?.recipe?.media?.forEach((_, mediaIndex) => {
+              const video = videoRefs.current[`${recipe.id}_${mediaIndex}`]
               if (video) {
                 video.pause()
               }
@@ -279,16 +324,50 @@ export default function AddictiveFeed() {
       // Nettoyer tous les intervalles
       Object.values(mediaIntervalRefs.current).forEach(clearInterval)
     }
-  }, [posts, currentMediaIndex, hasMore, loadingMore])
+  }, [recipes, currentMediaIndex, hasMore, loadingMore])
+
+  // Save likes to local storage
+  useEffect(() => {
+    // Load saved likes from localStorage on mount
+    try {
+      const savedLikes = localStorage.getItem('userLikedRecipes')
+      const savedSaves = localStorage.getItem('userSavedRecipes')
+      
+      if (savedLikes) {
+        setUserActions(prev => ({
+          ...prev,
+          likes: new Set(JSON.parse(savedLikes))
+        }))
+      }
+      
+      if (savedSaves) {
+        setUserActions(prev => ({
+          ...prev,
+          saves: new Set(JSON.parse(savedSaves))
+        }))
+      }
+    } catch (err) {
+      console.error('Failed to load saved user actions', err)
+    }
+  }, [])
 
   // Actions utilisateur
-  const toggleLike = useCallback(async (postId) => {
+  const toggleLike = useCallback(async (recipeId) => {
+    if (!user) {
+      // Prompt to login
+      const wantsToLogin = window.confirm('Connectez-vous pour aimer cette recette. Aller à la page de connexion?')
+      if (wantsToLogin) {
+        router.push('/login?redirect=' + encodeURIComponent('/'))
+      }
+      return
+    }
+    
     setUserActions(prev => {
       const newLikes = new Set(prev.likes)
-      if (newLikes.has(postId)) {
-        newLikes.delete(postId)
-      } else {
-        newLikes.add(postId)
+      const isLiking = !newLikes.has(recipeId)
+      
+      if (isLiking) {
+        newLikes.add(recipeId)
         
         // Animation de like explosive améliorée
         const hearts = ['❤️', '💖', '💕', '💓', '💗', '🧡', '💛']
@@ -313,35 +392,64 @@ export default function AddictiveFeed() {
         if (navigator.vibrate) {
           navigator.vibrate([30, 20, 30])
         }
+      } else {
+        newLikes.delete(recipeId)
+      }
+      
+      // Save to localStorage
+      try {
+        localStorage.setItem('userLikedRecipes', JSON.stringify([...newLikes]))
+      } catch (err) {
+        console.error('Failed to save likes to localStorage', err)
       }
       
       return { ...prev, likes: newLikes }
     })
     
-    setPosts(prev => prev.map(post => {
-      if (post.id === postId) {
-        const isLiked = userActions.likes.has(postId)
+    setRecipes(prev => prev.map(recipe => {
+      if (recipe.id === recipeId) {
+        const isLiked = !userActions.likes.has(recipeId)
         return {
-          ...post,
+          ...recipe,
           recipe: {
-            ...post.recipe,
-            likes: post.recipe.likes + (isLiked ? -1 : 1)
+            ...recipe.recipe,
+            likes: recipe.recipe.likes + (isLiked ? 1 : -1)
           }
         }
       }
-      return post
+      return recipe
     }))
-  }, [userActions.likes])
+    
+    // Log the interaction
+    logUserInteraction('TOGGLE_LIKE', 'addictive-feed', {
+      recipeId,
+      action: userActions.likes.has(recipeId) ? 'unlike' : 'like',
+      userId: user?.id
+    })
+    
+    // Update like in the API if implemented
+    // This would require an actual API endpoint to like recipes
+    // await fetch(`/api/recipes/${recipeId}/like`, { method: 'POST' })
+  }, [user, router, userActions.likes])
 
-  const toggleSave = useCallback((postId) => {
+  const toggleSave = useCallback(async (recipeId) => {
+    if (!user) {
+      // Prompt to login
+      const wantsToLogin = window.confirm('Connectez-vous pour sauvegarder cette recette. Aller à la page de connexion?')
+      if (wantsToLogin) {
+        router.push('/login?redirect=' + encodeURIComponent('/'))
+      }
+      return
+    }
+    
     setUserActions(prev => {
       const newSaves = new Set(prev.saves)
-      const wasSaved = newSaves.has(postId)
+      const wasSaved = newSaves.has(recipeId)
       
       if (wasSaved) {
-        newSaves.delete(postId)
+        newSaves.delete(recipeId)
       } else {
-        newSaves.add(postId)
+        newSaves.add(recipeId)
         
         const toast = document.createElement('div')
         toast.innerHTML = '⭐ Recette sauvegardée !'
@@ -366,11 +474,38 @@ export default function AddictiveFeed() {
         }, 2000)
       }
       
+      // Save to localStorage
+      try {
+        localStorage.setItem('userSavedRecipes', JSON.stringify([...newSaves]))
+      } catch (err) {
+        console.error('Failed to save recipes to localStorage', err)
+      }
+      
       return { ...prev, saves: newSaves }
     })
-  }, [])
+    
+    // Log the interaction
+    logUserInteraction('TOGGLE_SAVE', 'addictive-feed', {
+      recipeId,
+      action: userActions.saves.has(recipeId) ? 'unsave' : 'save',
+      userId: user?.id
+    })
+    
+    // Update in the API if implemented
+    // This would require an actual API endpoint to save recipes
+    // await fetch(`/api/recipes/${recipeId}/save`, { method: 'POST' })
+  }, [user, router, userActions.saves])
 
   const toggleFollow = useCallback((userId) => {
+    if (!user) {
+      // Prompt to login
+      const wantsToLogin = window.confirm('Connectez-vous pour suivre ce chef. Aller à la page de connexion?')
+      if (wantsToLogin) {
+        router.push('/login?redirect=' + encodeURIComponent('/'))
+      }
+      return
+    }
+    
     setUserActions(prev => {
       const newFollows = new Set(prev.follows)
       if (newFollows.has(userId)) {
@@ -381,23 +516,40 @@ export default function AddictiveFeed() {
       return { ...prev, follows: newFollows }
     })
     
-    setPosts(prev => prev.map(post => {
-      if (post.user.id === userId) {
+    setRecipes(prev => prev.map(recipe => {
+      if (recipe.user.id === userId) {
         return {
-          ...post,
+          ...recipe,
           user: {
-            ...post.user,
-            isFollowing: !post.user.isFollowing
+            ...recipe.user,
+            isFollowing: !recipe.user.isFollowing
           }
         }
       }
-      return post
+      return recipe
     }))
-  }, [])
+    
+    // Log the interaction
+    logUserInteraction('TOGGLE_FOLLOW', 'addictive-feed', {
+      targetUserId: userId,
+      action: userActions.follows.has(userId) ? 'unfollow' : 'follow',
+      userId: user?.id
+    })
+  }, [user, router, userActions.follows])
 
   const openRecipe = useCallback((recipeId) => {
     router.push(`/recipe/${recipeId}`)
-  }, [router])
+    
+    logUserInteraction('OPEN_RECIPE', 'addictive-feed', {
+      recipeId,
+      userId: user?.id
+    })
+  }, [router, user])
+
+  const retryLoading = () => {
+    setError(null)
+    loadInitialRecipes()
+  }
 
   if (loading) {
     return (
@@ -408,17 +560,43 @@ export default function AddictiveFeed() {
         </div>
         <p>Préparation du festin culinaire...</p>
         <div className={styles.loadingTips}>
-          <span>🔥 Contenu personnalisé</span>
-          <span>📱 Défilement infini</span>
-          <span>🎬 Médias optimisés</span>
+          <span>🔥 Recettes authentiques</span>
+          <span>📱 Inspirations culinaires</span>
+          <span>🌟 Découvertes gourmandes</span>
         </div>
+      </div>
+    )
+  }
+  
+  if (error) {
+    return (
+      <div className={styles.errorContainer}>
+        <div className={styles.errorIcon}>😓</div>
+        <h3>Oups! Un petit souci en cuisine</h3>
+        <p>{error}</p>
+        <button onClick={retryLoading} className={styles.retryButton}>
+          Réessayer
+        </button>
+      </div>
+    )
+  }
+  
+  if (recipes.length === 0) {
+    return (
+      <div className={styles.emptyContainer}>
+        <div className={styles.emptyIcon}>🍽️</div>
+        <h3>Aucune recette disponible</h3>
+        <p>Nous n'avons pas trouvé de recettes pour le moment.</p>
+        <button onClick={retryLoading} className={styles.retryButton}>
+          Rafraîchir
+        </button>
       </div>
     )
   }
 
   return (
     <div className={styles.feedContainer} ref={containerRef}>
-      {posts.map((post, index) => {
+      {recipes.map((post, index) => {
         const currentMedia = currentMediaIndex[post.id] || 0
         const media = post.recipe?.media?.[currentMedia]
         
@@ -434,7 +612,7 @@ export default function AddictiveFeed() {
             }}
           >
             {/* Media Container avec rotation */}
-            <div className={styles.mediaContainer}>
+            <div className={styles.mediaContainer} onClick={() => openRecipe(post.recipe.id)}>
               {post.recipe?.media?.map((mediaItem, mediaIndex) => (
                 <div
                   key={mediaIndex}
@@ -458,6 +636,10 @@ export default function AddictiveFeed() {
                       className={styles.media}
                       priority={index < 3 && mediaIndex === 0}
                       sizes="(max-width: 768px) 100vw, 430px"
+                      onError={(e) => {
+                        // Fallback to placeholder on error
+                        e.target.src = '/placeholder-recipe.jpg'
+                      }}
                     />
                   )}
                 </div>
@@ -484,7 +666,7 @@ export default function AddictiveFeed() {
                 {post.user.avatar}
                 {post.user.verified && <span className={styles.verified}>✅</span>}
               </div>
-              <div className={styles.userDetails}>
+              <div className={styles.userDetails} onClick={() => openRecipe(post.recipe.id)}>
                 <h3>{post.user.name}</h3>
                 <p>{post.user.followers.toLocaleString()} followers</p>
               </div>
@@ -497,7 +679,7 @@ export default function AddictiveFeed() {
             </div>
 
             {/* Content */}
-            <div className={styles.content}>
+            <div className={styles.content} onClick={() => openRecipe(post.recipe.id)}>
               <div className={styles.recipeContent}>
                 <h2>{post.recipe.title}</h2>
                 <p>{post.recipe.description}</p>
@@ -507,6 +689,14 @@ export default function AddictiveFeed() {
                   <span>👥 {post.recipe.portions}</span>
                   <span>📂 {post.recipe.category}</span>
                 </div>
+                
+                {/* Show number of ingredients */}
+                {Array.isArray(post.ingredients) && post.ingredients.length > 0 && (
+                  <div className={styles.ingredientsPreview}>
+                    <span className={styles.previewLabel}>🧾 {post.ingredients.length} ingrédients</span>
+                  </div>
+                )}
+                
                 <div className={styles.tags}>
                   {post.recipe.tags.map(tag => (
                     <span key={tag} className={styles.tag}>{tag}</span>
@@ -529,7 +719,10 @@ export default function AddictiveFeed() {
                 </span>
               </button>
 
-              <button className={styles.actionBtn}>
+              <button 
+                className={styles.actionBtn}
+                onClick={() => openRecipe(post.recipe.id)}
+              >
                 <span className={styles.actionIcon}>💬</span>
                 <span className={styles.actionCount}>
                   {post.recipe?.comments || '0'}
@@ -545,7 +738,25 @@ export default function AddictiveFeed() {
                 </span>
               </button>
 
-              <button className={styles.actionBtn}>
+              <button 
+                className={styles.actionBtn}
+                onClick={() => {
+                  if (navigator.share) {
+                    navigator.share({
+                      title: post.recipe.title,
+                      text: post.recipe.description,
+                      url: `${window.location.origin}/recipe/${post.recipe.id}`
+                    }).catch(err => console.error('Erreur lors du partage', err))
+                  } else {
+                    // Fallback for browsers that don't support share API
+                    navigator.clipboard.writeText(
+                      `${post.recipe.title}: ${window.location.origin}/recipe/${post.recipe.id}`
+                    ).then(() => {
+                      alert('Lien copié dans le presse-papiers!')
+                    })
+                  }
+                }}
+              >
                 <span className={styles.actionIcon}>📤</span>
               </button>
 
@@ -558,11 +769,11 @@ export default function AddictiveFeed() {
               </button>
             </div>
 
-            {/* Music info */}
-            {post.music && (
-              <div className={styles.musicInfo}>
-                <span className={styles.musicIcon}>🎵</span>
-                <span className={styles.musicText}>{post.music}</span>
+            {/* Time info */}
+            {post.timeAgo && (
+              <div className={styles.timeInfo}>
+                <span className={styles.timeIcon}>🕒</span>
+                <span className={styles.timeText}>{post.timeAgo}</span>
               </div>
             )}
           </div>
@@ -574,6 +785,18 @@ export default function AddictiveFeed() {
         <div className={styles.loadingMore}>
           <div className={styles.spinner}></div>
           <p>Chargement de nouvelles recettes...</p>
+        </div>
+      )}
+
+      {/* End of feed message */}
+      {!hasMore && recipes.length > 0 && (
+        <div className={styles.endMessage}>
+          <p>Vous avez parcouru toutes nos recettes ! 🎉</p>
+          <button onClick={() => {
+            window.scrollTo({ top: 0, behavior: 'smooth' })
+          }} className={styles.scrollTopBtn}>
+            Retour en haut ↑
+          </button>
         </div>
       )}
 

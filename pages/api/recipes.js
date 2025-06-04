@@ -1,5 +1,5 @@
 import { supabase } from '../../lib/supabase'
-import { logInfo, logError, logWarning, logDebug } from '../../utils/logger'
+import { logInfo, logError, logWarning, logDebug, logApiCall } from '../../utils/logger'
 
 // Helper function to safely log error details
 function logApiError(operation, error, context = {}) {
@@ -50,6 +50,9 @@ export default async function handler(req, res) {
     return
   }
 
+  // Log API request start
+  const startTime = Date.now()
+  
   try {
     logInfo(`API recipes - ${req.method} request`, {
       method: req.method,
@@ -426,6 +429,14 @@ export default async function handler(req, res) {
       queryKeys: req.query ? Object.keys(req.query) : []
     })
     
+    // Log the complete API call with error
+    logApiCall(
+      req.method, 
+      req.url, 
+      { query: req.query, body: req.body },
+      { status: 500, error: error.message, details: errorDetails }
+    )
+    
     return res.status(500).json({ 
       error: 'Erreur serveur interne', 
       message: error.message || 'Erreur inconnue',
@@ -433,5 +444,9 @@ export default async function handler(req, res) {
       timestamp: new Date().toISOString(),
       reference: `err-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`
     })
+  } finally {
+    // Log API request completion time
+    const duration = Date.now() - startTime
+    logInfo(`API ${req.method} ${req.url} completed in ${duration}ms`)
   }
 }
