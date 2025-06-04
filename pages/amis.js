@@ -42,41 +42,47 @@ export default function Amis() {
 
   const loadFriendRequests = async (userId) => {
     try {
-      // Use correct foreign key reference
-      const { data, error } = await supabase
+      // Get friend requests with manual join
+      const { data: friendships, error: friendshipsError } = await supabase
         .from('friendships')
-        .select(`
-          id,
-          user_id,
-          status,
-          created_at,
-          requester_profile:profiles!user_id (
-            user_id,
-            display_name,
-            avatar_url,
-            bio
-          )
-        `)
+        .select('id, user_id, status, created_at')
         .eq('friend_id', userId)
         .eq('status', 'pending');
 
-      if (error) {
-        if (error.code === 'PGRST116') {
-          // Table doesn't exist yet
+      if (friendshipsError) {
+        if (friendshipsError.code === 'PGRST116') {
           logError('Friendships table not found - please run database setup');
           setError('Système d\'amis en cours d\'initialisation');
           return;
         }
-        throw error;
+        throw friendshipsError;
       }
-      
-      // Map the data to match expected structure
-      const mappedData = (data || []).map(request => ({
-        ...request,
-        profiles: request.requester_profile
-      }));
-      
-      setFriendRequests(mappedData);
+
+      if (friendships && friendships.length > 0) {
+        // Get profiles for the friend requests
+        const userIds = friendships.map(f => f.user_id);
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('user_id, display_name, avatar_url, bio')
+          .in('user_id', userIds);
+
+        if (profilesError) {
+          logError('Error loading profiles for friend requests:', profilesError);
+        }
+
+        // Combine the data
+        const requestsWithProfiles = friendships.map(friendship => {
+          const profile = profiles?.find(p => p.user_id === friendship.user_id);
+          return {
+            ...friendship,
+            profiles: profile || { display_name: 'Utilisateur', bio: 'Aucune bio' }
+          };
+        });
+
+        setFriendRequests(requestsWithProfiles);
+      } else {
+        setFriendRequests([]);
+      }
     } catch (error) {
       logError('Error loading friend requests:', error);
       setError('Erreur lors du chargement des demandes');
@@ -85,37 +91,46 @@ export default function Amis() {
 
   const loadFriends = async (userId) => {
     try {
-      // Use correct foreign key reference
-      const { data, error } = await supabase
+      // Get accepted friendships
+      const { data: friendships, error: friendshipsError } = await supabase
         .from('friendships')
-        .select(`
-          id,
-          friend_id,
-          friend_profile:profiles!friend_id (
-            user_id,
-            display_name,
-            avatar_url,
-            bio
-          )
-        `)
+        .select('id, friend_id')
         .eq('user_id', userId)
         .eq('status', 'accepted');
 
-      if (error) {
-        if (error.code === 'PGRST116') {
+      if (friendshipsError) {
+        if (friendshipsError.code === 'PGRST116') {
           logError('Friendships table not found');
           return;
         }
-        throw error;
+        throw friendshipsError;
       }
-      
-      // Map the data to match expected structure
-      const mappedData = (data || []).map(friendship => ({
-        ...friendship,
-        profiles: friendship.friend_profile
-      }));
-      
-      setFriends(mappedData);
+
+      if (friendships && friendships.length > 0) {
+        // Get profiles for the friends
+        const friendIds = friendships.map(f => f.friend_id);
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('user_id, display_name, avatar_url, bio')
+          .in('user_id', friendIds);
+
+        if (profilesError) {
+          logError('Error loading profiles for friends:', profilesError);
+        }
+
+        // Combine the data
+        const friendsWithProfiles = friendships.map(friendship => {
+          const profile = profiles?.find(p => p.user_id === friendship.friend_id);
+          return {
+            ...friendship,
+            profiles: profile || { display_name: 'Utilisateur', bio: 'Aucune bio' }
+          };
+        });
+
+        setFriends(friendsWithProfiles);
+      } else {
+        setFriends([]);
+      }
     } catch (error) {
       logError('Error loading friends:', error);
     }
@@ -220,6 +235,36 @@ export default function Amis() {
     }
   };
 
+  const respondToFriendRequest = async (requestId, action) => {
+    try {
+      const status = action === 'accept' ? 'accepted' : 'rejected';
+      
+      const { error } = await supabase
+        .from('friendships')
+        .update({ 
+          status: status,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', requestId);
+
+      if (error) throw error;
+
+      // Refresh friend requests and friends
+      await Promise.all([
+        loadFriendRequests(user.id),
+        loadFriends(user.id)
+      ]);
+
+      const message = action === 'accept' ? 'Demande acceptée !' : 'Demande refusée';
+      setError(message);
+      setTimeout(() => setError(null), 3000);
+    } catch (error) {
+      logError('Error responding to friend request:', error);
+      setError('Erreur lors de la réponse');
+      setTimeout(() => setError(null), 3000);
+    }
+  };
+
   const ensureProfileExists = async (userId) => {
     try {
       const { data: existingProfile } = await supabase
@@ -285,7 +330,7 @@ export default function Amis() {
   return (
     <div className={styles.container}>
       {error && (
-        <div className={`${styles.errorBanner} ${error.includes('envoyée') ? styles.success : ''}`}>
+        <div className={`${styles.errorBanner} ${error.includes('envoyée') || error.includes('acceptée') || error.includes('refusée') ? styles.success : ''}`}>
           {error}
         </div>
       )}
