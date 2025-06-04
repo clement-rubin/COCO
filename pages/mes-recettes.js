@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { useAuth } from '../components/AuthContext'
 import RecipeCard from '../components/RecipeCard'
-import { logUserInteraction, logError, logInfo } from '../utils/logger'
+import { logUserInteraction, logError, logInfo, logDebug, logWarning, logComponentLifecycle, logApiCall, logPerformance } from '../utils/logger'
 
 export default function MesRecettes() {
   const { user, loading: authLoading } = useAuth()
@@ -17,10 +17,18 @@ export default function MesRecettes() {
 
   // Redirect to login if not authenticated
   useEffect(() => {
+    logComponentLifecycle('MesRecettes', 'useEffect-auth-check', {
+      authLoading,
+      hasUser: !!user,
+      userEmail: user?.email
+    })
+
     if (!authLoading && !user) {
       logUserInteraction('REDIRECT_TO_LOGIN', 'mes-recettes-page', {
         reason: 'user_not_authenticated',
-        targetPage: '/mes-recettes'
+        targetPage: '/mes-recettes',
+        authLoading,
+        timestamp: new Date().toISOString()
       })
       router.push('/login?redirect=' + encodeURIComponent('/mes-recettes'))
     }
@@ -29,7 +37,15 @@ export default function MesRecettes() {
   // Fetch user's recipes - Now includes refreshKey and router.asPath as dependencies
   useEffect(() => {
     const fetchUserRecipes = async () => {
-      if (!user) return
+      if (!user) {
+        logDebug('fetchUserRecipes: user non défini, arrêt', { 
+          authLoading, 
+          userExists: !!user 
+        })
+        return
+      }
+      
+      const fetchStartTime = Date.now()
       
       try {
         setLoading(true)
@@ -41,12 +57,25 @@ export default function MesRecettes() {
           userDisplayName: user.user_metadata?.display_name,
           userFullName: user.user_metadata?.full_name,
           refreshKey,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          userMetadata: user.user_metadata,
+          authProvider: user.app_metadata?.provider
         })
 
         // Force cache bypass with timestamp
         const timestamp = Date.now()
-        const response = await fetch(`/api/recipes?_t=${timestamp}`, {
+        const apiUrl = `/api/recipes?_t=${timestamp}`
+        
+        logDebug('Préparation de l\'appel API', {
+          url: apiUrl,
+          timestamp,
+          cacheHeaders: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
+          }
+        })
+
+        const response = await fetch(apiUrl, {
           cache: 'no-store',
           headers: {
             'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -54,22 +83,43 @@ export default function MesRecettes() {
           }
         })
         
+        const fetchDuration = Date.now() - fetchStartTime
+        logPerformance('API recipes fetch', fetchDuration, {
+          url: apiUrl,
+          status: response.status,
+          ok: response.ok
+        })
+
+        logApiCall('GET', apiUrl, null, {
+          status: response.status,
+          statusText: response.statusText,
+          ok: response.ok,
+          responseTime: fetchDuration
+        })
+        
         if (!response.ok) {
-          throw new Error(`Erreur HTTP: ${response.status}`)
+          throw new Error(`Erreur HTTP: ${response.status} - ${response.statusText}`)
         }
 
         const allRecipes = await response.json()
         
         logInfo('Données brutes reçues de l\'API', {
           totalRecipes: allRecipes.length,
+          recipesTypes: allRecipes.map(r => r.category).reduce((acc, cat) => {
+            acc[cat] = (acc[cat] || 0) + 1
+            return acc
+          }, {}),
           sampleRecipes: allRecipes.slice(0, 3).map(r => ({
             id: r.id,
             title: r.title,
             author: r.author,
             category: r.category,
-            created_at: r.created_at
+            created_at: r.created_at,
+            hasImage: !!r.image,
+            imageType: typeof r.image
           })),
-          allAuthors: [...new Set(allRecipes.map(r => r.author))].slice(0, 10)
+          allAuthors: [...new Set(allRecipes.map(r => r.author))].slice(0, 10),
+          authorsCount: [...new Set(allRecipes.map(r => r.author))].length
         })
         
         // Logique de filtrage améliorée côté client
@@ -87,25 +137,43 @@ export default function MesRecettes() {
             email: user.email,
             display_name: user.user_metadata?.display_name,
             full_name: user.user_metadata?.full_name,
-            name: user.user_metadata?.name
+            name: user.user_metadata?.name,
+            allMetadata: user.user_metadata
           }
         })
         
         const userRecipes = allRecipes.filter(recipe => {
           if (!recipe.author || typeof recipe.author !== 'string') {
-            logDebug('Recette sans auteur valide', { recipe: { id: recipe.id, title: recipe.title, author: recipe.author } })
+            logDebug('Recette sans auteur valide', { 
+              recipe: { 
+                id: recipe.id, 
+                title: recipe.title, 
+                author: recipe.author,
+                authorType: typeof recipe.author 
+              } 
+            })
             return false
           }
           
           const authorMatch = userIdentifiers.some(identifier => {
-            const match = recipe.author === identifier || 
-                         recipe.author.toLowerCase().trim() === identifier.toLowerCase().trim()
+            const exactMatch = recipe.author === identifier
+            const caseInsensitiveMatch = recipe.author.toLowerCase().trim() === identifier.toLowerCase().trim()
+            const match = exactMatch || caseInsensitiveMatch
             
             if (match) {
               logDebug('Match trouvé', { 
                 recipeAuthor: recipe.author, 
                 userIdentifier: identifier,
-                recipeTitle: recipe.title 
+                recipeTitle: recipe.title,
+                matchType: exactMatch ? 'exact' : 'case-insensitive'
+              })
+            } else {
+              logDebug('Pas de match', {
+                recipeAuthor: recipe.author,
+                userIdentifier: identifier,
+                recipeTitle: recipe.title,
+                exactMatch,
+                caseInsensitiveMatch
               })
             }
             
@@ -130,12 +198,19 @@ export default function MesRecettes() {
           photoShares: userRecipes.filter(r => r.category === 'Photo partagée').length,
           fullRecipes: userRecipes.filter(r => r.category !== 'Photo partagée').length,
           userRecipesTitles: userRecipes.map(r => r.title).slice(0, 5),
+          userRecipesCategories: userRecipes.map(r => r.category).reduce((acc, cat) => {
+            acc[cat] = (acc[cat] || 0) + 1
+            return acc
+          }, {}),
           firstRecipeDetails: userRecipes[0] ? {
             id: userRecipes[0].id,
             title: userRecipes[0].title,
             author: userRecipes[0].author,
-            category: userRecipes[0].category
-          } : null
+            category: userRecipes[0].category,
+            created_at: userRecipes[0].created_at,
+            hasImage: !!userRecipes[0].image
+          } : null,
+          processingTime: Date.now() - fetchStartTime
         })
 
         // Si aucune recette trouvée, logger pour debug
@@ -149,49 +224,91 @@ export default function MesRecettes() {
               userIdentifiers.some(id => 
                 r.author && r.author.toLowerCase().trim() === id.toLowerCase().trim()
               )
-            ).length
+            ).length,
+            detailedComparison: allRecipes.slice(0, 5).map(r => ({
+              recipeAuthor: r.author,
+              matches: userIdentifiers.map(id => ({
+                identifier: id,
+                exact: r.author === id,
+                caseInsensitive: r.author && r.author.toLowerCase().trim() === id.toLowerCase().trim()
+              }))
+            }))
           })
         }
 
       } catch (err) {
+        const fetchDuration = Date.now() - fetchStartTime
+        
         logError('Erreur lors de la récupération des recettes utilisateur', err, {
           userEmail: user?.email,
           errorMessage: err.message,
           errorStack: err.stack,
+          errorName: err.name,
           refreshKey,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          fetchDuration,
+          networkStatus: typeof navigator !== 'undefined' ? navigator.onLine : 'unknown',
+          userAgent: typeof navigator !== 'undefined' ? navigator.userAgent.substring(0, 100) : 'server'
         })
+        
         setError('Impossible de charger vos recettes. Erreur: ' + (err.message || 'Inconnue'))
       } finally {
         setLoading(false)
+        const totalDuration = Date.now() - fetchStartTime
+        logPerformance('fetchUserRecipes total', totalDuration, {
+          userEmail: user?.email,
+          refreshKey
+        })
       }
     }
 
     if (user && !authLoading) {
+      logComponentLifecycle('MesRecettes', 'fetchUserRecipes-start', {
+        userEmail: user?.email,
+        refreshKey,
+        routerPath: router.asPath
+      })
       fetchUserRecipes()
     }
   }, [user, authLoading, refreshKey, router.asPath]) // Added refreshKey and router.asPath
 
   // Function to manually refresh recipes
   const handleRefresh = () => {
-    setRefreshKey(prev => prev + 1)
     logUserInteraction('REFRESH_RECIPES', 'mes-recettes-page', {
-      refreshKey: refreshKey + 1,
-      userEmail: user?.email
+      currentRefreshKey: refreshKey,
+      newRefreshKey: refreshKey + 1,
+      userEmail: user?.email,
+      currentRecipesCount: recipes.length
     })
+    
+    setRefreshKey(prev => prev + 1)
   }
 
   // Auto-refresh when coming back to the page (focus event)
   useEffect(() => {
     const handleFocus = () => {
       if (user && !authLoading && !loading) {
-        logInfo('Page refocused, refreshing recipes')
+        logInfo('Page refocused, refreshing recipes', {
+          userEmail: user?.email,
+          currentRecipesCount: recipes.length,
+          wasLoading: loading,
+          timestamp: new Date().toISOString()
+        })
         setRefreshKey(prev => prev + 1)
       }
     }
 
+    logDebug('Setting up focus event listener', {
+      userExists: !!user,
+      authLoading,
+      loading
+    })
+
     window.addEventListener('focus', handleFocus)
-    return () => window.removeEventListener('focus', handleFocus)
+    return () => {
+      logDebug('Cleaning up focus event listener')
+      window.removeEventListener('focus', handleFocus)
+    }
   }, [user, authLoading, loading])
 
   // Filter recipes based on selected filter

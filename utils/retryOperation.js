@@ -1,4 +1,4 @@
-import { logInfo, logWarning, logError } from './logger'
+import { logInfo, logWarning, logError, logDebug, logPerformance } from './logger'
 import { useState, useCallback } from 'react'
 
 /**
@@ -11,86 +11,197 @@ export class RetryOperation {
     this.baseDelay = options.baseDelay || 1000
     this.maxDelay = options.maxDelay || 10000
     this.backoffFactor = options.backoffFactor || 2
-    this.onProgress = options.onProgress || (() => {})
+    this.retryCondition = options.retryCondition || this.defaultRetryCondition
     this.onRetry = options.onRetry || (() => {})
-    this.shouldRetry = options.shouldRetry || this.defaultShouldRetry
+    this.onMaxRetriesReached = options.onMaxRetriesReached || (() => {})
+    
+    // ID unique pour tracer les opérations
+    this.operationId = `retry_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`
+    
+    logDebug('RetryOperation créée', {
+      operationId: this.operationId,
+      maxRetries: this.maxRetries,
+      baseDelay: this.baseDelay,
+      maxDelay: this.maxDelay,
+      backoffFactor: this.backoffFactor
+    })
   }
 
-  defaultShouldRetry(error, attempt) {
-    // Ne pas réessayer pour les erreurs de validation ou d'authentification
-    if (error.status === 400 || error.status === 401 || error.status === 403) {
-      return false
-    }
+  defaultRetryCondition(error) {
+    // Conditions par défaut pour retry
+    const retryableErrors = [
+      'NetworkError',
+      'TypeError',
+      'Failed to fetch',
+      'ERR_NETWORK',
+      'ERR_INTERNET_DISCONNECTED'
+    ]
     
-    // Réessayer pour les erreurs réseau
-    if (error.name === 'NetworkError' || error.status >= 500) {
-      return attempt <= this.maxRetries
-    }
+    const isRetryableError = retryableErrors.some(errorType => 
+      error.name === errorType || 
+      error.message?.includes(errorType) ||
+      error.code === errorType
+    )
     
-    return false
+    const isRetryableStatus = error.status >= 500 || error.status === 429 || error.status === 408
+    
+    logDebug('Vérification condition de retry', {
+      operationId: this.operationId,
+      errorName: error.name,
+      errorMessage: error.message,
+      errorStatus: error.status,
+      isRetryableError,
+      isRetryableStatus,
+      shouldRetry: isRetryableError || isRetryableStatus
+    })
+    
+    return isRetryableError || isRetryableStatus
+  }
+
+  calculateDelay(attempt) {
+    const delay = Math.min(
+      this.baseDelay * Math.pow(this.backoffFactor, attempt),
+      this.maxDelay
+    )
+    
+    // Ajouter un peu de jitter pour éviter la thundering herd
+    const jitter = Math.random() * 0.1 * delay
+    const finalDelay = Math.round(delay + jitter)
+    
+    logDebug('Calcul du délai de retry', {
+      operationId: this.operationId,
+      attempt,
+      baseDelay: this.baseDelay,
+      calculatedDelay: delay,
+      jitter,
+      finalDelay
+    })
+    
+    return finalDelay
   }
 
   async execute() {
+    const startTime = Date.now()
     let lastError
-    let attempt = 0
+    
+    logInfo('Début de l\'exécution avec retry', {
+      operationId: this.operationId,
+      maxRetries: this.maxRetries,
+      startTime: new Date(startTime).toISOString()
+    })
 
-    while (attempt <= this.maxRetries) {
+    for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
       try {
-        this.onProgress({ 
-          attempt: attempt + 1, 
-          maxRetries: this.maxRetries + 1,
-          stage: attempt === 0 ? 'initial' : 'retry'
+        const attemptStartTime = Date.now()
+        
+        logDebug('Tentative d\'exécution', {
+          operationId: this.operationId,
+          attempt: attempt + 1,
+          totalAttempts: this.maxRetries + 1,
+          attemptStartTime: new Date(attemptStartTime).toISOString()
         })
 
         const result = await this.operation()
+        const attemptDuration = Date.now() - attemptStartTime
+        const totalDuration = Date.now() - startTime
         
-        if (attempt > 0) {
-          logInfo('Opération réussie après retry', { 
-            attempts: attempt + 1,
-            operationName: this.operation.name
-          })
-        }
+        logInfo('Opération réussie', {
+          operationId: this.operationId,
+          attempt: attempt + 1,
+          attemptDuration,
+          totalDuration,
+          success: true
+        })
         
-        return result
-      } catch (error) {
-        lastError = error
-        attempt++
-
-        logWarning('Échec de l\'opération', {
-          attempt,
-          maxRetries: this.maxRetries,
-          error: error.message,
-          willRetry: this.shouldRetry(error, attempt)
+        logPerformance(`RetryOperation ${this.operationId}`, totalDuration, {
+          attempts: attempt + 1,
+          success: true
         })
 
-        if (!this.shouldRetry(error, attempt)) {
+        return result
+
+      } catch (error) {
+        const attemptDuration = Date.now() - attemptStartTime
+        lastError = error
+        
+        logWarning('Tentative échouée', {
+          operationId: this.operationId,
+          attempt: attempt + 1,
+          totalAttempts: this.maxRetries + 1,
+          attemptDuration,
+          errorName: error.name,
+          errorMessage: error.message,
+          errorStatus: error.status,
+          errorCode: error.code
+        })
+
+        // Vérifier si on doit retry
+        const shouldRetry = attempt < this.maxRetries && this.retryCondition(error)
+        
+        if (!shouldRetry) {
+          if (attempt >= this.maxRetries) {
+            logError('Nombre maximum de tentatives atteint', error, {
+              operationId: this.operationId,
+              maxRetries: this.maxRetries,
+              totalDuration: Date.now() - startTime
+            })
+            
+            this.onMaxRetriesReached(error, attempt + 1)
+          } else {
+            logError('Condition de retry non remplie', error, {
+              operationId: this.operationId,
+              attempt: attempt + 1,
+              errorName: error.name,
+              errorMessage: error.message
+            })
+          }
           break
         }
 
-        if (attempt <= this.maxRetries) {
-          const delay = Math.min(
-            this.baseDelay * Math.pow(this.backoffFactor, attempt - 1),
-            this.maxDelay
-          )
+        // Calculer le délai et notifier
+        const delay = this.calculateDelay(attempt)
+        
+        logInfo('Retry programmé', {
+          operationId: this.operationId,
+          nextAttempt: attempt + 2,
+          delay,
+          delaySeconds: Math.round(delay / 1000),
+          scheduledFor: new Date(Date.now() + delay).toISOString()
+        })
 
-          this.onRetry({
-            attempt,
-            maxRetries: this.maxRetries,
-            delay,
-            error: error.message
-          })
+        this.onRetry(error, attempt + 1, delay)
 
-          await new Promise(resolve => setTimeout(resolve, delay))
-        }
+        // Attendre avant la prochaine tentative
+        await new Promise(resolve => setTimeout(resolve, delay))
       }
     }
 
-    logError('Opération échouée définitivement', lastError, {
-      totalAttempts: attempt,
-      operationName: this.operation.name
+    const totalDuration = Date.now() - startTime
+    
+    logError('Opération définitivement échouée', lastError, {
+      operationId: this.operationId,
+      totalAttempts: this.maxRetries + 1,
+      totalDuration,
+      finalError: {
+        name: lastError.name,
+        message: lastError.message,
+        status: lastError.status,
+        code: lastError.code
+      }
     })
     
+    logPerformance(`RetryOperation ${this.operationId} FAILED`, totalDuration, {
+      attempts: this.maxRetries + 1,
+      success: false
+    })
+
     throw lastError
+  }
+
+  // Méthode statique pour créer et exécuter en une fois
+  static async execute(operation, options = {}) {
+    const retryOp = new RetryOperation(operation, options)
+    return await retryOp.execute()
   }
 }
 
@@ -229,5 +340,52 @@ export function RetryFeedback({ progress, error, onRetry, className = '' }) {
         }
       `}</style>
     </div>
+  )
+}
+
+/**
+ * Fonctions utilitaires pour des cas d'usage courants
+ */
+export const retryFetch = (url, fetchOptions = {}, retryOptions = {}) => {
+  const operation = () => fetch(url, fetchOptions)
+  
+  return RetryOperation.execute(operation, {
+    maxRetries: 3,
+    baseDelay: 1000,
+    retryCondition: (error) => {
+      // Retry pour les erreurs réseau et 5xx
+      return error.name === 'TypeError' || 
+             (error.status >= 500) ||
+             error.status === 429
+    },
+    onRetry: (error, attempt, delay) => {
+      logInfo('Retry fetch programmé', {
+        url,
+        attempt,
+        delay,
+        errorMessage: error.message
+      })
+    },
+    ...retryOptions
+  })
+}
+
+export const retryApiCall = async (apiFunction, ...args) => {
+  return RetryOperation.execute(
+    () => apiFunction(...args),
+    {
+      maxRetries: 2,
+      baseDelay: 500,
+      maxDelay: 5000,
+      onRetry: (error, attempt, delay) => {
+        logWarning('Retry API call', {
+          functionName: apiFunction.name,
+          attempt,
+          delay,
+          args: args.length,
+          errorMessage: error.message
+        })
+      }
+    }
   )
 }

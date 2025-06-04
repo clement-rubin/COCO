@@ -19,20 +19,26 @@ const currentLogLevel = isDevelopment ? LOG_LEVELS.DEBUG : LOG_LEVELS.INFO
 // Fonction de base pour logger
 function createLogger(level, emoji, color) {
   return function(message, data = null, context = {}) {
-    if (level > currentLogLevel) return
+    if (level > currentLogLevel) return // Fix: ajouter le return manquant
 
     const timestamp = new Date().toLocaleTimeString()
     const prefix = `${emoji} [${timestamp}]`
     
     if (typeof window !== 'undefined') {
-      // Côté client - utiliser console avec couleurs
-      const style = `color: ${color}; font-weight: bold;`
-      console.log(`%c${prefix} ${message}`, style)
+      // Côté client - log coloré avec détails
+      const logStyle = `color: ${color}; font-weight: bold;`
+      console.log(`%c${prefix} ${message}`, logStyle)
       
       if (data || Object.keys(context).length > 0) {
-        const logData = { ...context }
-        if (data) logData.data = data
-        console.log('%cDétails:', 'color: #666; font-style: italic;', logData)
+        console.groupCollapsed('Détails du log')
+        if (data) {
+          console.log('Data:', data)
+        }
+        if (Object.keys(context).length > 0) {
+          console.log('Context:', context)
+        }
+        console.log('Stack Trace:', new Error().stack)
+        console.groupEnd()
       }
     } else {
       // Côté serveur - log simple
@@ -52,56 +58,71 @@ export const logDebug = createLogger(LOG_LEVELS.DEBUG, '🔍', '#666666')
 
 // Logger spécialisé pour les interactions utilisateur
 export const logUserInteraction = (action, component, data = {}) => {
-  logInfo(`Action utilisateur: ${action}`, data, { 
-    component, 
-    timestamp: Date.now(),
-    url: typeof window !== 'undefined' ? window.location.pathname : 'server'
-  })
-}
-
-// Logger spécialisé pour les erreurs de performance
-export const logPerformance = (operation, duration, data = {}) => {
-  const level = duration > 2000 ? logWarning : logInfo
-  level(`Performance ${operation}: ${duration}ms`, data)
-}
-
-// Logger spécialisé pour les événements de composants
-export const logComponentEvent = (componentName, event, data = {}) => {
-  logDebug(`[${componentName}] ${event}`, data, {
-    component: componentName,
-    event,
-    timestamp: Date.now()
-  })
-}
-
-// Logger spécialisé pour le debug des données
-export const logDataDebug = (operation, data = {}) => {
-  if (isDevelopment) {
-    console.group(`🔍 DEBUG: ${operation}`)
-    console.log('Timestamp:', new Date().toISOString())
-    console.log('Data:', data)
-    console.groupEnd()
-  }
-}
-
-// Logger spécialisé pour les erreurs frontend avec context enrichi
-export const logFrontendError = (error, context = {}) => {
-  const errorId = `fe_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-  
-  const enrichedContext = {
-    ...context,
-    errorId,
+  logInfo(`USER_INTERACTION: ${action}`, data, { 
+    component,
     timestamp: new Date().toISOString(),
-    url: typeof window !== 'undefined' ? window.location.href : 'server',
-    userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'server',
-    errorName: error?.name,
-    errorMessage: error?.message,
-    stackTrace: error?.stack
-  }
+    userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : 'server',
+    url: typeof window !== 'undefined' ? window.location.href : 'server'
+  })
+}
+
+// Logger pour les performances
+export const logPerformance = (operation, duration, data = {}) => {
+  const level = duration > 1000 ? LOG_LEVELS.WARNING : LOG_LEVELS.DEBUG
+  const emoji = duration > 1000 ? '🐌' : '⚡'
   
-  logError(`Frontend Error: ${error?.message || 'Unknown error'}`, error, enrichedContext)
+  createLogger(level, emoji, duration > 1000 ? '#ff9900' : '#00cc66')(
+    `PERFORMANCE: ${operation} took ${duration}ms`, 
+    data, 
+    { 
+      operation, 
+      duration, 
+      timestamp: new Date().toISOString()
+    }
+  )
+}
+
+// Logger pour les erreurs réseau
+export const logNetworkError = (url, error, retryCount = 0) => {
+  logError(`NETWORK_ERROR: ${url}`, error, {
+    url,
+    retryCount,
+    errorType: error.name,
+    errorMessage: error.message,
+    timestamp: new Date().toISOString(),
+    networkInfo: typeof navigator !== 'undefined' ? {
+      onLine: navigator.onLine,
+      connection: navigator.connection?.effectiveType
+    } : null
+  })
+}
+
+// Logger pour le cycle de vie des composants React
+export const logComponentLifecycle = (componentName, phase, props = {}) => {
+  logDebug(`COMPONENT_LIFECYCLE: ${componentName} - ${phase}`, props, {
+    componentName,
+    phase,
+    timestamp: new Date().toISOString()
+  })
+}
+
+// Logger pour les API calls
+export const logApiCall = (method, url, data = null, response = null) => {
+  const status = response?.status
+  const isError = status >= 400
+  const logger = isError ? logError : logInfo
   
-  return { id: errorId, context: enrichedContext }
+  logger(`API_${method.toUpperCase()}: ${url}`, {
+    method,
+    url,
+    requestData: data,
+    responseStatus: status,
+    responseData: response?.data || response
+  }, {
+    timestamp: new Date().toISOString(),
+    isError,
+    responseTime: response?.responseTime
+  })
 }
 
 export default {
