@@ -146,12 +146,12 @@ export default function SubmitRecipe() {
     setIsSubmitting(true)
     
     try {
-      // Préparer les photos validées (avec bytes)
+      // Préparer les photos validées (avec imageUrl)
       const validPhotos = photos.filter(photo => 
         photo.processed && 
-        photo.imageBytes && 
-        Array.isArray(photo.imageBytes) &&
-        photo.imageBytes.length > 0 &&
+        photo.imageUrl && 
+        typeof photo.imageUrl === 'string' &&
+        photo.imageUrl.length > 0 &&
         !photo.error
       )
       
@@ -160,10 +160,9 @@ export default function SubmitRecipe() {
           totalPhotos: photos.length,
           photosState: photos.map(p => ({
             processed: p.processed,
-            hasImageBytes: !!p.imageBytes,
-            imageBytesType: typeof p.imageBytes,
-            imageBytesIsArray: Array.isArray(p.imageBytes),
-            imageBytesLength: p.imageBytes?.length,
+            hasImageUrl: !!p.imageUrl,
+            imageUrlType: typeof p.imageUrl,
+            imageUrlLength: p.imageUrl?.length,
             error: p.error,
             errorMessage: p.errorMessage
           }))
@@ -171,14 +170,14 @@ export default function SubmitRecipe() {
         throw new Error('Aucune photo valide trouvée. Veuillez réessayer le traitement.')
       }
       
-      // Préparer les données selon le schéma bytea
+      // Préparer les données selon le schéma Data URL
       const recipeData = {
         title: formData.title.trim(),
         description: formData.description.trim(),
         ingredients: ['Photo partagée sans liste d\'ingrédients'],
         instructions: [{ step: 1, instruction: 'Voir la photo pour inspiration' }],
         author: user?.user_metadata?.display_name || user?.email || 'Anonyme',
-        image: validPhotos[0].imageBytes, // Image en bytea
+        image: validPhotos[0].imageUrl, // Image en Data URL
         category: 'Photo partagée',
         prepTime: null,
         cookTime: null
@@ -189,13 +188,13 @@ export default function SubmitRecipe() {
         hasDescription: !!recipeData.description,
         photosCount: photos.length,
         validPhotosCount: validPhotos.length,
-        mainImageBytesLength: recipeData.image.length,
+        mainImageUrlLength: recipeData.image.length,
         category: recipeData.category,
         author: recipeData.author
       })
       
       // Valider que les données sont complètes avant l'envoi
-      if (!recipeData.image || !Array.isArray(recipeData.image) || recipeData.image.length === 0) {
+      if (!recipeData.image || typeof recipeData.image !== 'string' || recipeData.image.length === 0) {
         throw new Error('Image principale manquante ou invalide')
       }
       

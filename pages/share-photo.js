@@ -343,7 +343,7 @@ export default function SharePhoto() {
         description: formData.description?.trim() || `Photo partagée: ${formData.title}`,
         category: 'Photo partagée',
         author: 'Utilisateur anonyme',
-        image: imageToSubmit,
+        image: imageToSubmit, // Data URL
         ingredients: ['Photo partagée sans recette détaillée'],
         instructions: [{ step: 1, instruction: 'Voir la photo pour inspiration' }],
         prepTime: null,

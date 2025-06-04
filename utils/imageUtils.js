@@ -78,38 +78,96 @@ export function processImageData(imageData, fallbackUrl = '/placeholder-recipe.j
 }
 
 /**
- * Process image to a URL and handles upload if needed
- * @param {*} imageData - Image data (could be base64, File object, URL)
- * @returns {Promise<string>} - URL to the processed/uploaded image
+ * Estimate the size in KB of a Data URL given the original file size and compression ratio
+ * @param {number} fileSizeBytes 
+ * @param {number} compressionRatio (0.0 - 1.0)
+ * @returns {number} Estimated size in KB
  */
-export async function processImageToUrl(imageData) {
-  try {
-    // If it's already a URL, return it
-    if (typeof imageData === 'string' && (
-        imageData.startsWith('http://') || 
-        imageData.startsWith('https://') ||
-        imageData.startsWith('data:')
-      )) {
-      
-      // If it's a data URL, upload it to storage
-      if (imageData.startsWith('data:')) {
-        return await uploadBase64Image(imageData)
+export function estimateDataUrlSize(fileSizeBytes, compressionRatio = 0.7) {
+  // Data URL is base64, so size increases by ~33%
+  const estimated = Math.round((fileSizeBytes * compressionRatio * 4 / 3) / 1024)
+  return estimated
+}
+
+/**
+ * Convert an image file to a compressed Data URL (base64) with resizing
+ * @param {File|Blob} file 
+ * @param {object} options { maxWidth, maxHeight, quality, maxSizeKB }
+ * @returns {Promise<{url: string, mimeType: string, originalSize: number, compressedSize: number, compressionRatio: number}>}
+ */
+export async function processImageToUrl(file, options = {}) {
+  const {
+    maxWidth = 800,
+    maxHeight = 600,
+    quality = 0.7,
+    maxSizeKB = 400
+  } = options
+
+  return new Promise((resolve, reject) => {
+    try {
+      const reader = new FileReader()
+      reader.onload = function (e) {
+        const img = new window.Image()
+        img.onload = function () {
+          let { width, height } = img
+          let newWidth = width
+          let newHeight = height
+
+          // Resize if needed
+          if (width > maxWidth || height > maxHeight) {
+            const ratio = Math.min(maxWidth / width, maxHeight / height)
+            newWidth = Math.round(width * ratio)
+            newHeight = Math.round(height * ratio)
+          }
+
+          const canvas = document.createElement('canvas')
+          canvas.width = newWidth
+          canvas.height = newHeight
+          const ctx = canvas.getContext('2d')
+          ctx.drawImage(img, 0, 0, newWidth, newHeight)
+
+          // Try to keep the original mime type if possible
+          let mimeType = file.type && file.type.startsWith('image/') ? file.type : 'image/jpeg'
+          // Always fallback to jpeg for best compression
+          if (!/png|jpeg|webp/.test(mimeType)) mimeType = 'image/jpeg'
+
+          let dataUrl = canvas.toDataURL(mimeType, quality)
+          let compressedSize = Math.round(dataUrl.length * 0.75 / 1024)
+          let compressionRatio = compressedSize / Math.max(1, Math.round(file.size / 1024))
+
+          // If still too big, try to compress more
+          if (compressedSize > maxSizeKB && quality > 0.4) {
+            let q = quality
+            let tries = 0
+            while (compressedSize > maxSizeKB && q > 0.4 && tries < 5) {
+              q -= 0.1
+              dataUrl = canvas.toDataURL(mimeType, q)
+              compressedSize = Math.round(dataUrl.length * 0.75 / 1024)
+              tries++
+            }
+          }
+
+          resolve({
+            url: dataUrl,
+            mimeType,
+            originalSize: file.size,
+            compressedSize,
+            compressionRatio
+          })
+        }
+        img.onerror = function () {
+          reject(new Error('Impossible de charger l\'image'))
+        }
+        img.src = e.target.result
       }
-      
-      return imageData
+      reader.onerror = function () {
+        reject(new Error('Impossible de lire le fichier image'))
+      }
+      reader.readAsDataURL(file)
+    } catch (err) {
+      reject(err)
     }
-    
-    // If it's a File object, upload it
-    if (imageData instanceof File) {
-      return await uploadFileImage(imageData)
-    }
-    
-    // Otherwise use the standard processing
-    return processImageData(imageData)
-  } catch (error) {
-    logError('Error processing image to URL', error)
-    return '/placeholder-recipe.jpg'
-  }
+  })
 }
 
 /**
