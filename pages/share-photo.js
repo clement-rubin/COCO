@@ -1,12 +1,14 @@
 import React, { useState, useRef } from 'react'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
+import { useAuth } from '../components/AuthContext'
 import PhotoUpload from '../components/PhotoUpload'
 import styles from '../styles/SharePhoto.module.css'
 import { logDebug, logInfo, logError, logWarning, logUserInteraction } from '../utils/logger'
 
 export default function SharePhoto() {
   const router = useRouter()
+  const { user } = useAuth()
   const [currentStep, setCurrentStep] = useState(1)
   const [formData, setFormData] = useState({
     title: '',
@@ -272,6 +274,7 @@ export default function SharePhoto() {
     
     if (!validateForm()) return
     if (!user) {
+      addLog('WARNING', 'Utilisateur non connecté, redirection vers login')
       router.push('/login')
       return
     }
@@ -314,8 +317,6 @@ export default function SharePhoto() {
         addLog('error', 'Erreur lors de la récupération du profil', { error: profileError.message })
       }
 
-      // ...existing code...
-      
       const recipeData = {
         title: formData.title,
         description: formData.description,
