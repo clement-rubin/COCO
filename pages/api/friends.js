@@ -68,7 +68,7 @@ async function handleGetRequest(req, res, requestId) {
         status,
         created_at,
         updated_at,
-        profiles!friendships_friend_id_fkey (
+        friend_profile:profiles!friend_id (
           id,
           user_id,
           display_name,
@@ -96,7 +96,7 @@ async function handleGetRequest(req, res, requestId) {
         status,
         created_at,
         updated_at,
-        profiles!friendships_user_id_fkey (
+        requester_profile:profiles!user_id (
           id,
           user_id,
           display_name,
@@ -114,15 +114,26 @@ async function handleGetRequest(req, res, requestId) {
       throw new Error(`Erreur lors de la récupération des demandes: ${pendingError.message}`)
     }
     
+    // Transform data to match expected format
+    const transformedFriends = friends?.map(f => ({
+      ...f,
+      profiles: f.friend_profile
+    })) || []
+    
+    const transformedPendingRequests = pendingRequests?.map(r => ({
+      ...r,
+      profiles: r.requester_profile
+    })) || []
+    
     logInfo('Données récupérées avec succès', {
       requestId,
-      friendsCount: friends?.length || 0,
-      pendingRequestsCount: pendingRequests?.length || 0
+      friendsCount: transformedFriends.length,
+      pendingRequestsCount: transformedPendingRequests.length
     })
     
     return res.status(200).json({
-      friends: friends || [],
-      pendingRequests: pendingRequests || []
+      friends: transformedFriends,
+      pendingRequests: transformedPendingRequests
     })
     
   } catch (error) {

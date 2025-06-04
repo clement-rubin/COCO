@@ -400,7 +400,6 @@ export default async function handler(req, res) {
           image: data.image || null,
           prepTime: data.prepTime && typeof data.prepTime === 'string' ? data.prepTime.trim() : null,
           cookTime: data.cookTime && typeof data.cookTime === 'string' ? data.cookTime.trim() : null,
-          servings: data.servings && typeof data.servings === 'string' ? data.servings.trim() : null,
           category: data.category && typeof data.category === 'string' ? data.category.trim() : 'Autre',
           author: data.author && typeof data.author === 'string' ? data.author.trim() : null,
           user_id: data.user_id && typeof data.user_id === 'string' ? data.user_id.trim() : null,
@@ -410,6 +409,11 @@ export default async function handler(req, res) {
           created_at: new Date().toISOString()
         }
         
+        // Only add servings if it's provided (to handle tables without this column)
+        if (data.servings && typeof data.servings === 'string') {
+          newRecipe.servings = data.servings.trim()
+        }
+        
         logDebug('Recipe data prepared for insertion', {
           reference: requestReference,
           title: newRecipe.title,
@@ -417,7 +421,8 @@ export default async function handler(req, res) {
           hasAuthor: !!newRecipe.author,
           category: newRecipe.category,
           ingredientsCount: newRecipe.ingredients.length,
-          instructionsCount: newRecipe.instructions.length
+          instructionsCount: newRecipe.instructions.length,
+          hasServings: !!newRecipe.servings
         })
         
         const { data: insertedData, error } = await supabase

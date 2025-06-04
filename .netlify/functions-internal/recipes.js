@@ -143,7 +143,7 @@ exports.handler = async (event, context) => {
       const newRecipe = {
         title: data.title.trim(),
         description: data.description?.trim() || null,
-        image: data.image || null, // bytea array ou null
+        image: data.image || null,
         prepTime: data.prepTime?.trim() || null,
         cookTime: data.cookTime?.trim() || null,
         category: data.category?.trim() || null,
@@ -153,12 +153,16 @@ exports.handler = async (event, context) => {
         difficulty: data.difficulty?.trim() || 'Facile'
       };
       
+      // Only add servings if provided and if the column exists
+      if (data.servings && typeof data.servings === 'string') {
+        newRecipe.servings = data.servings.trim();
+      }
+      
       log(`Tentative d'insertion d'une nouvelle recette: ${newRecipe.title}`, "info", {
         hasTitle: !!newRecipe.title,
         hasDescription: !!newRecipe.description,
         hasAuthor: !!newRecipe.author,
-        hasImageBytes: !!newRecipe.image && Array.isArray(newRecipe.image),
-        imageBytesLength: Array.isArray(newRecipe.image) ? newRecipe.image.length : 0,
+        hasServings: !!newRecipe.servings,
         ingredientsCount: newRecipe.ingredients.length,
         instructionsCount: newRecipe.instructions.length,
         category: newRecipe.category,

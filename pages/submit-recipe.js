@@ -180,7 +180,9 @@ export default function SubmitRecipe() {
         image: validPhotos[0].imageUrl, // Image en Data URL
         category: 'Photo partagée',
         prepTime: null,
-        cookTime: null
+        cookTime: null,
+        difficulty: 'Facile'
+        // Note: servings omitted to handle tables without this column
       }
       
       logDebug('Données de photo préparées pour API', {

@@ -71,6 +71,7 @@ export default function Amis() {
     }
 
     // Track scroll behavior
+    let scrollTimeout
     const handleScroll = () => {
       const scrollPercentage = Math.round((window.scrollY / (document.body.scrollHeight - window.innerHeight)) * 100)
       logUserInteraction('PAGE_SCROLL', 'amis-page', {
@@ -81,17 +82,16 @@ export default function Amis() {
       })
     }
 
+    // Throttled scroll logging
+    const throttledScroll = () => {
+      clearTimeout(scrollTimeout)
+      scrollTimeout = setTimeout(handleScroll, 1000)
+    }
+
     if (typeof document !== 'undefined') {
       document.addEventListener('visibilitychange', handleVisibilityChange)
       window.addEventListener('focus', handleFocus)
       window.addEventListener('blur', handleBlur)
-      
-      // Throttled scroll logging
-      let scrollTimeout
-      const throttledScroll = () => {
-        clearTimeout(scrollTimeout)
-        scrollTimeout = setTimeout(handleScroll, 1000)
-      }
       window.addEventListener('scroll', throttledScroll)
     }
 
@@ -120,11 +120,17 @@ export default function Amis() {
         }
       })
 
+      // Clean up event listeners
       if (typeof document !== 'undefined') {
         document.removeEventListener('visibilitychange', handleVisibilityChange)
         window.removeEventListener('focus', handleFocus)
         window.removeEventListener('blur', handleBlur)
         window.removeEventListener('scroll', throttledScroll)
+      }
+      
+      // Clear timeout
+      if (scrollTimeout) {
+        clearTimeout(scrollTimeout)
       }
     }
   }, [])
@@ -311,7 +317,14 @@ export default function Amis() {
       })
 
       if (!response.ok) {
-        const errorText = await response.text()
+        let errorText = ''
+        try {
+          errorText = await response.text()
+        } catch (textError) {
+          logWarning('Could not read error response text', textError)
+          errorText = 'Unable to read error details'
+        }
+        
         const errorRecord = {
           id: apiCallId,
           type: 'API_ERROR',
@@ -350,7 +363,13 @@ export default function Amis() {
         throw new Error(`Erreur HTTP: ${response.status} - ${response.statusText}${errorText ? ': ' + errorText : ''}`)
       }
 
-      const data = await response.json()
+      let data
+      try {
+        data = await response.json()
+      } catch (jsonError) {
+        logError('Failed to parse JSON response', jsonError, { apiCallId })
+        throw new Error('Invalid JSON response from server')
+      }
       
       logInfo('loadFriendsData: Données reçues et parsées', {
         apiCallId,

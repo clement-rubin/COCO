@@ -304,7 +304,7 @@ Puis rafraîchissez cette page.
 3. Exécutez ce code SQL :
 
 -- Table des recettes
-CREATE TABLE recipes (
+CREATE TABLE IF NOT EXISTS recipes (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   title TEXT NOT NULL,
   description TEXT,
@@ -323,8 +323,13 @@ CREATE TABLE recipes (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Si la table existe déjà, ajouter les colonnes manquantes
+ALTER TABLE recipes ADD COLUMN IF NOT EXISTS servings TEXT;
+ALTER TABLE recipes ADD COLUMN IF NOT EXISTS difficulty TEXT DEFAULT 'Facile';
+ALTER TABLE recipes ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id);
+
 -- Table des profils utilisateurs
-CREATE TABLE profiles (
+CREATE TABLE IF NOT EXISTS profiles (
   id UUID REFERENCES auth.users(id) PRIMARY KEY,
   display_name TEXT,
   avatar_url TEXT,
@@ -333,7 +338,7 @@ CREATE TABLE profiles (
 );
 
 -- Table des amitiés
-CREATE TABLE friendships (
+CREATE TABLE IF NOT EXISTS friendships (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES auth.users(id) NOT NULL,
   friend_id UUID REFERENCES auth.users(id) NOT NULL,
@@ -344,12 +349,12 @@ CREATE TABLE friendships (
 );
 
 -- Index pour les performances
-CREATE INDEX idx_recipes_created_at ON recipes(created_at DESC);
-CREATE INDEX idx_recipes_category ON recipes(category);
-CREATE INDEX idx_recipes_user_id ON recipes(user_id);
-CREATE INDEX idx_friendships_user_id ON friendships(user_id);
-CREATE INDEX idx_friendships_friend_id ON friendships(friend_id);
-CREATE INDEX idx_friendships_status ON friendships(status);
+CREATE INDEX IF NOT EXISTS idx_recipes_created_at ON recipes(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_recipes_category ON recipes(category);
+CREATE INDEX IF NOT EXISTS idx_recipes_user_id ON recipes(user_id);
+CREATE INDEX IF NOT EXISTS idx_friendships_user_id ON friendships(user_id);
+CREATE INDEX IF NOT EXISTS idx_friendships_friend_id ON friendships(friend_id);
+CREATE INDEX IF NOT EXISTS idx_friendships_status ON friendships(status);
 
 -- Row Level Security
 ALTER TABLE recipes ENABLE ROW LEVEL SECURITY;

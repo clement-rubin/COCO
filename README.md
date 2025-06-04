@@ -187,6 +187,7 @@ CREATE TABLE IF NOT EXISTS public.recipes (
   image BYTEA,
   prepTime TEXT,
   cookTime TEXT,
+  servings TEXT,
   category TEXT,
   author TEXT,
   ingredients JSON,
@@ -196,6 +197,9 @@ CREATE TABLE IF NOT EXISTS public.recipes (
   difficulty TEXT DEFAULT 'Facile',
   user_id UUID REFERENCES auth.users(id)
 );
+
+-- Si la table existe déjà sans la colonne servings, l'ajouter
+ALTER TABLE public.recipes ADD COLUMN IF NOT EXISTS servings TEXT;
 
 -- Créer les index pour de meilleures performances
 CREATE INDEX IF NOT EXISTS idx_recipes_created_at ON recipes(created_at DESC);
