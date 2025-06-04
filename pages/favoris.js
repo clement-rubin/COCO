@@ -5,7 +5,7 @@ import { useAuth } from '../components/AuthContext'
 import { supabase } from '../lib/supabase'
 import styles from '../styles/FriendsFeed.module.css'
 
-export default function Amis() {
+export default function Favoris() {
   const router = useRouter();
   const { user } = useAuth();
 

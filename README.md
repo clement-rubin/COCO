@@ -83,14 +83,14 @@ COCO/
 │   │   └── mentors.js             # Système de mentorship
 │   ├── achievements.js            # Page des accomplissements
 │   ├── cooking-mode/[id].js       # Mode cuisson avec minuteurs
-│   ├── mes-recettes.js            # Page des recettes de l'utilisateur connecté
+│   ├── mes-recettes.js            # Redirection vers recettes utilisateur (NOUVEAU)
 │   ├── user-recipes.js            # Liste des recettes partagées
 │   ├── share-photo.js             # Page de partage rapide de photo
 │   ├── submit-recipe.js           # Page de partage de recette complète
 │   ├── social.js                  # Feed social complet
 │   ├── test-upload.js             # Page de test d'upload (debug)
 │   ├── test-recipes.js            # Page de test de la base de données
-│   ├── favoris.js                 # Page de gestion des amis
+│   ├── favoris.js                 # Page de gestion des amis (RENOMMÉ depuis amis.js)
 │   ├── explorer.js                # Page d'exploration des recettes
 │   ├── profil.js                  # Page de profil utilisateur
 │   ├── login.js                   # Page de connexion

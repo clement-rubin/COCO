@@ -198,7 +198,7 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
         photoData.processing = false
         photoData.processed = false
         photoData.error = true
-        photoData.errorMessage = error.message || 'Erreur de traitement'
+        photoData.errorMessage = error.message || 'Erreur lors du traitement de l\'image'
         
         // Mettre à jour l'état même en cas d'erreur
         setPhotos(prevPhotos => {
