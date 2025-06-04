@@ -625,4 +625,12 @@ export async function sendErrorReport(error, context = {}) {
       body: JSON.stringify(report)
     })
     
-    if
+    if (response.ok) {
+      logInfo('Error report sent successfully')
+    } else {
+      logWarning('Failed to send error report', { status: response.status })
+    }
+  } catch (e) {
+    logError('Failed to send error report', e)
+  }
+}
