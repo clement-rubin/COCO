@@ -351,10 +351,9 @@ export default function AddictiveFeed() {
     }
   }, [])
 
-  // Actions utilisateur
+  // Actions utilisateur simplifiées
   const toggleLike = useCallback(async (recipeId) => {
     if (!user) {
-      // Prompt to login
       const wantsToLogin = window.confirm('Connectez-vous pour aimer cette recette. Aller à la page de connexion?')
       if (wantsToLogin) {
         router.push('/login?redirect=' + encodeURIComponent('/'))
@@ -369,28 +368,23 @@ export default function AddictiveFeed() {
       if (isLiking) {
         newLikes.add(recipeId)
         
-        // Animation de like explosive améliorée
-        const hearts = ['❤️', '💖', '💕', '💓', '💗', '🧡', '💛']
-        for (let i = 0; i < 8; i++) {
-          setTimeout(() => {
-            const heart = document.createElement('div')
-            heart.innerHTML = hearts[Math.floor(Math.random() * hearts.length)]
-            heart.style.cssText = `
-              position: fixed;
-              font-size: ${1.2 + Math.random() * 0.8}rem;
-              z-index: 10000;
-              pointer-events: none;
-              animation: heartExplode ${0.8 + Math.random() * 0.6}s ease-out forwards;
-              left: ${window.innerWidth * 0.8 + Math.random() * 60 - 30}px;
-              top: ${window.innerHeight * 0.4 + Math.random() * 200}px;
-            `
-            document.body.appendChild(heart)
-            setTimeout(() => heart.remove(), 1400)
-          }, i * 80)
-        }
+        // Animation de like simple
+        const heart = document.createElement('div')
+        heart.innerHTML = '❤️'
+        heart.style.cssText = `
+          position: fixed;
+          font-size: 2rem;
+          z-index: 10000;
+          pointer-events: none;
+          animation: heartFloat 1.2s ease-out forwards;
+          left: ${window.innerWidth * 0.8 + Math.random() * 60 - 30}px;
+          top: ${window.innerHeight * 0.4 + Math.random() * 200}px;
+        `
+        document.body.appendChild(heart)
+        setTimeout(() => heart.remove(), 1200)
         
         if (navigator.vibrate) {
-          navigator.vibrate([30, 20, 30])
+          navigator.vibrate(30)
         }
       } else {
         newLikes.delete(recipeId)
@@ -840,6 +834,17 @@ export default function AddictiveFeed() {
           }
           100% {
             transform: translateX(-50%) scale(0.3) translateY(-50px);
+            opacity: 0;
+          }
+        }
+
+        @keyframes heartFloat {
+          0% {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+          }
+          100% {
+            transform: translateY(-30px) scale(1.2);
             opacity: 0;
           }
         }

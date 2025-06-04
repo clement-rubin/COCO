@@ -175,14 +175,6 @@ export default function FriendsFeed({ feedType = 'featured' }) {
       } else {
         newSet.add(recipeId)
       }
-      
-      // Save to localStorage
-      try {
-        localStorage.setItem('userLikedRecipes', JSON.stringify([...newSet]))
-      } catch (err) {
-        console.error('Failed to save likes to localStorage', err)
-      }
-      
       return newSet
     })
     

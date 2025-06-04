@@ -237,7 +237,7 @@ export default function SharePhoto() {
     if (hasProcessingPhotos) {
       newErrors.photos = 'Attendez que toutes les photos soient traitées'
       addLog('WARNING', 'Validation échouée: photos en cours de traitement', {
-        processingCount: photos.filter(p => p.processing).length
+        processingCount: photos.filter(p => p.processed).length
       })
     }
     
@@ -889,7 +889,7 @@ export default function SharePhoto() {
           name="description"
           value={formData.description}
           onChange={handleInputChange}
-          placeholder="Qu'est-ce qui rend ce plat spécial ? Partagez vos secrets, vos ingrédients favoris ou l'histoire de cette recette..."
+          placeholder="Décrivez votre délicieux plat et partagez son histoire..."
           rows={4}
           className={styles.textarea}
         />

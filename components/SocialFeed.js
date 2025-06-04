@@ -34,7 +34,7 @@ export default function SocialFeed() {
           id: 2,
           title: 'Tarte Tatin Revisitée',
           image: 'https://images.unsplash.com/photo-1571115764595-644a1f56a55c',
-          description: 'Une version moderne du classique français avec une touche de caramel salé 🍎✨'
+          description: 'Une version moderne du classique français 🍎✨'
         },
         likes: 289,
         shares: 45,

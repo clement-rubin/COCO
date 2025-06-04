@@ -58,8 +58,8 @@ const Navbar = () => {
             <Link href="/add-recipe" className="nav-link">
               Ajouter
             </Link>
-            <Link href="/favorites" className="nav-link">
-              Favoris
+            <Link href="/amis" className="nav-link">
+              Amis
             </Link>
             <Link href="/profile" className="btn btn-primary" style={{ textDecoration: 'none' }}>
               Profil
@@ -108,8 +108,8 @@ const Navbar = () => {
               <Link href="/add-recipe" className="mobile-nav-link">
                 ➕ Ajouter une recette
               </Link>
-              <Link href="/favorites" className="mobile-nav-link">
-                ❤️ Mes favoris
+              <Link href="/amis" className="mobile-nav-link">
+                👥 Mes amis
               </Link>
               <Link href="/profile" className="mobile-nav-link">
                 👤 Mon profil

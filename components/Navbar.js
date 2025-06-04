@@ -30,7 +30,7 @@ export default function Navbar() {
             Recherche
           </Link>
           <Link href="/amis" className={styles.navLink}>
-            Favoris
+            Amis
           </Link>
           <Link href="/share-photo" className={styles.addButton}>
             ➕ Partager une photo
@@ -60,7 +60,7 @@ export default function Navbar() {
                 🔎 Recherche
               </Link>
               <Link href="/amis" className={styles.mobileNavLink}>
-                ❤️ Favoris
+                👥 Amis
               </Link>
               <Link href="/share-photo" className={styles.mobileNavLink}>
                 ➕ Partager une photo

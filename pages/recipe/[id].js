@@ -15,7 +15,6 @@ export default function RecipeDetail() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [isLiked, setIsLiked] = useState(false)
-  const [isSaved, setIsSaved] = useState(false)
   const [servings, setServings] = useState(4)
   const [activeTab, setActiveTab] = useState('ingredients')
 
@@ -153,25 +152,8 @@ export default function RecipeDetail() {
   }
 
   const loadUserPreferences = () => {
-    try {
-      const savedLikes = localStorage.getItem('userLikedRecipes')
-      const savedRecipes = localStorage.getItem('userSavedRecipes')
-      
-      if (savedLikes) {
-        const likes = JSON.parse(savedLikes)
-        setIsLiked(likes.includes(id))
-      }
-      
-      if (savedRecipes) {
-        const saves = JSON.parse(savedRecipes)
-        setIsSaved(saves.includes(id))
-      }
-    } catch (err) {
-      logRecipeAction('LOAD_PREFERENCES_ERROR', null, {
-        error: err.message,
-        component: 'recipe-detail'
-      })
-    }
+    // Simplified user preferences without favorites system
+    console.log('User preferences loaded')
   }
 
   const toggleLike = () => {
@@ -180,78 +162,35 @@ export default function RecipeDetail() {
       return
     }
 
-    try {
-      const savedLikes = JSON.parse(localStorage.getItem('userLikedRecipes') || '[]')
-      let newLikes
-      
-      if (isLiked) {
-        newLikes = savedLikes.filter(likeId => likeId !== id)
-      } else {
-        newLikes = [...savedLikes, id]
+    setIsLiked(!isLiked)
+    
+    // Simple like animation
+    if (!isLiked) {
+      const hearts = ['❤️', '💖', '💕']
+      for (let i = 0; i < 5; i++) {
+        setTimeout(() => {
+          const heart = document.createElement('div')
+          heart.innerHTML = hearts[Math.floor(Math.random() * hearts.length)]
+          heart.style.cssText = `
+            position: fixed;
+            font-size: 1.5rem;
+            z-index: 10000;
+            pointer-events: none;
+            animation: heartFloat 2s ease-out forwards;
+            left: ${Math.random() * 100}vw;
+            top: 50vh;
+          `
+          document.body.appendChild(heart)
+          setTimeout(() => heart.remove(), 2000)
+        }, i * 100)
       }
-      
-      localStorage.setItem('userLikedRecipes', JSON.stringify(newLikes))
-      setIsLiked(!isLiked)
-      
-      // Animation effect
-      if (!isLiked) {
-        const hearts = ['❤️', '💖', '💕']
-        for (let i = 0; i < 5; i++) {
-          setTimeout(() => {
-            const heart = document.createElement('div')
-            heart.innerHTML = hearts[Math.floor(Math.random() * hearts.length)]
-            heart.style.cssText = `
-              position: fixed;
-              font-size: 1.5rem;
-              z-index: 10000;
-              pointer-events: none;
-              animation: heartFloat 2s ease-out forwards;
-              left: ${Math.random() * 100}vw;
-              top: 50vh;
-            `
-            document.body.appendChild(heart)
-            setTimeout(() => heart.remove(), 2000)
-          }, i * 100)
-        }
-      }
-      
-      logUserInteraction('TOGGLE_LIKE_RECIPE', 'recipe-detail', {
-        recipeId: id,
-        action: isLiked ? 'unlike' : 'like',
-        userId: user.id
-      })
-    } catch (err) {
-      console.error('Failed to toggle like', err)
     }
-  }
-
-  const toggleSave = () => {
-    if (!user) {
-      router.push('/login?redirect=' + encodeURIComponent(`/recipe/${id}`))
-      return
-    }
-
-    try {
-      const savedRecipes = JSON.parse(localStorage.getItem('userSavedRecipes') || '[]')
-      let newSaves
-      
-      if (isSaved) {
-        newSaves = savedRecipes.filter(saveId => saveId !== id)
-      } else {
-        newSaves = [...savedRecipes, id]
-      }
-      
-      localStorage.setItem('userSavedRecipes', JSON.stringify(newSaves))
-      setIsSaved(!isSaved)
-      
-      logUserInteraction('TOGGLE_SAVE_RECIPE', 'recipe-detail', {
-        recipeId: id,
-        action: isSaved ? 'unsave' : 'save',
-        userId: user.id
-      })
-    } catch (err) {
-      console.error('Failed to toggle save', err)
-    }
+    
+    logUserInteraction('TOGGLE_LIKE_RECIPE', 'recipe-detail', {
+      recipeId: id,
+      action: isLiked ? 'unlike' : 'like',
+      userId: user.id
+    })
   }
 
   const adjustServings = (newServings) => {
@@ -373,13 +312,6 @@ export default function RecipeDetail() {
           className={`${styles.actionBtn} ${isLiked ? styles.liked : ''}`}
         >
           {isLiked ? '❤️' : '🤍'} {recipe.likes || 0}
-        </button>
-        
-        <button 
-          onClick={toggleSave}
-          className={`${styles.actionBtn} ${isSaved ? styles.saved : ''}`}
-        >
-          {isSaved ? '⭐' : '☆'} Sauvegarder
         </button>
         
         <button onClick={shareRecipe} className={styles.actionBtn}>

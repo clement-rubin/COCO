@@ -61,16 +61,16 @@ export default function Home() {
       action: () => window.location.href = '/explorer'
     },
     {
-      id: 'favorites',
-      label: 'Favoris',
-      description: 'Mes préférés',
-      icon: '❤️',
+      id: 'friends',
+      label: 'Amis',
+      description: 'Mon réseau',
+      icon: '👥',
       color: '#ef4444',
       action: () => {
         if (user) {
-          window.location.href = '/favoris'
+          window.location.href = '/amis'
         } else {
-          window.location.href = '/login?redirect=' + encodeURIComponent('/favoris')
+          window.location.href = '/login?redirect=' + encodeURIComponent('/amis')
         }
       }
     }

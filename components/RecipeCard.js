@@ -134,7 +134,7 @@ export default function RecipeCard({ recipe, isUserRecipe = true, isPhotoOnly = 
           <button 
             className={`${styles.favoriteBtn} ${isFavorite ? styles.active : ''}`}
             onClick={toggleFavorite}
-            aria-label={isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
+            aria-label={isFavorite ? "Retirer des likes" : "Ajouter aux likes"}
           >
             {isFavorite ? '❤️' : '🤍'}
           </button>
