@@ -95,11 +95,17 @@ const USER_FRIENDLY_MESSAGES = {
   'Display name too short': 'Le nom d\'utilisateur doit contenir au moins 2 caractères.',
   'Display name too long': 'Le nom d\'utilisateur ne peut pas dépasser 30 caractères.',
   'Invalid characters in display name': 'Le nom d\'utilisateur contient des caractères non autorisés.',
-  'Friends limit reached': 'Vous avez atteint la limite d\'amis (500).',
-  'Cannot remove friendship': 'Impossible de supprimer cette amitié.',
-  'Blocked user': 'Cet utilisateur vous a bloqué.',
-  'User blocked': 'Vous avez bloqué cet utilisateur.',
-  'Profile privacy settings': 'Les paramètres de confidentialité de ce profil empêchent cette action.'
+  'Invalid profile ID': 'Identifiant de profil invalide.',
+  'Profile required for friendship': 'Un profil est requis pour établir des relations d\'amitié.',
+  'Invalid friendship reference': 'Référence d\'amitié invalide - vérifiez les profils.',
+  'Friendship constraint violation': 'Violation des contraintes d\'amitié.',
+  'Profile not linked to user': 'Le profil n\'est pas lié à un utilisateur valide.',
+  'Circular friendship detected': 'Relation d\'amitié circulaire détectée.',
+  'Profile relationship error': 'Erreur dans les relations de profil.',
+  'Missing profile reference': 'Référence de profil manquante.',
+  'Profile ID mismatch': 'Les identifiants de profil ne correspondent pas.',
+  'Invalid profile structure': 'Structure de profil invalide.',
+  // ...existing code...
 }
 
 /**

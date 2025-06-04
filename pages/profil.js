@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { useAuth } from '../components/AuthContext'
 import { logUserInteraction, logError, logInfo } from '../utils/logger'
-import { getUserStats } from '../utils/profileUtils'
+import { getUserStatsCorrected } from '../utils/profileUtils'
 
 export default function Profil() {
   const router = useRouter()
@@ -101,9 +101,9 @@ export default function Profil() {
         setUserRecipes([])
       }
 
-      // Load user stats using the utility function
+      // Load user stats using the corrected utility function
       try {
-        const statsData = await getUserStats(user.id)
+        const statsData = await getUserStatsCorrected(user.id)
         setUserStats({
           recipesCount: Array.isArray(recipesData) ? recipesData.length : 0,
           likesReceived: statsData.likesReceived || 0,

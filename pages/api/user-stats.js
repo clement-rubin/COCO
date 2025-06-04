@@ -1,5 +1,6 @@
 import { supabase } from '../../lib/supabase'
 import { logInfo, logError } from '../../utils/logger'
+import { getUserStatsCorrected } from '../../utils/profileUtils'
 
 export default async function handler(req, res) {
   // En-têtes CORS
@@ -41,14 +42,17 @@ export default async function handler(req, res) {
       logError('Error counting user recipes', recipesError, { requestId, user_id })
     }
 
-    // Pour l'instant, retourner des stats basiques
-    // Plus tard, on pourra ajouter des tables pour les likes, commentaires, etc.
+    // Utiliser la fonction corrigée pour les statistiques
+    const statsData = await getUserStatsCorrected(user_id)
+    
     const stats = {
-      recipesCount: recipesCount || 0,
+      recipesCount: statsData.recipesCount || 0,
       likesReceived: 0, // À implémenter avec une table likes
-      friendsCount: 0,  // À implémenter avec la table friendships
+      friendsCount: statsData.friendsCount || 0,
       viewsTotal: 0,    // À implémenter avec une table views
-      commentsReceived: 0 // À implémenter avec une table comments
+      commentsReceived: 0, // À implémenter avec une table comments
+      profileCompleteness: statsData.profileCompleteness || 0,
+      pendingFriendRequests: 0 // Sera calculé séparément
     }
 
     // Essayer de récupérer le nombre d'amis si la table friendships existe

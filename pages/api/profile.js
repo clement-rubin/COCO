@@ -54,16 +54,10 @@ export default async function handler(req, res) {
 
       logInfo('Getting user profile', { requestId, user_id: user_id.substring(0, 8) + '...' })
 
-      // Récupérer le profil utilisateur avec statistiques
+      // Récupérer le profil utilisateur sans les jointures complexes pour éviter les erreurs
       const { data: profile, error } = await supabase
         .from('profiles')
-        .select(`
-          *,
-          user_stats:user_id (
-            recipes_count:recipes(count),
-            friends_count:friendships!user_id(count)
-          )
-        `)
+        .select('*')
         .eq('user_id', user_id)
         .single()
 

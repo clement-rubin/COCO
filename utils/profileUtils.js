@@ -323,3 +323,248 @@ export async function getFriendshipStatus(userId1, userId2) {
     return { status: 'error', canSendRequest: false }
   }
 }
+
+/**
+ * Obtient l'ID du profil à partir de l'ID utilisateur
+ * @param {string} userId - L'ID de l'utilisateur auth
+ * @returns {Promise<string|null>} L'ID du profil ou null
+ */
+export async function getProfileIdFromUserId(userId) {
+  if (!userId) {
+    logWarning('getProfileIdFromUserId called without userId')
+    return null
+  }
+
+  try {
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('user_id', userId)
+      .single()
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // Pas de profil trouvé, créer un profil par défaut
+        const displayName = await getUserDisplayName(userId)
+        const { data: newProfile, error: createError } = await supabase
+          .from('profiles')
+          .insert({
+            user_id: userId,
+            display_name: displayName,
+            is_private: false
+          })
+          .select('id')
+          .single()
+
+        if (createError) {
+          logError('Error creating profile for user', createError, { userId })
+          return null
+        }
+
+        return newProfile.id
+      }
+      
+      logError('Error getting profile ID', error, { userId })
+      return null
+    }
+
+    return profile.id
+  } catch (error) {
+    logError('Exception getting profile ID', error, { userId })
+    return null
+  }
+}
+
+/**
+ * Vérifie si deux utilisateurs sont amis (version corrigée pour profiles.id)
+ * @param {string} userId1 - Premier utilisateur (auth.users.id)
+ * @param {string} userId2 - Deuxième utilisateur (auth.users.id)
+ * @returns {Promise<Object>} Statut de l'amitié
+ */
+export async function getFriendshipStatusCorrected(userId1, userId2) {
+  if (!userId1 || !userId2 || userId1 === userId2) {
+    return { status: 'none', canSendRequest: false }
+  }
+
+  try {
+    // Obtenir les IDs de profil
+    const profileId1 = await getProfileIdFromUserId(userId1)
+    const profileId2 = await getProfileIdFromUserId(userId2)
+
+    if (!profileId1 || !profileId2) {
+      logError('Could not get profile IDs for friendship check', null, { userId1, userId2 })
+      return { status: 'error', canSendRequest: false }
+    }
+
+    const { data: friendship, error } = await supabase
+      .from('friendships')
+      .select('id, status, user_id, friend_id')
+      .or(`and(user_id.eq.${profileId1},friend_id.eq.${profileId2}),and(user_id.eq.${profileId2},friend_id.eq.${profileId1})`)
+      .maybeSingle()
+
+    if (error) {
+      logError('Error checking friendship status', error)
+      return { status: 'error', canSendRequest: false }
+    }
+
+    if (!friendship) {
+      return { status: 'none', canSendRequest: true }
+    }
+
+    return {
+      status: friendship.status,
+      canSendRequest: friendship.status === 'rejected',
+      isRequester: friendship.user_id === profileId1,
+      friendshipId: friendship.id
+    }
+
+  } catch (error) {
+    logError('Exception while checking friendship status', error)
+    return { status: 'error', canSendRequest: false }
+  }
+}
+
+/**
+ * Envoie une demande d'amitié (version corrigée)
+ * @param {string} fromUserId - ID de l'utilisateur qui envoie (auth.users.id)
+ * @param {string} toUserId - ID de l'utilisateur qui reçoit (auth.users.id)
+ * @returns {Promise<Object>} Résultat de l'opération
+ */
+export async function sendFriendRequestCorrected(fromUserId, toUserId) {
+  if (!fromUserId || !toUserId || fromUserId === toUserId) {
+    return { success: false, error: 'Invalid user IDs' }
+  }
+
+  try {
+    // Obtenir les IDs de profil
+    const fromProfileId = await getProfileIdFromUserId(fromUserId)
+    const toProfileId = await getProfileIdFromUserId(toUserId)
+
+    if (!fromProfileId || !toProfileId) {
+      return { success: false, error: 'Could not find user profiles' }
+    }
+
+    // Vérifier s'il existe déjà une relation
+    const existingStatus = await getFriendshipStatusCorrected(fromUserId, toUserId)
+    
+    if (existingStatus.status !== 'none') {
+      return { success: false, error: 'Friendship already exists' }
+    }
+
+    // Créer la demande d'amitié
+    const { data: friendship, error } = await supabase
+      .from('friendships')
+      .insert({
+        user_id: fromProfileId,
+        friend_id: toProfileId,
+        status: 'pending'
+      })
+      .select()
+      .single()
+
+    if (error) {
+      logError('Error creating friendship request', error)
+      return { success: false, error: error.message }
+    }
+
+    logInfo('Friend request sent successfully', {
+      from: fromUserId.substring(0, 8) + '...',
+      to: toUserId.substring(0, 8) + '...',
+      friendshipId: friendship.id
+    })
+
+    return { success: true, friendship }
+
+  } catch (error) {
+    logError('Exception sending friend request', error)
+    return { success: false, error: error.message }
+  }
+}
+
+/**
+ * Obtient les statistiques d'un utilisateur (version corrigée)
+ * @param {string} userId - L'ID de l'utilisateur (auth.users.id)
+ * @returns {Promise<Object>} Statistiques de l'utilisateur
+ */
+export async function getUserStatsCorrected(userId) {
+  if (!userId) {
+    logWarning('getUserStatsCorrected called without userId')
+    return {
+      recipesCount: 0,
+      friendsCount: 0,
+      profileCompleteness: 0
+    }
+  }
+
+  try {
+    // Obtenir l'ID du profil
+    const profileId = await getProfileIdFromUserId(userId)
+    
+    if (!profileId) {
+      return {
+        recipesCount: 0,
+        friendsCount: 0,
+        profileCompleteness: 0
+      }
+    }
+
+    // Compter les recettes
+    const { count: recipesCount } = await supabase
+      .from('recipes')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+
+    // Compter les amis - utiliser profiles.id pour les relations
+    const { count: friendsCount1 } = await supabase
+      .from('friendships')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', profileId)
+      .eq('status', 'accepted')
+
+    const { count: friendsCount2 } = await supabase
+      .from('friendships')
+      .select('*', { count: 'exact', head: true })
+      .eq('friend_id', profileId)
+      .eq('status', 'accepted')
+
+    const totalFriendsCount = (friendsCount1 || 0) + (friendsCount2 || 0)
+
+    // Obtenir le profil pour calculer la complétude
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('display_name, bio, avatar_url, location, website')
+      .eq('user_id', userId)
+      .single()
+
+    let profileCompleteness = 0
+    if (profile) {
+      const fields = ['display_name', 'bio', 'avatar_url', 'location', 'website']
+      const filledFields = fields.filter(field => profile[field] && profile[field].trim())
+      profileCompleteness = Math.round((filledFields.length / fields.length) * 100)
+    }
+
+    const stats = {
+      recipesCount: recipesCount || 0,
+      friendsCount: totalFriendsCount,
+      profileCompleteness
+    }
+
+    logInfo('User stats retrieved (corrected)', {
+      userId: userId.substring(0, 8) + '...',
+      profileId: profileId.substring(0, 8) + '...',
+      stats
+    })
+
+    return stats
+
+  } catch (error) {
+    logError('Error getting user stats (corrected)', error, {
+      userId: userId.substring(0, 8) + '...'
+    })
+    return {
+      recipesCount: 0,
+      friendsCount: 0,
+      profileCompleteness: 0
+    }
+  }
+}

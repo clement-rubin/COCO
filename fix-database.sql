@@ -1,111 +1,120 @@
--- Configuration corrigée de la base de données pour COCO
+-- Configuration corrigée pour correspondre au schéma existant
 -- Exécutez ce script dans SQL Editor de Supabase
 
--- 1. S'assurer que les tables existent avec la bonne structure
-CREATE TABLE IF NOT EXISTS public.profiles (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID UNIQUE NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  display_name TEXT,
-  bio TEXT,
-  avatar_url TEXT,
-  location TEXT,
-  website TEXT,
-  date_of_birth DATE,
-  phone TEXT,
-  is_private BOOLEAN DEFAULT false,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
+-- 1. Vérifier et corriger les contraintes de la table friendships
+-- La table utilise profiles.id comme référence, pas auth.users.id
 
-CREATE TABLE IF NOT EXISTS public.friendships (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  friend_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  status TEXT CHECK (status IN ('pending', 'accepted', 'rejected', 'blocked')) DEFAULT 'pending',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  UNIQUE(user_id, friend_id),
-  CONSTRAINT no_self_friendship CHECK (user_id != friend_id)
-);
+-- Supprimer les contraintes incorrectes si elles existent
+ALTER TABLE friendships DROP CONSTRAINT IF EXISTS friendships_user_id_fkey;
+ALTER TABLE friendships DROP CONSTRAINT IF EXISTS friendships_friend_id_fkey;
 
--- 2. Créer les index pour les performances
-CREATE INDEX IF NOT EXISTS idx_profiles_user_id ON profiles(user_id);
-CREATE INDEX IF NOT EXISTS idx_profiles_display_name ON profiles(display_name);
-CREATE INDEX IF NOT EXISTS idx_friendships_user_id ON friendships(user_id);
-CREATE INDEX IF NOT EXISTS idx_friendships_friend_id ON friendships(friend_id);
-CREATE INDEX IF NOT EXISTS idx_friendships_status ON friendships(status);
-CREATE INDEX IF NOT EXISTS idx_friendships_user_status ON friendships(user_id, status);
+-- Ajouter les bonnes contraintes
+ALTER TABLE friendships 
+ADD CONSTRAINT friendships_user_id_fkey 
+FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE;
 
--- 3. Activer Row Level Security
-ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE friendships ENABLE ROW LEVEL SECURITY;
+ALTER TABLE friendships 
+ADD CONSTRAINT friendships_friend_id_fkey 
+FOREIGN KEY (friend_id) REFERENCES profiles(id) ON DELETE CASCADE;
 
--- 4. Supprimer les anciennes politiques si elles existent
-DROP POLICY IF EXISTS "Permettre lecture publique profils" ON profiles;
-DROP POLICY IF EXISTS "Permettre mise à jour profil utilisateur" ON profiles;
-DROP POLICY IF EXISTS "Permettre insertion profil utilisateur" ON profiles;
-DROP POLICY IF EXISTS "Permettre suppression profil utilisateur" ON profiles;
+-- 2. Ajouter une contrainte unique pour éviter les doublons
+ALTER TABLE friendships 
+ADD CONSTRAINT unique_friendship 
+UNIQUE (user_id, friend_id);
 
-DROP POLICY IF EXISTS "Voir ses amitiés" ON friendships;
-DROP POLICY IF EXISTS "Créer demande amitié" ON friendships;
-DROP POLICY IF EXISTS "Modifier ses amitiés" ON friendships;
-DROP POLICY IF EXISTS "Supprimer ses amitiés" ON friendships;
+-- 3. Ajouter une contrainte pour empêcher l'auto-amitié
+ALTER TABLE friendships 
+ADD CONSTRAINT no_self_friendship 
+CHECK (user_id != friend_id);
 
--- 5. Créer les nouvelles politiques
-CREATE POLICY "Permettre lecture publique profils" ON profiles FOR SELECT USING (NOT is_private OR auth.uid() = user_id);
-CREATE POLICY "Permettre mise à jour profil utilisateur" ON profiles FOR UPDATE USING (auth.uid() = user_id);
-CREATE POLICY "Permettre insertion profil utilisateur" ON profiles FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Permettre suppression profil utilisateur" ON profiles FOR DELETE USING (auth.uid() = user_id);
-
-CREATE POLICY "Voir ses amitiés" ON friendships FOR SELECT USING (auth.uid() = user_id OR auth.uid() = friend_id);
-CREATE POLICY "Créer demande amitié" ON friendships FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Modifier ses amitiés" ON friendships FOR UPDATE USING (auth.uid() = friend_id OR auth.uid() = user_id);
-CREATE POLICY "Supprimer ses amitiés" ON friendships FOR DELETE USING (auth.uid() = friend_id OR auth.uid() = user_id);
-
--- 6. Fonction pour créer automatiquement un profil
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS trigger AS $$
+-- 4. Fonction pour rechercher des profils (corrigée)
+CREATE OR REPLACE FUNCTION search_profiles_corrected(search_term text, current_user_id uuid DEFAULT NULL)
+RETURNS TABLE (
+  profile_id uuid,
+  user_id uuid,
+  display_name text,
+  bio text,
+  avatar_url text,
+  similarity_score real
+) AS $$
 BEGIN
-  INSERT INTO public.profiles (user_id, display_name)
-  VALUES (NEW.id, COALESCE(NEW.raw_user_meta_data->>'display_name', split_part(NEW.email, '@', 1)))
-  ON CONFLICT (user_id) DO NOTHING;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- 7. Trigger pour créer automatiquement un profil
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
-
--- 8. Fonction pour mettre à jour updated_at automatiquement
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = NOW();
-  RETURN NEW;
+  RETURN QUERY
+  SELECT 
+    p.id as profile_id,
+    p.user_id,
+    p.display_name,
+    p.bio,
+    p.avatar_url,
+    0.5 as similarity_score
+  FROM profiles p
+  WHERE 
+    p.is_private = false 
+    AND (current_user_id IS NULL OR p.user_id != current_user_id)
+    AND p.display_name ILIKE '%' || search_term || '%'
+  ORDER BY p.display_name ASC
+  LIMIT 20;
 END;
 $$ LANGUAGE plpgsql;
 
--- 9. Triggers pour updated_at
-DROP TRIGGER IF EXISTS update_profiles_updated_at ON profiles;
-CREATE TRIGGER update_profiles_updated_at
-  BEFORE UPDATE ON profiles
-  FOR EACH ROW
-  EXECUTE FUNCTION update_updated_at_column();
+-- 5. Fonction pour obtenir les statistiques d'amitié
+CREATE OR REPLACE FUNCTION get_friendship_stats(target_user_id uuid)
+RETURNS TABLE (
+  friends_count bigint,
+  pending_sent bigint,
+  pending_received bigint
+) AS $$
+DECLARE
+  target_profile_id uuid;
+BEGIN
+  -- Obtenir l'ID du profil
+  SELECT id INTO target_profile_id 
+  FROM profiles 
+  WHERE user_id = target_user_id;
+  
+  IF target_profile_id IS NULL THEN
+    RETURN QUERY SELECT 0::bigint, 0::bigint, 0::bigint;
+    RETURN;
+  END IF;
+  
+  RETURN QUERY
+  SELECT 
+    (SELECT COUNT(*) FROM friendships 
+     WHERE (user_id = target_profile_id OR friend_id = target_profile_id) 
+     AND status = 'accepted')::bigint as friends_count,
+    (SELECT COUNT(*) FROM friendships 
+     WHERE user_id = target_profile_id AND status = 'pending')::bigint as pending_sent,
+    (SELECT COUNT(*) FROM friendships 
+     WHERE friend_id = target_profile_id AND status = 'pending')::bigint as pending_received;
+END;
+$$ LANGUAGE plpgsql;
 
-DROP TRIGGER IF EXISTS update_friendships_updated_at ON friendships;
-CREATE TRIGGER update_friendships_updated_at
-  BEFORE UPDATE ON friendships
-  FOR EACH ROW
-  EXECUTE FUNCTION update_updated_at_column();
+-- 6. Vue pour simplifier les requêtes d'amitié
+CREATE OR REPLACE VIEW friendship_view AS
+SELECT 
+  f.id,
+  f.status,
+  f.created_at,
+  f.updated_at,
+  p1.user_id as requester_user_id,
+  p1.display_name as requester_name,
+  p1.avatar_url as requester_avatar,
+  p2.user_id as target_user_id,
+  p2.display_name as target_name,
+  p2.avatar_url as target_avatar
+FROM friendships f
+JOIN profiles p1 ON f.user_id = p1.id
+JOIN profiles p2 ON f.friend_id = p2.id;
 
--- 10. Afficher un message de succès
+-- 7. Index pour améliorer les performances
+CREATE INDEX IF NOT EXISTS idx_friendships_user_status ON friendships(user_id, status);
+CREATE INDEX IF NOT EXISTS idx_friendships_friend_status ON friendships(friend_id, status);
+CREATE INDEX IF NOT EXISTS idx_profiles_user_id_unique ON profiles(user_id);
+
+-- 8. Notification de fin
 DO $$
 BEGIN
-  RAISE NOTICE 'Configuration de la base de données terminée avec succès !';
-  RAISE NOTICE 'Tables créées : profiles, friendships';
-  RAISE NOTICE 'Politiques RLS configurées';
-  RAISE NOTICE 'Triggers configurés pour la création automatique de profils';
+  RAISE NOTICE 'Configuration corrigée terminée !';
+  RAISE NOTICE 'Les contraintes friendships utilisent maintenant profiles.id';
+  RAISE NOTICE 'Nouvelles fonctions et vues créées pour faciliter les requêtes';
+  RAISE NOTICE 'Index optimisés pour les performances';
 END $$;

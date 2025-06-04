@@ -1,5 +1,6 @@
 import { supabase, initializeFriendsSystem, getUserFriends, createOrUpdateProfile } from '../../lib/supabase'
 import { logError, logInfo, logDebug, logApiCall } from '../../utils/logger'
+import { getProfileIdFromUserId, sendFriendRequestCorrected } from '../../utils/profileUtils'
 
 export default async function handler(req, res) {
   const startTime = Date.now()
@@ -204,47 +205,17 @@ async function sendFriendRequest(req, res, requestId, user_id, friend_id) {
       return res.status(400).json({ error: 'Cannot send friend request to yourself' })
     }
     
-    // Ensure both users have profiles
-    await createOrUpdateProfile(user_id, { display_name: 'Utilisateur' })
-    await createOrUpdateProfile(friend_id, { display_name: 'Utilisateur' })
+    // Utiliser la fonction corrigée
+    const result = await sendFriendRequestCorrected(user_id, friend_id)
     
-    // Check for existing relationship
-    const { data: existing, error: checkError } = await supabase
-      .from('friendships')
-      .select('id, status')
-      .or(`and(user_id.eq.${user_id},friend_id.eq.${friend_id}),and(user_id.eq.${friend_id},friend_id.eq.${user_id})`)
-    
-    if (existing && existing.length > 0) {
-      const relation = existing[0]
-      if (relation.status === 'accepted') {
-        return res.status(400).json({ error: 'Already friends' })
-      } else if (relation.status === 'pending') {
-        return res.status(400).json({ error: 'Friend request already sent' })
-      }
-    }
-    
-    // Create friend request
-    const { data: friendship, error: insertError } = await supabase
-      .from('friendships')
-      .insert({
-        user_id,
-        friend_id,
-        status: 'pending',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
-      .select()
-      .single()
-    
-    if (insertError) {
-      logError('Erreur création demande', insertError, { requestId })
-      return res.status(500).json({ error: 'Erreur lors de l\'envoi de la demande' })
+    if (!result.success) {
+      return res.status(400).json({ error: result.error })
     }
     
     return res.status(200).json({
       success: true,
-      friendship_id: friendship.id,
-      status: friendship.status
+      friendship_id: result.friendship.id,
+      status: result.friendship.status
     })
     
   } catch (error) {
@@ -273,17 +244,6 @@ async function acceptFriendRequest(req, res, requestId, request_id) {
     if (updateError || !friendship) {
       return res.status(404).json({ error: 'Friend request not found' })
     }
-    
-    // Create reverse relationship
-    await supabase
-      .from('friendships')
-      .upsert({
-        user_id: friendship.friend_id,
-        friend_id: friendship.user_id,
-        status: 'accepted',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
     
     return res.status(200).json({
       success: true,
