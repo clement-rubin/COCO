@@ -277,13 +277,18 @@ export async function getFriendshipStatus(userId1, userId2) {
   }
 
   try {
+    // First check if friendships table exists
     const { data: friendship, error } = await supabase
       .from('friendships')
-      .select('status, user_id, friend_id')
+      .select('id, status, user_id, friend_id')
       .or(`and(user_id.eq.${userId1},friend_id.eq.${userId2}),and(user_id.eq.${userId2},friend_id.eq.${userId1})`)
-      .single()
+      .maybeSingle()
 
-    if (error && error.code !== 'PGRST116') {
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // Table doesn't exist, return can send request
+        return { status: 'none', canSendRequest: true }
+      }
       logError('Error checking friendship status', error)
       return { status: 'error', canSendRequest: false }
     }

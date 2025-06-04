@@ -261,6 +261,33 @@ ALTER TABLE profiles ADD CONSTRAINT display_name_format CHECK (display_name ~ '^
 -- Index pour les recherches d'amis
 CREATE INDEX IF NOT EXISTS idx_profiles_display_name_trgm ON profiles USING gin(display_name gin_trgm_ops);
 
+-- Table des amitiés (STRUCTURE COMPLÈTE)
+CREATE TABLE IF NOT EXISTS public.friendships (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  friend_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  status TEXT CHECK (status IN ('pending', 'accepted', 'rejected', 'blocked')) DEFAULT 'pending',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(user_id, friend_id),
+  CONSTRAINT no_self_friendship CHECK (user_id != friend_id)
+);
+
+-- Index pour les amitiés
+CREATE INDEX IF NOT EXISTS idx_friendships_user_id ON friendships(user_id);
+CREATE INDEX IF NOT EXISTS idx_friendships_friend_id ON friendships(friend_id);
+CREATE INDEX IF NOT EXISTS idx_friendships_status ON friendships(status);
+CREATE INDEX IF NOT EXISTS idx_friendships_user_status ON friendships(user_id, status);
+
+-- Row Level Security pour friendships
+ALTER TABLE friendships ENABLE ROW LEVEL SECURITY;
+
+-- Politiques pour friendships
+CREATE POLICY "Voir ses amitiés" ON friendships FOR SELECT USING (auth.uid() = user_id OR auth.uid() = friend_id);
+CREATE POLICY "Créer demande amitié" ON friendships FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Modifier ses amitiés" ON friendships FOR UPDATE USING (auth.uid() = friend_id OR auth.uid() = user_id);
+CREATE POLICY "Supprimer ses amitiés" ON friendships FOR DELETE USING (auth.uid() = friend_id OR auth.uid() = user_id);
+
 -- Fonction pour la recherche floue de profils
 CREATE OR REPLACE FUNCTION search_profiles(search_term text, current_user_id uuid DEFAULT NULL)
 RETURNS TABLE (
@@ -277,14 +304,18 @@ BEGIN
     p.display_name,
     p.bio,
     p.avatar_url,
-    similarity(p.display_name, search_term) as similarity_score
+    CASE 
+      WHEN pg_trgm.similarity(p.display_name, search_term) > 0 
+      THEN pg_trgm.similarity(p.display_name, search_term)
+      ELSE 0.1
+    END as similarity_score
   FROM profiles p
   WHERE 
     p.is_private = false 
     AND (current_user_id IS NULL OR p.user_id != current_user_id)
     AND (
       p.display_name ILIKE '%' || search_term || '%'
-      OR similarity(p.display_name, search_term) > 0.3
+      OR (pg_trgm.similarity(p.display_name, search_term) > 0.3)
     )
   ORDER BY similarity_score DESC, p.display_name ASC
   LIMIT 20;
@@ -298,49 +329,47 @@ RETURNS TABLE (
   display_name text,
   bio text,
   avatar_url text,
-  mutual_friends_count integer,
-  common_interests_count integer
+  mutual_friends_count integer
 ) AS $$
 BEGIN
   RETURN QUERY
-  WITH user_friends AS (
-    SELECT friend_id 
-    FROM friendships 
-    WHERE user_id = user_id_param AND status = 'accepted'
-  ),
-  mutual_friends AS (
-    SELECT 
-      p.user_id,
-      p.display_name,
-      p.bio,
-      p.avatar_url,
-      COUNT(DISTINCT f2.user_id) as mutual_count
-    FROM profiles p
-    JOIN friendships f1 ON f1.friend_id = p.user_id
-    JOIN user_friends uf ON uf.friend_id = f1.user_id
-    LEFT JOIN friendships f2 ON f2.user_id = user_id_param AND f2.friend_id = p.user_id
-    WHERE 
-      p.user_id != user_id_param
-      AND p.is_private = false
-      AND f2.user_id IS NULL -- Pas déjà ami
-      AND p.user_id NOT IN (SELECT friend_id FROM user_friends)
-    GROUP BY p.user_id, p.display_name, p.bio, p.avatar_url
-  )
   SELECT 
-    mf.user_id,
-    mf.display_name,
-    mf.bio,
-    mf.avatar_url,
-    mf.mutual_count::integer as mutual_friends_count,
-    0 as common_interests_count -- À implémenter avec les catégories de recettes préférées
-  FROM mutual_friends mf
-  ORDER BY mf.mutual_count DESC, mf.display_name ASC
+    p.user_id,
+    p.display_name,
+    p.bio,
+    p.avatar_url,
+    0 as mutual_friends_count
+  FROM profiles p
+  LEFT JOIN friendships existing ON (
+    (existing.user_id = user_id_param AND existing.friend_id = p.user_id) OR
+    (existing.friend_id = user_id_param AND existing.user_id = p.user_id)
+  )
+  WHERE 
+    p.user_id != user_id_param
+    AND p.is_private = false
+    AND existing.id IS NULL -- Pas déjà ami ou demande en cours
+  ORDER BY p.created_at DESC
   LIMIT limit_param;
 END;
 $$ LANGUAGE plpgsql;
 
--- Extension pour la recherche floue (optionnel)
-CREATE EXTENSION IF NOT EXISTS pg_trgm;
+-- Fonction pour créer automatiquement un profil (CORRIGÉE)
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.profiles (user_id, display_name)
+  VALUES (NEW.id, COALESCE(NEW.raw_user_meta_data->>'display_name', split_part(NEW.email, '@', 1)))
+  ON CONFLICT (user_id) DO NOTHING;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger pour créer automatiquement un profil
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+```
 
 **COCO** - *Où chaque recette raconte une histoire* 🍴✨
 

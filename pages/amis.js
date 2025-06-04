@@ -40,7 +40,7 @@ export default function Amis() {
 
   const loadFriendRequests = async (userId) => {
     try {
-      // First check if friendships table exists, if not skip
+      // Use correct foreign key reference
       const { data, error } = await supabase
         .from('friendships')
         .select(`
@@ -48,7 +48,8 @@ export default function Amis() {
           user_id,
           status,
           created_at,
-          profiles!friendships_user_id_fkey (
+          requester_profile:profiles!user_id (
+            user_id,
             display_name,
             avatar_url,
             bio
@@ -57,24 +58,38 @@ export default function Amis() {
         .eq('friend_id', userId)
         .eq('status', 'pending');
 
-      if (error && error.code !== 'PGRST116') { // Table doesn't exist
+      if (error) {
+        if (error.code === 'PGRST116') {
+          // Table doesn't exist yet
+          logError('Friendships table not found - please run database setup');
+          setError('Système d\'amis en cours d\'initialisation');
+          return;
+        }
         throw error;
       }
-      setFriendRequests(data || []);
+      
+      // Map the data to match expected structure
+      const mappedData = (data || []).map(request => ({
+        ...request,
+        profiles: request.requester_profile
+      }));
+      
+      setFriendRequests(mappedData);
     } catch (error) {
       logError('Error loading friend requests:', error);
-      // Don't set error state for missing tables in development
+      setError('Erreur lors du chargement des demandes');
     }
   };
 
   const loadFriends = async (userId) => {
     try {
+      // Use correct foreign key reference
       const { data, error } = await supabase
         .from('friendships')
         .select(`
           id,
           friend_id,
-          profiles!friendships_friend_id_fkey (
+          friend_profile:profiles!friend_id (
             user_id,
             display_name,
             avatar_url,
@@ -84,10 +99,21 @@ export default function Amis() {
         .eq('user_id', userId)
         .eq('status', 'accepted');
 
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
+        if (error.code === 'PGRST116') {
+          logError('Friendships table not found');
+          return;
+        }
         throw error;
       }
-      setFriends(data || []);
+      
+      // Map the data to match expected structure
+      const mappedData = (data || []).map(friendship => ({
+        ...friendship,
+        profiles: friendship.friend_profile
+      }));
+      
+      setFriends(mappedData);
     } catch (error) {
       logError('Error loading friends:', error);
     }
@@ -95,26 +121,23 @@ export default function Amis() {
 
   const loadSuggestions = async (userId) => {
     try {
-      // Try to use the RPC function, fallback to simple profile search
-      const { data, error } = await supabase.rpc('get_friend_suggestions', {
-        user_id_param: userId,
-        limit_param: 5
-      });
-
+      // Simple fallback - get random profiles excluding current user
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('user_id, display_name, bio, avatar_url')
+        .neq('user_id', userId)
+        .eq('is_private', false)
+        .limit(5);
+      
       if (error) {
-        // Fallback: get random profiles
-        const { data: fallbackData, error: fallbackError } = await supabase
-          .from('profiles')
-          .select('user_id, display_name, bio, avatar_url')
-          .neq('user_id', userId)
-          .limit(5);
-        
-        if (!fallbackError) {
-          setSuggestions(fallbackData || []);
+        if (error.code === 'PGRST116') {
+          logError('Profiles table not found');
+          return;
         }
-      } else {
-        setSuggestions(data || []);
+        throw error;
       }
+      
+      setSuggestions(data || []);
     } catch (error) {
       logError('Error loading suggestions:', error);
     }
@@ -128,30 +151,23 @@ export default function Amis() {
 
     setSearchLoading(true);
     try {
-      // Try RPC function first, fallback to simple search
-      let data, error;
-      
-      try {
-        const rpcResult = await supabase.rpc('search_profiles', {
-          search_term: term,
-          current_user_id: user?.id
-        });
-        data = rpcResult.data;
-        error = rpcResult.error;
-      } catch (rpcError) {
-        // Fallback to simple profile search
-        const fallbackResult = await supabase
-          .from('profiles')
-          .select('user_id, display_name, bio, avatar_url')
-          .neq('user_id', user?.id)
-          .ilike('display_name', `%${term}%`)
-          .limit(10);
-        
-        data = fallbackResult.data;
-        error = fallbackResult.error;
-      }
+      // Simple profile search without RPC function
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('user_id, display_name, bio, avatar_url')
+        .neq('user_id', user?.id)
+        .eq('is_private', false)
+        .ilike('display_name', `%${term}%`)
+        .limit(10);
 
-      if (error) throw error;
+      if (error) {
+        if (error.code === 'PGRST116') {
+          setError('Système de profils en cours d\'initialisation');
+          return;
+        }
+        throw error;
+      }
+      
       setSearchResults(data || []);
       
       if (data?.length === 0) {
@@ -169,19 +185,31 @@ export default function Amis() {
 
   const sendFriendRequest = async (friendId) => {
     try {
+      // Create profiles if they don't exist
+      await ensureProfileExists(user.id);
+      await ensureProfileExists(friendId);
+      
       const { error } = await supabase
         .from('friendships')
         .insert({
           user_id: user.id,
           friend_id: friendId,
-          status: 'pending'
+          status: 'pending',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         });
 
-      if (error) throw error;
+      if (error) {
+        if (error.code === 'PGRST116') {
+          setError('Système d\'amis en cours d\'initialisation');
+          return;
+        }
+        throw error;
+      }
+      
       logInfo('Friend request sent successfully');
       setError('Demande d\'amitié envoyée !');
       setTimeout(() => setError(null), 3000);
-      // Refresh search results to update button states
       await searchUsers(searchTerm);
     } catch (error) {
       logError('Error sending friend request:', error);
@@ -190,30 +218,28 @@ export default function Amis() {
     }
   };
 
-  const respondToFriendRequest = async (requestId, action) => {
+  const ensureProfileExists = async (userId) => {
     try {
-      if (action === 'accept') {
-        const { error } = await supabase
-          .from('friendships')
-          .update({ status: 'accepted' })
-          .eq('id', requestId);
-
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from('friendships')
-          .delete()
-          .eq('id', requestId);
-
-        if (error) throw error;
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('user_id', userId)
+        .single();
+      
+      if (!existingProfile) {
+        await supabase
+          .from('profiles')
+          .insert({
+            user_id: userId,
+            display_name: 'Utilisateur',
+            is_private: false,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
       }
-
-      await Promise.all([
-        loadFriendRequests(user.id),
-        loadFriends(user.id)
-      ]);
     } catch (error) {
-      logError('Error responding to friend request:', error);
+      // Profile creation might fail, that's ok
+      logError('Could not ensure profile exists', error);
     }
   };
 
