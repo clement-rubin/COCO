@@ -59,12 +59,12 @@ export default function TestRecipes() {
 
   const clearLogs = () => {
     setLogs([])
-    logInfo('Logs effacés depuis la page de test')
+    logInfo('Logs effacés depuis la page de test', { component: 'test-recipes' })
   }
 
   const testSupabaseConnection = async () => {
     setIsLoading(true)
-    logInfo('🔍 Test de connexion Supabase...')
+    logInfo('🔍 Test de connexion Supabase...', { component: 'test-recipes' })
     
     try {
       // Test avec toutes les colonnes requises incluant difficulty
@@ -108,7 +108,7 @@ Puis rafraîchissez cette page.
 
   const loadRecipes = async () => {
     setIsLoading(true)
-    logInfo('📖 Chargement des recettes...')
+    logInfo('📖 Chargement des recettes...', { component: 'test-recipes' })
     
     try {
       const { data, error } = await supabase
@@ -138,7 +138,7 @@ Puis rafraîchissez cette page.
 
   const createTestRecipe = async () => {
     setIsLoading(true)
-    logInfo('🧪 Création d\'une recette de test...')
+    logInfo('🧪 Création d\'une recette de test...', { component: 'test-recipes' })
     
     const testRecipe = {
       title: `Test Recipe ${Date.now()}`,
@@ -197,7 +197,7 @@ Puis rafraîchissez cette page.
 
   const deleteTestRecipes = async () => {
     setIsLoading(true)
-    logInfo('🗑️ Suppression des recettes de test...')
+    logInfo('🗑️ Suppression des recettes de test...', { component: 'test-recipes' })
     
     try {
       const { data, error } = await supabase
@@ -224,7 +224,7 @@ Puis rafraîchissez cette page.
 
   const testTableCreation = async () => {
     setIsLoading(true)
-    logInfo('🏗️ Test de création/vérification de la table...')
+    logInfo('🏗️ Test de création/vérification de la table...', { component: 'test-recipes' })
     
     try {
       const success = await createRecipesTableIfNotExists()
@@ -246,7 +246,7 @@ Puis rafraîchissez cette page.
 
   const initializeDatabase = async () => {
     setIsLoading(true)
-    logInfo('🚀 Initialisation complète de la base de données...')
+    logInfo('🚀 Initialisation complète de la base de données...', { component: 'test-recipes' })
     
     try {
       await initializeRecipesTable()
@@ -263,7 +263,7 @@ Puis rafraîchissez cette page.
 
   const testImageStorage = async () => {
     setIsLoading(true)
-    logInfo('🖼️ Test de création du bucket images...')
+    logInfo('🖼️ Test de création du bucket images...', { component: 'test-recipes' })
     
     try {
       const success = await createImageStorageBucket()
@@ -284,13 +284,13 @@ Puis rafraîchissez cette page.
   }
 
   const runAllTests = async () => {
-    logInfo('🚀 Début des tests automatiques...')
+    logInfo('🚀 Début des tests automatiques...', { component: 'test-recipes' })
     await testTableCreation()
     await testImageStorage()
     await testSupabaseConnection()
     await loadRecipes()
     await createTestRecipe()
-    logInfo('✅ Tests automatiques terminés')
+    logInfo('✅ Tests automatiques terminés', { component: 'test-recipes' })
   }
 
   const displaySQLInstructions = () => {

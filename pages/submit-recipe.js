@@ -87,11 +87,11 @@ export default function SubmitRecipe() {
     }
     if (!formData.instructions.trim()) {
       newErrors.instructions = 'Les instructions sont obligatoires'
-      addLog('warning', 'Validation échouée: instructions manquantes')
+      logWarning('Form validation failed: missing instructions', { component: 'submit-recipe' })
     }
     if (photos.length === 0) {
       newErrors.photos = 'Au moins une photo est obligatoire'
-      addLog('warning', 'Validation échouée: aucune photo')
+      logWarning('Form validation failed: no photos', { component: 'submit-recipe' })
     }
     
     // Validation des photos traitées

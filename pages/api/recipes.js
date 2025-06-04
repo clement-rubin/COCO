@@ -1,5 +1,11 @@
 import { supabase } from '../../lib/supabase'
-import { logInfo, logError, logWarning, logDebug, logApiCall } from '../../utils/logger'
+import { 
+  logInfo, 
+  logError, 
+  logWarning, 
+  logDebug, 
+  logApiCall 
+} from '../../utils/logger'
 
 // Helper function to safely log error details
 function logApiError(operation, error, context = {}) {

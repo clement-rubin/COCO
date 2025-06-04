@@ -1,10 +1,13 @@
 import Head from 'next/head'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
+import { useAuth } from '../components/AuthContext'
+import { logUserInteraction } from '../utils/logger'
 import styles from '../styles/Explorer.module.css'
 
 export default function Explorer() {
   const router = useRouter()
+  const { user } = useAuth()
   const [activeFilter, setActiveFilter] = useState('Tous')
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(true)

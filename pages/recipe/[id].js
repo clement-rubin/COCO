@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Image from 'next/image'
 import { useAuth } from '../../components/AuthContext'
-import { logUserInteraction, logError, logInfo } from '../../utils/logger'
+import { logUserInteraction, logError, logInfo, logRecipeAction } from '../../utils/logger'
 import styles from '../../styles/RecipeDetail.module.css'
 
 export default function RecipeDetail() {
@@ -167,7 +167,10 @@ export default function RecipeDetail() {
         setIsSaved(saves.includes(id))
       }
     } catch (err) {
-      console.error('Failed to load user preferences', err)
+      logRecipeAction('LOAD_PREFERENCES_ERROR', null, {
+        error: err.message,
+        component: 'recipe-detail'
+      })
     }
   }
 
