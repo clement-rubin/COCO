@@ -4,20 +4,22 @@
 }
 
 .dropZone {
-  border: 3px dashed rgba(255, 107, 53, 0.4);
-  border-radius: 20px;
+  border: 3px dashed rgba(255, 107, 53, 0.3);
+  border-radius: 1.5rem;
   padding: 3rem 2rem;
   text-align: center;
   cursor: pointer;
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  background: linear-gradient(135deg, rgba(255, 247, 237, 0.8) 0%, rgba(255, 255, 255, 0.9) 100%);
-  min-height: 240px;
+  background: linear-gradient(135deg, rgba(255, 247, 237, 0.6) 0%, rgba(255, 255, 255, 0.8) 100%);
+  min-height: 280px;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
   overflow: hidden;
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(15px);
+  border-style: dashed;
+  border-width: 3px;
 }
 
 .dropZone::before {
@@ -27,8 +29,8 @@
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 107, 53, 0.1), transparent);
-  transition: left 0.5s;
+  background: linear-gradient(90deg, transparent, rgba(255, 107, 53, 0.08), transparent);
+  transition: left 0.6s ease;
 }
 
 .dropZone:hover::before {
@@ -37,19 +39,21 @@
 
 .dropZone:hover {
   border-color: #ff6b35;
-  background: linear-gradient(135deg, rgba(255, 107, 53, 0.05) 0%, rgba(255, 255, 255, 0.95) 100%);
+  border-style: solid;
+  background: linear-gradient(135deg, rgba(255, 107, 53, 0.08) 0%, rgba(255, 255, 255, 0.95) 100%);
   transform: translateY(-4px) scale(1.02);
   box-shadow: 
-    0 12px 40px rgba(255, 107, 53, 0.2),
+    0 12px 40px rgba(255, 107, 53, 0.25),
     0 0 0 1px rgba(255, 107, 53, 0.1) inset;
 }
 
 .dropZone.active {
   border-color: #ff6b35;
-  background: linear-gradient(135deg, rgba(255, 107, 53, 0.1) 0%, rgba(255, 255, 255, 0.9) 100%);
+  border-style: solid;
+  background: linear-gradient(135deg, rgba(255, 107, 53, 0.12) 0%, rgba(255, 255, 255, 0.9) 100%);
   transform: scale(1.05);
   box-shadow: 
-    0 20px 60px rgba(255, 107, 53, 0.3),
+    0 20px 60px rgba(255, 107, 53, 0.35),
     0 0 0 2px rgba(255, 107, 53, 0.2) inset;
 }
 
@@ -63,32 +67,34 @@
   position: relative;
   z-index: 1;
   color: #64748b;
+  max-width: 400px;
 }
 
 .uploadIcon {
-  font-size: 4rem;
+  font-size: 4.5rem;
   margin-bottom: 1.5rem;
-  animation: bounce 2s infinite;
-  background: linear-gradient(135deg, #ff6b35, #f97316);
+  animation: float 3s ease-in-out infinite;
+  background: linear-gradient(135deg, #ff6b35, #f97316, #ea580c);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   filter: drop-shadow(0 4px 12px rgba(255, 107, 53, 0.3));
+  display: block;
 }
 
-@keyframes bounce {
-  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-  40% { transform: translateY(-15px); }
-  60% { transform: translateY(-8px); }
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-8px) rotate(2deg); }
 }
 
 .emptyState h3 {
   margin: 0 0 1rem 0;
   color: #1e293b;
   font-family: 'Playfair Display', serif;
-  font-size: 1.8rem;
-  font-weight: 700;
+  font-size: 1.9rem;
+  font-weight: 800;
   letter-spacing: -0.02em;
+  line-height: 1.2;
 }
 
 .emptyState p {
@@ -101,31 +107,40 @@
 
 .uploadTips {
   display: flex;
-  gap: 1.5rem;
+  gap: 1rem;
   justify-content: center;
   margin-top: 1.5rem;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   color: #64748b;
   flex-wrap: wrap;
 }
 
 .uploadTips span {
-  color: #10b981;
-  font-size: 0.95rem;
-  font-weight: 600;
-  padding: 0.5rem 1rem;
-  background: rgba(16, 185, 129, 0.1);
-  border-radius: 12px;
-  border: 1px solid rgba(16, 185, 129, 0.2);
+  color: #059669;
+  font-size: 0.9rem;
+  font-weight: 700;
+  padding: 0.6rem 1.2rem;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.08) 100%);
+  border-radius: 1rem;
+  border: 2px solid rgba(16, 185, 129, 0.2);
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.uploadTips span:hover {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.12) 100%);
+  border-color: rgba(16, 185, 129, 0.3);
+  transform: translateY(-2px);
 }
 
 .uploadTips span::before {
   content: '✓';
   font-weight: 800;
-  color: #10b981;
+  color: #059669;
+  font-size: 1rem;
 }
 
 .uploading {
@@ -138,24 +153,19 @@
 }
 
 .spinner {
-  width: 48px;
-  height: 48px;
+  width: 56px;
+  height: 56px;
   border: 4px solid rgba(255, 107, 53, 0.2);
   border-top: 4px solid #ff6b35;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
 
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
 .uploading p {
   margin: 0;
   color: #ff6b35;
-  font-weight: 600;
-  font-size: 1.1rem;
+  font-weight: 700;
+  font-size: 1.2rem;
 }
 
 .photoGrid {
@@ -331,22 +341,32 @@
 
 @media (max-width: 768px) {
   .dropZone {
-    padding: 2rem 1.5rem;
-    min-height: 200px;
+    padding: 2.5rem 1.5rem;
+    min-height: 240px;
+    border-radius: 1.25rem;
   }
   
   .uploadIcon {
-    font-size: 3rem;
+    font-size: 3.5rem;
   }
   
   .emptyState h3 {
-    font-size: 1.5rem;
+    font-size: 1.6rem;
+  }
+  
+  .emptyState p {
+    font-size: 1rem;
   }
   
   .uploadTips {
     flex-direction: column;
     gap: 0.75rem;
     align-items: center;
+  }
+  
+  .uploadTips span {
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
   }
   
   .photoGrid {

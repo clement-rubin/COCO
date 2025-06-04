@@ -13,7 +13,6 @@ export default function SharePhoto() {
   const [formData, setFormData] = useState({
     title: '',
     description: ''
-    // Suppression du champ author - sera récupéré automatiquement
   })
   const [photos, setPhotos] = useState([])
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -21,10 +20,6 @@ export default function SharePhoto() {
   const [showSuccessMessage, setShowSuccessMessage] = useState(false)
   const [showLogs, setShowLogs] = useState(false)
   const [logs, setLogs] = useState([])
-  const [cameraMode, setCameraMode] = useState(false)
-  const videoRef = useRef(null)
-  const canvasRef = useRef(null)
-  const [stream, setStream] = useState(null)
 
   // Logger hook amélioré
   const addLog = (level, message, data = null) => {
@@ -63,229 +58,6 @@ export default function SharePhoto() {
       }
     })
   }, [])
-
-  // Camera functions avec logs
-  const startCamera = async () => {
-    addLog('INFO', 'Tentative de démarrage de la caméra', { 
-      userAgent: navigator.userAgent,
-      hasGetUserMedia: !!navigator.mediaDevices?.getUserMedia,
-      isSecureContext: window.isSecureContext
-    })
-
-    try {
-      // Vérifier si getUserMedia est disponible
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error('getUserMedia n\'est pas supporté par ce navigateur')
-      }
-
-      // Arrêter le flux existant si présent
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop())
-        setStream(null)
-      }
-
-      // Contraintes optimisées pour mobile
-      const constraints = {
-        video: {
-          facingMode: { ideal: 'environment' }, // Caméra arrière préférée
-          width: { ideal: 1280, max: 1920 },
-          height: { ideal: 720, max: 1080 },
-          aspectRatio: { ideal: 16/9 }
-        },
-        audio: false
-      }
-
-      addLog('INFO', 'Demande d\'accès à la caméra avec contraintes', { constraints })
-
-      const mediaStream = await navigator.mediaDevices.getUserMedia(constraints)
-      
-      addLog('INFO', 'Flux caméra obtenu avec succès', {
-        streamId: mediaStream.id,
-        tracks: mediaStream.getTracks().map(track => ({
-          kind: track.kind,
-          label: track.label,
-          enabled: track.enabled,
-          readyState: track.readyState,
-          settings: track.getSettings ? track.getSettings() : null
-        }))
-      })
-
-      setStream(mediaStream)
-      setCameraMode(true)
-
-      // Attendre que le composant soit rendu avant d'assigner le stream
-      setTimeout(() => {
-        if (videoRef.current) {
-          videoRef.current.srcObject = mediaStream
-          videoRef.current.onloadedmetadata = () => {
-            addLog('INFO', 'Métadonnées vidéo chargées', {
-              videoWidth: videoRef.current.videoWidth,
-              videoHeight: videoRef.current.videoHeight,
-              duration: videoRef.current.duration
-            })
-          }
-          
-          videoRef.current.oncanplay = () => {
-            addLog('INFO', 'Vidéo prête à être lue')
-          }
-
-          // Démarrer la lecture
-          videoRef.current.play().catch(error => {
-            addLog('ERROR', 'Erreur lors du démarrage de la lecture vidéo', { 
-              error: error.message,
-              videoElement: !!videoRef.current,
-              srcObject: !!videoRef.current.srcObject
-            })
-          })
-        } else {
-          addLog('ERROR', 'Élément vidéo non trouvé', { 
-            videoRefCurrent: !!videoRef.current,
-            cameraMode
-          })
-        }
-      }, 100)
-
-    } catch (error) {
-      addLog('ERROR', 'Erreur lors de l\'accès à la caméra', { 
-        error: error.message,
-        name: error.name,
-        constraint: error.constraint || 'N/A',
-        userAgent: navigator.userAgent,
-        isSecureContext: window.isSecureContext,
-        protocol: window.location.protocol
-      })
-
-      // Messages d'erreur user-friendly
-      let userMessage = 'Impossible d\'accéder à la caméra. '
-      
-      if (error.name === 'NotAllowedError') {
-        userMessage += 'Veuillez autoriser l\'accès à la caméra dans les paramètres de votre navigateur.'
-      } else if (error.name === 'NotFoundError') {
-        userMessage += 'Aucune caméra trouvée sur cet appareil.'
-      } else if (error.name === 'NotSupportedError') {
-        userMessage += 'La caméra n\'est pas supportée par ce navigateur.'
-      } else if (error.name === 'NotReadableError') {
-        userMessage += 'La caméra est peut-être utilisée par une autre application.'
-      } else if (!window.isSecureContext) {
-        userMessage += 'L\'accès à la caméra nécessite une connexion sécurisée (HTTPS).'
-      } else {
-        userMessage += error.message
-      }
-
-      alert(userMessage)
-      setCameraMode(false)
-    }
-  }
-
-  const stopCamera = () => {
-    addLog('INFO', 'Arrêt de la caméra demandé')
-    
-    if (stream) {
-      stream.getTracks().forEach(track => {
-        track.stop()
-        addLog('INFO', 'Track arrêté', { 
-          kind: track.kind, 
-          label: track.label,
-          readyState: track.readyState
-        })
-      })
-      setStream(null)
-    }
-    
-    if (videoRef.current) {
-      videoRef.current.srcObject = null
-    }
-    
-    setCameraMode(false)
-    addLog('INFO', 'Caméra arrêtée avec succès')
-  }
-
-  const capturePhoto = () => {
-    if (!videoRef.current || !canvasRef.current) {
-      addLog('ERROR', 'Références vidéo ou canvas manquantes', {
-        hasVideo: !!videoRef.current,
-        hasCanvas: !!canvasRef.current
-      })
-      return
-    }
-
-    const video = videoRef.current
-    const canvas = canvasRef.current
-    const ctx = canvas.getContext('2d')
-
-    // Vérifier que la vidéo est prête
-    if (video.readyState < 2) {
-      addLog('ERROR', 'Vidéo pas encore prête pour la capture', {
-        readyState: video.readyState,
-        videoWidth: video.videoWidth,
-        videoHeight: video.videoHeight
-      })
-      alert('La caméra n\'est pas encore prête. Veuillez patienter.')
-      return
-    }
-
-    addLog('INFO', 'Début de capture photo', {
-      videoWidth: video.videoWidth,
-      videoHeight: video.videoHeight,
-      readyState: video.readyState
-    })
-
-    try {
-      // Configurer les dimensions du canvas
-      canvas.width = video.videoWidth || 640
-      canvas.height = video.videoHeight || 480
-
-      // Capturer l'image
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
-
-      // Convertir en blob
-      canvas.toBlob((blob) => {
-        if (!blob) {
-          addLog('ERROR', 'Échec de la conversion en blob')
-          alert('Erreur lors de la capture. Veuillez réessayer.')
-          return
-        }
-
-        const file = new File([blob], `photo-${Date.now()}.jpg`, { 
-          type: 'image/jpeg',
-          lastModified: Date.now()
-        })
-
-        const photoData = {
-          id: Date.now(),
-          file: file,
-          preview: URL.createObjectURL(blob),
-          name: file.name,
-          size: file.size,
-          processing: false,
-          processed: true,
-          error: false,
-          imageUrl: URL.createObjectURL(blob),
-          mimeType: 'image/jpeg'
-        }
-
-        setPhotos([photoData])
-        
-        addLog('INFO', 'Photo capturée avec succès', {
-          fileName: file.name,
-          fileSize: file.size,
-          canvasWidth: canvas.width,
-          canvasHeight: canvas.height
-        })
-
-        // Arrêter la caméra après capture
-        stopCamera()
-        
-      }, 'image/jpeg', 0.9) // Qualité 90%
-
-    } catch (error) {
-      addLog('ERROR', 'Erreur lors de la capture', { 
-        error: error.message,
-        stack: error.stack
-      })
-      alert('Erreur lors de la capture de la photo. Veuillez réessayer.')
-    }
-  }
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
@@ -903,48 +675,22 @@ export default function SharePhoto() {
     <div className={styles.stepContent}>
       <div className={styles.stepHeader}>
         <h2>📸 Votre plat en image</h2>
-        <p>Capturez ou sélectionnez une photo et donnez-lui un nom</p>
+        <p>Sélectionnez une photo et donnez-lui un nom appétissant</p>
       </div>
 
       <div className={styles.photoSection}>
-        <div className={styles.photoOptions}>
-          <div className={styles.cameraSection}>
-            {!cameraMode ? (
-              <button onClick={startCamera} className={styles.cameraBtn}>
-                📷 Utiliser l'appareil photo
-              </button>
-            ) : (
-              <div className={styles.cameraContainer}>
-                <video ref={videoRef} autoPlay playsInline className={styles.cameraVideo}></video>
-                <canvas ref={canvasRef} style={{ display: 'none' }}></canvas>
-                <div className={styles.cameraControls}>
-                  <button onClick={capturePhoto} className={styles.captureBtn}>
-                    📸 Capturer
-                  </button>
-                  <button onClick={stopCamera} className={styles.cancelBtn}>
-                    ✕ Annuler
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className={styles.divider}>
-            <span>ou</span>
-          </div>
-
-          <div className={styles.uploadSection}>
-            <PhotoUpload 
-              onPhotoSelect={setPhotos}
-              maxFiles={1}
-              compact={true}
-            />
-          </div>
-        </div>
+        <PhotoUpload 
+          onPhotoSelect={setPhotos}
+          maxFiles={1}
+          compact={true}
+        />
 
         {photos.length > 0 && (
           <div className={styles.photoPreview}>
-            <h3>✅ Photo sélectionnée</h3>
+            <div className={styles.previewBadge}>
+              <span className={styles.checkIcon}>✅</span>
+              Photo sélectionnée avec succès !
+            </div>
             <div className={styles.previewGrid}>
               {photos.map((photo, index) => (
                 <div key={photo.id || index} className={styles.previewItem}>
@@ -952,6 +698,7 @@ export default function SharePhoto() {
                   <button 
                     onClick={() => setPhotos([])} 
                     className={styles.removeBtn}
+                    title="Supprimer cette photo"
                   >
                     ✕
                   </button>
@@ -961,23 +708,43 @@ export default function SharePhoto() {
           </div>
         )}
 
-        {errors.photos && <div className={styles.error}>{errors.photos}</div>}
+        {errors.photos && <div className={styles.errorMessage}>{errors.photos}</div>}
       </div>
 
-      <div className={styles.formGroup}>
-        <label htmlFor="title" className={styles.label}>
-          <span className={styles.required}>*</span> Nom de votre plat
-        </label>
-        <input
-          type="text"
-          id="title"
-          name="title"
-          value={formData.title}
-          onChange={handleInputChange}
-          placeholder="Ex: Tarte aux pommes maison"
-          className={`${styles.input} ${errors.title ? styles.inputError : ''}`}
-        />
-        {errors.title && <span className={styles.error}>{errors.title}</span>}
+      <div className={styles.formSection}>
+        <div className={styles.formGroup}>
+          <label htmlFor="title" className={styles.modernLabel}>
+            <span className={styles.labelIcon}>🍽️</span>
+            <span className={styles.labelText}>
+              Nom de votre plat <span className={styles.required}>*</span>
+            </span>
+          </label>
+          <div className={styles.inputWrapper}>
+            <input
+              type="text"
+              id="title"
+              name="title"
+              value={formData.title}
+              onChange={handleInputChange}
+              placeholder="Ex: Tarte aux pommes de grand-mère"
+              className={`${styles.modernInput} ${errors.title ? styles.inputError : ''}`}
+              maxLength={80}
+            />
+            <div className={styles.inputAccent}></div>
+            <div className={styles.charCount}>
+              {formData.title.length}/80
+            </div>
+          </div>
+          {errors.title && (
+            <div className={styles.errorMessage}>
+              <span className={styles.errorIcon}>⚠️</span>
+              {errors.title}
+            </div>
+          )}
+          <div className={styles.inputHint}>
+            💡 Choisissez un nom qui donne envie de déguster votre plat !
+          </div>
+        </div>
       </div>
     </div>
   )
@@ -989,22 +756,44 @@ export default function SharePhoto() {
         <p>Ajoutez une description pour rendre votre plat encore plus appétissant</p>
       </div>
 
-      <div className={styles.formGroup}>
-        <label htmlFor="description" className={styles.label}>
-          Description de votre plat
-        </label>
-        <textarea
-          id="description"
-          name="description"
-          value={formData.description}
-          onChange={handleInputChange}
-          placeholder="Décrivez votre délicieux plat et partagez son histoire..."
-          rows={4}
-          className={styles.textarea}
-        />
-        <small style={{ color: '#6b7280', fontSize: '0.9rem', marginTop: '8px', display: 'block' }}>
-          💡 Plus votre description est détaillée, plus elle inspirera les autres !
-        </small>
+      <div className={styles.formSection}>
+        <div className={styles.formGroup}>
+          <label htmlFor="description" className={styles.modernLabel}>
+            <span className={styles.labelIcon}>✨</span>
+            <span className={styles.labelText}>
+              Description de votre plat <span className={styles.optional}>(optionnel)</span>
+            </span>
+          </label>
+          <div className={styles.textareaWrapper}>
+            <textarea
+              id="description"
+              name="description"
+              value={formData.description}
+              onChange={handleInputChange}
+              placeholder="Décrivez votre délicieux plat : les ingrédients spéciaux, l'histoire derrière cette recette, ce qui la rend unique..."
+              rows={6}
+              className={styles.modernTextarea}
+              maxLength={500}
+            />
+            <div className={styles.inputAccent}></div>
+            <div className={styles.charCount}>
+              {formData.description.length}/500
+            </div>
+          </div>
+          <div className={styles.inputHint}>
+            💡 Plus votre description est détaillée et personnelle, plus elle inspirera les autres gourmets !
+          </div>
+        </div>
+
+        <div className={styles.inspirationBox}>
+          <h4>🌟 Idées de description</h4>
+          <ul>
+            <li>Partagez l'histoire de cette recette (famille, voyage, découverte...)</li>
+            <li>Mentionnez les ingrédients qui font la différence</li>
+            <li>Décrivez les saveurs et textures</li>
+            <li>Ajoutez vos astuces de préparation</li>
+          </ul>
+        </div>
       </div>
     </div>
   )
