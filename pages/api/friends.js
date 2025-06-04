@@ -58,10 +58,25 @@ async function handleGetRequest(req, res, requestId) {
   }
   
   try {
-    // Récupérer les amis acceptés
-    const { data: friendships, error: friendsError } = await supabase
+    // Récupérer les amis acceptés avec profils
+    const { data: friends, error: friendsError } = await supabase
       .from('friendships')
-      .select('id, user_id, friend_id, status, created_at, updated_at')
+      .select(`
+        id,
+        user_id,
+        friend_id,
+        status,
+        created_at,
+        updated_at,
+        friend_profile:profiles!friendships_friend_id_fkey(
+          id,
+          user_id,
+          display_name,
+          avatar_url,
+          bio,
+          created_at
+        )
+      `)
       .eq('user_id', user_id)
       .eq('status', 'accepted')
       .order('created_at', { ascending: false })
@@ -71,26 +86,25 @@ async function handleGetRequest(req, res, requestId) {
       throw new Error(`Erreur lors de la récupération des amis: ${friendsError.message}`)
     }
     
-    // Récupérer les profils des amis
-    const friendIds = friendships?.map(f => f.friend_id) || []
-    let friendProfiles = []
-    if (friendIds.length > 0) {
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, user_id, display_name, avatar_url, bio, created_at')
-        .in('user_id', friendIds)
-      
-      if (profilesError) {
-        logError('Erreur récupération profils amis', profilesError, { requestId })
-      } else {
-        friendProfiles = profiles || []
-      }
-    }
-    
-    // Récupérer les demandes en attente
-    const { data: pendingFriendships, error: pendingError } = await supabase
+    // Récupérer les demandes en attente avec profils
+    const { data: pendingRequests, error: pendingError } = await supabase
       .from('friendships')
-      .select('id, user_id, friend_id, status, created_at, updated_at')
+      .select(`
+        id,
+        user_id,
+        friend_id,
+        status,
+        created_at,
+        updated_at,
+        requester_profile:profiles!friendships_user_id_fkey(
+          id,
+          user_id,
+          display_name,
+          avatar_url,
+          bio,
+          created_at
+        )
+      `)
       .eq('friend_id', user_id)
       .eq('status', 'pending')
       .order('created_at', { ascending: false })
@@ -100,42 +114,26 @@ async function handleGetRequest(req, res, requestId) {
       throw new Error(`Erreur lors de la récupération des demandes: ${pendingError.message}`)
     }
     
-    // Récupérer les profils des demandeurs
-    const requesterIds = pendingFriendships?.map(f => f.user_id) || []
-    let requesterProfiles = []
-    if (requesterIds.length > 0) {
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, user_id, display_name, avatar_url, bio, created_at')
-        .in('user_id', requesterIds)
-      
-      if (profilesError) {
-        logError('Erreur récupération profils demandeurs', profilesError, { requestId })
-      } else {
-        requesterProfiles = profiles || []
-      }
-    }
-    
-    // Combiner les données
-    const transformedFriends = friendships?.map(f => ({
+    // Formater les données pour correspondre à l'ancien format
+    const formattedFriends = (friends || []).map(f => ({
       ...f,
-      profiles: friendProfiles.find(p => p.user_id === f.friend_id)
-    })) || []
+      profiles: f.friend_profile
+    }))
     
-    const transformedPendingRequests = pendingFriendships?.map(r => ({
+    const formattedPendingRequests = (pendingRequests || []).map(r => ({
       ...r,
-      profiles: requesterProfiles.find(p => p.user_id === r.user_id)
-    })) || []
+      profiles: r.requester_profile
+    }))
     
     logInfo('Données récupérées avec succès', {
       requestId,
-      friendsCount: transformedFriends.length,
-      pendingRequestsCount: transformedPendingRequests.length
+      friendsCount: formattedFriends.length,
+      pendingRequestsCount: formattedPendingRequests.length
     })
     
     return res.status(200).json({
-      friends: transformedFriends,
-      pendingRequests: transformedPendingRequests
+      friends: formattedFriends,
+      pendingRequests: formattedPendingRequests
     })
     
   } catch (error) {
@@ -168,6 +166,7 @@ async function searchUsers(req, res, requestId, query) {
         created_at
       `)
       .ilike('display_name', `%${query.trim()}%`)
+      .eq('is_private', false)
       .limit(20)
     
     if (searchError) {
@@ -227,7 +226,7 @@ async function sendFriendRequest(req, res, requestId, user_id, friend_id) {
       return res.status(400).json({ error: 'Cannot send friend request to yourself' })
     }
     
-    // Vérifier si une relation existe déjà
+    // Vérifier si une relation existe déjà (dans les deux sens)
     const { data: existing, error: checkError } = await supabase
       .from('friendships')
       .select('id, status')
@@ -239,7 +238,14 @@ async function sendFriendRequest(req, res, requestId, user_id, friend_id) {
     }
     
     if (existing && existing.length > 0) {
-      return res.status(400).json({ error: 'Friendship already exists' })
+      const relation = existing[0]
+      if (relation.status === 'accepted') {
+        return res.status(400).json({ error: 'Already friends' })
+      } else if (relation.status === 'pending') {
+        return res.status(400).json({ error: 'Friend request already sent' })
+      } else if (relation.status === 'blocked') {
+        return res.status(400).json({ error: 'Cannot send friend request' })
+      }
     }
     
     // Créer la demande d'amitié

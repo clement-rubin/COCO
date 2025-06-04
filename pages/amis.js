@@ -14,7 +14,7 @@ export default function Amis() {
   const [searchLoading, setSearchLoading] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [activeTab, setActiveTab] = useState('friends') // 'friends', 'requests', 'search'
+  const [activeTab, setActiveTab] = useState('friends')
   
   // Enhanced logging state
   const [pageLoadStartTime] = useState(Date.now())
@@ -742,49 +742,23 @@ export default function Amis() {
     }
   }
 
-  const sendFriendRequest = async (friendId) => {
+  const sendFriendRequest = async (userId) => {
     const startTime = Date.now()
     const requestId = Math.random().toString(36).substring(2, 15)
 
-    setUserInteractionCount(prev => prev + 1)
-    
     logUserInteraction('SEND_FRIEND_REQUEST_START', 'amis-page', {
       requestId,
-      friendId: friendId?.substring(0, 8) + '...',
+      targetUserId: userId?.substring(0, 8) + '...',
       currentUserId: user.id?.substring(0, 8) + '...',
-      timestamp: new Date().toISOString(),
-      interactionCount: userInteractionCount + 1,
-      sessionTime: Date.now() - pageLoadStartTime
-    })
-
-    logInfo('sendFriendRequest: DEBUT envoi demande', {
-      requestId,
-      friendId: friendId?.substring(0, 8) + '...',
-      currentUserId: user.id?.substring(0, 8) + '...',
-      step: 'send_request_start',
-      context: {
-        currentFriendsCount: friends.length,
-        currentPendingCount: pendingRequests.length,
-        searchResultsCount: searchResults.length
-      }
+      timestamp: new Date().toISOString()
     })
 
     try {
       const requestData = {
         action: 'send_request',
         user_id: user.id,
-        friend_id: friendId
+        friend_id: userId
       }
-
-      logDebug('sendFriendRequest: Préparation données requête', {
-        requestId,
-        action: requestData.action,
-        hasUserId: !!requestData.user_id,
-        hasFriendId: !!requestData.friend_id,
-        step: 'request_data_prepared'
-      })
-
-      logApiCall('POST', '/api/friends', requestData, null)
 
       const response = await fetch('/api/friends', {
         method: 'POST',
@@ -794,85 +768,36 @@ export default function Amis() {
 
       const responseTime = Date.now() - startTime
 
-      logInfo('sendFriendRequest: Réponse reçue', {
-        requestId,
-        status: response.status,
-        ok: response.ok,
-        responseTime,
-        friendId: friendId?.substring(0, 8) + '...',
-        step: 'response_received'
-      })
-
       if (!response.ok) {
-        const errorText = await response.text()
-        logError('sendFriendRequest: Erreur réponse', {
-          requestId,
-          status: response.status,
-          statusText: response.statusText,
-          errorText,
-          friendId: friendId?.substring(0, 8) + '...',
-          step: 'response_error'
-        })
-        throw new Error('Erreur lors de l\'envoi')
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Erreur lors de l\'envoi')
       }
 
-      // Remove from search results with logging
-      const previousResultsCount = searchResults.length
-      const targetUser = searchResults.find(u => u.id === friendId)
-      setSearchResults(prev => prev.filter(u => u.id !== friendId))
+      // Retirer de la liste de recherche
+      const targetUser = searchResults.find(u => u.user_id === userId)
+      setSearchResults(prev => prev.filter(u => u.user_id !== userId))
       
-      logInfo('sendFriendRequest: Demande envoyée avec succès', {
+      logInfo('Demande d\'ami envoyée avec succès', {
         requestId,
-        friendId: friendId?.substring(0, 8) + '...',
+        targetUserId: userId?.substring(0, 8) + '...',
         targetUserName: targetUser?.display_name,
-        previousResultsCount,
-        newResultsCount: previousResultsCount - 1,
-        responseTime,
-        step: 'request_sent_success'
-      })
-
-      logApiCall('POST', '/api/friends', requestData, {
-        requestId,
-        status: response.status,
-        ok: response.ok,
         responseTime
       })
 
       logUserInteraction('SEND_FRIEND_REQUEST_SUCCESS', 'amis-page', { 
         requestId,
-        friendId: friendId?.substring(0, 8) + '...',
-        targetUserName: targetUser?.display_name,
-        responseTime,
-        timestamp: new Date().toISOString()
+        targetUserId: userId?.substring(0, 8) + '...',
+        responseTime
       })
 
     } catch (err) {
-      const totalTime = Date.now() - startTime
-
       logError('Erreur envoi demande d\'ami', err, {
         requestId,
-        friendId: friendId?.substring(0, 8) + '...',
-        currentUserId: user.id?.substring(0, 8) + '...',
-        errorMessage: err.message,
-        errorStack: err.stack?.substring(0, 500),
-        totalTime,
-        step: 'send_request_error'
+        targetUserId: userId?.substring(0, 8) + '...',
+        errorMessage: err.message
       })
       
-      setError('Impossible d\'envoyer la demande')
-
-      logUserInteraction('SEND_FRIEND_REQUEST_ERROR', 'amis-page', { 
-        requestId,
-        friendId: friendId?.substring(0, 8) + '...',
-        error: err.message,
-        totalTime,
-        timestamp: new Date().toISOString()
-      })
-    } finally {
-      logPerformance('sendFriendRequest', Date.now() - startTime, {
-        requestId,
-        friendId: friendId?.substring(0, 8) + '...'
-      })
+      setError('Impossible d\'envoyer la demande: ' + err.message)
     }
   }
 
@@ -1372,17 +1297,17 @@ export default function Amis() {
                       fontSize: '1.5rem',
                       fontWeight: 'bold'
                     }}>
-                      {friendship.profiles.display_name?.charAt(0) || '👤'}
+                      {friendship.profiles?.display_name?.charAt(0) || '👤'}
                     </div>
                     <h3 style={{ margin: '0 0 0.5rem 0', color: '#1f2937' }}>
-                      {friendship.profiles.display_name || 'Utilisateur'}
+                      {friendship.profiles?.display_name || 'Utilisateur'}
                     </h3>
                     <p style={{ 
                       color: '#6b7280', 
                       fontSize: '0.9rem',
                       margin: '0 0 1rem 0'
                     }}>
-                      Ami depuis {new Date(friendship.profiles.created_at).toLocaleDateString()}
+                      Ami depuis {new Date(friendship.created_at).toLocaleDateString()}
                     </p>
                   </div>
                 ))}
@@ -1432,11 +1357,11 @@ export default function Amis() {
                         fontSize: '1.2rem',
                         fontWeight: 'bold'
                       }}>
-                        {request.profiles.display_name?.charAt(0) || '👤'}
+                        {request.profiles?.display_name?.charAt(0) || '👤'}
                       </div>
                       <div>
                         <h3 style={{ margin: 0, color: '#1f2937' }}>
-                          {request.profiles.display_name || 'Utilisateur'}
+                          {request.profiles?.display_name || 'Utilisateur'}
                         </h3>
                         <p style={{ margin: 0, color: '#6b7280', fontSize: '0.9rem' }}>
                           Demande d'ami
@@ -1543,7 +1468,7 @@ export default function Amis() {
                       {user.display_name || 'Utilisateur'}
                     </h3>
                     <button
-                      onClick={() => sendFriendRequest(user.id)}
+                      onClick={() => sendFriendRequest(user.user_id)}
                       style={{
                         background: '#667eea',
                         color: 'white',

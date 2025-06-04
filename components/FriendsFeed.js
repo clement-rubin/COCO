@@ -161,8 +161,8 @@ export default function FriendsFeed({ feedType = 'featured' }) {
     e.stopPropagation()
     
     if (!user) {
-      const wantsToLogin = window.confirm('Connectez-vous pour aimer cette recette. Aller à la page de connexion?')
-      if (wantsToLogin) {
+      const shouldRedirect = window.confirm('Connectez-vous pour aimer cette recette. Aller à la page de connexion?')
+      if (shouldRedirect) {
         router.push('/login?redirect=' + encodeURIComponent('/'))
       }
       return
@@ -175,6 +175,14 @@ export default function FriendsFeed({ feedType = 'featured' }) {
       } else {
         newSet.add(recipeId)
       }
+      
+      // Sauvegarder dans localStorage
+      try {
+        localStorage.setItem('userLikedRecipes', JSON.stringify([...newSet]))
+      } catch (err) {
+        console.error('Error saving likes', err)
+      }
+      
       return newSet
     })
     

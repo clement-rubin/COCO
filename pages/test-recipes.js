@@ -328,24 +328,28 @@ ALTER TABLE recipes ADD COLUMN IF NOT EXISTS servings TEXT;
 ALTER TABLE recipes ADD COLUMN IF NOT EXISTS difficulty TEXT DEFAULT 'Facile';
 ALTER TABLE recipes ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id);
 
--- Table des profils utilisateurs
+-- Table des profils utilisateurs (STRUCTURE CORRIGÉE)
 CREATE TABLE IF NOT EXISTS profiles (
-  id UUID REFERENCES auth.users(id) PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID UNIQUE REFERENCES auth.users(id),
   display_name TEXT,
   avatar_url TEXT,
+  bio TEXT,
+  location TEXT,
+  website TEXT,
+  is_private BOOLEAN DEFAULT false,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Table des amitiés
+-- Table des amitiés (STRUCTURE CORRIGÉE)
 CREATE TABLE IF NOT EXISTS friendships (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID REFERENCES auth.users(id) NOT NULL,
-  friend_id UUID REFERENCES auth.users(id) NOT NULL,
-  status TEXT CHECK (status IN ('pending', 'accepted', 'blocked')) DEFAULT 'pending',
+  user_id UUID NOT NULL REFERENCES auth.users(id),
+  friend_id UUID NOT NULL REFERENCES auth.users(id),
+  status TEXT CHECK (status IN ('pending', 'accepted', 'rejected', 'blocked')) DEFAULT 'pending',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  UNIQUE(user_id, friend_id)
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Index pour les performances
@@ -378,12 +382,12 @@ CREATE POLICY "Créer demande amitié" ON friendships FOR INSERT WITH CHECK (aut
 CREATE POLICY "Modifier ses amitiés" ON friendships FOR UPDATE USING (auth.uid() = friend_id OR auth.uid() = user_id);
 CREATE POLICY "Supprimer ses amitiés" ON friendships FOR DELETE USING (auth.uid() = friend_id OR auth.uid() = user_id);
 
--- Fonction pour créer automatiquement un profil
+-- Fonction pour créer automatiquement un profil (CORRIGÉE)
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 BEGIN
-  INSERT INTO public.profiles (id, display_name)
-  VALUES (NEW.id, NEW.raw_user_meta_data->>'display_name');
+  INSERT INTO public.profiles (user_id, display_name)
+  VALUES (NEW.id, COALESCE(NEW.raw_user_meta_data->>'display_name', NEW.email));
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

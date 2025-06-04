@@ -75,7 +75,22 @@ const USER_FRIENDLY_MESSAGES = {
   'JWSError': 'Erreur d\'authentification. Reconnectez-vous.',
   'JWTExpired': 'Votre session a expiré. Reconnectez-vous.',
   'JWTInvalid': 'Session invalide. Reconnectez-vous.',
-  'PGRST': 'Erreur de base de données. Réessayez ultérieurement.'
+  'PGRST': 'Erreur de base de données. Réessayez ultérieurement.',
+
+  // Erreurs spécifiques au système d'amitié
+  'Friendship already exists': 'Une relation d\'amitié existe déjà.',
+  'Cannot send friend request to yourself': 'Vous ne pouvez pas vous envoyer une demande d\'ami.',
+  'Friend request not found': 'Demande d\'ami introuvable.',
+  'User already friends': 'Vous êtes déjà amis avec cette personne.',
+  'Invalid friendship status': 'Statut d\'amitié invalide.',
+  'Friendship not found': 'Relation d\'amitié introuvable.',
+  'Unauthorized friendship action': 'Action non autorisée sur cette amitié.',
+  'Profile not found': 'Profil utilisateur introuvable.',
+  'User profile required': 'Un profil utilisateur est requis.',
+  'Search query too short': 'La recherche doit contenir au moins 2 caractères.',
+  'No users found': 'Aucun utilisateur trouvé.',
+  'Profile creation failed': 'Impossible de créer le profil utilisateur.',
+  'Invalid user data': 'Données utilisateur invalides.'
 }
 
 /**

@@ -225,24 +225,28 @@ CREATE POLICY "Permettre suppression publique" ON recipes FOR DELETE USING (true
 5. **Configuration des tables pour le système d'amis :**
 
 ```sql
--- Créer la table profiles pour les profils utilisateurs
+-- Table des profils utilisateurs (structure correcte)
 CREATE TABLE IF NOT EXISTS public.profiles (
-  id UUID REFERENCES auth.users(id) PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID UNIQUE REFERENCES auth.users(id),
   display_name TEXT,
   avatar_url TEXT,
+  bio TEXT,
+  location TEXT,
+  website TEXT,
+  is_private BOOLEAN DEFAULT false,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Créer la table friendships pour les relations d'amitié
+-- Table des amitiés (structure correcte)
 CREATE TABLE IF NOT EXISTS public.friendships (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID REFERENCES auth.users(id) NOT NULL,
-  friend_id UUID REFERENCES auth.users(id) NOT NULL,
-  status TEXT CHECK (status IN ('pending', 'accepted', 'blocked')) DEFAULT 'pending',
+  user_id UUID NOT NULL REFERENCES auth.users(id),
+  friend_id UUID NOT NULL REFERENCES auth.users(id),
+  status TEXT CHECK (status IN ('pending', 'accepted', 'rejected', 'blocked')) DEFAULT 'pending',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  UNIQUE(user_id, friend_id)
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Index pour les performances
@@ -254,23 +258,23 @@ CREATE INDEX IF NOT EXISTS idx_friendships_status ON friendships(status);
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE friendships ENABLE ROW LEVEL SECURITY;
 
--- Politiques pour profiles
+-- Politiques pour profiles (structure correcte)
 CREATE POLICY "Permettre lecture publique profils" ON profiles FOR SELECT USING (true);
-CREATE POLICY "Permettre mise à jour profil utilisateur" ON profiles FOR UPDATE USING (auth.uid() = id);
-CREATE POLICY "Permettre insertion profil utilisateur" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
+CREATE POLICY "Permettre mise à jour profil utilisateur" ON profiles FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Permettre insertion profil utilisateur" ON profiles FOR INSERT WITH CHECK (auth.uid() = user_id);
 
--- Politiques pour friendships
+-- Politiques pour friendships (structure correcte)
 CREATE POLICY "Voir ses amitiés" ON friendships FOR SELECT USING (auth.uid() = user_id OR auth.uid() = friend_id);
 CREATE POLICY "Créer demande amitié" ON friendships FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Modifier ses amitiés" ON friendships FOR UPDATE USING (auth.uid() = friend_id OR auth.uid() = user_id);
 CREATE POLICY "Supprimer ses amitiés" ON friendships FOR DELETE USING (auth.uid() = friend_id OR auth.uid() = user_id);
 
--- Fonction pour créer automatiquement un profil lors de l'inscription
+-- Fonction pour créer automatiquement un profil (structure correcte)
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 BEGIN
-  INSERT INTO public.profiles (id, display_name)
-  VALUES (NEW.id, NEW.raw_user_meta_data->>'display_name');
+  INSERT INTO public.profiles (user_id, display_name)
+  VALUES (NEW.id, COALESCE(NEW.raw_user_meta_data->>'display_name', NEW.email));
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
