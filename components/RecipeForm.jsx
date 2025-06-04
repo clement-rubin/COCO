@@ -8,7 +8,6 @@ export default function RecipeForm({ initialData = {}, onSubmit, onCancel, isEdi
     prepTime: initialData.prepTime || '',
     cookTime: initialData.cookTime || '',
     category: initialData.category || '',
-    author: initialData.author || '',
     difficulty: initialData.difficulty || 'Facile',
     ingredients: initialData.ingredients || [{ name: '', quantity: '', unit: '' }],
     instructions: initialData.instructions || [{ step: 1, description: '' }],
@@ -227,17 +226,6 @@ export default function RecipeForm({ initialData = {}, onSubmit, onCancel, isEdi
                 value={formData.cookTime}
                 onChange={(e) => handleInputChange('cookTime', e.target.value)}
                 placeholder="Ex: 45 min"
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="author">Auteur</label>
-              <input
-                id="author"
-                type="text"
-                value={formData.author}
-                onChange={(e) => handleInputChange('author', e.target.value)}
-                placeholder="Votre nom"
               />
             </div>
           </div>

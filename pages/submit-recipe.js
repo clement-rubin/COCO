@@ -134,108 +134,68 @@ export default function SubmitRecipe() {
     addLog('info', 'Début de soumission de recette')
     
     if (!validateForm()) {
-      addLog('interaction', 'ECHEC_VALIDATION', {
-        errorsCount: Object.keys(errors).length,
-        errors: Object.keys(errors),
-        titleMissing: !formData.title.trim(),
-        descriptionMissing: !formData.description.trim()
-      })
+      addLog('warning', 'Validation du formulaire échouée')
       return
     }
     
     setIsSubmitting(true)
     
     try {
-      // Préparer les photos validées (avec imageUrl)
-      const validPhotos = photos.filter(photo => 
-        photo.processed && 
-        photo.imageUrl && 
-        typeof photo.imageUrl === 'string' &&
-        photo.imageUrl.length > 0 &&
-        !photo.error
-      )
+      addLog('info', 'Préparation des données de soumission')
       
-      if (validPhotos.length === 0) {
-        setErrors(prev => ({
-          ...prev,
-          photos: 'Au moins une photo traitée est requise'
-        }))
-        return
+      // Préparer les données avec l'ID utilisateur pour récupération automatique du nom
+      const submitData = {
+        ...formData,
+        user_id: user.id, // Utiliser l'ID utilisateur connecté
+        // Ne pas envoyer author manuellement, laissons l'API le récupérer
+        images: photos.filter(photo => photo.processed && photo.imageBytes)
       }
-      
-      // Get user's display name from profile or email
-      let authorName = user?.email || 'Utilisateur anonyme'
-      try {
-        const profileResponse = await fetch(`/api/profile?user_id=${user.id}`)
-        if (profileResponse.ok) {
-          const profileData = await profileResponse.json()
-          authorName = profileData.display_name || user?.email || 'Utilisateur anonyme'
-        }
-      } catch (profileError) {
-        addLog('warning', 'Impossible de récupérer le nom d\'utilisateur, utilisation de l\'email', { error: profileError.message })
-      }
-      
-      // Préparer les données selon le schéma Data URL
-      const recipeData = {
-        title: formData.title.trim(),
-        description: formData.description.trim(),
-        category: 'Photo partagée',
-        difficulty: 'Facile',
-        author: authorName,
-        user_id: user.id,
-        image: validPhotos[0].imageUrl, // Utiliser la première photo comme image principale
-        ingredients: [],
-        instructions: [],
-        prepTime: null,
-        cookTime: null
-      }
-      
-      addLog('info', 'Données de recette préparées', {
-        title: recipeData.title,
-        author: recipeData.author,
-        user_id: recipeData.user_id,
-        hasImage: !!recipeData.image,
-        category: recipeData.category
+
+      addLog('info', 'Données préparées pour soumission', {
+        hasTitle: !!submitData.title,
+        hasDescription: !!submitData.description,
+        hasUserId: !!submitData.user_id,
+        photosCount: submitData.images.length
       })
-      
+
+      // Soumettre à l'API
       const response = await fetch('/api/recipes', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(recipeData)
+        body: JSON.stringify(submitData)
       })
-      
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || `Erreur ${response.status}`)
-      }
-      
+
       const result = await response.json()
-      
-      addLog('info', 'Photo partagée avec succès', {
+
+      if (!response.ok) {
+        throw new Error(result.error || result.message || 'Erreur lors de la soumission')
+      }
+
+      addLog('info', 'Photo soumise avec succès', {
         recipeId: result.id,
         title: result.title,
         author: result.author
       })
-      
-      // Afficher le message de succès
+
+      // Succès
       setShowSuccessMessage(true)
       
       // Redirection après 3 secondes
       setTimeout(() => {
         router.push('/')
       }, 3000)
-      
+
     } catch (error) {
-      addLog('error', 'Erreur lors du partage de photo', {
-        error: error.message,
-        stack: error.stack
+      addLog('error', 'Erreur lors de la soumission', {
+        errorMessage: error.message,
+        errorStack: error.stack?.substring(0, 500)
       })
       
       setErrors(prev => ({
         ...prev,
-        submit: error.message || 'Erreur lors du partage de la photo'
+        submit: error.message || 'Une erreur est survenue lors de la soumission'
       }))
     } finally {
       setIsSubmitting(false)

@@ -380,6 +380,39 @@ export default async function handler(req, res) {
             reference: requestReference
           })
         }
+
+        // Récupérer le nom d'utilisateur depuis le profil si user_id est fourni
+        let authorName = data.author && typeof data.author === 'string' ? data.author.trim() : null
+        
+        if (data.user_id && typeof data.user_id === 'string' && data.user_id.trim()) {
+          try {
+            const { data: profile, error: profileError } = await supabase
+              .from('profiles')
+              .select('display_name')
+              .eq('user_id', data.user_id.trim())
+              .single()
+            
+            if (!profileError && profile?.display_name) {
+              authorName = profile.display_name
+              logInfo('Author name retrieved from profile', {
+                reference: requestReference,
+                userId: data.user_id.substring(0, 8) + '...',
+                authorName: authorName
+              })
+            } else {
+              logWarning('Could not retrieve author name from profile', {
+                reference: requestReference,
+                userId: data.user_id.substring(0, 8) + '...',
+                profileError: profileError?.message
+              })
+            }
+          } catch (profileErr) {
+            logError('Error retrieving profile for author name', profileErr, {
+              reference: requestReference,
+              userId: data.user_id.substring(0, 8) + '...'
+            })
+          }
+        }
         
         // Ensure ingredients and instructions are properly formatted
         const ingredients = Array.isArray(data.ingredients) ? data.ingredients : 
@@ -401,7 +434,7 @@ export default async function handler(req, res) {
           prepTime: data.prepTime && typeof data.prepTime === 'string' ? data.prepTime.trim() : null,
           cookTime: data.cookTime && typeof data.cookTime === 'string' ? data.cookTime.trim() : null,
           category: data.category && typeof data.category === 'string' ? data.category.trim() : 'Autre',
-          author: data.author && typeof data.author === 'string' ? data.author.trim() : null,
+          author: authorName || 'Chef Anonyme',
           user_id: data.user_id && typeof data.user_id === 'string' ? data.user_id.trim() : null,
           ingredients: ingredients,
           instructions: instructions,
@@ -419,6 +452,7 @@ export default async function handler(req, res) {
           title: newRecipe.title,
           hasUserId: !!newRecipe.user_id,
           hasAuthor: !!newRecipe.author,
+          authorSource: authorName ? (authorName === data.author ? 'provided' : 'profile') : 'default',
           category: newRecipe.category,
           ingredientsCount: newRecipe.ingredients.length,
           instructionsCount: newRecipe.instructions.length,
@@ -452,178 +486,3 @@ export default async function handler(req, res) {
           reference: requestReference,
           hasBody: !!req.body,
           bodyKeys: req.body ? Object.keys(req.body) : [],
-          bodyType: typeof req.body
-        })
-        
-        return safeResponse(res, 500, {
-          error: 'Erreur lors de la création de la recette',
-          message: error.message || 'Erreur inconnue',
-          reference: requestReference,
-          details: process.env.NODE_ENV === 'development' ? errorDetails : undefined,
-          timestamp: new Date().toISOString()
-        })
-      }
-    }
-
-    if (req.method === 'PUT') {
-      try {
-        const data = req.body
-        const { id } = data || {}
-
-        if (!id || typeof id !== 'string') {
-          return safeResponse(res, 400, { 
-            error: 'ID de recette requis (string)',
-            reference: requestReference
-          })
-        }
-
-        logInfo('Updating recipe', { 
-          reference: requestReference,
-          recipeId: id, 
-          hasData: !!data 
-        })
-
-        const updateData = { 
-          ...data, 
-          updated_at: new Date().toISOString() 
-        }
-        delete updateData.id // Remove id from update data
-        
-        const { error } = await supabase
-          .from('recipes')
-          .update(updateData)
-          .eq('id', id)
-        
-        if (error) {
-          throw error
-        }
-        
-        logInfo('Recipe updated successfully', { 
-          reference: requestReference,
-          recipeId: id 
-        })
-        
-        return safeResponse(res, 200, { 
-          message: 'Recette mise à jour', 
-          id,
-          reference: requestReference,
-          timestamp: new Date().toISOString()
-        })
-        
-      } catch (error) {
-        const errorDetails = logApiError('UPDATE_RECIPE', error, {
-          reference: requestReference,
-          recipeId: req.body?.id
-        })
-        
-        return safeResponse(res, 500, {
-          error: 'Erreur lors de la mise à jour de la recette',
-          message: error.message || 'Erreur inconnue',
-          reference: requestReference,
-          details: process.env.NODE_ENV === 'development' ? errorDetails : undefined,
-          timestamp: new Date().toISOString()
-        })
-      }
-    }
-
-    if (req.method === 'DELETE') {
-      try {
-        const id = req.query.id || (req.body && req.body.id)
-        
-        if (!id || typeof id !== 'string') {
-          return safeResponse(res, 400, { 
-            error: 'ID de recette requis (string)',
-            reference: requestReference
-          })
-        }
-        
-        logInfo('Deleting recipe', { 
-          reference: requestReference,
-          recipeId: id 
-        })
-        
-        const { error } = await supabase
-          .from('recipes')
-          .delete()
-          .eq('id', id)
-        
-        if (error) {
-          throw error
-        }
-        
-        logInfo('Recipe deleted successfully', { 
-          reference: requestReference,
-          recipeId: id 
-        })
-        
-        return safeResponse(res, 200, { 
-          message: 'Recette supprimée', 
-          id,
-          reference: requestReference,
-          timestamp: new Date().toISOString()
-        })
-        
-      } catch (error) {
-        const errorDetails = logApiError('DELETE_RECIPE', error, {
-          reference: requestReference,
-          recipeId: req.query.id || req.body?.id
-        })
-        
-        return safeResponse(res, 500, {
-          error: 'Erreur lors de la suppression de la recette',
-          message: error.message || 'Erreur inconnue',
-          reference: requestReference,
-          details: process.env.NODE_ENV === 'development' ? errorDetails : undefined,
-          timestamp: new Date().toISOString()
-        })
-      }
-    }
-
-    logWarning('Method not allowed', { 
-      reference: requestReference,
-      method: req.method 
-    })
-    return safeResponse(res, 405, { 
-      error: 'Méthode non autorisée',
-      reference: requestReference 
-    })
-
-  } catch (error) {
-    const errorDetails = logApiError('GENERAL_API_ERROR', error, {
-      reference: requestReference,
-      method: req.method,
-      url: req.url,
-      hasBody: !!req.body,
-      queryKeys: req.query ? Object.keys(req.query) : [],
-      errorLocation: error.stack?.split('\n')[1] || 'unknown'
-    })
-    
-    // Log the complete API call with error
-    logApiCall(
-      req.method, 
-      req.url, 
-      { query: req.query, body: req.body },
-      { 
-        status: 500, 
-        error: error.message, 
-        details: errorDetails,
-        reference: requestReference
-      }
-    )
-    
-    return safeResponse(res, 500, { 
-      error: 'Erreur serveur interne', 
-      message: error.message || 'Erreur inconnue',
-      details: process.env.NODE_ENV === 'development' ? errorDetails : undefined,
-      timestamp: new Date().toISOString(),
-      reference: requestReference
-    })
-  } finally {
-    // Log API request completion time
-    const duration = Date.now() - startTime
-    logInfo(`API ${req.method} ${req.url} completed in ${duration}ms`, {
-      reference: requestReference,
-      duration
-    })
-  }
-}

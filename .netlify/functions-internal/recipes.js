@@ -126,6 +126,31 @@ exports.handler = async (event, context) => {
           })
         };
       }
+
+      // Récupérer le nom d'utilisateur depuis le profil si user_id est fourni
+      let authorName = data.author?.trim() || null;
+      
+      if (data.user_id?.trim()) {
+        try {
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('display_name')
+            .eq('user_id', data.user_id.trim())
+            .single();
+          
+          if (!profileError && profile?.display_name) {
+            authorName = profile.display_name;
+            log(`Nom d'auteur récupéré depuis le profil: ${authorName}`, "info");
+          } else {
+            log(`Impossible de récupérer le nom depuis le profil`, "warning", {
+              userId: data.user_id.substring(0, 8) + '...',
+              profileError: profileError?.message
+            });
+          }
+        } catch (profileErr) {
+          log(`Erreur lors de la récupération du profil`, "error", profileErr);
+        }
+      }
       
       // Ensure ingredients and instructions are arrays
       const ingredients = Array.isArray(data.ingredients) ? data.ingredients : 
@@ -147,7 +172,8 @@ exports.handler = async (event, context) => {
         prepTime: data.prepTime?.trim() || null,
         cookTime: data.cookTime?.trim() || null,
         category: data.category?.trim() || null,
-        author: data.author?.trim() || null,
+        author: authorName || 'Chef Anonyme', // Utilise le nom récupéré du profil ou une valeur par défaut
+        user_id: data.user_id?.trim() || null,
         ingredients: ingredients,
         instructions: instructions,
         difficulty: data.difficulty?.trim() || 'Facile'

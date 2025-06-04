@@ -104,6 +104,7 @@ export default function AddictiveFeed() {
       }
     }
 
+    // Utiliser le nom d'auteur de la recette (qui vient maintenant du profil)
     const authorName = apiRecipe.author || 'Chef Anonyme'
     const authorEmoji = getAuthorEmoji(apiRecipe.category)
     
@@ -121,7 +122,7 @@ export default function AddictiveFeed() {
       id: apiRecipe.id,
       user: {
         id: apiRecipe.user_id || `author_${authorName.replace(/\s+/g, '_').toLowerCase()}`,
-        name: authorName,
+        name: authorName, // Utilise directement le nom d'auteur de la recette
         avatar: authorEmoji,
         verified: complexity > 15
       },
