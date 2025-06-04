@@ -13,7 +13,7 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
 
   const processImageToDataUrl = async (file, photoId) => {
     try {
-      logDebug('Conversion en Data URL', { 
+      logDebug('Conversion en Data URL avec compression', { 
         photoId, 
         fileName: file.name, 
         fileSize: file.size,
@@ -33,17 +33,34 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
         })
       }, 200)
       
-      // Conversion en Data URL
-      const result = await processImageToUrl(file)
+      // Utiliser la compression pour éviter l'erreur 1MB
+      const compressionOptions = {
+        maxWidth: 1000,
+        maxHeight: 750,
+        quality: 0.75,
+        maxSizeKB: 250 // Limite stricte pour éviter les erreurs de taille
+      }
+      
+      // Conversion en Data URL avec compression
+      const result = await processImageToUrl(file, compressionOptions)
       
       clearInterval(progressInterval)
       setUploadProgress(prev => ({ ...prev, [photoId]: 100 }))
       
-      logInfo('Image convertie en Data URL avec succès', { 
+      // Vérifier la taille finale
+      const dataUrlSizeKB = Math.round(result.url.length * 0.75 / 1024)
+      
+      if (dataUrlSizeKB > 400) {
+        throw new Error(`Image encore trop volumineuse après compression: ${dataUrlSizeKB}KB`)
+      }
+      
+      logInfo('Image convertie et compressée avec succès', { 
         photoId, 
         fileName: file.name, 
-        dataUrlLength: result.url.length,
-        originalSize: result.originalSize
+        originalSize: result.originalSize,
+        compressedSize: result.compressedSize,
+        dataUrlSizeKB,
+        compressionRatio: result.compressionRatio
       })
       
       return result
@@ -91,20 +108,31 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5 }) {
       currentPhotosCount: photos.length
     })
 
-    // Validation des fichiers
-    const validFiles = Array.from(files).filter(file => {
+    // Validation des fichiers avec estimation de taille
+    const validFiles = []
+    
+    for (const file of Array.from(files)) {
       const isValidType = file.type.startsWith('image/')
-      const isValidSize = file.size <= 10 * 1024 * 1024 // 10MB max pour Data URLs
+      const isValidSize = file.size <= 10 * 1024 * 1024 // 10MB max
       
       if (!isValidType) {
         logError('Fichier ignoré - type invalide', new Error('Invalid file type'), { fileName: file.name, type: file.type })
-      }
-      if (!isValidSize) {
-        logError('Fichier ignoré - trop volumineux', new Error('File too large'), { fileName: file.name, size: file.size })
+        continue
       }
       
-      return isValidType && isValidSize
-    })
+      if (!isValidSize) {
+        logError('Fichier ignoré - trop volumineux', new Error('File too large'), { fileName: file.name, size: file.size })
+        continue
+      }
+      
+      // Estimation de la taille finale
+      const estimatedSize = estimateDataUrlSize(file.size, 0.6) // Compression agressive
+      if (estimatedSize > 500) {
+        logWarning('Fichier volumineux, compression agressive appliquée', { fileName: file.name, estimatedSizeKB: estimatedSize })
+      }
+      
+      validFiles.push(file)
+    }
 
     if (validFiles.length === 0) {
       setUploading(false)

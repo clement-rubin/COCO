@@ -318,7 +318,8 @@ export default function SharePhoto() {
         hasImageUrl: !!validPhoto.imageUrl,
         hasPreview: !!validPhoto.preview,
         imageType: typeof imageToSubmit,
-        imageLength: imageToSubmit?.length
+        imageLength: imageToSubmit?.length,
+        imageSizeKB: Math.round(imageToSubmit?.length * 0.75 / 1024)
       })
       
       // Validation de l'image
@@ -328,6 +329,12 @@ export default function SharePhoto() {
       
       if (!imageToSubmit.startsWith('data:image/')) {
         throw new Error('Format d\'image invalide (doit être une Data URL)')
+      }
+      
+      // Vérifier la taille de l'image avant envoi
+      const imageSizeKB = Math.round(imageToSubmit.length * 0.75 / 1024)
+      if (imageSizeKB > 400) {
+        throw new Error(`Image trop volumineuse: ${imageSizeKB}KB. Veuillez utiliser une image plus petite.`)
       }
       
       // Préparer les données pour la soumission
@@ -344,18 +351,28 @@ export default function SharePhoto() {
         difficulty: 'Facile'
       }
       
+      // Estimer la taille totale du payload
+      const payloadSize = JSON.stringify(submitData).length
+      const payloadSizeKB = Math.round(payloadSize / 1024)
+      
       addLog('INFO', 'Données préparées pour envoi API', {
         title: submitData.title,
         titleLength: submitData.title.length,
         hasDescription: !!submitData.description,
         descriptionLength: submitData.description.length,
         imageLength: submitData.image.length,
+        imageSizeKB,
+        payloadSizeKB,
         imagePrefix: submitData.image.substring(0, 50) + '...',
         imageType: typeof submitData.image,
         isDataUrl: submitData.image.startsWith('data:image/'),
         category: submitData.category,
         author: submitData.author
       })
+      
+      if (payloadSizeKB > 800) {
+        throw new Error(`Données trop volumineuses: ${payloadSizeKB}KB. L'image doit être compressée davantage.`)
+      }
       
       const response = await fetch('/api/recipes', {
         method: 'POST',
@@ -431,7 +448,15 @@ export default function SharePhoto() {
         photosCount: photos.length
       })
       
-      setErrors({ submit: `Erreur: ${error.message}` })
+      // Messages d'erreur plus spécifiques
+      let errorMessage = error.message
+      if (error.message.includes('Body exceeded 1mb limit')) {
+        errorMessage = 'L\'image est trop volumineuse. Veuillez utiliser une image plus petite ou la compresser davantage.'
+      } else if (error.message.includes('trop volumineuse')) {
+        errorMessage = error.message + ' Essayez de prendre une photo avec une résolution plus faible.'
+      }
+      
+      setErrors({ submit: errorMessage })
     } finally {
       setIsSubmitting(false)
       addLog('DEBUG', 'Fin de processus de soumission', {
