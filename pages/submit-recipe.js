@@ -23,6 +23,7 @@ export default function SubmitRecipe() {
     description: '',
     ingredients: '',
     instructions: ''
+    // Suppression du champ author - sera récupéré automatiquement
   })
   const [photos, setPhotos] = useState([])
 
@@ -139,25 +140,59 @@ export default function SubmitRecipe() {
       addLog('warning', 'Validation du formulaire échouée')
       return
     }
-    
+    if (!user) {
+      router.push('/login')
+      return
+    }
+
     setIsSubmitting(true)
-    
+
     try {
+      // Récupérer le display_name depuis la table profiles
+      let authorName = 'Chef Anonyme'
+      try {
+        addLog('info', 'Récupération du display_name depuis profiles', { userId: user.id.substring(0, 8) + '...' })
+        
+        const profileResponse = await fetch(`/api/profile?user_id=${user.id}`)
+        if (profileResponse.ok) {
+          const profileData = await profileResponse.json()
+          if (profileData?.display_name) {
+            authorName = profileData.display_name
+            addLog('info', 'Display_name récupéré avec succès', { authorName })
+          } else {
+            addLog('warning', 'Aucun display_name trouvé dans le profil', { profileData })
+          }
+        } else {
+          addLog('warning', 'Impossible de récupérer le profil', { 
+            status: profileResponse.status,
+            statusText: profileResponse.statusText 
+          })
+        }
+      } catch (profileError) {
+        addLog('error', 'Erreur lors de la récupération du profil', { error: profileError.message })
+      }
+
       addLog('info', 'Préparation des données de soumission')
       
       // Préparer les données avec l'ID utilisateur pour récupération automatique du nom
-      const submitData = {
-        ...formData,
-        user_id: user.id, // Utiliser l'ID utilisateur connecté
-        // Ne pas envoyer author manuellement, laissons l'API le récupérer
-        images: photos.filter(photo => photo.processed && photo.imageBytes)
+      const recipeData = {
+        title: formData.title,
+        description: formData.description,
+        author: authorName, // Utilisation du display_name récupéré
+        user_id: user.id,
+        ingredients: formData.ingredients.split('\n').filter(ingredient => ingredient.trim()),
+        instructions: formData.instructions.split('\n').filter(instruction => instruction.trim()).map((instruction, index) => ({
+          step: index + 1,
+          instruction: instruction.trim()
+        })),
+        image: allPhotosProcessed && photos.length > 0 ? photos[0].imageBytes : null
       }
 
       addLog('info', 'Données préparées pour soumission', {
-        hasTitle: !!submitData.title,
-        hasDescription: !!submitData.description,
-        hasUserId: !!submitData.user_id,
-        photosCount: submitData.images.length
+        hasTitle: !!recipeData.title,
+        hasDescription: !!recipeData.description,
+        hasUserId: !!recipeData.user_id,
+        photosCount: recipeData.images.length
       })
 
       // Soumettre à l'API
@@ -166,7 +201,7 @@ export default function SubmitRecipe() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(submitData)
+        body: JSON.stringify(recipeData)
       })
 
       const result = await response.json()

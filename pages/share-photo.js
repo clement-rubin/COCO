@@ -11,6 +11,7 @@ export default function SharePhoto() {
   const [formData, setFormData] = useState({
     title: '',
     description: ''
+    // Suppression du champ author - sera récupéré automatiquement
   })
   const [photos, setPhotos] = useState([])
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -209,7 +210,7 @@ export default function SharePhoto() {
     }
     
     // Only log user interactions for significant changes
-    if (value.length > 0 && value.length % 50 === 0) {
+    if (value.length > 0 && value.length.length % 50 === 0) {
       logUserInteraction('FORM_FIELD_CHANGE', `champ-${name}`, {
         fieldName: name,
         valueLength: value.length,
@@ -269,92 +270,71 @@ export default function SharePhoto() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     
-    addLog('INFO', 'Début de soumission de photo', {
-      step: currentStep,
-      formData: {
-        title: formData.title,
-        titleLength: formData.title.length,
-        hasDescription: !!formData.description,
-        descriptionLength: formData.description.length
-      },
-      photosState: {
-        total: photos.length,
-        processed: photos.filter(p => p.processed).length,
-        processing: photos.filter(p => p.processing).length,
-        errors: photos.filter(p => p.error).length
-      }
-    })
-    
-    if (!validateForm()) {
-      addLog('ERROR', 'Validation du formulaire échouée', {
-        errors: Object.keys(errors),
-        step: currentStep
-      })
-      
-      logUserInteraction('SUBMIT_FAILED_VALIDATION', 'bouton-soumettre', {
-        step: currentStep,
-        errorsCount: Object.keys(errors).length,
-        errors: Object.keys(errors)
-      })
+    if (!validateForm()) return
+    if (!user) {
+      router.push('/login')
       return
     }
-    
+
     setIsSubmitting(true)
-    
+    addLog('info', 'Début de soumission de photo partagée', {
+      formData: {
+        title: formData.title,
+        description: formData.description,
+        photosCount: photos.length
+      },
+      user: {
+        id: user.id.substring(0, 8) + '...',
+        email: user.email
+      }
+    })
+
     try {
-      // Vérifier qu'on a au moins une photo valide
-      const validPhoto = photos.find(photo => 
-        photo.processed && 
-        !photo.error && 
-        (photo.imageUrl || photo.preview)
-      )
-      
-      if (!validPhoto) {
-        throw new Error('Aucune photo valide trouvée')
+      // Récupérer le display_name depuis la table profiles
+      let authorName = 'Chef Anonyme'
+      try {
+        addLog('info', 'Récupération du display_name depuis profiles', { userId: user.id.substring(0, 8) + '...' })
+        
+        const profileResponse = await fetch(`/api/profile?user_id=${user.id}`)
+        if (profileResponse.ok) {
+          const profileData = await profileResponse.json()
+          if (profileData?.display_name) {
+            authorName = profileData.display_name
+            addLog('info', 'Display_name récupéré avec succès', { authorName })
+          } else {
+            addLog('warning', 'Aucun display_name trouvé dans le profil', { profileData })
+          }
+        } else {
+          addLog('warning', 'Impossible de récupérer le profil', { 
+            status: profileResponse.status,
+            statusText: profileResponse.statusText 
+          })
+        }
+      } catch (profileError) {
+        addLog('error', 'Erreur lors de la récupération du profil', { error: profileError.message })
       }
+
+      // ...existing code...
       
-      const imageToSubmit = validPhoto.imageUrl || validPhoto.preview
-      
-      addLog('INFO', 'Photo valide trouvée pour soumission', {
-        photoId: validPhoto.id,
-        photoName: validPhoto.name,
-        photoSize: validPhoto.size,
-        hasImageUrl: !!validPhoto.imageUrl,
-        hasPreview: !!validPhoto.preview,
-        imageType: typeof imageToSubmit,
-        imageLength: imageToSubmit?.length,
-        imageSizeKB: Math.round(imageToSubmit?.length * 0.75 / 1024)
-      })
-      
-      // Validation de l'image
-      if (typeof imageToSubmit !== 'string') {
-        throw new Error('Format d\'image invalide (doit être une chaîne)')
-      }
-      
-      if (!imageToSubmit.startsWith('data:image/')) {
-        throw new Error('Format d\'image invalide (doit être une Data URL)')
-      }
-      
-      // Vérifier la taille de l'image avant envoi
-      const imageSizeKB = Math.round(imageToSubmit.length * 0.75 / 1024)
-      if (imageSizeKB > 400) {
-        throw new Error(`Image trop volumineuse: ${imageSizeKB}KB. Veuillez utiliser une image plus petite.`)
-      }
-      
-      // Préparer les données pour la soumission
-      const submitData = {
-        title: formData.title.trim(),
-        description: formData.description?.trim() || `Photo partagée: ${formData.title}`,
+      const recipeData = {
+        title: formData.title,
+        description: formData.description,
+        author: authorName, // Utilisation du display_name récupéré
+        user_id: user.id,
         category: 'Photo partagée',
-        author: 'Utilisateur anonyme',
-        image: imageToSubmit, // Data URL
-        ingredients: ['Photo partagée sans recette détaillée'],
-        instructions: [{ step: 1, instruction: 'Voir la photo pour inspiration' }],
-        prepTime: null,
-        cookTime: null,
-        difficulty: 'Facile'
+        difficulty: 'Facile',
+        ingredients: ['Photo instantanée partagée'],
+        instructions: [{ step: 1, instruction: 'Savourez cette délicieuse création !' }],
+        image: photos.length > 0 ? photos[0].imageBytes : null
       }
-      
+
+      addLog('info', 'Données de recette préparées', {
+        ...recipeData,
+        author: authorName,
+        imageSize: recipeData.image?.length || 0,
+        user_id: user.id.substring(0, 8) + '...'
+      })
+
       // Estimer la taille totale du payload
       const payloadSize = JSON.stringify(submitData).length
       const payloadSizeKB = Math.round(payloadSize / 1024)
