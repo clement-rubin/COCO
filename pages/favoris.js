@@ -48,7 +48,7 @@ export default function Favoris() {
     } catch (error) {
       console.error('Erreur lors du chargement des amis:', error);
       logError('Failed to load friends', error, { userId: user?.id });
-    }
+    } 
   };
 
   const loadPendingRequests = async () => {
