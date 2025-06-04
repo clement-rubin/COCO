@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { useAuth } from '../components/AuthContext'
 import { supabase } from '../lib/supabase'
+import { logError, logInfo, logWarning } from '../utils/logger'
 
 export default function Favoris() {
   const router = useRouter();
@@ -43,8 +44,10 @@ export default function Favoris() {
 
       if (error) throw error;
       setFriends(data || []);
+      logInfo('Friends loaded successfully', { friendCount: data?.length || 0 });
     } catch (error) {
       console.error('Erreur lors du chargement des amis:', error);
+      logError('Failed to load friends', error, { userId: user?.id });
     }
   };
 
@@ -66,8 +69,10 @@ export default function Favoris() {
 
       if (error) throw error;
       setPendingRequests(data || []);
+      logInfo('Pending requests loaded successfully', { requestCount: data?.length || 0 });
     } catch (error) {
       console.error('Erreur lors du chargement des demandes:', error);
+      logError('Failed to load pending requests', error, { userId: user?.id });
     }
   };
 
