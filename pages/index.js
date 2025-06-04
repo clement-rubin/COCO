@@ -2,14 +2,12 @@ import Head from 'next/head'
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../components/AuthContext'
 import { logUserInteraction, logComponentEvent, logInfo } from '../utils/logger'
-import FriendsFeed from '../components/FriendsFeed'
 import AddictiveFeed from '../components/AddictiveFeed'
 
 export default function Home() {
   const { user } = useAuth()
   const [isScrolled, setIsScrolled] = useState(false)
   const [showWelcome, setShowWelcome] = useState(false)
-  const [viewMode, setViewMode] = useState('stories') // 'stories' or 'vertical'
   const [feedType, setFeedType] = useState('all')
   const heroRef = useRef(null)
 
@@ -82,15 +80,6 @@ export default function Home() {
     { id: 'plat', label: 'Plats', icon: '🍝', color: '#f59e0b' },
     { id: 'apero', label: 'Apéro', icon: '🥂', color: '#10b981' }
   ]
-
-  const toggleViewMode = () => {
-    const newMode = viewMode === 'stories' ? 'vertical' : 'stories'
-    setViewMode(newMode)
-    logUserInteraction('TOGGLE_VIEW_MODE', 'bouton-vue', {
-      newMode,
-      previousMode: viewMode
-    })
-  }
 
   // Check for welcome message
   useEffect(() => {
@@ -197,14 +186,14 @@ export default function Home() {
             )}
           </div>
 
-          {/* Contrôles de vue et salutation */}
+          {/* Salutation utilisateur */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             {user && (
               <span style={{ 
                 fontSize: '0.8rem',
                 color: '#6b7280',
                 fontWeight: '500',
-                maxWidth: '100px',
+                maxWidth: '150px',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap'
@@ -212,26 +201,6 @@ export default function Home() {
                 Salut {user.user_metadata?.display_name?.split(' ')[0] || 'Chef'} 👋
               </span>
             )}
-            
-            <button
-              onClick={toggleViewMode}
-              style={{
-                background: viewMode === 'vertical' 
-                  ? 'linear-gradient(135deg, #ff6b35, #f7931e)' 
-                  : 'rgba(255, 255, 255, 0.8)',
-                color: viewMode === 'vertical' ? 'white' : '#374151',
-                border: '1px solid rgba(255, 107, 53, 0.2)',
-                padding: '8px 12px',
-                borderRadius: '12px',
-                fontSize: '0.8rem',
-                fontWeight: '600',
-                cursor: 'pointer',
-                transition: 'all 0.3s ease',
-                backdropFilter: 'blur(10px)'
-              }}
-            >
-              {viewMode === 'stories' ? '📱' : '📋'}
-            </button>
           </div>
         </div>
       </div>
@@ -448,7 +417,7 @@ export default function Home() {
             fontWeight: '600',
             color: '#6b7280'
           }}>
-            {viewMode === 'stories' ? '📱 Stories' : '📋 Feed'}
+            📋 Feed des recettes
             <span style={{
               width: '4px',
               height: '4px',
@@ -467,21 +436,12 @@ export default function Home() {
             maxWidth: '100%',
             overflow: 'hidden'
           }}>
-            {viewMode === 'stories' ? (
-              <div style={{
-                '--max-image-height': '300px',
-                '--max-image-width': '100%'
-              }}>
-                <FriendsFeed feedType={feedType} />
-              </div>
-            ) : (
-              <div style={{
-                '--max-image-height': '250px',
-                '--max-image-width': '100%'
-              }}>
-                <AddictiveFeed />
-              </div>
-            )}
+            <div style={{
+              '--max-image-height': '250px',
+              '--max-image-width': '100%'
+            }}>
+              <AddictiveFeed />
+            </div>
           </div>
         </div>
       </div>

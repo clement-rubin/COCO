@@ -366,7 +366,7 @@ vercel --prod
 ## 🎯 Fonctionnalités à Venir
 
 - [x] Feed social addictif des amis
-- [x] Défilement horizontal immersif
+- [x] Défilement vertical immersif
 - [x] Animations de like Instagram-style
 - [ ] Système de favoris
 - [ ] Notation des recettes
@@ -374,7 +374,6 @@ vercel --prod
 - [ ] Mode hors ligne (PWA)
 - [ ] Notifications push
 - [ ] Partage social direct des recettes
-- [ ] Stories de cuisine éphémères
 - [ ] Mode photo instantané avec géolocalisation
 
 ## 🎯 Roadmap Addictif

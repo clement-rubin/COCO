@@ -1,453 +1,476 @@
 import Head from 'next/head'
-import { useState, useEffect, useCallback } from 'react'
-import { useAuth } from '../components/AuthContext'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
-import styles from '../styles/Profile.module.css'
+import { useAuth } from '../components/AuthContext'
+import { logUserInteraction, logError, logInfo } from '../utils/logger'
 
 export default function Profil() {
-  const { user, loading, logout } = useAuth()
   const router = useRouter()
+  const { user, loading: authLoading } = useAuth()
+  const [profile, setProfile] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [userRecipes, setUserRecipes] = useState([])
   const [userStats, setUserStats] = useState({
     recipesCount: 0,
-    followersCount: 0,
-    followingCount: 0
+    likesReceived: 0,
+    friendsCount: 0
   })
-  const [settings, setSettings] = useState({
-    notifications: true,
-    darkMode: false,
-    publicProfile: true,
-    newsletter: false,
-    privateRecipes: false
+  const [isEditing, setIsEditing] = useState(false)
+  const [editForm, setEditForm] = useState({
+    display_name: '',
+    bio: ''
   })
-  const [isAnimating, setIsAnimating] = useState(false)
-  const [isLoggingOut, setIsLoggingOut] = useState(false)
-  const [profileData, setProfileData] = useState(null)
 
+  // Redirect if not authenticated
   useEffect(() => {
-    if (!loading && !user) {
-      router.push('/login')
+    if (!authLoading && !user) {
+      logUserInteraction('REDIRECT_TO_LOGIN', 'profil', {
+        reason: 'user_not_authenticated',
+        targetPage: '/profil'
+      })
+      router.push('/login?redirect=' + encodeURIComponent('/profil'))
+      return
     }
-  }, [user, loading, router])
 
-  // Enhanced stats loading with real data simulation
-  useEffect(() => {
     if (user) {
-      // Simulate loading user stats
-      const loadUserStats = async () => {
-        try {
-          // Simulate API call delay
-          await new Promise(resolve => setTimeout(resolve, 800))
-          
-          // Generate realistic stats based on user data
-          const accountAge = user.created_at ? 
-            Math.floor((Date.now() - new Date(user.created_at).getTime()) / (1000 * 60 * 60 * 24)) : 30
-          
-          setUserStats({
-            recipesCount: Math.max(1, Math.floor(accountAge / 7) + Math.floor(Math.random() * 10)),
-            followersCount: Math.max(5, Math.floor(accountAge / 3) + Math.floor(Math.random() * 50)),
-            followingCount: Math.max(3, Math.floor(accountAge / 5) + Math.floor(Math.random() * 30))
-          })
-          
-          setTimeout(() => setIsAnimating(true), 200)
-        } catch (error) {
-          console.error('Error loading stats:', error)
-          // Fallback stats
-          setUserStats({
-            recipesCount: 12,
-            followersCount: 45,
-            followingCount: 23
-          })
-          setTimeout(() => setIsAnimating(true), 200)
-        }
-      }
-      
-      loadUserStats()
+      loadUserProfile()
     }
-  }, [user])
+  }, [user, authLoading, router])
 
-  // Load user settings from localStorage
-  useEffect(() => {
-    if (user) {
-      try {
-        const savedSettings = localStorage.getItem(`userSettings_${user.id}`)
-        if (savedSettings) {
-          setSettings(prev => ({ ...prev, ...JSON.parse(savedSettings) }))
-        }
-      } catch (error) {
-        console.error('Error loading settings:', error)
-      }
-    }
-  }, [user])
-
-  const handleLogout = useCallback(async () => {
-    // Enhanced logout with confirmation and animation
-    const confirmLogout = window.confirm('Êtes-vous sûr de vouloir vous déconnecter ?')
-    if (!confirmLogout) return
-
-    setIsLoggingOut(true)
-    
+  const loadUserProfile = async () => {
     try {
-      // Add a slight delay for better UX
-      await new Promise(resolve => setTimeout(resolve, 500))
-      await logout()
-      
-      // Show success message
-      const toast = document.createElement('div')
-      toast.innerHTML = '👋 À bientôt !'
-      toast.style.cssText = `
-        position: fixed;
-        bottom: 120px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: linear-gradient(135deg, #10B981, #059669);
-        color: white;
-        padding: 16px 32px;
-        border-radius: 30px;
-        z-index: 10000;
-        animation: slideUp 0.6s ease;
-        box-shadow: 0 8px 30px rgba(16, 185, 129, 0.4);
-        font-weight: 600;
-        font-size: 1.1rem;
-      `
-      document.body.appendChild(toast)
-      setTimeout(() => toast.remove(), 2000)
-      
-      router.push('/')
-    } catch (error) {
-      console.error('Erreur lors de la déconnexion:', error)
-      setIsLoggingOut(false)
-      
-      // Show error message
-      const errorToast = document.createElement('div')
-      errorToast.innerHTML = '❌ Erreur de déconnexion'
-      errorToast.style.cssText = `
-        position: fixed;
-        bottom: 120px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: linear-gradient(135deg, #DC2626, #B91C1C);
-        color: white;
-        padding: 16px 32px;
-        border-radius: 30px;
-        z-index: 10000;
-        animation: slideUp 0.6s ease;
-        box-shadow: 0 8px 30px rgba(220, 38, 38, 0.4);
-        font-weight: 600;
-      `
-      document.body.appendChild(errorToast)
-      setTimeout(() => errorToast.remove(), 3000)
-    }
-  }, [logout, router])
+      setLoading(true)
+      setError(null)
 
-  const toggleSetting = useCallback((setting) => {
-    setSettings(prev => {
-      const newSettings = { ...prev, [setting]: !prev[setting] }
-      
-      // Save to localStorage
+      // Load user profile
+      const profileResponse = await fetch(`/api/profile?user_id=${user.id}`)
+      if (profileResponse.ok) {
+        const profileData = await profileResponse.json()
+        setProfile(profileData)
+        setEditForm({
+          display_name: profileData.display_name || '',
+          bio: profileData.bio || ''
+        })
+      }
+
+      // Load user recipes with proper error handling
       try {
-        localStorage.setItem(`userSettings_${user.id}`, JSON.stringify(newSettings))
-      } catch (error) {
-        console.error('Error saving settings:', error)
+        const recipesResponse = await fetch(`/api/recipes?user_id=${user.id}&limit=6`)
+        if (recipesResponse.ok) {
+          const recipesData = await recipesResponse.json()
+          // Ensure recipesData is an array
+          setUserRecipes(Array.isArray(recipesData) ? recipesData : [])
+        } else {
+          setUserRecipes([])
+        }
+      } catch (recipesError) {
+        logError('Failed to load user recipes', recipesError)
+        setUserRecipes([])
       }
-      
-      return newSettings
-    })
-    
-    // Enhanced feedback
-    if (navigator.vibrate) {
-      navigator.vibrate([30, 20, 30])
-    }
-    
-    // Show setting change toast
-    const settingLabels = {
-      notifications: 'Notifications',
-      darkMode: 'Thème sombre',
-      publicProfile: 'Profil public',
-      newsletter: 'Newsletter',
-      privateRecipes: 'Recettes privées'
-    }
-    
-    const newValue = !settings[setting]
-    const toast = document.createElement('div')
-    toast.innerHTML = `${newValue ? '✅' : '❌'} ${settingLabels[setting]} ${newValue ? 'activé' : 'désactivé'}`
-    toast.style.cssText = `
-      position: fixed;
-      bottom: 120px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: ${newValue ? 
-        'linear-gradient(135deg, #FF6B35, #F7931E)' : 
-        'linear-gradient(135deg, #64748B, #475569)'};
-      color: white;
-      padding: 12px 24px;
-      border-radius: 25px;
-      z-index: 10000;
-      animation: slideUp 0.6s ease;
-      box-shadow: 0 6px 25px ${newValue ? 
-        'rgba(255, 107, 53, 0.4)' : 
-        'rgba(100, 116, 139, 0.4)'};
-      font-weight: 600;
-    `
-    document.body.appendChild(toast)
-    setTimeout(() => {
-      toast.style.animation = 'slideDown 0.4s ease forwards'
-      setTimeout(() => toast.remove(), 400)
-    }, 2000)
-  }, [settings, user])
 
-  const getUserInitials = useCallback(() => {
-    if (user?.user_metadata?.display_name) {
-      const names = user.user_metadata.display_name.split(' ')
-      if (names.length >= 2) {
-        return names[0].charAt(0).toUpperCase() + names[1].charAt(0).toUpperCase()
+      // Load user stats
+      try {
+        const statsResponse = await fetch(`/api/user-stats?user_id=${user.id}`)
+        if (statsResponse.ok) {
+          const statsData = await statsResponse.json()
+          setUserStats({
+            recipesCount: statsData.recipesCount || 0,
+            likesReceived: statsData.likesReceived || 0,
+            friendsCount: statsData.friendsCount || 0
+          })
+        }
+      } catch (statsError) {
+        logError('Failed to load user stats', statsError)
       }
-      return names[0].charAt(0).toUpperCase()
-    }
-    if (user?.email) {
-      return user.email.charAt(0).toUpperCase()
-    }
-    return '👤'
-  }, [user])
 
-  const getGreeting = useCallback(() => {
-    const hour = new Date().getHours()
-    const greetings = {
-      morning: ['🌅 Bonjour', '☀️ Salut', '🌤️ Hello'],
-      afternoon: ['☀️ Bon après-midi', '🌞 Salut', '🌻 Hello'],
-      evening: ['🌙 Bonsoir', '🌆 Salut', '✨ Hello'],
-      night: ['🌃 Bonne nuit', '🌙 Salut', '⭐ Hello']
+      logInfo('User profile loaded successfully', {
+        userId: user.id,
+        hasProfile: !!profileData,
+        recipesCount: Array.isArray(recipesData) ? recipesData.length : 0
+      })
+
+    } catch (error) {
+      logError('Failed to load user profile', error)
+      setError('Impossible de charger votre profil. Veuillez réessayer.')
+    } finally {
+      setLoading(false)
     }
-    
-    let timeOfDay
-    if (hour < 6) timeOfDay = 'night'
-    else if (hour < 12) timeOfDay = 'morning'
-    else if (hour < 18) timeOfDay = 'afternoon'
-    else if (hour < 22) timeOfDay = 'evening'
-    else timeOfDay = 'night'
-    
-    const options = greetings[timeOfDay]
-    return options[Math.floor(Math.random() * options.length)]
-  }, [])
+  }
 
-  const navigateToSection = useCallback((path) => {
-    // Add loading state or animation here if needed
-    router.push(path)
-  }, [router])
+  const handleSaveProfile = async () => {
+    try {
+      const response = await fetch('/api/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          user_id: user.id,
+          display_name: editForm.display_name,
+          bio: editForm.bio
+        })
+      })
 
-  if (loading) {
+      if (response.ok) {
+        const updatedProfile = await response.json()
+        setProfile(updatedProfile)
+        setIsEditing(false)
+        logUserInteraction('UPDATE_PROFILE', 'profil-form', {
+          userId: user.id
+        })
+      } else {
+        throw new Error('Failed to update profile')
+      }
+    } catch (error) {
+      logError('Failed to save profile', error)
+      setError('Impossible de sauvegarder le profil. Veuillez réessayer.')
+    }
+  }
+
+  const handleViewAllRecipes = () => {
+    router.push('/mes-recettes')
+  }
+
+  if (authLoading || loading) {
     return (
-      <div className={styles.loadingContainer}>
-        <Head>
-          <title>Chargement - COCO</title>
-          <meta name="viewport" content="width=device-width, initial-scale=1" />
-        </Head>
-        <div className={styles.loadingIcon}>👨‍🍳</div>
-        <p className={styles.loadingText}>Préparation de votre profil culinaire...</p>
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+      }}>
+        <div style={{ textAlign: 'center', color: 'white' }}>
+          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>👤</div>
+          <p>Chargement de votre profil...</p>
+        </div>
       </div>
     )
   }
 
-  if (!user) return null
-
-  return (
-    <div className={styles.container}>
-      <Head>
-        <title>Mon Profil - COCO</title>
-        <meta name="description" content="Gérez votre profil culinaire COCO - Recettes, statistiques et préférences" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta property="og:title" content="Mon Profil - COCO" />
-        <meta property="og:description" content="Découvrez mon univers culinaire sur COCO" />
-      </Head>
-
-      <div className={styles.content}>
-        {/* Enhanced Profile Header */}
-        <div className={styles.profileHeader}>
-          <div 
-            className={styles.avatar}
-            onClick={() => {
-              if (navigator.vibrate) navigator.vibrate([50, 30, 50])
-              // Add avatar click interaction here (e.g., change avatar)
-            }}
-            title="Cliquez pour personnaliser votre avatar"
-          >
-            {getUserInitials()}
-          </div>
-          
-          <h1 className={styles.profileName}>
-            {getGreeting()}, {user.user_metadata?.display_name?.split(' ')[0] || 'Chef'}!
-          </h1>
-          
-          <p className={styles.profileEmail}>
-            {user.email}
-          </p>
-
-          {/* Enhanced Stats Grid with Better Animation */}
-          <div className={styles.statsGrid}>
-            {{
-              recipesCount: '📝 Recettes',
-              followersCount: '👥 Followers',
-              followingCount: '🤝 Suivi(e)s'
-            }._map(([key, label], index) => (
-              <div 
-                key={key}
-                className={styles.statItem}
-                style={{
-                  animationDelay: `${(index + 1) * 0.15}s`,
-                  transform: isAnimating ? 'translateY(0)' : 'translateY(30px)',
-                  opacity: isAnimating ? 1 : 0,
-                  transition: 'all 0.8s cubic-bezier(0.16, 1, 0.3, 1)'
-                }}
-                onClick={() => {
-                  if (navigator.vibrate) navigator.vibrate(40)
-                }}
-              >
-                <span className={styles.statNumber}>{userStats[key]}</span>
-                <span className={styles.statLabel}>{label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Enhanced Activity Section */}
-        <div className={styles.activitySection}>
-          <h2 className={styles.sectionTitle}>Mon univers culinaire</h2>
-
-          <div className={styles.activityItems}>
-            {{
-              '/mes-recettes': {
-                icon: '📝',
-                title: 'Mes créations',
-                description: 'Gérer et partager mes recettes favorites',
-                color: '#FF6B35'
-              },
-              '/favoris': {
-                icon: '❤️',
-                title: 'Coup de cœur',
-                description: 'Recettes sauvegardées et aimées',
-                color: '#EF4444'
-              },
-              '/amis': {
-                icon: '👥',
-                title: 'Communauté',
-                description: 'Mon réseau de passionnés culinaires',
-                color: '#8B5CF6'
-              },
-              '/collections': {
-                icon: '📚',
-                title: 'Collections',
-                description: 'Mes recettes organisées par thème',
-                color: '#06B6D4'
-              },
-              '/achievements': {
-                icon: '🏆',
-                title: 'Réussites',
-                description: 'Badges et accomplissements culinaires',
-                color: '#F59E0B'
-              },
-              '/analytics': {
-                icon: '📊',
-                title: 'Statistiques',
-                description: 'Analyser mes performances et tendances',
-                color: '#10B981'
-              }
-            }._map(([path, { icon, title, description, color }], index) => (
-              <button
-                key={path}
-                className={styles.activityItem}
-                onClick={() => navigateToSection(path)}
-                style={{
-                  animationDelay: `${0.1 + index * 0.1}s`
-                }}
-              >
-                <div className={styles.activityIcon}>
-                  {icon}
-                </div>
-                <div className={styles.activityContent}>
-                  <h3 className={styles.activityTitle}>{title}</h3>
-                  <p className={styles.activityDescription}>
-                    {description}
-                  </p>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Enhanced Settings Section */}
-        <div className={styles.settingsSection}>
-          <h2 className={styles.sectionTitle}>⚙️ Préférences</h2>
-
-          <div className={styles.settingsItems}>
-            {{
-              notifications: '🔔 Notifications push',
-              darkMode: '🌙 Thème sombre',
-              publicProfile: '🌍 Profil public',
-              newsletter: '📧 Newsletter culinaire',
-              privateRecipes: '🔒 Recettes privées par défaut'
-            }._map(([key, label]) => (
-              <div key={key} className={styles.settingsItem}>
-                <div className={styles.settingLabel}>
-                  <span className={styles.settingIcon}>{label.charAt(0)}</span>
-                  {label.slice(1)}
-                </div>
-                <div 
-                  className={`${styles.settingToggle} ${settings[key] ? styles.active : ''}`}
-                  onClick={() => toggleSetting(key)}
-                  role="switch"
-                  aria-checked={settings[key]}
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault()
-                      toggleSetting(key)
-                    }
-                  }}
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Enhanced Logout Section */}
-        <div className={styles.logoutSection}>
+  if (error) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+      }}>
+        <div style={{ textAlign: 'center', color: 'white' }}>
+          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>😓</div>
+          <p>{error}</p>
           <button 
-            className={styles.logoutBtn}
-            onClick={handleLogout}
-            disabled={isLoggingOut}
+            onClick={loadUserProfile}
             style={{
-              opacity: isLoggingOut ? 0.7 : 1,
-              transform: isLoggingOut ? 'scale(0.98)' : 'scale(1)'
+              background: 'rgba(255, 255, 255, 0.2)',
+              color: 'white',
+              border: '1px solid rgba(255, 255, 255, 0.3)',
+              padding: '0.75rem 1.5rem',
+              borderRadius: '0.5rem',
+              cursor: 'pointer',
+              marginTop: '1rem'
             }}
           >
-            <span>{isLoggingOut ? '⏳' : '🚪'}</span>
-            {isLoggingOut ? 'Déconnexion...' : 'Se déconnecter'}
+            Réessayer
           </button>
         </div>
       </div>
+    )
+  }
 
-      <style jsx>{`
-        @keyframes slideUp {
-          0% {
-            transform: translateX(-50%) translateY(30px);
-            opacity: 0;
-          }
-          100% {
-            transform: translateX(-50%) translateY(0);
-            opacity: 1;
-          }
-        }
+  return (
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
+      <Head>
+        <title>Mon Profil - COCO</title>
+        <meta name="description" content="Gérez votre profil sur COCO" />
+      </Head>
+
+      {/* Header */}
+      <section style={{
+        background: 'rgba(255, 255, 255, 0.1)',
+        backdropFilter: 'blur(10px)',
+        padding: '2rem 1rem',
+        textAlign: 'center',
+        border: '1px solid rgba(255, 255, 255, 0.2)'
+      }}>
+        <div style={{
+          width: '120px',
+          height: '120px',
+          borderRadius: '50%',
+          background: 'linear-gradient(135deg, #FF6B35, #F7931E)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          margin: '0 auto 1rem',
+          color: 'white',
+          fontSize: '3rem',
+          fontWeight: 'bold'
+        }}>
+          {profile?.display_name?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || '👤'}
+        </div>
         
-        @keyframes slideDown {
-          0% {
-            transform: translateX(-50%) translateY(0);
-            opacity: 1;
-          }
-          100% {
-            transform: translateX(-50%) translateY(-30px);
-            opacity: 0;
-          }
-        }
-      `}</style>
+        <h1 style={{ 
+          fontSize: '1.8rem', 
+          margin: '0 0 0.5rem 0',
+          color: 'white',
+          fontWeight: '600'
+        }}>
+          {profile?.display_name || user?.email || 'Utilisateur'}
+        </h1>
+        
+        <p style={{ 
+          color: 'rgba(255, 255, 255, 0.9)', 
+          fontSize: '1rem',
+          margin: '0 0 1rem 0'
+        }}>
+          {profile?.bio || 'Aucune biographie'}
+        </p>
+
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          gap: '2rem',
+          flexWrap: 'wrap',
+          marginTop: '1rem'
+        }}>
+          <div style={{
+            background: 'rgba(255, 255, 255, 0.15)',
+            padding: '0.5rem 1rem',
+            borderRadius: '1rem'
+          }}>
+            <span style={{ color: 'white', fontSize: '0.9rem' }}>
+              📝 {userStats.recipesCount} recette{userStats.recipesCount > 1 ? 's' : ''}
+            </span>
+          </div>
+          <div style={{
+            background: 'rgba(255, 255, 255, 0.15)',
+            padding: '0.5rem 1rem',
+            borderRadius: '1rem'
+          }}>
+            <span style={{ color: 'white', fontSize: '0.9rem' }}>
+              ❤️ {userStats.likesReceived} like{userStats.likesReceived > 1 ? 's' : ''}
+            </span>
+          </div>
+          <div style={{
+            background: 'rgba(255, 255, 255, 0.15)',
+            padding: '0.5rem 1rem',
+            borderRadius: '1rem'
+          }}>
+            <span style={{ color: 'white', fontSize: '0.9rem' }}>
+              👥 {userStats.friendsCount} ami{userStats.friendsCount > 1 ? 's' : ''}
+            </span>
+          </div>
+        </div>
+      </section>
+
+      {/* Content */}
+      <section style={{
+        background: 'white',
+        minHeight: 'calc(100vh - 200px)',
+        borderRadius: '1rem 1rem 0 0',
+        padding: '2rem 1rem'
+      }}>
+        {/* Profile Edit */}
+        <div style={{ marginBottom: '2rem' }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '1rem'
+          }}>
+            <h2 style={{ margin: 0, color: '#1f2937' }}>Informations personnelles</h2>
+            <button
+              onClick={() => setIsEditing(!isEditing)}
+              style={{
+                background: isEditing ? '#ef4444' : '#667eea',
+                color: 'white',
+                border: 'none',
+                padding: '0.5rem 1rem',
+                borderRadius: '0.5rem',
+                cursor: 'pointer',
+                fontSize: '0.9rem'
+              }}
+            >
+              {isEditing ? 'Annuler' : 'Modifier'}
+            </button>
+          </div>
+
+          {isEditing ? (
+            <div style={{
+              background: '#f9fafb',
+              border: '1px solid #e5e7eb',
+              borderRadius: '0.75rem',
+              padding: '1.5rem'
+            }}>
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
+                  Nom d'affichage
+                </label>
+                <input
+                  type="text"
+                  value={editForm.display_name}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, display_name: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '0.5rem',
+                    fontSize: '1rem'
+                  }}
+                  placeholder="Votre nom d'affichage"
+                />
+              </div>
+
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
+                  Biographie
+                </label>
+                <textarea
+                  value={editForm.bio}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, bio: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '0.5rem',
+                    fontSize: '1rem',
+                    minHeight: '100px',
+                    resize: 'vertical'
+                  }}
+                  placeholder="Parlez-nous de vous..."
+                />
+              </div>
+
+              <button
+                onClick={handleSaveProfile}
+                style={{
+                  background: '#22c55e',
+                  color: 'white',
+                  border: 'none',
+                  padding: '0.75rem 1.5rem',
+                  borderRadius: '0.5rem',
+                  cursor: 'pointer',
+                  fontSize: '1rem',
+                  fontWeight: '500'
+                }}
+              >
+                Sauvegarder
+              </button>
+            </div>
+          ) : (
+            <div style={{
+              background: '#f9fafb',
+              border: '1px solid #e5e7eb',
+              borderRadius: '0.75rem',
+              padding: '1.5rem'
+            }}>
+              <p><strong>Email:</strong> {user?.email}</p>
+              <p><strong>Nom:</strong> {profile?.display_name || 'Non défini'}</p>
+              <p><strong>Biographie:</strong> {profile?.bio || 'Aucune biographie'}</p>
+              <p><strong>Membre depuis:</strong> {user?.created_at ? new Date(user.created_at).toLocaleDateString('fr-FR') : 'N/A'}</p>
+            </div>
+          )}
+        </div>
+
+        {/* User Recipes */}
+        <div>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '1rem'
+          }}>
+            <h2 style={{ margin: 0, color: '#1f2937' }}>
+              Mes recettes ({userRecipes.length})
+            </h2>
+            {userRecipes.length > 0 && (
+              <button
+                onClick={handleViewAllRecipes}
+                style={{
+                  background: 'transparent',
+                  color: '#667eea',
+                  border: '1px solid #667eea',
+                  padding: '0.5rem 1rem',
+                  borderRadius: '0.5rem',
+                  cursor: 'pointer',
+                  fontSize: '0.9rem'
+                }}
+              >
+                Voir toutes →
+              </button>
+            )}
+          </div>
+
+          {userRecipes.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '3rem', color: '#6b7280' }}>
+              <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>📝</div>
+              <p>Vous n'avez pas encore créé de recettes</p>
+              <button
+                onClick={() => router.push('/share-photo')}
+                style={{
+                  background: '#667eea',
+                  color: 'white',
+                  border: 'none',
+                  padding: '0.75rem 1.5rem',
+                  borderRadius: '0.5rem',
+                  cursor: 'pointer',
+                  marginTop: '1rem'
+                }}
+              >
+                Créer ma première recette
+              </button>
+            </div>
+          ) : (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+              gap: '1rem'
+            }}>
+              {userRecipes.map((recipe) => (
+                <div 
+                  key={recipe.id} 
+                  style={{
+                    background: '#f9fafb',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '0.75rem',
+                    overflow: 'hidden',
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => router.push(`/recipe/${recipe.id}`)}
+                >
+                  <div style={{
+                    height: '120px',
+                    background: 'linear-gradient(135deg, #667eea, #764ba2)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '2rem'
+                  }}>
+                    {recipe.category === 'Photo partagée' ? '📸' : '🍽️'}
+                  </div>
+                  <div style={{ padding: '1rem' }}>
+                    <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1rem' }}>
+                      {recipe.title}
+                    </h3>
+                    <p style={{ 
+                      margin: 0, 
+                      color: '#6b7280', 
+                      fontSize: '0.9rem',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {recipe.description || recipe.category}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
     </div>
   )
 }
