@@ -118,6 +118,8 @@ function generateLogId() {
  * Obtient des informations sur l'environnement
  */
 function getEnvironmentInfo() {
+  const isClient = typeof window !== 'undefined'
+  
   const baseInfo = {
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development',
@@ -151,17 +153,26 @@ function getEnvironmentInfo() {
       } : null,
       online: navigator.onLine,
       language: navigator.language,
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      // Informations caméra
+      mediaDevices: {
+        available: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia),
+        secure: window.isSecureContext
+      }
     }
-  }
-
-  return {
-    ...baseInfo,
-    nodeVersion: process.version,
-    platform: process.platform,
-    arch: process.arch,
-    memory: process.memoryUsage(),
-    uptime: process.uptime()
+  } else {
+    // Server-side environment info
+    return {
+      ...baseInfo,
+      nodeVersion: process.version,
+      arch: process.arch,
+      platform: process.platform,
+      memory: {
+        used: process.memoryUsage().heapUsed,
+        total: process.memoryUsage().heapTotal,
+        external: process.memoryUsage().external
+      }
+    }
   }
 }
 

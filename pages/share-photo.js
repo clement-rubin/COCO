@@ -66,129 +66,224 @@ export default function SharePhoto() {
 
   // Camera functions avec logs
   const startCamera = async () => {
+    addLog('INFO', 'Tentative de démarrage de la caméra', { 
+      userAgent: navigator.userAgent,
+      hasGetUserMedia: !!navigator.mediaDevices?.getUserMedia,
+      isSecureContext: window.isSecureContext
+    })
+
     try {
-      addLog('INFO', 'Tentative de démarrage de la caméra', {
-        hasGetUserMedia: !!navigator.mediaDevices?.getUserMedia,
-        step: currentStep
-      })
-      
-      const mediaStream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'environment' } 
-      })
-      
-      setStream(mediaStream)
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream
+      // Vérifier si getUserMedia est disponible
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('getUserMedia n\'est pas supporté par ce navigateur')
       }
-      setCameraMode(true)
+
+      // Arrêter le flux existant si présent
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop())
+        setStream(null)
+      }
+
+      // Contraintes optimisées pour mobile
+      const constraints = {
+        video: {
+          facingMode: { ideal: 'environment' }, // Caméra arrière préférée
+          width: { ideal: 1280, max: 1920 },
+          height: { ideal: 720, max: 1080 },
+          aspectRatio: { ideal: 16/9 }
+        },
+        audio: false
+      }
+
+      addLog('INFO', 'Demande d\'accès à la caméra avec contraintes', { constraints })
+
+      const mediaStream = await navigator.mediaDevices.getUserMedia(constraints)
       
-      addLog('INFO', 'Caméra démarrée avec succès', {
+      addLog('INFO', 'Flux caméra obtenu avec succès', {
         streamId: mediaStream.id,
-        videoTracks: mediaStream.getVideoTracks().length,
-        audioTracks: mediaStream.getAudioTracks().length,
-        constraints: { video: { facingMode: 'environment' } }
+        tracks: mediaStream.getTracks().map(track => ({
+          kind: track.kind,
+          label: track.label,
+          enabled: track.enabled,
+          readyState: track.readyState,
+          settings: track.getSettings ? track.getSettings() : null
+        }))
       })
-      
-      logUserInteraction('CAMERA_STARTED', 'bouton-camera', {
-        step: currentStep,
-        streamActive: mediaStream.active
-      })
-      
+
+      setStream(mediaStream)
+      setCameraMode(true)
+
+      // Attendre que le composant soit rendu avant d'assigner le stream
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = mediaStream
+          videoRef.current.onloadedmetadata = () => {
+            addLog('INFO', 'Métadonnées vidéo chargées', {
+              videoWidth: videoRef.current.videoWidth,
+              videoHeight: videoRef.current.videoHeight,
+              duration: videoRef.current.duration
+            })
+          }
+          
+          videoRef.current.oncanplay = () => {
+            addLog('INFO', 'Vidéo prête à être lue')
+          }
+
+          // Démarrer la lecture
+          videoRef.current.play().catch(error => {
+            addLog('ERROR', 'Erreur lors du démarrage de la lecture vidéo', { 
+              error: error.message,
+              videoElement: !!videoRef.current,
+              srcObject: !!videoRef.current.srcObject
+            })
+          })
+        } else {
+          addLog('ERROR', 'Élément vidéo non trouvé', { 
+            videoRefCurrent: !!videoRef.current,
+            cameraMode
+          })
+        }
+      }, 100)
+
     } catch (error) {
-      addLog('ERROR', 'Erreur démarrage caméra', { 
-        errorName: error.name,
-        errorMessage: error.message,
-        errorCode: error.code,
-        step: currentStep
+      addLog('ERROR', 'Erreur lors de l\'accès à la caméra', { 
+        error: error.message,
+        name: error.name,
+        constraint: error.constraint || 'N/A',
+        userAgent: navigator.userAgent,
+        isSecureContext: window.isSecureContext,
+        protocol: window.location.protocol
       })
+
+      // Messages d'erreur user-friendly
+      let userMessage = 'Impossible d\'accéder à la caméra. '
       
-      logError('Erreur caméra dans SharePhoto', error, {
-        component: 'SharePhoto',
-        action: 'startCamera',
-        step: currentStep
-      })
-      
-      alert('Impossible d\'accéder à la caméra: ' + error.message)
+      if (error.name === 'NotAllowedError') {
+        userMessage += 'Veuillez autoriser l\'accès à la caméra dans les paramètres de votre navigateur.'
+      } else if (error.name === 'NotFoundError') {
+        userMessage += 'Aucune caméra trouvée sur cet appareil.'
+      } else if (error.name === 'NotSupportedError') {
+        userMessage += 'La caméra n\'est pas supportée par ce navigateur.'
+      } else if (error.name === 'NotReadableError') {
+        userMessage += 'La caméra est peut-être utilisée par une autre application.'
+      } else if (!window.isSecureContext) {
+        userMessage += 'L\'accès à la caméra nécessite une connexion sécurisée (HTTPS).'
+      } else {
+        userMessage += error.message
+      }
+
+      alert(userMessage)
+      setCameraMode(false)
     }
   }
 
   const stopCamera = () => {
-    if (stream) {
-      const trackCount = stream.getTracks().length
-      stream.getTracks().forEach(track => track.stop())
-      setStream(null)
-      
-      addLog('INFO', 'Caméra arrêtée', {
-        tracksTerminated: trackCount,
-        step: currentStep
-      })
-    }
-    setCameraMode(false)
+    addLog('INFO', 'Arrêt de la caméra demandé')
     
-    logUserInteraction('CAMERA_STOPPED', 'bouton-arreter-camera', {
-      step: currentStep,
-      hadStream: !!stream
-    })
+    if (stream) {
+      stream.getTracks().forEach(track => {
+        track.stop()
+        addLog('INFO', 'Track arrêté', { 
+          kind: track.kind, 
+          label: track.label,
+          readyState: track.readyState
+        })
+      })
+      setStream(null)
+    }
+    
+    if (videoRef.current) {
+      videoRef.current.srcObject = null
+    }
+    
+    setCameraMode(false)
+    addLog('INFO', 'Caméra arrêtée avec succès')
   }
 
   const capturePhoto = () => {
-    addLog('INFO', 'Tentative de capture photo', {
-      hasVideo: !!videoRef.current,
-      hasCanvas: !!canvasRef.current,
-      step: currentStep
-    })
-    
-    if (videoRef.current && canvasRef.current) {
-      const canvas = canvasRef.current
-      const video = videoRef.current
-      
-      canvas.width = video.videoWidth
-      canvas.height = video.videoHeight
-      
-      const ctx = canvas.getContext('2d')
-      ctx.drawImage(video, 0, 0)
-      
-      // Convertir en Data URL
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.8)
-      
-      // Créer un objet photo compatible
-      const photoData = {
-        id: Date.now(),
-        name: `photo-${Date.now()}.jpg`,
-        size: Math.round(dataUrl.length * 0.75),
-        preview: dataUrl,
-        imageUrl: dataUrl,
-        processed: true,
-        processing: false,
-        error: false,
-        mimeType: 'image/jpeg'
-      }
-      
-      setPhotos(prev => [...prev, photoData])
-      
-      addLog('INFO', 'Photo capturée avec succès', { 
-        photoId: photoData.id,
-        photoSize: photoData.size,
-        dataUrlLength: dataUrl.length,
-        canvasSize: `${canvas.width}x${canvas.height}`,
-        videoSize: `${video.videoWidth}x${video.videoHeight}`,
-        step: currentStep
-      })
-      
-      logUserInteraction('PHOTO_CAPTURED', 'bouton-capturer', {
-        photoId: photoData.id,
-        photoSize: photoData.size,
-        step: currentStep,
-        totalPhotos: photos.length + 1
-      })
-      
-      stopCamera()
-    } else {
-      addLog('ERROR', 'Impossible de capturer - éléments manquants', {
+    if (!videoRef.current || !canvasRef.current) {
+      addLog('ERROR', 'Références vidéo ou canvas manquantes', {
         hasVideo: !!videoRef.current,
-        hasCanvas: !!canvasRef.current,
-        step: currentStep
+        hasCanvas: !!canvasRef.current
       })
+      return
+    }
+
+    const video = videoRef.current
+    const canvas = canvasRef.current
+    const ctx = canvas.getContext('2d')
+
+    // Vérifier que la vidéo est prête
+    if (video.readyState < 2) {
+      addLog('ERROR', 'Vidéo pas encore prête pour la capture', {
+        readyState: video.readyState,
+        videoWidth: video.videoWidth,
+        videoHeight: video.videoHeight
+      })
+      alert('La caméra n\'est pas encore prête. Veuillez patienter.')
+      return
+    }
+
+    addLog('INFO', 'Début de capture photo', {
+      videoWidth: video.videoWidth,
+      videoHeight: video.videoHeight,
+      readyState: video.readyState
+    })
+
+    try {
+      // Configurer les dimensions du canvas
+      canvas.width = video.videoWidth || 640
+      canvas.height = video.videoHeight || 480
+
+      // Capturer l'image
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+
+      // Convertir en blob
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          addLog('ERROR', 'Échec de la conversion en blob')
+          alert('Erreur lors de la capture. Veuillez réessayer.')
+          return
+        }
+
+        const file = new File([blob], `photo-${Date.now()}.jpg`, { 
+          type: 'image/jpeg',
+          lastModified: Date.now()
+        })
+
+        const photoData = {
+          id: Date.now(),
+          file: file,
+          preview: URL.createObjectURL(blob),
+          name: file.name,
+          size: file.size,
+          processing: false,
+          processed: true,
+          error: false,
+          imageUrl: URL.createObjectURL(blob),
+          mimeType: 'image/jpeg'
+        }
+
+        setPhotos([photoData])
+        
+        addLog('INFO', 'Photo capturée avec succès', {
+          fileName: file.name,
+          fileSize: file.size,
+          canvasWidth: canvas.width,
+          canvasHeight: canvas.height
+        })
+
+        // Arrêter la caméra après capture
+        stopCamera()
+        
+      }, 'image/jpeg', 0.9) // Qualité 90%
+
+    } catch (error) {
+      addLog('ERROR', 'Erreur lors de la capture', { 
+        error: error.message,
+        stack: error.stack
+      })
+      alert('Erreur lors de la capture de la photo. Veuillez réessayer.')
     }
   }
 
