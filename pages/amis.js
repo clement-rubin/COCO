@@ -40,6 +40,33 @@ export default function Amis() {
     }
   };
 
+  const ensureProfileExists = async (userId) => {
+    try {
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('user_id', userId)
+        .single();
+
+      if (!existingProfile) {
+        const { error } = await supabase
+          .from('profiles')
+          .insert({
+            user_id: userId,
+            display_name: 'Utilisateur',
+            bio: 'Aucune bio',
+            is_private: false
+          });
+
+        if (error) {
+          logError('Error creating profile:', error);
+        }
+      }
+    } catch (error) {
+      logError('Error ensuring profile exists:', error);
+    }
+  };
+
   const loadFriendRequests = async (userId) => {
     try {
       // Get friend requests directly without joins to avoid relationship ambiguity
@@ -250,4 +277,250 @@ export default function Amis() {
           updated_at: new Date().toISOString()
         });
 
-      if
+      if (error) {
+        if (error.code === '23505') { // Unique constraint violation
+          setError('Demande d\'amitié déjà envoyée');
+        } else {
+          throw error;
+        }
+      } else {
+        logInfo('Friend request sent successfully');
+        setError('Demande d\'amitié envoyée !');
+        setTimeout(() => setError(null), 3000);
+        // Refresh search results to update button states
+        await searchUsers(searchTerm);
+      }
+    } catch (error) {
+      logError('Error sending friend request:', error);
+      setError('Erreur lors de l\'envoi de la demande');
+      setTimeout(() => setError(null), 3000);
+    }
+  };
+
+  const respondToFriendRequest = async (requestId, action) => {
+    try {
+      if (action === 'accept') {
+        const { error } = await supabase
+          .from('friendships')
+          .update({ 
+            status: 'accepted',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', requestId);
+
+        if (error) throw error;
+        logInfo('Friend request accepted');
+      } else {
+        const { error } = await supabase
+          .from('friendships')
+          .delete()
+          .eq('id', requestId);
+
+        if (error) throw error;
+        logInfo('Friend request declined');
+      }
+
+      await Promise.all([
+        loadFriendRequests(user.id),
+        loadFriends(user.id)
+      ]);
+    } catch (error) {
+      logError('Error responding to friend request:', error);
+      setError('Erreur lors de la réponse à la demande');
+      setTimeout(() => setError(null), 3000);
+    }
+  };
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (searchTerm) {
+        searchUsers(searchTerm);
+      } else {
+        setSearchResults([]);
+      }
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm]);
+
+  if (loading) {
+    return (
+      <div className={styles.container}>
+        <Navigation />
+        <div className={styles.loading}>Chargement...</div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className={styles.container}>
+        <Navigation />
+        <div className={styles.loginPrompt}>
+          <h2>Connectez-vous pour accéder à vos amis</h2>
+          <a href="/login" className={styles.loginButton}>Se connecter</a>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={styles.container}>
+      <Navigation />
+      
+      <header className={styles.header}>
+        <h1>👥 Mes Amis</h1>
+        <p>Connectez-vous avec d'autres passionnés de cuisine</p>
+      </header>
+
+      {error && (
+        <div className={styles.errorMessage}>
+          {error}
+        </div>
+      )}
+
+      {/* Search Section */}
+      <section className={styles.searchSection}>
+        <div className={styles.searchBox}>
+          <input
+            type="text"
+            placeholder="Rechercher des amis..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className={styles.searchInput}
+          />
+          {searchLoading && <div className={styles.searchSpinner}>🔍</div>}
+        </div>
+
+        {searchResults.length > 0 && (
+          <div className={styles.searchResults}>
+            <h3>Résultats de recherche</h3>
+            {searchResults.map((profile) => (
+              <div key={profile.user_id} className={styles.userCard}>
+                <div className={styles.userInfo}>
+                  <div className={styles.avatar}>
+                    {profile.avatar_url ? (
+                      <img src={profile.avatar_url} alt={profile.display_name} />
+                    ) : (
+                      <div className={styles.avatarPlaceholder}>
+                        {profile.display_name?.charAt(0)?.toUpperCase() || '?'}
+                      </div>
+                    )}
+                  </div>
+                  <div className={styles.userDetails}>
+                    <h4>{profile.display_name || 'Utilisateur'}</h4>
+                    <p>{profile.bio || 'Aucune bio'}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => sendFriendRequest(profile.user_id)}
+                  className={styles.addFriendButton}
+                >
+                  Ajouter
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Friend Requests */}
+      {friendRequests.length > 0 && (
+        <section className={styles.requestsSection}>
+          <h2>Demandes d'amitié ({friendRequests.length})</h2>
+          {friendRequests.map((request) => (
+            <div key={request.id} className={styles.requestCard}>
+              <div className={styles.userInfo}>
+                <div className={styles.avatar}>
+                  {request.profiles?.avatar_url ? (
+                    <img src={request.profiles.avatar_url} alt={request.profiles.display_name} />
+                  ) : (
+                    <div className={styles.avatarPlaceholder}>
+                      {request.profiles?.display_name?.charAt(0)?.toUpperCase() || '?'}
+                    </div>
+                  )}
+                </div>
+                <div className={styles.userDetails}>
+                  <h4>{request.profiles?.display_name || 'Utilisateur'}</h4>
+                  <p>{request.profiles?.bio || 'Aucune bio'}</p>
+                </div>
+              </div>
+              <div className={styles.requestActions}>
+                <button
+                  onClick={() => respondToFriendRequest(request.id, 'accept')}
+                  className={styles.acceptButton}
+                >
+                  Accepter
+                </button>
+                <button
+                  onClick={() => respondToFriendRequest(request.id, 'decline')}
+                  className={styles.declineButton}
+                >
+                  Refuser
+                </button>
+              </div>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* Friends List */}
+      <section className={styles.friendsSection}>
+        <h2>Mes amis ({friends.length})</h2>
+        {friends.length > 0 ? (
+          <div className={styles.friendsGrid}>
+            {friends.map((friendship) => (
+              <div key={friendship.id} className={styles.friendCard}>
+                <div className={styles.avatar}>
+                  {friendship.profiles?.avatar_url ? (
+                    <img src={friendship.profiles.avatar_url} alt={friendship.profiles.display_name} />
+                  ) : (
+                    <div className={styles.avatarPlaceholder}>
+                      {friendship.profiles?.display_name?.charAt(0)?.toUpperCase() || '?'}
+                    </div>
+                  )}
+                </div>
+                <h4>{friendship.profiles?.display_name || 'Utilisateur'}</h4>
+                <p>{friendship.profiles?.bio || 'Aucune bio'}</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className={styles.emptyState}>
+            <p>Vous n'avez pas encore d'amis. Utilisez la recherche pour en trouver !</p>
+          </div>
+        )}
+      </section>
+
+      {/* Friend Suggestions */}
+      {suggestions.length > 0 && (
+        <section className={styles.suggestionsSection}>
+          <h2>Suggestions d'amis</h2>
+          <div className={styles.suggestionsGrid}>
+            {suggestions.map((suggestion) => (
+              <div key={suggestion.user_id} className={styles.suggestionCard}>
+                <div className={styles.avatar}>
+                  {suggestion.avatar_url ? (
+                    <img src={suggestion.avatar_url} alt={suggestion.display_name} />
+                  ) : (
+                    <div className={styles.avatarPlaceholder}>
+                      {suggestion.display_name?.charAt(0)?.toUpperCase() || '?'}
+                    </div>
+                  )}
+                </div>
+                <h4>{suggestion.display_name || 'Utilisateur'}</h4>
+                <p>{suggestion.bio || 'Aucune bio'}</p>
+                <button
+                  onClick={() => sendFriendRequest(suggestion.user_id)}
+                  className={styles.addFriendButton}
+                >
+                  Ajouter
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+    </div>
+  );
+}
