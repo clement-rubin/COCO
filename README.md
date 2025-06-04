@@ -123,7 +123,8 @@ COCO/
 │   │   └── mentors.js             # Système de mentorship
 │   ├── achievements.js            # Page des accomplissements
 │   ├── cooking-mode/[id].js       # Mode cuisson avec minuteurs
-│   ├── mes-recettes.js            # Redirection vers recettes utilisateur (NOUVEAU)
+│   ├── amis.js                    # Page de gestion des amis (NOUVEAU)
+│   ├── mes-recettes.js            # Redirection vers recettes utilisateur
 │   ├── user-recipes.js            # Liste des recettes partagées
 │   ├── share-photo.js             # Page de partage rapide de photo
 │   ├── submit-recipe.js           # Page de partage de recette complète
@@ -345,7 +346,7 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 ## 🌟 Fonctionnalités Principales
 
-### 👥 Système d'Amis Avancé
+### 👥 Système d'Amis Avancé ✅
 - **Recherche d'utilisateurs** par nom avec recherche floue
 - **Suggestions d'amis** basées sur les amis mutuels
 - **Profils utilisateur** complets avec statistiques
