@@ -118,17 +118,16 @@ export default function Amis() {
 
   const loadFriends = async (userId) => {
     try {
-      // Get accepted friendships where current user is the requester
+      // Corriger la syntaxe de sélection - enlever 'as' dans select
       const { data: friendships1, error: error1 } = await supabase
         .from('friendships')
-        .select('id, friend_id as other_user_id')
+        .select('id, friend_id')
         .eq('user_id', userId)
         .eq('status', 'accepted');
 
-      // Get accepted friendships where current user is the target
       const { data: friendships2, error: error2 } = await supabase
         .from('friendships')
-        .select('id, user_id as other_user_id')
+        .select('id, user_id')
         .eq('friend_id', userId)
         .eq('status', 'accepted');
 
@@ -140,15 +139,14 @@ export default function Amis() {
         throw error1 || error2;
       }
 
-      // Combine both directions of friendships
+      // Reformater les données pour avoir other_user_id
       const allFriendships = [
-        ...(friendships1 || []),
-        ...(friendships2 || [])
+        ...(friendships1 || []).map(f => ({ ...f, other_user_id: f.friend_id })),
+        ...(friendships2 || []).map(f => ({ ...f, other_user_id: f.user_id }))
       ];
 
       if (allFriendships.length > 0) {
-        // Get profiles for all friends
-        const friendIds = [...new Set(allFriendships.map(f => f.other_user_id))]; // Remove duplicates
+        const friendIds = [...new Set(allFriendships.map(f => f.other_user_id))];
         const { data: profiles, error: profilesError } = await supabase
           .from('profiles')
           .select('user_id, display_name, avatar_url, bio')
@@ -158,7 +156,6 @@ export default function Amis() {
           logError('Error loading profiles for friends:', profilesError);
         }
 
-        // Combine the data manually and remove duplicates
         const friendsWithProfiles = allFriendships
           .filter((friendship, index, self) => 
             index === self.findIndex(f => f.other_user_id === friendship.other_user_id)
@@ -247,27 +244,43 @@ export default function Amis() {
 
   const sendFriendRequest = async (friendId) => {
     try {
-      // Check if friendship already exists in either direction
+      // Corriger la syntaxe de la requête OR
       const { data: existingFriendship, error: checkError } = await supabase
         .from('friendships')
         .select('id, status')
-        .or(`and(user_id.eq.${user.id},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${user.id})`)
-        .single();
+        .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`)
+        .or(`user_id.eq.${friendId},friend_id.eq.${friendId}`)
+        .maybeSingle();
 
-      if (checkError && checkError.code !== 'PGRST116') {
-        // If it's not a "no rows" error, something else went wrong
-        if (checkError.code !== 'PGRST116') {
-          logError('Error checking existing friendship:', checkError);
+      // Alternative avec deux requêtes séparées pour éviter les problèmes de syntaxe
+      if (checkError) {
+        // Fallback avec requêtes séparées
+        const [{ data: check1 }, { data: check2 }] = await Promise.all([
+          supabase
+            .from('friendships')
+            .select('id, status')
+            .eq('user_id', user.id)
+            .eq('friend_id', friendId)
+            .maybeSingle(),
+          supabase
+            .from('friendships')
+            .select('id, status')
+            .eq('user_id', friendId)
+            .eq('friend_id', user.id)
+            .maybeSingle()
+        ]);
+
+        if (check1 || check2) {
+          setError('Une demande d\'amitié existe déjà');
+          setTimeout(() => setError(null), 3000);
+          return;
         }
-      }
-
-      if (existingFriendship) {
+      } else if (existingFriendship) {
         setError('Une demande d\'amitié existe déjà');
         setTimeout(() => setError(null), 3000);
         return;
       }
 
-      // Create profiles if they don't exist
       await ensureProfileExists(user.id);
       await ensureProfileExists(friendId);
       
@@ -282,16 +295,18 @@ export default function Amis() {
         });
 
       if (error) {
-        if (error.code === '23505') { // Unique constraint violation
+        if (error.code === '23505') {
           setError('Demande d\'amitié déjà envoyée');
+        } else if (error.code === '23503') {
+          setError('Erreur de référence - profils manquants');
         } else {
-          throw error;
+          logError('Detailed error sending friend request:', error);
+          setError(`Erreur: ${error.message}`);
         }
       } else {
         logInfo('Friend request sent successfully');
         setError('Demande d\'amitié envoyée !');
         setTimeout(() => setError(null), 3000);
-        // Refresh search results to update button states
         await searchUsers(searchTerm);
       }
     } catch (error) {

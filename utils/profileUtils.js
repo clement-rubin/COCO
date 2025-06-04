@@ -441,7 +441,8 @@ export async function sendFriendRequestCorrected(fromUserId, toUserId) {
     const toProfileId = await getProfileIdFromUserId(toUserId)
 
     if (!fromProfileId || !toProfileId) {
-      return { success: false, error: 'Could not find user profiles' }
+      logError('Could not get profile IDs for friend request', null, { fromUserId, toUserId })
+      return { success: false, error: 'Profile IDs not found' }
     }
 
     // Vérifier s'il existe déjà une relation
@@ -463,21 +464,21 @@ export async function sendFriendRequestCorrected(fromUserId, toUserId) {
       .single()
 
     if (error) {
-      logError('Error creating friendship request', error)
+      logError('Error creating friendship', error, { fromProfileId, toProfileId })
       return { success: false, error: error.message }
     }
 
     logInfo('Friend request sent successfully', {
-      from: fromUserId.substring(0, 8) + '...',
-      to: toUserId.substring(0, 8) + '...',
-      friendshipId: friendship.id
+      friendshipId: friendship.id,
+      fromUser: fromUserId.substring(0, 8) + '...',
+      toUser: toUserId.substring(0, 8) + '...'
     })
 
     return { success: true, friendship }
 
   } catch (error) {
-    logError('Exception sending friend request', error)
-    return { success: false, error: error.message }
+    logError('Exception while sending friend request', error, { fromUserId, toUserId })
+    return { success: false, error: 'Server error' }
   }
 }
 
@@ -514,7 +515,7 @@ export async function getUserStatsCorrected(userId) {
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
 
-    // Compter les amis - utiliser profiles.id pour les relations
+    // Compter les amis - utiliser profiles.id
     const { count: friendsCount1 } = await supabase
       .from('friendships')
       .select('*', { count: 'exact', head: true })
@@ -551,7 +552,6 @@ export async function getUserStatsCorrected(userId) {
 
     logInfo('User stats retrieved (corrected)', {
       userId: userId.substring(0, 8) + '...',
-      profileId: profileId.substring(0, 8) + '...',
       stats
     })
 

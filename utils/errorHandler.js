@@ -105,7 +105,20 @@ const USER_FRIENDLY_MESSAGES = {
   'Missing profile reference': 'Référence de profil manquante.',
   'Profile ID mismatch': 'Les identifiants de profil ne correspondent pas.',
   'Invalid profile structure': 'Structure de profil invalide.',
-  // ...existing code...
+
+  // Erreurs de contraintes de base de données
+  '23503': 'Référence manquante - certains profils sont requis.',
+  '23505': 'Cette action a déjà été effectuée.',
+  '23514': 'Données non valides pour cette opération.',
+  '42P01': 'Table non trouvée - le système est en cours d\'initialisation.',
+  'PGRST301': 'Requête mal formée. Veuillez réessayer.',
+  '406': 'Format de requête non acceptable.',
+  '409': 'Conflit - cette relation existe déjà.',
+
+  // Erreurs spécifiques aux contraintes d'amitié
+  'unique_friendship': 'Cette relation d\'amitié existe déjà.',
+  'no_self_friendship': 'Vous ne pouvez pas vous ajouter comme ami.',
+  'foreign key violation': 'Profil utilisateur requis pour cette action.',
 }
 
 /**
