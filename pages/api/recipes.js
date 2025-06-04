@@ -39,6 +39,43 @@ function validateQueryParams(query) {
   }
 }
 
+// Safe response helper to prevent "headers already sent" errors
+function safeResponse(res, statusCode, data) {
+  try {
+    // Check if response is already sent
+    if (res.writableEnded) {
+      logWarning('Attempted to send response after headers sent', {
+        statusCode,
+        dataType: typeof data
+      })
+      return false
+    }
+    
+    // Send the response
+    res.status(statusCode).json(data)
+    return true
+  } catch (error) {
+    logError('Error sending response', error, {
+      statusCode,
+      dataType: typeof data
+    })
+    
+    // Last attempt to send an error if headers not sent
+    try {
+      if (!res.writableEnded) {
+        res.status(500).json({ 
+          error: 'Error sending response', 
+          message: 'Server encountered an error while sending response'
+        })
+      }
+    } catch {
+      // Cannot do anything more
+    }
+    
+    return false
+  }
+}
+
 export default async function handler(req, res) {
   // En-têtes CORS
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -46,15 +83,16 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
 
   if (req.method === 'OPTIONS') {
-    res.status(204).end()
-    return
+    return safeResponse(res, 204, null)
   }
 
   // Log API request start
   const startTime = Date.now()
+  const requestReference = `req-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`
   
   try {
     logInfo(`API recipes - ${req.method} request`, {
+      reference: requestReference,
       method: req.method,
       query: req.query,
       hasBody: !!req.body,
@@ -69,6 +107,7 @@ export default async function handler(req, res) {
         const { author, user_id, category, limit } = params
         
         logInfo('GET recipes - Request details', {
+          reference: requestReference,
           originalQuery: req.query,
           sanitizedParams: params,
           hasUserId: !!user_id,
@@ -84,6 +123,7 @@ export default async function handler(req, res) {
           .select('*')
         
         logDebug('Base query created', {
+          reference: requestReference,
           tableName: 'recipes',
           selectFields: '*'
         })
@@ -91,6 +131,7 @@ export default async function handler(req, res) {
         // Apply filters only if they have valid values
         if (user_id) {
           logInfo('Applying user_id filter', { 
+            reference: requestReference,
             user_id, 
             userIdType: typeof user_id,
             userIdLength: user_id.length,
@@ -102,6 +143,7 @@ export default async function handler(req, res) {
         // Filter by author if specified (fallback) and no user_id
         if (author && !user_id) {
           logInfo('Applying author filter (fallback)', { 
+            reference: requestReference,
             author,
             authorType: typeof author,
             filterType: 'author'
@@ -112,6 +154,7 @@ export default async function handler(req, res) {
         // Filter by category if specified
         if (category) {
           logInfo('Applying category filter', { 
+            reference: requestReference,
             category,
             filterType: 'category'
           })
@@ -124,6 +167,7 @@ export default async function handler(req, res) {
           .limit(limit)
         
         logDebug('Executing Supabase query', {
+          reference: requestReference,
           hasUserIdFilter: !!user_id,
           hasAuthorFilter: !!author && !user_id,
           hasCategoryFilter: !!category,
@@ -140,6 +184,7 @@ export default async function handler(req, res) {
         const { data: recipes, error } = await Promise.race([queryPromise, timeoutPromise])
         
         logInfo('Supabase query executed', {
+          reference: requestReference,
           success: !error,
           error: error?.message,
           resultCount: recipes?.length || 0,
@@ -150,6 +195,7 @@ export default async function handler(req, res) {
         
         if (error) {
           logError('Supabase query error', error, {
+            reference: requestReference,
             errorCode: error.code,
             errorDetails: error.details,
             errorHint: error.hint,
@@ -164,6 +210,7 @@ export default async function handler(req, res) {
         // Log detailed results for debugging
         if (safeRecipes.length > 0) {
           logInfo('Recipes found - Analysis', {
+            reference: requestReference,
             totalCount: safeRecipes.length,
             recipesWithUserId: safeRecipes.filter(r => r && r.user_id).length,
             recipesWithoutUserId: safeRecipes.filter(r => r && !r.user_id).length,
@@ -188,6 +235,7 @@ export default async function handler(req, res) {
           })
         } else {
           logWarning('No recipes found', {
+            reference: requestReference,
             query: params,
             resultType: typeof recipes,
             isNull: recipes === null,
@@ -196,24 +244,27 @@ export default async function handler(req, res) {
         }
         
         logInfo('Recipes retrieved successfully', {
+          reference: requestReference,
           count: safeRecipes.length,
           filters: params,
           hasResults: safeRecipes.length > 0,
           timestamp: new Date().toISOString()
         })
         
-        return res.status(200).json(safeRecipes)
+        return safeResponse(res, 200, safeRecipes)
         
       } catch (error) {
         const errorDetails = logApiError('GET_RECIPES', error, {
+          reference: requestReference,
           filters: validateQueryParams(req.query),
           queryStep: 'supabase_execution',
           originalQuery: req.query
         })
         
-        return res.status(500).json({
+        return safeResponse(res, 500, {
           error: 'Erreur lors de la récupération des recettes',
           message: error.message || 'Erreur inconnue',
+          reference: requestReference,
           details: process.env.NODE_ENV === 'development' ? errorDetails : undefined,
           timestamp: new Date().toISOString()
         })
@@ -225,13 +276,15 @@ export default async function handler(req, res) {
         const data = req.body
         
         if (!data || typeof data !== 'object') {
-          return res.status(400).json({ 
+          return safeResponse(res, 400, { 
             error: 'Corps de requête invalide',
-            message: 'Le corps de la requête doit être un objet JSON valide'
+            message: 'Le corps de la requête doit être un objet JSON valide',
+            reference: requestReference
           })
         }
         
         logInfo('Creating new recipe', {
+          reference: requestReference,
           hasTitle: !!data.title,
           hasAuthor: !!data.author,
           hasUserId: !!data.user_id,
@@ -243,14 +296,16 @@ export default async function handler(req, res) {
         // Validation des champs obligatoires
         if (!data.title || typeof data.title !== 'string' || !data.title.trim()) {
           logWarning('Recipe creation failed - missing or invalid title', { 
+            reference: requestReference,
             receivedFields: Object.keys(data),
             titleType: typeof data.title,
             titleValue: data.title
           })
-          return res.status(400).json({ 
+          return safeResponse(res, 400, { 
             error: 'Champs obligatoires manquants ou invalides',
             required: ['title (string non vide)'],
-            received: Object.keys(data)
+            received: Object.keys(data),
+            reference: requestReference
           })
         }
         
@@ -284,6 +339,7 @@ export default async function handler(req, res) {
         }
         
         logDebug('Recipe data prepared for insertion', {
+          reference: requestReference,
           title: newRecipe.title,
           hasUserId: !!newRecipe.user_id,
           hasAuthor: !!newRecipe.author,
@@ -306,23 +362,26 @@ export default async function handler(req, res) {
         }
         
         logInfo('Recipe created successfully', {
+          reference: requestReference,
           recipeId: insertedData[0]?.id,
           title: insertedData[0]?.title,
           userId: insertedData[0]?.user_id
         })
         
-        return res.status(201).json(insertedData[0])
+        return safeResponse(res, 201, insertedData[0])
         
       } catch (error) {
         const errorDetails = logApiError('CREATE_RECIPE', error, {
+          reference: requestReference,
           hasBody: !!req.body,
           bodyKeys: req.body ? Object.keys(req.body) : [],
           bodyType: typeof req.body
         })
         
-        return res.status(500).json({
+        return safeResponse(res, 500, {
           error: 'Erreur lors de la création de la recette',
           message: error.message || 'Erreur inconnue',
+          reference: requestReference,
           details: process.env.NODE_ENV === 'development' ? errorDetails : undefined,
           timestamp: new Date().toISOString()
         })
@@ -335,10 +394,17 @@ export default async function handler(req, res) {
         const { id } = data || {}
 
         if (!id || typeof id !== 'string') {
-          return res.status(400).json({ error: 'ID de recette requis (string)' })
+          return safeResponse(res, 400, { 
+            error: 'ID de recette requis (string)',
+            reference: requestReference
+          })
         }
 
-        logInfo('Updating recipe', { recipeId: id, hasData: !!data })
+        logInfo('Updating recipe', { 
+          reference: requestReference,
+          recipeId: id, 
+          hasData: !!data 
+        })
 
         const updateData = { 
           ...data, 
@@ -355,22 +421,28 @@ export default async function handler(req, res) {
           throw error
         }
         
-        logInfo('Recipe updated successfully', { recipeId: id })
+        logInfo('Recipe updated successfully', { 
+          reference: requestReference,
+          recipeId: id 
+        })
         
-        return res.status(200).json({ 
+        return safeResponse(res, 200, { 
           message: 'Recette mise à jour', 
           id,
+          reference: requestReference,
           timestamp: new Date().toISOString()
         })
         
       } catch (error) {
         const errorDetails = logApiError('UPDATE_RECIPE', error, {
+          reference: requestReference,
           recipeId: req.body?.id
         })
         
-        return res.status(500).json({
+        return safeResponse(res, 500, {
           error: 'Erreur lors de la mise à jour de la recette',
           message: error.message || 'Erreur inconnue',
+          reference: requestReference,
           details: process.env.NODE_ENV === 'development' ? errorDetails : undefined,
           timestamp: new Date().toISOString()
         })
@@ -382,10 +454,16 @@ export default async function handler(req, res) {
         const id = req.query.id || (req.body && req.body.id)
         
         if (!id || typeof id !== 'string') {
-          return res.status(400).json({ error: 'ID de recette requis (string)' })
+          return safeResponse(res, 400, { 
+            error: 'ID de recette requis (string)',
+            reference: requestReference
+          })
         }
         
-        logInfo('Deleting recipe', { recipeId: id })
+        logInfo('Deleting recipe', { 
+          reference: requestReference,
+          recipeId: id 
+        })
         
         const { error } = await supabase
           .from('recipes')
@@ -396,37 +474,51 @@ export default async function handler(req, res) {
           throw error
         }
         
-        logInfo('Recipe deleted successfully', { recipeId: id })
+        logInfo('Recipe deleted successfully', { 
+          reference: requestReference,
+          recipeId: id 
+        })
         
-        return res.status(200).json({ 
+        return safeResponse(res, 200, { 
           message: 'Recette supprimée', 
           id,
+          reference: requestReference,
           timestamp: new Date().toISOString()
         })
         
       } catch (error) {
         const errorDetails = logApiError('DELETE_RECIPE', error, {
+          reference: requestReference,
           recipeId: req.query.id || req.body?.id
         })
         
-        return res.status(500).json({
+        return safeResponse(res, 500, {
           error: 'Erreur lors de la suppression de la recette',
           message: error.message || 'Erreur inconnue',
+          reference: requestReference,
           details: process.env.NODE_ENV === 'development' ? errorDetails : undefined,
           timestamp: new Date().toISOString()
         })
       }
     }
 
-    logWarning('Method not allowed', { method: req.method })
-    return res.status(405).json({ error: 'Méthode non autorisée' })
+    logWarning('Method not allowed', { 
+      reference: requestReference,
+      method: req.method 
+    })
+    return safeResponse(res, 405, { 
+      error: 'Méthode non autorisée',
+      reference: requestReference 
+    })
 
   } catch (error) {
     const errorDetails = logApiError('GENERAL_API_ERROR', error, {
+      reference: requestReference,
       method: req.method,
       url: req.url,
       hasBody: !!req.body,
-      queryKeys: req.query ? Object.keys(req.query) : []
+      queryKeys: req.query ? Object.keys(req.query) : [],
+      errorLocation: error.stack?.split('\n')[1] || 'unknown'
     })
     
     // Log the complete API call with error
@@ -434,19 +526,27 @@ export default async function handler(req, res) {
       req.method, 
       req.url, 
       { query: req.query, body: req.body },
-      { status: 500, error: error.message, details: errorDetails }
+      { 
+        status: 500, 
+        error: error.message, 
+        details: errorDetails,
+        reference: requestReference
+      }
     )
     
-    return res.status(500).json({ 
+    return safeResponse(res, 500, { 
       error: 'Erreur serveur interne', 
       message: error.message || 'Erreur inconnue',
       details: process.env.NODE_ENV === 'development' ? errorDetails : undefined,
       timestamp: new Date().toISOString(),
-      reference: `err-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`
+      reference: requestReference
     })
   } finally {
     // Log API request completion time
     const duration = Date.now() - startTime
-    logInfo(`API ${req.method} ${req.url} completed in ${duration}ms`)
+    logInfo(`API ${req.method} ${req.url} completed in ${duration}ms`, {
+      reference: requestReference,
+      duration
+    })
   }
 }

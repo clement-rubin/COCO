@@ -12,7 +12,9 @@ export const ERROR_TYPES = {
   UPLOAD: 'upload_error',
   NOT_FOUND: 'not_found_error',
   SERVER: 'server_error',
-  PERMISSION: 'permission_error'
+  PERMISSION: 'permission_error',
+  DATABASE: 'database_error',  // Added database error type
+  API: 'api_error'            // Added API error type
 }
 
 export const RECOVERY_STRATEGIES = {
@@ -60,6 +62,20 @@ const USER_FRIENDLY_MESSAGES = {
   'Internal Server Error': 'Erreur temporaire du serveur. Réessayez dans quelques instants.',
   'Service Unavailable': 'Service temporairement indisponible.',
   'Too Many Requests': 'Trop de tentatives. Attendez avant de réessayer.'
+  
+  // Database/API errors
+  'Failed to fetch data': 'Impossible de récupérer les données. Réessayez plus tard.',
+  'Database error': 'Problème d\'accès aux données. Réessayez dans quelques instants.',
+  'Connection timeout': 'La connexion au serveur a été trop longue. Vérifiez votre internet.',
+  'Query timeout': 'La recherche a pris trop de temps. Réessayez avec un filtre plus précis.',
+  'API endpoint not found': 'Cette fonctionnalité n\'est pas disponible actuellement.',
+  'API rate limit exceeded': 'Trop de requêtes. Attendez un moment avant de réessayer.',
+  
+  // Supabase specific errors
+  'JWSError': 'Erreur d\'authentification. Reconnectez-vous.',
+  'JWTExpired': 'Votre session a expiré. Reconnectez-vous.',
+  'JWTInvalid': 'Session invalide. Reconnectez-vous.',
+  'PGRST': 'Erreur de base de données. Réessayez ultérieurement.'
 }
 
 /**
@@ -100,9 +116,21 @@ function getRecoveryStrategy(error, context = {}) {
     return RECOVERY_STRATEGIES.RETRY
   }
   
+  // Database/Query errors
+  if (error.message?.includes('timeout') || 
+      error.message?.includes('connection') || 
+      error.code?.includes('PGRST')) {
+    return RECOVERY_STRATEGIES.RETRY
+  }
+  
   // Rate limiting
-  if (error.status === 429) {
+  if (error.status === 429 || error.message?.includes('rate limit')) {
     return RECOVERY_STRATEGIES.WAIT
+  }
+  
+  // JWT/Auth errors
+  if (error.message?.includes('JWT') || error.code?.includes('JW')) {
+    return RECOVERY_STRATEGIES.LOGIN
   }
   
   return RECOVERY_STRATEGIES.CONTACT_SUPPORT
@@ -144,6 +172,17 @@ function getActionSuggestions(error, recoveryStrategy) {
       suggestions.push('Contactez notre équipe si le problème persiste')
       suggestions.push('Notez le code d\'erreur ci-dessous')
       break
+  }
+  
+  // Additional suggestions for database/API errors
+  if (error.code?.includes('PGRST') || error.message?.includes('database')) {
+    suggestions.push('Réessayez dans quelques instants')
+    suggestions.push('Rafraîchissez la page')
+  }
+  
+  if (error.message?.includes('timeout')) {
+    suggestions.push('Vérifiez votre connexion internet')
+    suggestions.push('Essayez une recherche plus simple')
   }
   
   return suggestions
@@ -214,6 +253,21 @@ function getErrorType(error) {
     return ERROR_TYPES.UPLOAD
   }
   
+  // Check for database errors
+  if (error?.code?.includes('PGRST') || 
+      error?.hint?.includes('database') ||
+      error?.message?.includes('database') ||
+      error?.message?.includes('query')) {
+    return ERROR_TYPES.DATABASE
+  }
+  
+  // Check for API errors
+  if (error?.message?.includes('API') || 
+      error?.source === 'api' || 
+      error?.context?.source === 'api') {
+    return ERROR_TYPES.API
+  }
+  
   return ERROR_TYPES.SERVER
 }
 
@@ -221,6 +275,23 @@ function getErrorType(error) {
  * Transforme une erreur technique en erreur conviviale
  */
 export function createUserFriendlyError(error, context = {}) {
+  // Handle null/undefined error gracefully
+  if (!error) {
+    error = new Error('Unknown error occurred')
+  }
+  
+  // Handle non-Error objects
+  if (!(error instanceof Error)) {
+    if (typeof error === 'string') {
+      error = new Error(error)
+    } else if (typeof error === 'object') {
+      error = new Error(error.message || JSON.stringify(error))
+      Object.assign(error, error) // Copy properties
+    } else {
+      error = new Error('Unknown error occurred')
+    }
+  }
+  
   const errorMessage = error?.message || error?.toString() || 'Erreur inconnue'
   const userMessage = USER_FRIENDLY_MESSAGES[errorMessage] || 
                      USER_FRIENDLY_MESSAGES[error?.code] ||
