@@ -125,6 +125,35 @@ export const logApiCall = (method, url, data = null, response = null) => {
   })
 }
 
+// Logger pour les événements de composants (manquant)
+export const logComponentEvent = (componentName, event, data = {}) => {
+  logDebug(`COMPONENT_EVENT: ${componentName} - ${event}`, data, {
+    componentName,
+    event,
+    timestamp: new Date().toISOString()
+  })
+}
+
+// Logger pour les erreurs frontend (manquant)
+export const logFrontendError = (error, context = {}) => {
+  const errorId = `frontend-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`
+  
+  logError(`FRONTEND_ERROR: ${error?.message || 'Unknown error'}`, {
+    name: error?.name,
+    message: error?.message,
+    stack: error?.stack,
+    ...context
+  }, {
+    errorId,
+    timestamp: new Date().toISOString(),
+    url: typeof window !== 'undefined' ? window.location.href : 'server',
+    userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : 'server',
+    ...context
+  })
+  
+  return { id: errorId, context: { ...context, errorId } }
+}
+
 export default {
   error: logError,
   warning: logWarning,
@@ -133,5 +162,8 @@ export default {
   userInteraction: logUserInteraction,
   performance: logPerformance,
   componentEvent: logComponentEvent,
-  frontendError: logFrontendError
+  frontendError: logFrontendError,
+  networkError: logNetworkError,
+  apiCall: logApiCall,
+  componentLifecycle: logComponentLifecycle
 }
