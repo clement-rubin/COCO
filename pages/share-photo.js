@@ -23,7 +23,7 @@ export default function SharePhoto() {
   const canvasRef = useRef(null)
   const [stream, setStream] = useState(null)
 
-  // Logger hook to capture logs
+  // Logger hook amélioré
   const addLog = (level, message, data = null) => {
     const timestamp = new Date().toISOString()
     const logEntry = {
@@ -31,40 +31,110 @@ export default function SharePhoto() {
       timestamp,
       level,
       message,
-      data: data ? JSON.stringify(data, null, 2) : null
+      data: data ? JSON.stringify(data, null, 2) : null,
+      step: currentStep,
+      photosCount: photos.length,
+      hasFormData: !!(formData.title || formData.description)
     }
-    setLogs(prev => [logEntry, ...prev].slice(0, 50)) // Garder les 50 derniers logs
+    setLogs(prev => [logEntry, ...prev].slice(0, 100))
+    
+    // Appeler les loggers centralisés
+    switch(level) {
+      case 'DEBUG': logDebug(message, data); break;
+      case 'INFO': logInfo(message, data); break;
+      case 'WARNING': logWarning(message, data); break;
+      case 'ERROR': logError(message, new Error(message), data); break;
+      case 'INTERACTION': logUserInteraction(message, 'share-photo', data); break;
+    }
   }
 
-  // Camera functions
+  // Log du montage du composant
+  React.useEffect(() => {
+    addLog('INFO', 'Composant SharePhoto monté', {
+      pathname: router.pathname,
+      query: router.query,
+      userAgent: navigator.userAgent.substring(0, 100),
+      screenSize: {
+        width: window.innerWidth,
+        height: window.innerHeight
+      }
+    })
+  }, [])
+
+  // Camera functions avec logs
   const startCamera = async () => {
     try {
-      addLog('INFO', 'Démarrage de la caméra')
+      addLog('INFO', 'Tentative de démarrage de la caméra', {
+        hasGetUserMedia: !!navigator.mediaDevices?.getUserMedia,
+        step: currentStep
+      })
+      
       const mediaStream = await navigator.mediaDevices.getUserMedia({ 
         video: { facingMode: 'environment' } 
       })
+      
       setStream(mediaStream)
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream
       }
       setCameraMode(true)
-      addLog('SUCCESS', 'Caméra démarrée avec succès')
+      
+      addLog('INFO', 'Caméra démarrée avec succès', {
+        streamId: mediaStream.id,
+        videoTracks: mediaStream.getVideoTracks().length,
+        audioTracks: mediaStream.getAudioTracks().length,
+        constraints: { video: { facingMode: 'environment' } }
+      })
+      
+      logUserInteraction('CAMERA_STARTED', 'bouton-camera', {
+        step: currentStep,
+        streamActive: mediaStream.active
+      })
+      
     } catch (error) {
-      addLog('ERROR', 'Erreur démarrage caméra', { error: error.message })
+      addLog('ERROR', 'Erreur démarrage caméra', { 
+        errorName: error.name,
+        errorMessage: error.message,
+        errorCode: error.code,
+        step: currentStep
+      })
+      
+      logError('Erreur caméra dans SharePhoto', error, {
+        component: 'SharePhoto',
+        action: 'startCamera',
+        step: currentStep
+      })
+      
       alert('Impossible d\'accéder à la caméra: ' + error.message)
     }
   }
 
   const stopCamera = () => {
     if (stream) {
+      const trackCount = stream.getTracks().length
       stream.getTracks().forEach(track => track.stop())
       setStream(null)
+      
+      addLog('INFO', 'Caméra arrêtée', {
+        tracksTerminated: trackCount,
+        step: currentStep
+      })
     }
     setCameraMode(false)
-    addLog('INFO', 'Caméra arrêtée')
+    
+    logUserInteraction('CAMERA_STOPPED', 'bouton-arreter-camera', {
+      step: currentStep,
+      hadStream: !!stream
+    })
   }
 
   const capturePhoto = () => {
+    addLog('INFO', 'Tentative de capture photo', {
+      hasVideo: !!videoRef.current,
+      hasCanvas: !!canvasRef.current,
+      step: currentStep
+    })
+    
     if (videoRef.current && canvasRef.current) {
       const canvas = canvasRef.current
       const video = videoRef.current
@@ -82,9 +152,9 @@ export default function SharePhoto() {
       const photoData = {
         id: Date.now(),
         name: `photo-${Date.now()}.jpg`,
-        size: Math.round(dataUrl.length * 0.75), // Estimation de la taille
+        size: Math.round(dataUrl.length * 0.75),
         preview: dataUrl,
-        imageUrl: dataUrl, // Nouvelle propriété pour l'URL
+        imageUrl: dataUrl,
         processed: true,
         processing: false,
         error: false,
@@ -92,28 +162,85 @@ export default function SharePhoto() {
       }
       
       setPhotos(prev => [...prev, photoData])
-      addLog('SUCCESS', 'Photo capturée', { photoId: photoData.id })
+      
+      addLog('INFO', 'Photo capturée avec succès', { 
+        photoId: photoData.id,
+        photoSize: photoData.size,
+        dataUrlLength: dataUrl.length,
+        canvasSize: `${canvas.width}x${canvas.height}`,
+        videoSize: `${video.videoWidth}x${video.videoHeight}`,
+        step: currentStep
+      })
+      
+      logUserInteraction('PHOTO_CAPTURED', 'bouton-capturer', {
+        photoId: photoData.id,
+        photoSize: photoData.size,
+        step: currentStep,
+        totalPhotos: photos.length + 1
+      })
+      
       stopCamera()
+    } else {
+      addLog('ERROR', 'Impossible de capturer - éléments manquants', {
+        hasVideo: !!videoRef.current,
+        hasCanvas: !!canvasRef.current,
+        step: currentStep
+      })
     }
   }
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
+    
+    addLog('DEBUG', `Changement de champ: ${name}`, {
+      fieldName: name,
+      valueLength: value.length,
+      isEmpty: !value.trim(),
+      previousValue: formData[name],
+      step: currentStep
+    })
+    
     setFormData(prev => ({ ...prev, [name]: value }))
+    
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }))
+      addLog('DEBUG', `Erreur effacée pour le champ: ${name}`)
     }
+    
+    logUserInteraction('FORM_FIELD_CHANGE', `champ-${name}`, {
+      fieldName: name,
+      valueLength: value.length,
+      step: currentStep
+    })
   }
 
   const validateForm = () => {
+    addLog('INFO', 'Début de validation du formulaire', {
+      step: currentStep,
+      formData: {
+        hasTitle: !!formData.title.trim(),
+        titleLength: formData.title.length,
+        hasDescription: !!formData.description.trim(),
+        descriptionLength: formData.description.length
+      },
+      photosState: {
+        count: photos.length,
+        processed: photos.filter(p => p.processed).length,
+        processing: photos.filter(p => p.processing).length,
+        errors: photos.filter(p => p.error).length
+      }
+    })
+    
     const newErrors = {}
     
     if (!formData.title.trim()) {
       newErrors.title = 'Le titre est requis'
+      addLog('WARNING', 'Validation échouée: titre manquant')
     }
     
     if (photos.length === 0) {
       newErrors.photos = 'Au moins une photo est requise'
+      addLog('WARNING', 'Validation échouée: aucune photo')
     }
     
     const hasProcessingPhotos = photos.some(photo => photo.processing)
@@ -121,42 +248,69 @@ export default function SharePhoto() {
     
     if (hasProcessingPhotos) {
       newErrors.photos = 'Attendez que toutes les photos soient traitées'
+      addLog('WARNING', 'Validation échouée: photos en cours de traitement', {
+        processingCount: photos.filter(p => p.processing).length
+      })
     }
     
     if (hasErrorPhotos) {
       newErrors.photos = 'Certaines photos ont des erreurs, veuillez les corriger'
+      addLog('WARNING', 'Validation échouée: photos avec erreurs', {
+        errorCount: photos.filter(p => p.error).length,
+        errorPhotos: photos.filter(p => p.error).map(p => ({ id: p.id, name: p.name, error: p.errorMessage }))
+      })
     }
     
+    const isValid = Object.keys(newErrors).length === 0
+    
+    addLog('INFO', 'Résultat de validation', {
+      isValid,
+      errorsCount: Object.keys(newErrors).length,
+      errors: Object.keys(newErrors),
+      step: currentStep
+    })
+    
     setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
+    return isValid
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     
-    addLog('INFO', 'Début de handleSubmit')
+    addLog('INFO', 'Début de soumission de photo', {
+      step: currentStep,
+      formData: {
+        title: formData.title,
+        titleLength: formData.title.length,
+        hasDescription: !!formData.description,
+        descriptionLength: formData.description.length
+      },
+      photosState: {
+        total: photos.length,
+        processed: photos.filter(p => p.processed).length,
+        processing: photos.filter(p => p.processing).length,
+        errors: photos.filter(p => p.error).length
+      }
+    })
     
     if (!validateForm()) {
-      addLog('ERROR', 'Validation du formulaire échouée', errors)
+      addLog('ERROR', 'Validation du formulaire échouée', {
+        errors: Object.keys(errors),
+        step: currentStep
+      })
+      
+      logUserInteraction('SUBMIT_FAILED_VALIDATION', 'bouton-soumettre', {
+        step: currentStep,
+        errorsCount: Object.keys(errors).length,
+        errors: Object.keys(errors)
+      })
       return
     }
     
     setIsSubmitting(true)
-    addLog('INFO', 'Début de la soumission', { 
-      title: formData.title, 
-      photosCount: photos.length,
-      photosDetails: photos.map(p => ({
-        id: p.id,
-        name: p.name,
-        hasImageUrl: !!p.imageUrl,
-        hasPreview: !!p.preview,
-        processed: p.processed,
-        error: p.error
-      }))
-    })
     
     try {
-      // Vérifier que nous avons au moins une photo valide
+      // Vérifier qu'on a au moins une photo valide
       const validPhoto = photos.find(photo => 
         photo.processed && 
         !photo.error && 
@@ -167,12 +321,17 @@ export default function SharePhoto() {
         throw new Error('Aucune photo valide trouvée')
       }
       
-      // Utiliser imageUrl en priorité, puis preview
       const imageToSubmit = validPhoto.imageUrl || validPhoto.preview
       
-      if (!imageToSubmit) {
-        throw new Error('Impossible de récupérer l\'image à soumettre')
-      }
+      addLog('INFO', 'Photo valide trouvée pour soumission', {
+        photoId: validPhoto.id,
+        photoName: validPhoto.name,
+        photoSize: validPhoto.size,
+        hasImageUrl: !!validPhoto.imageUrl,
+        hasPreview: !!validPhoto.preview,
+        imageType: typeof imageToSubmit,
+        imageLength: imageToSubmit?.length
+      })
       
       // Validation de l'image
       if (typeof imageToSubmit !== 'string') {
@@ -197,14 +356,17 @@ export default function SharePhoto() {
         difficulty: 'Facile'
       }
       
-      addLog('INFO', 'Données prêtes pour envoi', {
-        hasTitle: !!submitData.title,
+      addLog('INFO', 'Données préparées pour envoi API', {
+        title: submitData.title,
         titleLength: submitData.title.length,
-        hasImage: !!submitData.image,
-        imageType: typeof submitData.image,
+        hasDescription: !!submitData.description,
+        descriptionLength: submitData.description.length,
         imageLength: submitData.image.length,
         imagePrefix: submitData.image.substring(0, 50) + '...',
-        hasDescription: !!submitData.description
+        imageType: typeof submitData.image,
+        isDataUrl: submitData.image.startsWith('data:image/'),
+        category: submitData.category,
+        author: submitData.author
       })
       
       const response = await fetch('/api/recipes', {
@@ -215,10 +377,12 @@ export default function SharePhoto() {
         body: JSON.stringify(submitData)
       })
       
-      addLog('INFO', 'Réponse reçue', { 
+      addLog('INFO', 'Réponse API reçue', { 
         status: response.status, 
         statusText: response.statusText,
-        headers: Object.fromEntries(response.headers.entries())
+        ok: response.ok,
+        headers: Object.fromEntries(response.headers.entries()),
+        url: response.url
       })
       
       if (!response.ok) {
@@ -230,49 +394,119 @@ export default function SharePhoto() {
           errorData = { error: errorText }
         }
         
-        addLog('ERROR', 'Erreur de soumission', { 
+        addLog('ERROR', 'Erreur de soumission API', { 
           status: response.status, 
           statusText: response.statusText,
           errorText: errorText.substring(0, 500),
-          errorData 
+          errorData,
+          responseHeaders: Object.fromEntries(response.headers.entries())
         })
+        
         throw new Error(errorData.error || errorText || `Erreur HTTP ${response.status}`)
       }
       
       const result = await response.json()
-      addLog('SUCCESS', 'Photo partagée avec succès', result)
+      
+      addLog('INFO', 'Photo partagée avec succès', {
+        recipeId: result.id,
+        message: result.message,
+        responseKeys: Object.keys(result),
+        submissionTime: new Date().toISOString()
+      })
+      
+      logUserInteraction('PHOTO_SHARED_SUCCESS', 'soumission-photo', {
+        recipeId: result.id,
+        title: formData.title,
+        photosCount: photos.length,
+        step: currentStep
+      })
       
       setShowSuccessMessage(true)
       
     } catch (error) {
       addLog('ERROR', 'Erreur lors de la soumission', { 
-        message: error.message, 
-        stack: error.stack,
-        name: error.name
+        errorName: error.name,
+        errorMessage: error.message, 
+        errorStack: error.stack,
+        step: currentStep,
+        photosCount: photos.length,
+        formDataState: {
+          hasTitle: !!formData.title,
+          hasDescription: !!formData.description
+        }
       })
+      
+      logError('Erreur soumission SharePhoto', error, {
+        component: 'SharePhoto',
+        action: 'handleSubmit',
+        step: currentStep,
+        photosCount: photos.length
+      })
+      
       setErrors({ submit: `Erreur: ${error.message}` })
     } finally {
       setIsSubmitting(false)
+      addLog('DEBUG', 'Fin de processus de soumission', {
+        isSubmitting: false,
+        step: currentStep
+      })
     }
   }
 
   const nextStep = () => {
+    addLog('INFO', `Tentative de passage à l'étape suivante (${currentStep} -> ${currentStep + 1})`, {
+      currentStep,
+      hasTitle: !!formData.title.trim(),
+      photosCount: photos.length
+    })
+    
     if (currentStep === 1 && !formData.title.trim()) {
       setErrors({ title: 'Le titre est requis pour continuer' })
+      addLog('WARNING', 'Impossible de passer à l\'étape suivante: titre manquant')
       return
     }
+    
     if (currentStep < 3) {
       setCurrentStep(currentStep + 1)
       setErrors({})
+      
+      addLog('INFO', `Passage à l'étape ${currentStep + 1} réussi`)
+      
+      logUserInteraction('STEP_CHANGE', 'navigation-etapes', {
+        fromStep: currentStep,
+        toStep: currentStep + 1,
+        direction: 'next'
+      })
     }
   }
 
   const prevStep = () => {
+    addLog('INFO', `Retour à l'étape précédente (${currentStep} -> ${currentStep - 1})`, {
+      currentStep
+    })
+    
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1)
       setErrors({})
+      
+      logUserInteraction('STEP_CHANGE', 'navigation-etapes', {
+        fromStep: currentStep,
+        toStep: currentStep - 1,
+        direction: 'previous'
+      })
     }
   }
+
+  // Logs pour les changements de photos
+  React.useEffect(() => {
+    addLog('DEBUG', 'État des photos mis à jour', {
+      photosCount: photos.length,
+      processed: photos.filter(p => p.processed).length,
+      processing: photos.filter(p => p.processing).length,
+      errors: photos.filter(p => p.error).length,
+      step: currentStep
+    })
+  }, [photos, currentStep])
 
   // Message de confirmation de soumission
   if (showSuccessMessage) {
@@ -353,7 +587,7 @@ export default function SharePhoto() {
         background: 'white',
         borderRadius: '10px',
         width: '90%',
-        maxWidth: '800px',
+        maxWidth: '900px',
         height: '80%',
         display: 'flex',
         flexDirection: 'column'
@@ -365,18 +599,37 @@ export default function SharePhoto() {
           justifyContent: 'space-between',
           alignItems: 'center'
         }}>
-          <h3 style={{ margin: 0 }}>Logs de débogage</h3>
-          <button 
-            onClick={() => setShowLogs(false)}
-            style={{
-              background: 'none',
-              border: 'none',
-              fontSize: '1.5rem',
-              cursor: 'pointer'
-            }}
-          >
-            ✕
-          </button>
+          <h3 style={{ margin: 0 }}>🔍 Logs de débogage SharePhoto ({logs.length})</h3>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.9rem', color: '#666' }}>
+              Étape: {currentStep} | Photos: {photos.length}
+            </span>
+            <button 
+              onClick={() => setLogs([])}
+              style={{
+                background: '#f44336',
+                color: 'white',
+                border: 'none',
+                padding: '5px 10px',
+                borderRadius: '5px',
+                fontSize: '0.8rem',
+                cursor: 'pointer'
+              }}
+            >
+              Vider
+            </button>
+            <button 
+              onClick={() => setShowLogs(false)}
+              style={{
+                background: 'none',
+                border: 'none',
+                fontSize: '1.5rem',
+                cursor: 'pointer'
+              }}
+            >
+              ✕
+            </button>
+          </div>
         </div>
         
         <div style={{
@@ -387,47 +640,96 @@ export default function SharePhoto() {
           {logs.map(log => (
             <div key={log.id} style={{
               marginBottom: '15px',
-              padding: '10px',
-              borderRadius: '5px',
+              padding: '12px',
+              borderRadius: '8px',
               background: log.level === 'ERROR' ? '#ffebee' : 
-                         log.level === 'SUCCESS' ? '#e8f5e8' : '#f5f5f5',
+                         log.level === 'WARNING' ? '#fff3e0' :
+                         log.level === 'INFO' ? '#e3f2fd' :
+                         log.level === 'INTERACTION' ? '#e8f5e8' : '#f5f5f5',
               borderLeft: `4px solid ${
                 log.level === 'ERROR' ? '#f44336' : 
-                log.level === 'SUCCESS' ? '#4caf50' : '#2196f3'
+                log.level === 'WARNING' ? '#ff9800' :
+                log.level === 'INFO' ? '#2196f3' :
+                log.level === 'INTERACTION' ? '#4caf50' : '#9e9e9e'
               }`
             }}>
               <div style={{
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                marginBottom: '5px'
+                marginBottom: '8px'
               }}>
-                <span style={{
-                  fontWeight: 'bold',
-                  color: log.level === 'ERROR' ? '#f44336' : 
-                        log.level === 'SUCCESS' ? '#4caf50' : '#2196f3'
-                }}>
-                  {log.level}
-                </span>
-                <span style={{ fontSize: '0.8rem', color: '#666' }}>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                  <span style={{
+                    fontWeight: 'bold',
+                    fontSize: '0.85rem',
+                    color: log.level === 'ERROR' ? '#f44336' : 
+                          log.level === 'WARNING' ? '#ff9800' :
+                          log.level === 'INFO' ? '#2196f3' :
+                          log.level === 'INTERACTION' ? '#4caf50' : '#9e9e9e'
+                  }}>
+                    {log.level}
+                  </span>
+                  <span style={{ 
+                    fontSize: '0.8rem', 
+                    color: '#666',
+                    background: 'rgba(0,0,0,0.1)',
+                    padding: '2px 6px',
+                    borderRadius: '3px'
+                  }}>
+                    Étape {log.step}
+                  </span>
+                  <span style={{ 
+                    fontSize: '0.8rem', 
+                    color: '#666',
+                    background: 'rgba(0,0,0,0.1)',
+                    padding: '2px 6px',
+                    borderRadius: '3px'
+                  }}>
+                    Photos: {log.photosCount}
+                  </span>
+                </div>
+                <span style={{ fontSize: '0.75rem', color: '#888' }}>
                   {new Date(log.timestamp).toLocaleTimeString()}
                 </span>
               </div>
-              <div style={{ marginBottom: '5px' }}>{log.message}</div>
+              <div style={{ marginBottom: '8px', fontWeight: '500' }}>{log.message}</div>
               {log.data && (
-                <pre style={{
-                  background: 'rgba(0, 0, 0, 0.05)',
-                  padding: '10px',
-                  borderRadius: '3px',
-                  fontSize: '0.8rem',
-                  overflow: 'auto',
-                  maxHeight: '200px'
-                }}>
-                  {log.data}
-                </pre>
+                <details style={{ marginTop: '8px' }}>
+                  <summary style={{ 
+                    cursor: 'pointer', 
+                    fontSize: '0.85rem', 
+                    color: '#666',
+                    userSelect: 'none'
+                  }}>
+                    Voir les détails
+                  </summary>
+                  <pre style={{
+                    background: 'rgba(0, 0, 0, 0.05)',
+                    padding: '10px',
+                    borderRadius: '4px',
+                    fontSize: '0.75rem',
+                    overflow: 'auto',
+                    maxHeight: '200px',
+                    marginTop: '8px'
+                  }}>
+                    {log.data}
+                  </pre>
+                </details>
               )}
             </div>
           ))}
+          
+          {logs.length === 0 && (
+            <div style={{
+              textAlign: 'center',
+              color: '#666',
+              fontStyle: 'italic',
+              padding: '40px'
+            }}>
+              Aucun log disponible. Les actions seront enregistrées ici.
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -10,7 +10,9 @@ const LOG_LEVELS = {
   DEBUG: 3
 }
 
-const CURRENT_LOG_LEVEL = LOG_LEVELS.DEBUG
+const CURRENT_LOG_LEVEL = typeof window !== 'undefined' 
+  ? (localStorage.getItem('logLevel') ? parseInt(localStorage.getItem('logLevel')) : LOG_LEVELS.INFO)
+  : LOG_LEVELS.INFO
 
 function createLogEntry(level, message, context = {}) {
   return {
@@ -18,22 +20,17 @@ function createLogEntry(level, message, context = {}) {
     level,
     message,
     context,
-    id: Math.random().toString(36).substr(2, 9)
+    id: Date.now() + Math.random(),
+    url: typeof window !== 'undefined' ? window.location.href : '',
+    userAgent: typeof navigator !== 'undefined' ? navigator.userAgent.substring(0, 100) : ''
   }
 }
 
 export function logError(message, error = null, context = {}) {
   if (CURRENT_LOG_LEVEL >= LOG_LEVELS.ERROR) {
-    const logEntry = createLogEntry('ERROR', message, {
-      ...context,
-      error: error ? {
-        message: error.message,
-        stack: error.stack,
-        name: error.name
-      } : null
-    })
+    const logEntry = createLogEntry('ERROR', message, { error: error?.message, ...context })
     
-    console.error(`[ERROR] ${message}`, logEntry)
+    console.error(`[ERROR] ${message}`, error, logEntry)
     return logEntry
   }
 }
