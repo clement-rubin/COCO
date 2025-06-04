@@ -265,219 +265,135 @@ export default async function handler(req, res) {
       switch (action) {
         case 'send_request':
           logInfo('Friends API - Send friend request', {
-            reference: requestReference,
+            requestId,
             userId: user_id?.substring(0, 8) + '...',
             friendId: friend_id?.substring(0, 8) + '...',
             step: 'send_request_start'
           })
 
-          const sendStartTime = Date.now()
-
-          // Envoyer une demande d'ami
-          const { error: sendError } = await supabase
-            .from('friendships')
-            .insert({
-              user_id,
-              friend_id,
-              status: 'pending'
-            })
-
-          const sendDuration = Date.now() - sendStartTime
-
-          logInfo('Friends API - Send request query executed', {
-            reference: requestReference,
-            userId: user_id?.substring(0, 8) + '...',
-            friendId: friend_id?.substring(0, 8) + '...',
-            success: !sendError,
-            sendDuration,
-            step: 'send_request_executed',
-            error: sendError?.message
-          })
-
-          logPerformance('Send friend request', sendDuration, {
-            userId: user_id?.substring(0, 8) + '...',
-            friendId: friend_id?.substring(0, 8) + '...',
-            success: !sendError
+          // Use the SQL function instead of manual insertion
+          const { data: sendResult, error: sendError } = await supabase.rpc('send_friend_request', {
+            target_user_id: friend_id
           })
 
           if (sendError) {
             logError('Friends API - Send request error', sendError, {
-              reference: requestReference,
+              requestId,
               userId: user_id?.substring(0, 8) + '...',
-              friendId: friend_id?.substring(0, 8) + '...',
-              errorCode: sendError.code,
-              errorDetails: sendError.details
+              friendId: friend_id?.substring(0, 8) + '...'
             })
             throw sendError
           }
 
-          logApiCall('POST', '/api/friends', { action, user_id, friend_id }, {
-            status: 201,
-            ok: true,
-            responseTime: sendDuration
+          if (sendResult.error) {
+            return res.status(400).json({ 
+              error: sendResult.error,
+              reference: requestId
+            })
+          }
+
+          logInfo('Friends API - Friend request sent successfully', {
+            requestId,
+            friendshipId: sendResult.friendship_id,
+            status: sendResult.status
           })
 
-          return res.status(201).json({ message: 'Demande d\'ami envoyée' })
+          return res.status(201).json({
+            message: 'Demande d\'ami envoyée',
+            friendship: sendResult,
+            reference: requestId
+          })
 
         case 'accept_request':
           logInfo('Friends API - Accept friend request', {
-            reference: requestReference,
-            requestId: request_id,
+            requestId,
+            friendshipRequestId: request_id,
             step: 'accept_request_start'
           })
 
-          const acceptStartTime = Date.now()
-
-          // Accepter une demande d'ami
-          const { error: acceptError } = await supabase
-            .from('friendships')
-            .update({ status: 'accepted' })
-            .eq('id', request_id)
-
-          const acceptDuration = Date.now() - acceptStartTime
-
-          logInfo('Friends API - Accept request query executed', {
-            reference: requestReference,
-            requestId: request_id,
-            success: !acceptError,
-            acceptDuration,
-            step: 'accept_request_executed',
-            error: acceptError?.message
-          })
-
-          logPerformance('Accept friend request', acceptDuration, {
-            requestId: request_id,
-            success: !acceptError
+          // Use the SQL function
+          const { data: acceptResult, error: acceptError } = await supabase.rpc('accept_friend_request', {
+            friendship_id: request_id
           })
 
           if (acceptError) {
             logError('Friends API - Accept request error', acceptError, {
-              reference: requestReference,
-              requestId: request_id,
-              errorCode: acceptError.code,
-              errorDetails: acceptError.details
+              requestId,
+              friendshipRequestId: request_id
             })
             throw acceptError
           }
 
-          logApiCall('POST', '/api/friends', { action, request_id }, {
-            status: 200,
-            ok: true,
-            responseTime: acceptDuration
+          if (acceptResult.error) {
+            return res.status(400).json({ 
+              error: acceptResult.error,
+              reference: requestId
+            })
+          }
+
+          logInfo('Friends API - Friend request accepted successfully', {
+            requestId,
+            friendshipRequestId: request_id,
+            status: acceptResult.status
           })
 
-          return res.status(200).json({ message: 'Demande acceptée' })
+          return res.status(200).json({
+            message: 'Demande d\'ami acceptée',
+            result: acceptResult,
+            reference: requestId
+          })
 
         case 'reject_request':
           logInfo('Friends API - Reject friend request', {
-            reference: requestReference,
-            requestId: request_id,
+            requestId,
+            friendshipRequestId: request_id,
             step: 'reject_request_start'
           })
 
-          const rejectStartTime = Date.now()
-
-          // Rejeter une demande d'ami
-          const { error: rejectError } = await supabase
-            .from('friendships')
-            .delete()
-            .eq('id', request_id)
-
-          const rejectDuration = Date.now() - rejectStartTime
-
-          logInfo('Friends API - Reject request query executed', {
-            reference: requestReference,
-            requestId: request_id,
-            success: !rejectError,
-            rejectDuration,
-            step: 'reject_request_executed',
-            error: rejectError?.message
-          })
-
-          logPerformance('Reject friend request', rejectDuration, {
-            requestId: request_id,
-            success: !rejectError
+          // Use the SQL function
+          const { data: rejectResult, error: rejectError } = await supabase.rpc('reject_friend_request', {
+            friendship_id: request_id
           })
 
           if (rejectError) {
             logError('Friends API - Reject request error', rejectError, {
-              reference: requestReference,
-              requestId: request_id,
-              errorCode: rejectError.code,
-              errorDetails: rejectError.details
+              requestId,
+              friendshipRequestId: request_id
             })
             throw rejectError
           }
 
-          logApiCall('POST', '/api/friends', { action, request_id }, {
-            status: 200,
-            ok: true,
-            responseTime: rejectDuration
-          })
-
-          return res.status(200).json({ message: 'Demande rejetée' })
-
-        case 'remove_friend':
-          logInfo('Friends API - Remove friend', {
-            reference: requestReference,
-            userId: user_id?.substring(0, 8) + '...',
-            friendId: friend_id?.substring(0, 8) + '...',
-            step: 'remove_friend_start'
-          })
-
-          const removeStartTime = Date.now()
-
-          // Supprimer un ami - Fixed SQL query
-          const { error: removeError } = await supabase
-            .from('friendships')
-            .delete()
-            .or(`and(user_id.eq.${user_id},friend_id.eq.${friend_id}),and(user_id.eq.${friend_id},friend_id.eq.${user_id})`)
-
-          const removeDuration = Date.now() - removeStartTime
-
-          logInfo('Friends API - Remove friend query executed', {
-            reference: requestReference,
-            userId: user_id?.substring(0, 8) + '...',
-            friendId: friend_id?.substring(0, 8) + '...',
-            success: !removeError,
-            removeDuration,
-            step: 'remove_friend_executed',
-            error: removeError?.message
-          })
-
-          logPerformance('Remove friend', removeDuration, {
-            userId: user_id?.substring(0, 8) + '...',
-            friendId: friend_id?.substring(0, 8) + '...',
-            success: !removeError
-          })
-
-          if (removeError) {
-            logError('Friends API - Remove friend error', removeError, {
-              reference: requestReference,
-              userId: user_id?.substring(0, 8) + '...',
-              friendId: friend_id?.substring(0, 8) + '...',
-              errorCode: removeError.code,
-              errorDetails: removeError.details
+          if (rejectResult.error) {
+            return res.status(400).json({ 
+              error: rejectResult.error,
+              reference: requestId
             })
-            throw removeError
           }
 
-          logApiCall('POST', '/api/friends', { action, user_id, friend_id }, {
-            status: 200,
-            ok: true,
-            responseTime: removeDuration
+          logInfo('Friends API - Friend request rejected successfully', {
+            requestId,
+            friendshipRequestId: request_id,
+            status: rejectResult.status
           })
 
-          return res.status(200).json({ message: 'Ami supprimé' })
+          return res.status(200).json({
+            message: 'Demande d\'ami refusée',
+            result: rejectResult,
+            reference: requestId
+          })
 
         default:
           logWarning('Friends API - Unknown action', {
-            reference: requestReference,
-            action: action,
-            availableActions: ['send_request', 'accept_request', 'reject_request', 'remove_friend'],
-            step: 'unknown_action'
+            requestId,
+            action,
+            allowedActions: ['send_request', 'accept_request', 'reject_request']
           })
-          return res.status(400).json({ error: 'Action non reconnue' })
+
+          return res.status(400).json({ 
+            error: 'Action non reconnue',
+            allowedActions: ['send_request', 'accept_request', 'reject_request'],
+            reference: requestId
+          })
       }
     }
 
