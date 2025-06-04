@@ -152,15 +152,20 @@ export default function SharePhoto() {
         description: formData.description || `Photo partagée: ${formData.title}`,
         category: 'Photo partagée',
         author: 'Utilisateur anonyme',
-        image: photos[0]?.imageUrl, // Utiliser l'URL de la première photo
-        ingredients: [],
-        instructions: [],
-        prepTime: '',
-        cookTime: '',
+        image: photos[0]?.imageUrl || photos[0]?.preview, // Utiliser imageUrl en priorité
+        ingredients: ['Photo partagée sans recette détaillée'],
+        instructions: [{ step: 1, instruction: 'Voir la photo pour inspiration' }],
+        prepTime: null,
+        cookTime: null,
         difficulty: 'Facile'
       }
       
-      addLog('INFO', 'Envoi des données', submitData)
+      addLog('INFO', 'Envoi des données', {
+        hasTitle: !!submitData.title,
+        hasImage: !!submitData.image,
+        imageType: typeof submitData.image,
+        imageLength: submitData.image?.length
+      })
       
       const response = await fetch('/api/recipes', {
         method: 'POST',
@@ -176,12 +181,19 @@ export default function SharePhoto() {
       })
       
       if (!response.ok) {
-        const errorData = await response.text()
+        const errorText = await response.text()
+        let errorData
+        try {
+          errorData = JSON.parse(errorText)
+        } catch {
+          errorData = { error: errorText }
+        }
+        
         addLog('ERROR', 'Erreur de soumission', { 
           status: response.status, 
           error: errorData 
         })
-        throw new Error(`Erreur ${response.status}: ${errorData}`)
+        throw new Error(errorData.error || `Erreur ${response.status}`)
       }
       
       const result = await response.json()

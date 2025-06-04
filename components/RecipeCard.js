@@ -27,12 +27,12 @@ export default function RecipeCard({ recipe, isUserRecipe = true, isPhotoOnly = 
       imageDataType: typeof imageData,
       imageDataLength: imageData?.length,
       isArray: Array.isArray(imageData),
-      isString: typeof imageData === 'string',
-      rawImageData: imageData // Log complet pour debug
+      isString: typeof imageData === 'string'
     })
     
-    // Utiliser la fonction améliorée de conversion
-    const processedUrl = getRecipeImageUrl(imageData, '/placeholder-recipe.jpg')
+    // Utiliser la fonction améliorée de conversion d'images
+    const { processImageData } = require('../utils/imageUtils')
+    const processedUrl = processImageData(imageData, '/placeholder-recipe.jpg')
     
     logInfo('RecipeCard: URL d\'image traitée', {
       recipeId: recipe.id,
