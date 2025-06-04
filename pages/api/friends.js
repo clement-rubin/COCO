@@ -1,458 +1,357 @@
 import { supabase } from '../../lib/supabase'
-import { logInfo, logError, logDebug, logWarning, logApiCall, logPerformance } from '../../utils/logger'
+import { logError, logInfo, logDebug, logApiCall } from '../../utils/logger'
 
 export default async function handler(req, res) {
-  // En-têtes CORS
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-
-  if (req.method === 'OPTIONS') {
-    res.status(204).end()
-    return
-  }
-
   const startTime = Date.now()
-  const requestReference = `friends-api-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`
-
-  logInfo(`API friends - ${req.method} request started`, {
-    reference: requestReference,
-    method: req.method,
-    query: req.query,
-    hasBody: !!req.body,
-    bodyKeys: req.body ? Object.keys(req.body) : [],
-    contentType: req.headers['content-type'],
-    userAgent: req.headers['user-agent']?.substring(0, 100),
-    timestamp: new Date().toISOString()
-  })
-
+  const requestId = Math.random().toString(36).substring(2, 15)
+  
   try {
-    const { user_id, friend_id, action, query } = req.body || req.query
-
-    logDebug('Friends API - Request parameters', {
-      reference: requestReference,
-      hasUserId: !!user_id,
-      hasFriendId: !!friend_id,
-      hasAction: !!action,
-      hasQuery: !!query,
-      userIdType: typeof user_id,
-      friendIdType: typeof friend_id,
-      actionType: typeof action,
-      queryType: typeof query,
-      step: 'parameter_extraction'
-    })
-
+    logApiCall(req.method, '/api/friends', req.body || req.query, null)
+    
     if (req.method === 'GET') {
-      logInfo('Friends API - GET request processing', {
-        reference: requestReference,
-        hasQuery: !!query,
-        hasUserId: !!user_id,
-        queryValue: query,
-        userIdValue: user_id?.substring(0, 8) + '...',
-        step: 'get_request_start'
-      })
-
-      // Recherche d'utilisateurs ou récupération d'amis
-      if (query) {
-        logInfo('Friends API - User search request', {
-          reference: requestReference,
-          query: query,
-          queryLength: query.length,
-          step: 'user_search_start'
-        })
-
-        const searchStartTime = Date.now()
-
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('id, display_name, avatar_url, created_at')
-          .ilike('display_name', `%${query}%`)
-          .limit(10)
-
-        const searchDuration = Date.now() - searchStartTime
-
-        logInfo('Friends API - User search query executed', {
-          reference: requestReference,
-          query: query,
-          success: !error,
-          resultsCount: data?.length || 0,
-          searchDuration,
-          step: 'user_search_executed',
-          error: error?.message
-        })
-
-        logPerformance('User search query', searchDuration, {
-          query: query,
-          resultsCount: data?.length || 0,
-          success: !error
-        })
-
-        if (error) {
-          logError('Friends API - User search error', error, {
-            reference: requestReference,
-            query: query,
-            errorCode: error.code,
-            errorDetails: error.details
-          })
-          throw error
-        }
-
-        logApiCall('GET', '/api/friends', { query }, {
-          status: 200,
-          ok: true,
-          responseTime: searchDuration,
-          data: { resultsCount: data?.length || 0 }
-        })
-
-        logInfo('Friends API - User search completed successfully', {
-          reference: requestReference,
-          query: query,
-          resultsCount: data?.length || 0,
-          totalDuration: Date.now() - startTime,
-          step: 'user_search_completed'
-        })
-
-        return res.status(200).json(data || [])
-      }
-
-      if (user_id) {
-        logInfo('Friends API - Load user friends request', {
-          reference: requestReference,
-          userId: user_id?.substring(0, 8) + '...',
-          step: 'load_friends_start'
-        })
-
-        const friendsStartTime = Date.now()
-
-        // Récupérer les amis d'un utilisateur
-        logDebug('Friends API - Fetching friends list', {
-          reference: requestReference,
-          userId: user_id?.substring(0, 8) + '...',
-          step: 'friends_query_start'
-        })
-
-        const { data: friends, error: friendsError } = await supabase
-          .from('friendships')
-          .select(`
-            id,
-            friend_id,
-            profiles!friendships_friend_id_fkey (
-              id,
-              display_name,
-              avatar_url,
-              created_at
-            )
-          `)
-          .eq('user_id', user_id)
-          .eq('status', 'accepted')
-
-        const friendsQueryDuration = Date.now() - friendsStartTime
-
-        logInfo('Friends API - Friends query executed', {
-          reference: requestReference,
-          userId: user_id?.substring(0, 8) + '...',
-          success: !friendsError,
-          friendsCount: friends?.length || 0,
-          friendsQueryDuration,
-          step: 'friends_query_executed',
-          error: friendsError?.message
-        })
-
-        if (friendsError) {
-          logError('Friends API - Friends query error', friendsError, {
-            reference: requestReference,
-            userId: user_id?.substring(0, 8) + '...',
-            errorCode: friendsError.code,
-            errorDetails: friendsError.details
-          })
-          throw friendsError
-        }
-
-        // Récupérer les demandes en attente
-        logDebug('Friends API - Fetching pending requests', {
-          reference: requestReference,
-          userId: user_id?.substring(0, 8) + '...',
-          step: 'pending_requests_query_start'
-        })
-
-        const pendingStartTime = Date.now()
-
-        const { data: pendingRequests, error: pendingError } = await supabase
-          .from('friendships')
-          .select(`
-            id,
-            user_id,
-            profiles!friendships_user_id_fkey (
-              id,
-              display_name,
-              avatar_url
-            )
-          `)
-          .eq('friend_id', user_id)
-          .eq('status', 'pending')
-
-        const pendingQueryDuration = Date.now() - pendingStartTime
-
-        logInfo('Friends API - Pending requests query executed', {
-          reference: requestReference,
-          userId: user_id?.substring(0, 8) + '...',
-          success: !pendingError,
-          pendingRequestsCount: pendingRequests?.length || 0,
-          pendingQueryDuration,
-          step: 'pending_requests_query_executed',
-          error: pendingError?.message
-        })
-
-        if (pendingError) {
-          logError('Friends API - Pending requests query error', pendingError, {
-            reference: requestReference,
-            userId: user_id?.substring(0, 8) + '...',
-            errorCode: pendingError.code,
-            errorDetails: pendingError.details
-          })
-          throw pendingError
-        }
-
-        logPerformance('Load friends data', Date.now() - friendsStartTime, {
-          userId: user_id?.substring(0, 8) + '...',
-          friendsCount: friends?.length || 0,
-          pendingRequestsCount: pendingRequests?.length || 0
-        })
-
-        const responseData = {
-          friends: friends || [],
-          pendingRequests: pendingRequests || []
-        }
-
-        logApiCall('GET', '/api/friends', { user_id }, {
-          status: 200,
-          ok: true,
-          responseTime: Date.now() - startTime,
-          data: {
-            friendsCount: friends?.length || 0,
-            pendingRequestsCount: pendingRequests?.length || 0
-          }
-        })
-
-        logInfo('Friends API - Load friends completed successfully', {
-          reference: requestReference,
-          userId: user_id?.substring(0, 8) + '...',
-          friendsCount: friends?.length || 0,
-          pendingRequestsCount: pendingRequests?.length || 0,
-          totalDuration: Date.now() - startTime,
-          step: 'load_friends_completed'
-        })
-
-        return res.status(200).json(responseData)
-      }
+      return await handleGetRequest(req, res, requestId)
+    } else if (req.method === 'POST') {
+      return await handlePostRequest(req, res, requestId)
+    } else {
+      res.setHeader('Allow', ['GET', 'POST'])
+      return res.status(405).json({ error: 'Method not allowed' })
     }
-
-    if (req.method === 'POST') {
-      const { action, user_id, friend_id, request_id } = req.body
-
-      logInfo('Friends API - POST request processing', {
-        reference: requestReference,
-        action: action,
-        hasUserId: !!user_id,
-        hasFriendId: !!friend_id,
-        hasRequestId: !!request_id,
-        userIdType: typeof user_id,
-        friendIdType: typeof friend_id,
-        requestIdType: typeof request_id,
-        step: 'post_request_start'
-      })
-
-      switch (action) {
-        case 'send_request':
-          logInfo('Friends API - Send friend request', {
-            requestId,
-            userId: user_id?.substring(0, 8) + '...',
-            friendId: friend_id?.substring(0, 8) + '...',
-            step: 'send_request_start'
-          })
-
-          // Use the SQL function instead of manual insertion
-          const { data: sendResult, error: sendError } = await supabase.rpc('send_friend_request', {
-            target_user_id: friend_id
-          })
-
-          if (sendError) {
-            logError('Friends API - Send request error', sendError, {
-              requestId,
-              userId: user_id?.substring(0, 8) + '...',
-              friendId: friend_id?.substring(0, 8) + '...'
-            })
-            throw sendError
-          }
-
-          if (sendResult.error) {
-            return res.status(400).json({ 
-              error: sendResult.error,
-              reference: requestId
-            })
-          }
-
-          logInfo('Friends API - Friend request sent successfully', {
-            requestId,
-            friendshipId: sendResult.friendship_id,
-            status: sendResult.status
-          })
-
-          return res.status(201).json({
-            message: 'Demande d\'ami envoyée',
-            friendship: sendResult,
-            reference: requestId
-          })
-
-        case 'accept_request':
-          logInfo('Friends API - Accept friend request', {
-            requestId,
-            friendshipRequestId: request_id,
-            step: 'accept_request_start'
-          })
-
-          // Use the SQL function
-          const { data: acceptResult, error: acceptError } = await supabase.rpc('accept_friend_request', {
-            friendship_id: request_id
-          })
-
-          if (acceptError) {
-            logError('Friends API - Accept request error', acceptError, {
-              requestId,
-              friendshipRequestId: request_id
-            })
-            throw acceptError
-          }
-
-          if (acceptResult.error) {
-            return res.status(400).json({ 
-              error: acceptResult.error,
-              reference: requestId
-            })
-          }
-
-          logInfo('Friends API - Friend request accepted successfully', {
-            requestId,
-            friendshipRequestId: request_id,
-            status: acceptResult.status
-          })
-
-          return res.status(200).json({
-            message: 'Demande d\'ami acceptée',
-            result: acceptResult,
-            reference: requestId
-          })
-
-        case 'reject_request':
-          logInfo('Friends API - Reject friend request', {
-            requestId,
-            friendshipRequestId: request_id,
-            step: 'reject_request_start'
-          })
-
-          // Use the SQL function
-          const { data: rejectResult, error: rejectError } = await supabase.rpc('reject_friend_request', {
-            friendship_id: request_id
-          })
-
-          if (rejectError) {
-            logError('Friends API - Reject request error', rejectError, {
-              requestId,
-              friendshipRequestId: request_id
-            })
-            throw rejectError
-          }
-
-          if (rejectResult.error) {
-            return res.status(400).json({ 
-              error: rejectResult.error,
-              reference: requestId
-            })
-          }
-
-          logInfo('Friends API - Friend request rejected successfully', {
-            requestId,
-            friendshipRequestId: request_id,
-            status: rejectResult.status
-          })
-
-          return res.status(200).json({
-            message: 'Demande d\'ami refusée',
-            result: rejectResult,
-            reference: requestId
-          })
-
-        default:
-          logWarning('Friends API - Unknown action', {
-            requestId,
-            action,
-            allowedActions: ['send_request', 'accept_request', 'reject_request']
-          })
-
-          return res.status(400).json({ 
-            error: 'Action non reconnue',
-            allowedActions: ['send_request', 'accept_request', 'reject_request'],
-            reference: requestId
-          })
-      }
-    }
-
-    logWarning('Friends API - Method not allowed', {
-      reference: requestReference,
-      method: req.method,
-      allowedMethods: ['GET', 'POST']
-    })
-
-    res.setHeader('Allow', ['GET', 'POST'])
-    res.status(405).json({ error: 'Méthode non autorisée' })
-
   } catch (error) {
-    const totalDuration = Date.now() - startTime
-
-    logError('Friends API - General error', error, {
-      reference: requestReference,
+    const responseTime = Date.now() - startTime
+    
+    logError('Erreur dans l\'API friends', error, {
+      requestId,
       method: req.method,
+      url: req.url,
+      responseTime,
       query: req.query,
-      body: req.body,
-      errorMessage: error.message,
-      errorStack: error.stack?.substring(0, 500),
-      errorName: error.name,
-      totalDuration,
-      timestamp: new Date().toISOString(),
-      supabaseError: error?.code ? {
-        code: error.code,
-        details: error.details,
-        hint: error.hint,
-        message: error.message
-      } : null
+      body: req.body
     })
-
-    logApiCall(req.method, '/api/friends', req.body || req.query, {
-      status: 500,
-      ok: false,
-      responseTime: totalDuration,
-      error: error.message
-    })
-
-    res.status(500).json({ 
+    
+    return res.status(500).json({
       error: 'Erreur serveur interne',
       message: error.message,
-      reference: requestReference,
+      reference: `friends-api-${Date.now()}-${requestId}`,
       timestamp: new Date().toISOString()
     })
-  } finally {
-    const totalDuration = Date.now() - startTime
+  }
+}
 
-    logInfo(`Friends API - ${req.method} completed`, {
-      reference: requestReference,
-      method: req.method,
-      totalDuration,
-      timestamp: new Date().toISOString()
+async function handleGetRequest(req, res, requestId) {
+  const { user_id, query } = req.query
+  
+  logInfo('Traitement requête GET friends', {
+    requestId,
+    user_id: user_id?.substring(0, 8) + '...',
+    query,
+    hasQuery: !!query
+  })
+  
+  // Si c'est une recherche d'utilisateurs
+  if (query) {
+    return await searchUsers(req, res, requestId, query)
+  }
+  
+  // Sinon, récupérer les amis et demandes en attente
+  if (!user_id) {
+    return res.status(400).json({ error: 'user_id is required' })
+  }
+  
+  try {
+    // Récupérer les amis acceptés avec leurs profils
+    const { data: friends, error: friendsError } = await supabase
+      .from('friendships')
+      .select(`
+        id,
+        user_id,
+        friend_id,
+        status,
+        created_at,
+        updated_at,
+        profiles!friendships_friend_id_fkey (
+          id,
+          user_id,
+          display_name,
+          avatar_url,
+          bio,
+          created_at
+        )
+      `)
+      .eq('user_id', user_id)
+      .eq('status', 'accepted')
+      .order('created_at', { ascending: false })
+    
+    if (friendsError) {
+      logError('Erreur récupération amis', friendsError, { requestId, user_id })
+      throw new Error(`Erreur lors de la récupération des amis: ${friendsError.message}`)
+    }
+    
+    // Récupérer les demandes en attente avec les profils des demandeurs
+    const { data: pendingRequests, error: pendingError } = await supabase
+      .from('friendships')
+      .select(`
+        id,
+        user_id,
+        friend_id,
+        status,
+        created_at,
+        updated_at,
+        profiles!friendships_user_id_fkey (
+          id,
+          user_id,
+          display_name,
+          avatar_url,
+          bio,
+          created_at
+        )
+      `)
+      .eq('friend_id', user_id)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+    
+    if (pendingError) {
+      logError('Erreur récupération demandes', pendingError, { requestId, user_id })
+      throw new Error(`Erreur lors de la récupération des demandes: ${pendingError.message}`)
+    }
+    
+    logInfo('Données récupérées avec succès', {
+      requestId,
+      friendsCount: friends?.length || 0,
+      pendingRequestsCount: pendingRequests?.length || 0
     })
+    
+    return res.status(200).json({
+      friends: friends || [],
+      pendingRequests: pendingRequests || []
+    })
+    
+  } catch (error) {
+    logError('Erreur dans handleGetRequest', error, { requestId, user_id })
+    throw error
+  }
+}
 
-    logPerformance(`Friends API ${req.method}`, totalDuration, {
-      reference: requestReference,
-      method: req.method
+async function searchUsers(req, res, requestId, query) {
+  try {
+    logInfo('Recherche d\'utilisateurs', {
+      requestId,
+      query,
+      queryLength: query.length
     })
+    
+    if (!query || query.trim().length < 2) {
+      return res.status(400).json({ error: 'Query must be at least 2 characters' })
+    }
+    
+    // Rechercher dans les profils par nom d'affichage
+    const { data: users, error: searchError } = await supabase
+      .from('profiles')
+      .select(`
+        id,
+        user_id,
+        display_name,
+        avatar_url,
+        bio,
+        created_at
+      `)
+      .ilike('display_name', `%${query.trim()}%`)
+      .limit(20)
+    
+    if (searchError) {
+      logError('Erreur recherche utilisateurs', searchError, { requestId, query })
+      throw new Error(`Erreur lors de la recherche: ${searchError.message}`)
+    }
+    
+    logInfo('Recherche terminée', {
+      requestId,
+      query,
+      resultsCount: users?.length || 0
+    })
+    
+    return res.status(200).json(users || [])
+    
+  } catch (error) {
+    logError('Erreur dans searchUsers', error, { requestId, query })
+    throw error
+  }
+}
+
+async function handlePostRequest(req, res, requestId) {
+  const { action, user_id, friend_id, request_id } = req.body
+  
+  logInfo('Traitement requête POST friends', {
+    requestId,
+    action,
+    user_id: user_id?.substring(0, 8) + '...',
+    friend_id: friend_id?.substring(0, 8) + '...',
+    request_id
+  })
+  
+  try {
+    switch (action) {
+      case 'send_request':
+        return await sendFriendRequest(req, res, requestId, user_id, friend_id)
+      case 'accept_request':
+        return await acceptFriendRequest(req, res, requestId, request_id)
+      case 'reject_request':
+        return await rejectFriendRequest(req, res, requestId, request_id)
+      default:
+        return res.status(400).json({ error: 'Invalid action' })
+    }
+  } catch (error) {
+    logError('Erreur dans handlePostRequest', error, { requestId, action })
+    throw error
+  }
+}
+
+async function sendFriendRequest(req, res, requestId, user_id, friend_id) {
+  try {
+    if (!user_id || !friend_id) {
+      return res.status(400).json({ error: 'user_id and friend_id are required' })
+    }
+    
+    if (user_id === friend_id) {
+      return res.status(400).json({ error: 'Cannot send friend request to yourself' })
+    }
+    
+    // Vérifier si une relation existe déjà
+    const { data: existing, error: checkError } = await supabase
+      .from('friendships')
+      .select('id, status')
+      .or(`and(user_id.eq.${user_id},friend_id.eq.${friend_id}),and(user_id.eq.${friend_id},friend_id.eq.${user_id})`)
+    
+    if (checkError) {
+      logError('Erreur vérification relation existante', checkError, { requestId })
+      throw new Error(`Erreur lors de la vérification: ${checkError.message}`)
+    }
+    
+    if (existing && existing.length > 0) {
+      return res.status(400).json({ error: 'Friendship already exists' })
+    }
+    
+    // Créer la demande d'amitié
+    const { data: friendship, error: insertError } = await supabase
+      .from('friendships')
+      .insert({
+        user_id,
+        friend_id,
+        status: 'pending'
+      })
+      .select()
+      .single()
+    
+    if (insertError) {
+      logError('Erreur création demande', insertError, { requestId })
+      throw new Error(`Erreur lors de la création: ${insertError.message}`)
+    }
+    
+    logInfo('Demande d\'ami créée', {
+      requestId,
+      friendshipId: friendship.id
+    })
+    
+    return res.status(200).json({
+      success: true,
+      friendship_id: friendship.id,
+      status: friendship.status
+    })
+    
+  } catch (error) {
+    logError('Erreur dans sendFriendRequest', error, { requestId })
+    throw error
+  }
+}
+
+async function acceptFriendRequest(req, res, requestId, request_id) {
+  try {
+    if (!request_id) {
+      return res.status(400).json({ error: 'request_id is required' })
+    }
+    
+    // Mettre à jour le statut à 'accepted'
+    const { data: friendship, error: updateError } = await supabase
+      .from('friendships')
+      .update({ status: 'accepted' })
+      .eq('id', request_id)
+      .eq('status', 'pending')
+      .select()
+      .single()
+    
+    if (updateError) {
+      logError('Erreur acceptation demande', updateError, { requestId })
+      throw new Error(`Erreur lors de l'acceptation: ${updateError.message}`)
+    }
+    
+    if (!friendship) {
+      return res.status(404).json({ error: 'Friend request not found' })
+    }
+    
+    // Créer la relation inverse pour une amitié bidirectionnelle
+    const { error: reverseError } = await supabase
+      .from('friendships')
+      .upsert({
+        user_id: friendship.friend_id,
+        friend_id: friendship.user_id,
+        status: 'accepted'
+      })
+    
+    if (reverseError) {
+      logError('Erreur création relation inverse', reverseError, { requestId })
+      // Ne pas faire échouer la requête si la relation inverse échoue
+    }
+    
+    logInfo('Demande acceptée', {
+      requestId,
+      friendshipId: friendship.id
+    })
+    
+    return res.status(200).json({
+      success: true,
+      status: 'accepted'
+    })
+    
+  } catch (error) {
+    logError('Erreur dans acceptFriendRequest', error, { requestId })
+    throw error
+  }
+}
+
+async function rejectFriendRequest(req, res, requestId, request_id) {
+  try {
+    if (!request_id) {
+      return res.status(400).json({ error: 'request_id is required' })
+    }
+    
+    // Mettre à jour le statut à 'rejected'
+    const { data: friendship, error: updateError } = await supabase
+      .from('friendships')
+      .update({ status: 'rejected' })
+      .eq('id', request_id)
+      .eq('status', 'pending')
+      .select()
+      .single()
+    
+    if (updateError) {
+      logError('Erreur refus demande', updateError, { requestId })
+      throw new Error(`Erreur lors du refus: ${updateError.message}`)
+    }
+    
+    if (!friendship) {
+      return res.status(404).json({ error: 'Friend request not found' })
+    }
+    
+    logInfo('Demande refusée', {
+      requestId,
+      friendshipId: friendship.id
+    })
+    
+    return res.status(200).json({
+      success: true,
+      status: 'rejected'
+    })
+    
+  } catch (error) {
+    logError('Erreur dans rejectFriendRequest', error, { requestId })
+    throw error
   }
 }
