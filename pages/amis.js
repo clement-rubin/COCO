@@ -67,114 +67,69 @@ export default function Amis() {
     }
   };
 
-  const loadFriendRequests = async (userId) => {
+  const loadFriends = async (userId) => {
     try {
-      // Get friend requests without joins to avoid foreign key ambiguity
-      const { data: friendships, error: friendshipsError } = await supabase
-        .from('friendships')
-        .select('id, user_id, status, created_at')
-        .eq('friend_id', userId)
-        .eq('status', 'pending');
+      // Utiliser la nouvelle fonction SQL simplifiée
+      const { data, error } = await supabase
+        .rpc('get_user_friends_simple', { target_user_id: userId });
 
-      if (friendshipsError) {
-        if (friendshipsError.code === 'PGRST116') {
-          logError('Friendships table not found - please run database setup');
-          setError('Système d\'amis en cours d\'initialisation');
+      if (error) {
+        if (error.code === 'PGRST116') {
+          logError('Friends function not found');
           return;
         }
-        throw friendshipsError;
+        throw error;
       }
 
-      if (friendships && friendships.length > 0) {
-        // Get profiles separately to avoid foreign key ambiguity
-        const userIds = friendships.map(f => f.user_id);
-        const { data: profiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('user_id, display_name, avatar_url, bio')
-          .in('user_id', userIds);
-
-        if (profilesError) {
-          logError('Error loading profiles for friend requests:', profilesError);
+      // Reformater les données
+      const friendsWithProfiles = data?.map(friend => ({
+        id: friend.friendship_id,
+        friend_id: friend.friend_user_id,
+        profiles: {
+          user_id: friend.friend_user_id,
+          display_name: friend.friend_display_name,
+          avatar_url: friend.friend_avatar_url,
+          bio: friend.friend_bio
         }
+      })) || [];
 
-        // Combine the data manually
-        const requestsWithProfiles = friendships.map(friendship => {
-          const profile = profiles?.find(p => p.user_id === friendship.user_id);
-          return {
-            ...friendship,
-            profiles: profile || { display_name: 'Utilisateur', bio: 'Aucune bio' }
-          };
-        });
-
-        setFriendRequests(requestsWithProfiles);
-      } else {
-        setFriendRequests([]);
-      }
+      setFriends(friendsWithProfiles);
     } catch (error) {
-      logError('Error loading friend requests:', error);
-      setError('Erreur lors du chargement des demandes');
+      logError('Error loading friends:', error);
     }
   };
 
-  const loadFriends = async (userId) => {
+  const loadFriendRequests = async (userId) => {
     try {
-      // Corriger la syntaxe de sélection - enlever 'as' dans select
-      const { data: friendships1, error: error1 } = await supabase
-        .from('friendships')
-        .select('id, friend_id')
-        .eq('user_id', userId)
-        .eq('status', 'accepted');
+      // Utiliser la nouvelle fonction SQL simplifiée
+      const { data, error } = await supabase
+        .rpc('get_pending_friend_requests', { target_user_id: userId });
 
-      const { data: friendships2, error: error2 } = await supabase
-        .from('friendships')
-        .select('id, user_id')
-        .eq('friend_id', userId)
-        .eq('status', 'accepted');
-
-      if (error1 || error2) {
-        if ((error1 && error1.code === 'PGRST116') || (error2 && error2.code === 'PGRST116')) {
-          logError('Friendships table not found');
+      if (error) {
+        if (error.code === 'PGRST116') {
+          logError('Friend requests function not found');
+          setError('Système d\'amis en cours d\'initialisation');
           return;
         }
-        throw error1 || error2;
+        throw error;
       }
 
-      // Reformater les données pour avoir other_user_id
-      const allFriendships = [
-        ...(friendships1 || []).map(f => ({ ...f, other_user_id: f.friend_id })),
-        ...(friendships2 || []).map(f => ({ ...f, other_user_id: f.user_id }))
-      ];
-
-      if (allFriendships.length > 0) {
-        const friendIds = [...new Set(allFriendships.map(f => f.other_user_id))];
-        const { data: profiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('user_id, display_name, avatar_url, bio')
-          .in('user_id', friendIds);
-
-        if (profilesError) {
-          logError('Error loading profiles for friends:', profilesError);
+      // Reformater les données
+      const requestsWithProfiles = data?.map(request => ({
+        id: request.friendship_id,
+        user_id: request.requester_user_id,
+        profiles: {
+          user_id: request.requester_user_id,
+          display_name: request.requester_display_name,
+          avatar_url: request.requester_avatar_url,
+          bio: request.requester_bio
         }
+      })) || [];
 
-        const friendsWithProfiles = allFriendships
-          .filter((friendship, index, self) => 
-            index === self.findIndex(f => f.other_user_id === friendship.other_user_id)
-          )
-          .map(friendship => {
-            const profile = profiles?.find(p => p.user_id === friendship.other_user_id);
-            return {
-              id: friendship.id,
-              friend_id: friendship.other_user_id,
-              profiles: profile || { display_name: 'Utilisateur', bio: 'Aucune bio' }
-            };
-          });
-
-        setFriends(friendsWithProfiles);
-      } else {
-        setFriends([]);
-      }
+      setFriendRequests(requestsWithProfiles);
     } catch (error) {
-      logError('Error loading friends:', error);
+      logError('Error loading friend requests:', error);
+      setError('Erreur lors du chargement des demandes');
     }
   };
 
@@ -210,18 +165,16 @@ export default function Amis() {
 
     setSearchLoading(true);
     try {
-      // Simple profile search without RPC function
+      // Utiliser la nouvelle fonction SQL de recherche
       const { data, error } = await supabase
-        .from('profiles')
-        .select('user_id, display_name, bio, avatar_url')
-        .neq('user_id', user?.id)
-        .eq('is_private', false)
-        .ilike('display_name', `%${term}%`)
-        .limit(10);
+        .rpc('search_users_simple', {
+          search_term: term,
+          current_user_id: user?.id
+        });
 
       if (error) {
         if (error.code === 'PGRST116') {
-          setError('Système de profils en cours d\'initialisation');
+          setError('Système de recherche en cours d\'initialisation');
           return;
         }
         throw error;
@@ -244,38 +197,14 @@ export default function Amis() {
 
   const sendFriendRequest = async (friendId) => {
     try {
-      // Corriger la syntaxe de la requête OR
-      const { data: existingFriendship, error: checkError } = await supabase
-        .from('friendships')
-        .select('id, status')
-        .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`)
-        .or(`user_id.eq.${friendId},friend_id.eq.${friendId}`)
-        .maybeSingle();
+      // Vérifier d'abord le statut existant
+      const { data: existingStatus, error: statusError } = await supabase
+        .rpc('check_friendship_status', {
+          user1_id: user.id,
+          user2_id: friendId
+        });
 
-      // Alternative avec deux requêtes séparées pour éviter les problèmes de syntaxe
-      if (checkError) {
-        // Fallback avec requêtes séparées
-        const [{ data: check1 }, { data: check2 }] = await Promise.all([
-          supabase
-            .from('friendships')
-            .select('id, status')
-            .eq('user_id', user.id)
-            .eq('friend_id', friendId)
-            .maybeSingle(),
-          supabase
-            .from('friendships')
-            .select('id, status')
-            .eq('user_id', friendId)
-            .eq('friend_id', user.id)
-            .maybeSingle()
-        ]);
-
-        if (check1 || check2) {
-          setError('Une demande d\'amitié existe déjà');
-          setTimeout(() => setError(null), 3000);
-          return;
-        }
-      } else if (existingFriendship) {
+      if (!statusError && existingStatus && existingStatus.length > 0) {
         setError('Une demande d\'amitié existe déjà');
         setTimeout(() => setError(null), 3000);
         return;
@@ -297,8 +226,6 @@ export default function Amis() {
       if (error) {
         if (error.code === '23505') {
           setError('Demande d\'amitié déjà envoyée');
-        } else if (error.code === '23503') {
-          setError('Erreur de référence - profils manquants');
         } else {
           logError('Detailed error sending friend request:', error);
           setError(`Erreur: ${error.message}`);

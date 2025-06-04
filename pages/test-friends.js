@@ -179,48 +179,38 @@ export default function TestFriends() {
     setIsLoading(true);
 
     try {
-      // Test RPC function first
-      try {
-        const { data: rpcResults, error: rpcError } = await supabase
-          .rpc('search_profiles', {
-            search_term: searchTerm,
-            current_user_id: user?.id
-          });
+      // Utiliser la nouvelle fonction SQL simplifiée
+      const { data: rpcResults, error: rpcError } = await supabase
+        .rpc('search_users_simple', {
+          search_term: searchTerm,
+          current_user_id: user?.id
+        });
 
-        if (rpcError) {
-          addLog('warning', 'Fonction RPC search_profiles non disponible', rpcError);
-        } else {
-          addLog('info', 'Fonction RPC search_profiles fonctionne', { 
-            results: rpcResults?.length || 0,
-            data: rpcResults 
-          });
-          setSearchResults(rpcResults || []);
-          setTestResults(prev => ({ ...prev, searchProfiles: 'rpc_success' }));
-          return;
+      if (rpcError) {
+        addLog('warning', 'Fonction RPC search_users_simple non disponible', rpcError);
+        // Fallback to direct query
+        const { data: directResults, error: directError } = await supabase
+          .from('profiles')
+          .select('user_id, display_name, bio, avatar_url')
+          .neq('user_id', user?.id || '')
+          .eq('is_private', false)
+          .ilike('display_name', `%${searchTerm}%`)
+          .limit(10);
+
+        if (directError) {
+          throw directError;
         }
-      } catch (rpcError) {
-        addLog('warning', 'Erreur RPC, fallback vers requête directe', rpcError);
+
+        setSearchResults(directResults || []);
+        setTestResults(prev => ({ ...prev, searchProfiles: 'direct_success' }));
+      } else {
+        addLog('info', 'Fonction RPC search_users_simple fonctionne', { 
+          results: rpcResults?.length || 0,
+          data: rpcResults 
+        });
+        setSearchResults(rpcResults || []);
+        setTestResults(prev => ({ ...prev, searchProfiles: 'rpc_success' }));
       }
-
-      // Fallback to direct query
-      const { data: directResults, error: directError } = await supabase
-        .from('profiles')
-        .select('user_id, display_name, bio, avatar_url')
-        .neq('user_id', user?.id || '')
-        .eq('is_private', false)
-        .ilike('display_name', `%${searchTerm}%`)
-        .limit(10);
-
-      if (directError) {
-        throw directError;
-      }
-
-      addLog('info', 'Recherche directe réussie', { 
-        results: directResults?.length || 0,
-        data: directResults 
-      });
-      setSearchResults(directResults || []);
-      setTestResults(prev => ({ ...prev, searchProfiles: 'direct_success' }));
 
     } catch (error) {
       addLog('error', 'Erreur lors de la recherche de profils', error);
@@ -293,32 +283,31 @@ export default function TestFriends() {
     setIsLoading(true);
 
     try {
+      // Utiliser la nouvelle fonction SQL
       const { data, error } = await supabase
-        .from('friendships')
-        .select(`
-          id,
-          user_id,
-          status,
-          created_at,
-          requester_profile:profiles!user_id (
-            user_id,
-            display_name,
-            avatar_url,
-            bio
-          )
-        `)
-        .eq('friend_id', user.id)
-        .eq('status', 'pending');
+        .rpc('get_pending_friend_requests', { target_user_id: user.id });
 
       if (error) {
         throw error;
       }
 
+      // Reformater les données pour correspondre à l'ancien format
+      const formattedRequests = data?.map(request => ({
+        id: request.friendship_id,
+        user_id: request.requester_user_id,
+        requester_profile: {
+          user_id: request.requester_user_id,
+          display_name: request.requester_display_name,
+          avatar_url: request.requester_avatar_url,
+          bio: request.requester_bio
+        }
+      })) || [];
+
       addLog('info', 'Demandes d\'amitié chargées', { 
-        count: data?.length || 0,
-        data: data 
+        count: formattedRequests.length,
+        data: formattedRequests 
       });
-      setFriendRequests(data || []);
+      setFriendRequests(formattedRequests);
       setTestResults(prev => ({ ...prev, loadRequests: 'success' }));
 
     } catch (error) {
@@ -339,30 +328,31 @@ export default function TestFriends() {
     setIsLoading(true);
 
     try {
+      // Utiliser la nouvelle fonction SQL
       const { data, error } = await supabase
-        .from('friendships')
-        .select(`
-          id,
-          friend_id,
-          friend_profile:profiles!friend_id (
-            user_id,
-            display_name,
-            avatar_url,
-            bio
-          )
-        `)
-        .eq('user_id', user.id)
-        .eq('status', 'accepted');
+        .rpc('get_user_friends_simple', { target_user_id: user.id });
 
       if (error) {
         throw error;
       }
 
+      // Reformater les données pour correspondre à l'ancien format
+      const formattedFriends = data?.map(friend => ({
+        id: friend.friendship_id,
+        friend_id: friend.friend_user_id,
+        friend_profile: {
+          user_id: friend.friend_user_id,
+          display_name: friend.friend_display_name,
+          avatar_url: friend.friend_avatar_url,
+          bio: friend.friend_bio
+        }
+      })) || [];
+
       addLog('info', 'Liste d\'amis chargée', { 
-        count: data?.length || 0,
-        data: data 
+        count: formattedFriends.length,
+        data: formattedFriends 
       });
-      setFriends(data || []);
+      setFriends(formattedFriends);
       setTestResults(prev => ({ ...prev, loadFriends: 'success' }));
 
     } catch (error) {

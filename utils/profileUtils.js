@@ -219,20 +219,14 @@ export async function getUserStats(userId) {
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
 
-    // Compter les amis - use both directions of friendships
-    const { count: friendsCount1 } = await supabase
-      .from('friendships')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .eq('status', 'accepted')
+    // Utiliser la nouvelle fonction SQL pour obtenir les statistiques d'amitié
+    const { data: friendshipStats, error: friendshipError } = await supabase
+      .rpc('get_friendship_stats', { target_user_id: userId })
 
-    const { count: friendsCount2 } = await supabase
-      .from('friendships')
-      .select('*', { count: 'exact', head: true })
-      .eq('friend_id', userId)
-      .eq('status', 'accepted')
-
-    const totalFriendsCount = (friendsCount1 || 0) + (friendsCount2 || 0)
+    let totalFriendsCount = 0
+    if (!friendshipError && friendshipStats && friendshipStats.length > 0) {
+      totalFriendsCount = friendshipStats[0].friends_count || 0
+    }
 
     // Obtenir le profil pour calculer la complétude
     const { data: profile } = await supabase
@@ -248,23 +242,16 @@ export async function getUserStats(userId) {
       profileCompleteness = Math.round((filledFields.length / fields.length) * 100)
     }
 
-    const stats = {
+    return {
       recipesCount: recipesCount || 0,
       friendsCount: totalFriendsCount,
-      profileCompleteness
+      profileCompleteness,
+      pendingSent: friendshipStats?.[0]?.pending_sent || 0,
+      pendingReceived: friendshipStats?.[0]?.pending_received || 0
     }
 
-    logInfo('User stats retrieved', {
-      userId: userId.substring(0, 8) + '...',
-      stats
-    })
-
-    return stats
-
   } catch (error) {
-    logError('Error getting user stats', error, {
-      userId: userId.substring(0, 8) + '...'
-    })
+    logError('Error in getUserStats', error, { userId })
     return {
       recipesCount: 0,
       friendsCount: 0,
