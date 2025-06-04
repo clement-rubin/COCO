@@ -193,13 +193,15 @@ CREATE TABLE IF NOT EXISTS public.recipes (
   instructions JSON,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  difficulty TEXT DEFAULT 'Facile'
+  difficulty TEXT DEFAULT 'Facile',
+  user_id UUID REFERENCES auth.users(id)
 );
 
 -- Créer les index pour de meilleures performances
 CREATE INDEX IF NOT EXISTS idx_recipes_created_at ON recipes(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_recipes_category ON recipes(category);
 CREATE INDEX IF NOT EXISTS idx_recipes_difficulty ON recipes(difficulty);
+CREATE INDEX IF NOT EXISTS idx_recipes_user_id ON recipes(user_id);
 
 -- Activer Row Level Security
 ALTER TABLE recipes ENABLE ROW LEVEL SECURITY;
@@ -216,7 +218,67 @@ CREATE POLICY "Permettre mise à jour publique" ON recipes FOR UPDATE USING (tru
 CREATE POLICY "Permettre suppression publique" ON recipes FOR DELETE USING (true);
 ```
 
-5. **Configuration Storage pour les images :**
+5. **Configuration des tables pour le système d'amis :**
+
+```sql
+-- Créer la table profiles pour les profils utilisateurs
+CREATE TABLE IF NOT EXISTS public.profiles (
+  id UUID REFERENCES auth.users(id) PRIMARY KEY,
+  display_name TEXT,
+  avatar_url TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Créer la table friendships pour les relations d'amitié
+CREATE TABLE IF NOT EXISTS public.friendships (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) NOT NULL,
+  friend_id UUID REFERENCES auth.users(id) NOT NULL,
+  status TEXT CHECK (status IN ('pending', 'accepted', 'blocked')) DEFAULT 'pending',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(user_id, friend_id)
+);
+
+-- Index pour les performances
+CREATE INDEX IF NOT EXISTS idx_friendships_user_id ON friendships(user_id);
+CREATE INDEX IF NOT EXISTS idx_friendships_friend_id ON friendships(friend_id);
+CREATE INDEX IF NOT EXISTS idx_friendships_status ON friendships(status);
+
+-- Activer Row Level Security
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE friendships ENABLE ROW LEVEL SECURITY;
+
+-- Politiques pour profiles
+CREATE POLICY "Permettre lecture publique profils" ON profiles FOR SELECT USING (true);
+CREATE POLICY "Permettre mise à jour profil utilisateur" ON profiles FOR UPDATE USING (auth.uid() = id);
+CREATE POLICY "Permettre insertion profil utilisateur" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
+
+-- Politiques pour friendships
+CREATE POLICY "Voir ses amitiés" ON friendships FOR SELECT USING (auth.uid() = user_id OR auth.uid() = friend_id);
+CREATE POLICY "Créer demande amitié" ON friendships FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Modifier ses amitiés" ON friendships FOR UPDATE USING (auth.uid() = friend_id OR auth.uid() = user_id);
+CREATE POLICY "Supprimer ses amitiés" ON friendships FOR DELETE USING (auth.uid() = friend_id OR auth.uid() = user_id);
+
+-- Fonction pour créer automatiquement un profil lors de l'inscription
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.profiles (id, display_name)
+  VALUES (NEW.id, NEW.raw_user_meta_data->>'display_name');
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger pour créer automatiquement un profil
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+```
+
+6. **Configuration Storage pour les images :**
    
    **Étape 1 : Créer le bucket**
    - Allez dans **Storage > Buckets** dans votre dashboard Supabase

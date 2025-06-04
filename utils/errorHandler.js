@@ -3,7 +3,7 @@
  */
 
 import { useState, useCallback } from 'react'
-import { logError, logWarning } from './logger'
+import { logError, logWarning, logInfo } from './logger'
 
 export const ERROR_TYPES = {
   NETWORK: 'network_error',
@@ -48,6 +48,13 @@ const USER_FRIENDLY_MESSAGES = {
   // Erreurs de téléchargement
   'File too large': 'Fichier trop volumineux (max 6MB).',
   'Invalid file type': 'Type de fichier non supporté.',
+  
+  // Erreurs d'amis
+  'Friend request already sent': 'Demande d\'ami déjà envoyée.',
+  'Cannot add yourself as friend': 'Vous ne pouvez pas vous ajouter comme ami.',
+  'Friend request not found': 'Demande d\'ami non trouvée.',
+  'Already friends': 'Vous êtes déjà amis.',
+  'User not found for friendship': 'Utilisateur introuvable.',
   
   // Erreurs serveur
   'Internal Server Error': 'Erreur temporaire du serveur. Réessayez dans quelques instants.',
@@ -143,6 +150,74 @@ function getActionSuggestions(error, recoveryStrategy) {
 }
 
 /**
+ * Logs error to persistent storage for the error logs page
+ */
+async function logErrorToStorage(error, context = {}) {
+  try {
+    const errorLog = {
+      id: `error_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
+      timestamp: new Date().toISOString(),
+      error_type: getErrorType(error),
+      message: error?.message || 'Erreur inconnue',
+      details: {
+        stack: error?.stack,
+        status: error?.status,
+        code: error?.code,
+        context,
+        url: typeof window !== 'undefined' ? window.location.href : null,
+        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
+        ...context
+      },
+      severity: error?.status >= 500 ? 'high' : error?.status >= 400 ? 'medium' : 'low',
+      user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
+      ip_address: null // Will be filled by server if needed
+    }
+
+    // Store in localStorage for now (could be enhanced to send to API)
+    if (typeof window !== 'undefined') {
+      const existingLogs = JSON.parse(localStorage.getItem('error_logs') || '[]')
+      existingLogs.unshift(errorLog)
+      
+      // Keep only last 100 errors to avoid storage bloat
+      if (existingLogs.length > 100) {
+        existingLogs.splice(100)
+      }
+      
+      localStorage.setItem('error_logs', JSON.stringify(existingLogs))
+    }
+
+    logInfo('Error logged to storage', {
+      errorId: errorLog.id,
+      errorType: errorLog.error_type,
+      severity: errorLog.severity
+    })
+
+  } catch (storageError) {
+    logError('Failed to log error to storage', storageError)
+  }
+}
+
+function getErrorType(error) {
+  if (error?.status) {
+    if (error.status === 401 || error.status === 403) return ERROR_TYPES.AUTH
+    if (error.status === 404) return ERROR_TYPES.NOT_FOUND
+    if (error.status === 400) return ERROR_TYPES.VALIDATION
+    if (error.status >= 500) return ERROR_TYPES.SERVER
+    if (error.status === 429) return ERROR_TYPES.NETWORK
+  }
+  
+  if (error?.name === 'NetworkError' || error?.message?.includes('fetch')) {
+    return ERROR_TYPES.NETWORK
+  }
+  
+  if (error?.message?.includes('upload') || error?.message?.includes('file')) {
+    return ERROR_TYPES.UPLOAD
+  }
+  
+  return ERROR_TYPES.SERVER
+}
+
+/**
  * Transforme une erreur technique en erreur conviviale
  */
 export function createUserFriendlyError(error, context = {}) {
@@ -155,15 +230,7 @@ export function createUserFriendlyError(error, context = {}) {
   const suggestions = getActionSuggestions(error, recoveryStrategy)
   
   // Détermine le type d'erreur
-  let errorType = ERROR_TYPES.SERVER
-  if (error?.status) {
-    if (error.status === 401 || error.status === 403) errorType = ERROR_TYPES.AUTH
-    else if (error.status === 404) errorType = ERROR_TYPES.NOT_FOUND
-    else if (error.status === 400) errorType = ERROR_TYPES.VALIDATION
-    else if (error.status >= 500) errorType = ERROR_TYPES.SERVER
-  } else if (error?.name === 'NetworkError') {
-    errorType = ERROR_TYPES.NETWORK
-  }
+  let errorType = getErrorType(error)
 
   const friendlyError = {
     id: `error_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
@@ -185,7 +252,21 @@ export function createUserFriendlyError(error, context = {}) {
     friendlyErrorId: friendlyError.id,
     userMessage,
     recoveryStrategy,
-    context
+    context,
+    originalError: {
+      message: error?.message,
+      stack: error?.stack,
+      status: error?.status,
+      code: error?.code
+    }
+  })
+
+  // Log to persistent storage
+  logErrorToStorage(error, {
+    ...context,
+    friendlyErrorId: friendlyError.id,
+    userMessage,
+    recoveryStrategy
   })
   
   return friendlyError

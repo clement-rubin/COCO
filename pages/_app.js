@@ -152,6 +152,35 @@ function AuthenticatedNav({ user, signOut }) {
           </Link>
 
           <Link 
+            href="/amis" 
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '12px',
+              color: 'white',
+              textDecoration: 'none',
+              borderRadius: '10px',
+              fontSize: '0.95rem',
+              fontWeight: '500',
+              transition: 'all 0.3s ease',
+              marginBottom: '4px'
+            }}
+            onClick={() => setShowUserMenu(false)}
+            onMouseEnter={(e) => {
+              e.target.style.background = 'rgba(255, 107, 53, 0.1)'
+              e.target.style.transform = 'translateX(4px)'
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.background = 'transparent'
+              e.target.style.transform = 'translateX(0)'
+            }}
+          >
+            <span style={{ fontSize: '1.2rem' }}>👥</span>
+            Mes amis
+          </Link>
+
+          <Link 
             href="/profil" 
             style={{
               display: 'flex',

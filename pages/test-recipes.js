@@ -297,12 +297,13 @@ Puis rafraîchissez cette page.
     logInfo('📋 Affichage des instructions SQL pour la création de table')
     
     const sqlInstructions = `
-=== SQL POUR CRÉER LA TABLE RECIPES ===
+=== SQL POUR CRÉER LA TABLE RECIPES ET LE SYSTÈME D'AMIS ===
 
 1. Allez dans votre dashboard Supabase
 2. Cliquez sur "SQL Editor" 
 3. Exécutez ce code SQL :
 
+-- Table des recettes
 CREATE TABLE recipes (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   title TEXT NOT NULL,
@@ -317,19 +318,76 @@ CREATE TABLE recipes (
   author TEXT DEFAULT 'Anonyme',
   image TEXT,
   photos JSONB DEFAULT '[]'::jsonb,
+  user_id UUID REFERENCES auth.users(id),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Table des profils utilisateurs
+CREATE TABLE profiles (
+  id UUID REFERENCES auth.users(id) PRIMARY KEY,
+  display_name TEXT,
+  avatar_url TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Table des amitiés
+CREATE TABLE friendships (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) NOT NULL,
+  friend_id UUID REFERENCES auth.users(id) NOT NULL,
+  status TEXT CHECK (status IN ('pending', 'accepted', 'blocked')) DEFAULT 'pending',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(user_id, friend_id)
+);
+
+-- Index pour les performances
 CREATE INDEX idx_recipes_created_at ON recipes(created_at DESC);
 CREATE INDEX idx_recipes_category ON recipes(category);
+CREATE INDEX idx_recipes_user_id ON recipes(user_id);
+CREATE INDEX idx_friendships_user_id ON friendships(user_id);
+CREATE INDEX idx_friendships_friend_id ON friendships(friend_id);
+CREATE INDEX idx_friendships_status ON friendships(status);
 
+-- Row Level Security
 ALTER TABLE recipes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE friendships ENABLE ROW LEVEL SECURITY;
 
+-- Politiques pour recipes
 CREATE POLICY "Enable read access for all users" ON recipes FOR SELECT USING (true);
 CREATE POLICY "Enable insert for all users" ON recipes FOR INSERT WITH CHECK (true);
 CREATE POLICY "Enable update for all users" ON recipes FOR UPDATE USING (true);
 CREATE POLICY "Enable delete for all users" ON recipes FOR DELETE USING (true);
+
+-- Politiques pour profiles
+CREATE POLICY "Permettre lecture publique profils" ON profiles FOR SELECT USING (true);
+CREATE POLICY "Permettre mise à jour profil utilisateur" ON profiles FOR UPDATE USING (auth.uid() = id);
+CREATE POLICY "Permettre insertion profil utilisateur" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
+
+-- Politiques pour friendships
+CREATE POLICY "Voir ses amitiés" ON friendships FOR SELECT USING (auth.uid() = user_id OR auth.uid() = friend_id);
+CREATE POLICY "Créer demande amitié" ON friendships FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Modifier ses amitiés" ON friendships FOR UPDATE USING (auth.uid() = friend_id OR auth.uid() = user_id);
+CREATE POLICY "Supprimer ses amitiés" ON friendships FOR DELETE USING (auth.uid() = friend_id OR auth.uid() = user_id);
+
+-- Fonction pour créer automatiquement un profil
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.profiles (id, display_name)
+  VALUES (NEW.id, NEW.raw_user_meta_data->>'display_name');
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger pour créer automatiquement un profil
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
 
 === FIN DU SQL ===
     `

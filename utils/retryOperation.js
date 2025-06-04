@@ -28,34 +28,27 @@ export class RetryOperation {
   }
 
   defaultRetryCondition(error) {
-    // Conditions par défaut pour retry
-    const retryableErrors = [
-      'NetworkError',
-      'TypeError',
-      'Failed to fetch',
-      'ERR_NETWORK',
-      'ERR_INTERNET_DISCONNECTED'
-    ]
-    
-    const isRetryableError = retryableErrors.some(errorType => 
-      error.name === errorType || 
-      error.message?.includes(errorType) ||
-      error.code === errorType
-    )
-    
-    const isRetryableStatus = error.status >= 500 || error.status === 429 || error.status === 408
-    
-    logDebug('Vérification condition de retry', {
-      operationId: this.operationId,
-      errorName: error.name,
-      errorMessage: error.message,
-      errorStatus: error.status,
-      isRetryableError,
-      isRetryableStatus,
-      shouldRetry: isRetryableError || isRetryableStatus
+    logWarning('Checking retry condition for error', {
+      errorMessage: error?.message,
+      errorStatus: error?.status,
+      errorCode: error?.code,
+      errorType: typeof error
     })
     
-    return isRetryableError || isRetryableStatus
+    const isRetryableStatus = error.status >= 500 || error.status === 429 || error.status === 408
+    const isNetworkError = !error.status && (error.name === 'NetworkError' || error.message?.includes('fetch'))
+    
+    const shouldRetry = isRetryableStatus || isNetworkError
+    
+    logInfo('Retry condition result', {
+      shouldRetry,
+      isRetryableStatus,
+      isNetworkError,
+      errorStatus: error?.status,
+      errorMessage: error?.message
+    })
+    
+    return shouldRetry
   }
 
   calculateDelay(attempt) {
@@ -124,15 +117,12 @@ export class RetryOperation {
         const attemptDuration = Date.now() - attemptStartTime
         lastError = error
         
-        logWarning('Tentative échouée', {
-          operationId: this.operationId,
-          attempt: attempt + 1,
-          totalAttempts: this.maxRetries + 1,
-          attemptDuration,
-          errorName: error.name,
-          errorMessage: error.message,
-          errorStatus: error.status,
-          errorCode: error.code
+        logError(`Retry operation attempt ${attempt + 1} échouée`, error, {
+          attempt,
+          maxRetries: this.maxRetries,
+          willRetry: attempt < this.maxRetries && this.retryCondition(error),
+          errorStatus: error?.status,
+          errorCode: error?.code
         })
 
         // Vérifier si on doit retry
