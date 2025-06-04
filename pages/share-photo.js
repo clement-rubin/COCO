@@ -215,32 +215,20 @@ export default function SharePhoto() {
   }
 
   const validateForm = () => {
-    addLog('INFO', 'Début de validation du formulaire', {
-      step: currentStep,
-      formData: {
-        hasTitle: !!formData.title.trim(),
-        titleLength: formData.title.length,
-        hasDescription: !!formData.description.trim(),
-        descriptionLength: formData.description.length
-      },
-      photosState: {
-        count: photos.length,
-        processed: photos.filter(p => p.processed).length,
-        processing: photos.filter(p => p.processing).length,
-        errors: photos.filter(p => p.error).length
-      }
-    })
-    
+    addLog('info', 'Début de la validation du formulaire photo')
     const newErrors = {}
     
     if (!formData.title.trim()) {
-      newErrors.title = 'Le titre est requis'
-      addLog('WARNING', 'Validation échouée: titre manquant')
+      newErrors.title = 'Le titre est obligatoire'
+      addLog('warning', 'Validation échouée: titre manquant')
     }
-    
+    if (!formData.description.trim()) {
+      newErrors.description = 'La description est obligatoire'
+      addLog('warning', 'Validation échouée: description manquante')
+    }
     if (photos.length === 0) {
-      newErrors.photos = 'Au moins une photo est requise'
-      addLog('WARNING', 'Validation échouée: aucune photo')
+      newErrors.photos = 'Au moins une photo est obligatoire'
+      addLog('warning', 'Validation échouée: aucune photo')
     }
     
     const hasProcessingPhotos = photos.some(photo => photo.processing)
@@ -513,55 +501,62 @@ export default function SharePhoto() {
     return (
       <div style={{
         minHeight: '100vh',
+        background: 'linear-gradient(135deg, #4CAF50 0%, #45a049 100%)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        padding: '20px'
+        padding: '20px',
+        position: 'relative'
       }}>
+        {/* Suppression de l'effet au-dessus */}
+        
         <div style={{
-          background: 'white',
-          borderRadius: '20px',
-          padding: '40px',
+          background: 'rgba(255, 255, 255, 0.95)',
+          backdropFilter: 'blur(10px)',
+          borderRadius: '24px',
+          padding: '48px',
+          width: '100%',
+          maxWidth: '420px',
           textAlign: 'center',
-          maxWidth: '400px',
-          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)'
+          position: 'relative',
+          zIndex: 1
         }}>
-          <div style={{ fontSize: '4rem', marginBottom: '20px' }}>🎉</div>
-          <h2 style={{ color: '#333', marginBottom: '15px' }}>Photo partagée !</h2>
-          <p style={{ color: '#666', marginBottom: '30px' }}>
-            Votre photo a été partagée avec succès dans la communauté COCO.
+          <div style={{ 
+            fontSize: '4rem', 
+            marginBottom: '24px'
+          }}>
+            ✅
+          </div>
+          <h1 style={{ 
+            fontSize: '1.8rem',
+            fontWeight: '700',
+            background: 'linear-gradient(135deg, #4CAF50, #45a049)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            marginBottom: '16px'
+          }}>
+            Photo partagée !
+          </h1>
+          <p style={{ 
+            color: '#6b7280',
+            lineHeight: '1.6',
+            marginBottom: '32px'
+          }}>
+            Votre photo "{formData.title}" a été partagée avec succès !
           </p>
           <button
             onClick={() => router.push('/')}
             style={{
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              padding: '16px 32px',
+              background: 'linear-gradient(135deg, #4CAF50 0%, #45a049 100%)',
               color: 'white',
               border: 'none',
-              padding: '15px 30px',
-              borderRadius: '10px',
-              cursor: 'pointer',
-              fontWeight: '600',
-              fontSize: '1rem',
-              marginRight: '10px'
+              borderRadius: '16px',
+              fontWeight: '700',
+              cursor: 'pointer'
             }}
           >
             Retour à l'accueil
-          </button>
-          <button
-            onClick={() => router.push('/mes-recettes')}
-            style={{
-              background: 'transparent',
-              color: '#667eea',
-              border: '2px solid #667eea',
-              padding: '15px 30px',
-              borderRadius: '10px',
-              cursor: 'pointer',
-              fontWeight: '600',
-              fontSize: '1rem'
-            }}
-          >
-            Voir mes photos
           </button>
         </div>
       </div>

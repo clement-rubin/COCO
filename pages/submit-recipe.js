@@ -70,16 +70,24 @@ export default function SubmitRecipe() {
   }
 
   const validateForm = () => {
-    addLog('info', 'Début de la validation du formulaire photo')
+    addLog('info', 'Début de la validation du formulaire recette')
     const newErrors = {}
     
     if (!formData.title.trim()) {
-      newErrors.title = 'Le nom du plat est obligatoire'
-      addLog('warning', 'Validation échouée: nom du plat manquant')
+      newErrors.title = 'Le nom de la recette est obligatoire'
+      addLog('warning', 'Validation échouée: nom de la recette manquant')
     }
     if (!formData.description.trim()) {
       newErrors.description = 'La description est obligatoire'
       addLog('warning', 'Validation échouée: description manquante')
+    }
+    if (!formData.ingredients.trim()) {
+      newErrors.ingredients = 'Les ingrédients sont obligatoires'
+      addLog('warning', 'Validation échouée: ingrédients manquants')
+    }
+    if (!formData.instructions.trim()) {
+      newErrors.instructions = 'Les instructions sont obligatoires'
+      addLog('warning', 'Validation échouée: instructions manquantes')
     }
     if (photos.length === 0) {
       newErrors.photos = 'Au moins une photo est obligatoire'
@@ -123,12 +131,14 @@ export default function SubmitRecipe() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     
-    addLog('info', 'Début de soumission de photo de recette')
+    addLog('info', 'Début de soumission de recette')
     
     if (!validateForm()) {
       addLog('interaction', 'ECHEC_VALIDATION', {
         errorsCount: Object.keys(errors).length,
-        errors: Object.keys(errors)
+        errors: Object.keys(errors),
+        titleMissing: !formData.title.trim(),
+        descriptionMissing: !formData.description.trim()
       })
       return
     }
