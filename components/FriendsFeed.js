@@ -161,8 +161,8 @@ export default function FriendsFeed({ feedType = 'featured' }) {
     e.stopPropagation()
     
     if (!user) {
-      const shouldRedirect = window.confirm('Connectez-vous pour aimer cette recette. Aller à la page de connexion?')
-      if (shouldRedirect) {
+      const wantsToLogin = window.confirm('Connectez-vous pour aimer cette recette. Aller à la page de connexion?')
+      if (wantsToLogin) {
         router.push('/login?redirect=' + encodeURIComponent('/'))
       }
       return
@@ -176,11 +176,12 @@ export default function FriendsFeed({ feedType = 'featured' }) {
         newSet.add(recipeId)
       }
       
-      // Sauvegarder dans localStorage
+      // Save to localStorage safely
       try {
         localStorage.setItem('userLikedRecipes', JSON.stringify([...newSet]))
       } catch (err) {
-        console.error('Error saving likes', err)
+        console.error('Error saving likes to localStorage', err)
+        // Continue without localStorage if it fails
       }
       
       return newSet
