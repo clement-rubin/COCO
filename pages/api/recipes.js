@@ -29,13 +29,35 @@ function logApiError(operation, error, context = {}) {
 
 // Helper function to validate and sanitize query parameters
 function validateQueryParams(query) {
-  const { author, user_id, category, limit = '50' } = query || {}
+  const { author, user_id, category, limit = '50', logs, logsLimit = '20' } = query || {}
   
   return {
     author: author && typeof author === 'string' && author.trim() ? author.trim() : null,
     user_id: user_id && typeof user_id === 'string' && user_id.trim() ? user_id.trim() : null,
     category: category && typeof category === 'string' && category.trim() ? category.trim() : null,
-    limit: Math.min(Math.max(parseInt(limit) || 50, 1), 100) // Between 1 and 100
+    limit: Math.min(Math.max(parseInt(limit) || 50, 1), 100), // Between 1 and 100
+    fetchLogs: logs === 'true' || logs === '1',
+    logsLimit: Math.min(Math.max(parseInt(logsLimit) || 20, 1), 100) // Between 1 and 100
+  }
+}
+
+// Fetch logs related to recipes
+async function fetchRecipeLogs(limit) {
+  try {
+    const { data, error } = await supabase
+      .from('logs')
+      .select('*')
+      .eq('type', 'recipe')
+      .order('timestamp', { ascending: false })
+      .limit(limit)
+    
+    if (error) {
+      throw error
+    }
+    
+    return { logs: data || [], error: null }
+  } catch (error) {
+    return { logs: [], error }
   }
 }
 
@@ -104,7 +126,7 @@ export default async function handler(req, res) {
       try {
         // Validate and sanitize query parameters
         const params = validateQueryParams(req.query)
-        const { author, user_id, category, limit } = params
+        const { author, user_id, category, limit, fetchLogs, logsLimit } = params
         
         logInfo('GET recipes - Request details', {
           reference: requestReference,
@@ -112,10 +134,39 @@ export default async function handler(req, res) {
           sanitizedParams: params,
           hasUserId: !!user_id,
           hasAuthor: !!author,
+          fetchLogs: fetchLogs,
+          logsLimit: logsLimit,
           userIdType: typeof user_id,
           userIdLength: user_id?.length,
           timestamp: new Date().toISOString()
         })
+        
+        // If logs are requested, fetch them
+        if (fetchLogs) {
+          logInfo('Fetching recipe logs', {
+            reference: requestReference,
+            logsLimit
+          })
+          
+          const { logs, error: logsError } = await fetchRecipeLogs(logsLimit)
+          
+          if (logsError) {
+            logWarning('Error fetching logs', {
+              reference: requestReference,
+              error: logsError.message
+            })
+          }
+          
+          // If only logs were requested (no other filters), return them directly
+          if (!user_id && !author && !category) {
+            logInfo('Returning only logs', {
+              reference: requestReference,
+              logsCount: logs.length
+            })
+            
+            return safeResponse(res, 200, { logs })
+          }
+        }
         
         // Build the base query
         let query = supabase
@@ -243,16 +294,31 @@ export default async function handler(req, res) {
           })
         }
         
-        logInfo('Recipes retrieved successfully', {
-          reference: requestReference,
-          count: safeRecipes.length,
-          filters: params,
-          hasResults: safeRecipes.length > 0,
-          timestamp: new Date().toISOString()
-        })
-        
-        return safeResponse(res, 200, safeRecipes)
-        
+        if (fetchLogs) {
+          const { logs, error: logsError } = await fetchRecipeLogs(logsLimit)
+          
+          logInfo('Returning recipes with logs', {
+            reference: requestReference,
+            recipesCount: safeRecipes.length,
+            logsCount: logs.length,
+            hasLogsError: !!logsError
+          })
+          
+          return safeResponse(res, 200, { 
+            recipes: safeRecipes,
+            logs: logsError ? [] : logs
+          })
+        } else {
+          logInfo('Recipes retrieved successfully', {
+            reference: requestReference,
+            count: safeRecipes.length,
+            filters: params,
+            hasResults: safeRecipes.length > 0,
+            timestamp: new Date().toISOString()
+          })
+          
+          return safeResponse(res, 200, safeRecipes)
+        }
       } catch (error) {
         const errorDetails = logApiError('GET_RECIPES', error, {
           reference: requestReference,
