@@ -212,7 +212,81 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=votre_cle_anonyme_ici
 
 **⚠️ Important** : Remplacez les valeurs ci-dessus par celles de votre projet Supabase.
 
-4. **Configuration de la table `recipes` :**
+4. **Configuration de la table `profiles` (OBLIGATOIRE) :**
+   
+   **Étape 1 : Créer la table profiles**
+   - Allez dans **SQL Editor** dans votre dashboard Supabase
+   - Exécutez le SQL suivant :
+
+```sql
+-- Création de la table profiles pour les informations utilisateur
+CREATE TABLE IF NOT EXISTS public.profiles (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID UNIQUE NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  display_name TEXT,
+  bio TEXT,
+  avatar_url TEXT,
+  location TEXT,
+  website TEXT,
+  date_of_birth DATE,
+  phone TEXT,
+  is_private BOOLEAN DEFAULT false,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Index pour les performances
+CREATE INDEX IF NOT EXISTS idx_profiles_user_id ON profiles(user_id);
+CREATE INDEX IF NOT EXISTS idx_profiles_display_name ON profiles(display_name);
+
+-- Activer Row Level Security
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+
+-- Politiques pour la sécurité
+DROP POLICY IF EXISTS "Permettre lecture publique profils" ON profiles;
+DROP POLICY IF EXISTS "Permettre mise à jour profil utilisateur" ON profiles;
+DROP POLICY IF EXISTS "Permettre insertion profil utilisateur" ON profiles;
+DROP POLICY IF EXISTS "Permettre suppression profil utilisateur" ON profiles;
+
+CREATE POLICY "Permettre lecture publique profils" ON profiles FOR SELECT USING (true);
+CREATE POLICY "Permettre mise à jour profil utilisateur" ON profiles FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Permettre insertion profil utilisateur" ON profiles FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Permettre suppression profil utilisateur" ON profiles FOR DELETE USING (auth.uid() = user_id);
+
+-- Fonction pour mettre à jour updated_at automatiquement
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger pour updated_at
+DROP TRIGGER IF EXISTS update_profiles_updated_at ON profiles;
+CREATE TRIGGER update_profiles_updated_at
+  BEFORE UPDATE ON profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+-- Fonction pour créer automatiquement un profil lors de l'inscription
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.profiles (user_id, display_name)
+  VALUES (NEW.id, COALESCE(NEW.raw_user_meta_data->>'display_name', split_part(NEW.email, '@', 1)));
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger pour créer automatiquement un profil
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+```
+
+5. **Configuration de la table `recipes` :**
    
    **Étape 1 : Créer/Mettre à jour la table**
    - Allez dans **SQL Editor** dans votre dashboard Supabase
@@ -262,7 +336,7 @@ CREATE POLICY "Permettre mise à jour publique" ON recipes FOR UPDATE USING (tru
 CREATE POLICY "Permettre suppression publique" ON recipes FOR DELETE USING (true);
 ```
 
-5. **Configuration des tables pour le système d'amis :**
+6. **Configuration des tables pour le système d'amis :**
 
 ```sql
 -- Table des profils utilisateurs (structure correcte)
@@ -326,7 +400,7 @@ CREATE TRIGGER on_auth_user_created
   FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
 ```
 
-6. **Configuration Storage pour les images :**
+7. **Configuration Storage pour les images :**
    
    **Étape 1 : Créer le bucket**
    - Allez dans **Storage > Buckets** dans votre dashboard Supabase
@@ -355,6 +429,28 @@ CREATE POLICY IF NOT EXISTS "Permettre suppression publique" ON storage.objects
    - Utilisez la page `/test-upload` pour vérifier que tout fonctionne
    - Le statut du bucket doit afficher "✅ Bucket recipe-images disponible"
    - Utilisez la page `/test-recipes` pour vérifier la structure de la table
+
+8. **Script de mise à jour des auteurs existants :**
+   
+   Après avoir créé la table profiles, exécutez ce script pour mettre à jour les recettes existantes :
+
+```sql
+-- Mettre à jour les recettes existantes avec les noms d'utilisateur
+UPDATE public.recipes 
+SET author = COALESCE(p.display_name, 'Chef Anonyme')
+FROM public.profiles p 
+WHERE recipes.user_id = p.user_id 
+AND (recipes.author IS NULL 
+     OR recipes.author = 'Chef Anonyme' 
+     OR recipes.author = '' 
+     OR recipes.author = 'Utilisateur');
+
+-- Définir un nom par défaut pour les recettes orphelines
+UPDATE public.recipes 
+SET author = 'Chef Communauté'
+WHERE user_id IS NULL 
+AND (author IS NULL OR author = '' OR author = 'Chef Anonyme');
+```
 
 ## 🔧 Tests et Debug
 

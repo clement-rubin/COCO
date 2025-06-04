@@ -19,7 +19,12 @@ export default function Profil() {
   const [isEditing, setIsEditing] = useState(false)
   const [editForm, setEditForm] = useState({
     display_name: '',
-    bio: ''
+    bio: '',
+    location: '',
+    website: '',
+    date_of_birth: '',
+    phone: '',
+    is_private: false
   })
 
   // Redirect if not authenticated
@@ -51,7 +56,12 @@ export default function Profil() {
         setProfile(profileData)
         setEditForm({
           display_name: profileData.display_name || '',
-          bio: profileData.bio || ''
+          bio: profileData.bio || '',
+          location: profileData.location || '',
+          website: profileData.website || '',
+          date_of_birth: profileData.date_of_birth || '',
+          phone: profileData.phone || '',
+          is_private: profileData.is_private || false
         })
       }
 
@@ -140,8 +150,7 @@ export default function Profil() {
         },
         body: JSON.stringify({
           user_id: user.id,
-          display_name: editForm.display_name,
-          bio: editForm.bio
+          ...editForm
         })
       })
 
@@ -376,6 +385,105 @@ export default function Profil() {
                 />
               </div>
 
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
+                  Localisation
+                </label>
+                <input
+                  type="text"
+                  value={editForm.location}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, location: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '0.5rem',
+                    fontSize: '1rem'
+                  }}
+                  placeholder="Votre ville, pays"
+                />
+              </div>
+
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
+                  Site web
+                </label>
+                <input
+                  type="url"
+                  value={editForm.website}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, website: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '0.5rem',
+                    fontSize: '1rem'
+                  }}
+                  placeholder="https://votre-site.com"
+                />
+              </div>
+
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
+                  Date de naissance
+                </label>
+                <input
+                  type="date"
+                  value={editForm.date_of_birth}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, date_of_birth: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '0.5rem',
+                    fontSize: '1rem'
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
+                  Téléphone
+                </label>
+                <input
+                  type="tel"
+                  value={editForm.phone}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, phone: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '0.5rem',
+                    fontSize: '1rem'
+                  }}
+                  placeholder="Votre numéro de téléphone"
+                />
+              </div>
+
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '0.5rem',
+                  fontWeight: '500'
+                }}>
+                  <input
+                    type="checkbox"
+                    checked={editForm.is_private}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, is_private: e.target.checked }))}
+                    style={{ transform: 'scale(1.2)' }}
+                  />
+                  Profil privé
+                </label>
+                <p style={{ 
+                  fontSize: '0.875rem', 
+                  color: '#6b7280', 
+                  margin: '0.25rem 0 0 1.75rem' 
+                }}>
+                  Si activé, seuls vos amis pourront voir votre profil complet
+                </p>
+              </div>
+
               <button
                 onClick={handleSaveProfile}
                 style={{
@@ -402,6 +510,15 @@ export default function Profil() {
               <p><strong>Email:</strong> {user?.email}</p>
               <p><strong>Nom:</strong> {profile?.display_name || 'Non défini'}</p>
               <p><strong>Biographie:</strong> {profile?.bio || 'Aucune biographie'}</p>
+              <p><strong>Localisation:</strong> {profile?.location || 'Non définie'}</p>
+              <p><strong>Site web:</strong> {profile?.website ? (
+                <a href={profile.website} target="_blank" rel="noopener noreferrer" style={{ color: '#667eea' }}>
+                  {profile.website}
+                </a>
+              ) : 'Non défini'}</p>
+              <p><strong>Date de naissance:</strong> {profile?.date_of_birth ? new Date(profile.date_of_birth).toLocaleDateString('fr-FR') : 'Non définie'}</p>
+              <p><strong>Téléphone:</strong> {profile?.phone || 'Non défini'}</p>
+              <p><strong>Profil:</strong> {profile?.is_private ? 'Privé' : 'Public'}</p>
               <p><strong>Membre depuis:</strong> {user?.created_at ? new Date(user.created_at).toLocaleDateString('fr-FR') : 'N/A'}</p>
             </div>
           )}

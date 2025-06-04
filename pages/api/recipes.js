@@ -403,8 +403,40 @@ export default async function handler(req, res) {
               logWarning('Could not retrieve author name from profile', {
                 reference: requestReference,
                 userId: data.user_id.substring(0, 8) + '...',
-                profileError: profileError?.message
+                profileError: profileError?.message,
+                willCreateProfile: true
               })
+              
+              // Si le profil n'existe pas, essayer de le créer
+              if (profileError?.code === 'PGRST116') { // No rows returned
+                try {
+                  const defaultProfile = {
+                    user_id: data.user_id.trim(),
+                    display_name: authorName || 'Utilisateur',
+                    bio: null
+                  }
+                  
+                  const { data: newProfile, error: createError } = await supabase
+                    .from('profiles')
+                    .insert([defaultProfile])
+                    .select()
+                    .single()
+                  
+                  if (!createError && newProfile) {
+                    authorName = newProfile.display_name
+                    logInfo('Profile created and author name set', {
+                      reference: requestReference,
+                      userId: data.user_id.substring(0, 8) + '...',
+                      authorName: authorName
+                    })
+                  }
+                } catch (createErr) {
+                  logError('Error creating profile', createErr, {
+                    reference: requestReference,
+                    userId: data.user_id.substring(0, 8) + '...'
+                  })
+                }
+              }
             }
           } catch (profileErr) {
             logError('Error retrieving profile for author name', profileErr, {
@@ -412,6 +444,9 @@ export default async function handler(req, res) {
               userId: data.user_id.substring(0, 8) + '...'
             })
           }
+        } else {
+          // Si pas de user_id, utiliser le nom fourni ou un nom par défaut
+          authorName = authorName || 'Chef Communauté'
         }
         
         // Ensure ingredients and instructions are properly formatted
@@ -434,7 +469,7 @@ export default async function handler(req, res) {
           prepTime: data.prepTime && typeof data.prepTime === 'string' ? data.prepTime.trim() : null,
           cookTime: data.cookTime && typeof data.cookTime === 'string' ? data.cookTime.trim() : null,
           category: data.category && typeof data.category === 'string' ? data.category.trim() : 'Autre',
-          author: authorName || 'Chef Anonyme',
+          author: authorName, // Utilise le nom amélioré récupéré du profil
           user_id: data.user_id && typeof data.user_id === 'string' ? data.user_id.trim() : null,
           ingredients: ingredients,
           instructions: instructions,
