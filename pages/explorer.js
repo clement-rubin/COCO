@@ -48,6 +48,10 @@ export default function Explorer() {
   }
 
   const handleRecipeClick = (recipeId) => {
+    logUserInteraction('OPEN_RECIPE_FROM_EXPLORER', 'explorer-grid', {
+      recipeId,
+      userId: user?.id
+    })
     router.push(`/recipe/${recipeId}`)
   }
 

@@ -1,9 +1,10 @@
 import Head from 'next/head'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
+import Image from 'next/image'
 import { useAuth } from '../../components/AuthContext'
-import { getRecipeImageUrl } from '../../lib/supabase'
-import { logDebug, logInfo, logError } from '../../utils/logger'
+import { logUserInteraction, logError, logInfo } from '../../utils/logger'
+import styles from '../../styles/RecipeDetail.module.css'
 
 export default function RecipeDetail() {
   const router = useRouter()
@@ -13,447 +14,549 @@ export default function RecipeDetail() {
   const [recipe, setRecipe] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [activeTimers, setActiveTimers] = useState({})
-  const [currentStep, setCurrentStep] = useState(0)
-  const [isCookingMode, setIsCookingMode] = useState(false)
-  const [userRating, setUserRating] = useState(0)
-  const [showRatingModal, setShowRatingModal] = useState(false)
-  const [cookingProgress, setCookingProgress] = useState({})
-  const [ingredients, setIngredients] = useState({})
-  const [portions, setPortions] = useState(2)
   const [isLiked, setIsLiked] = useState(false)
   const [isSaved, setIsSaved] = useState(false)
-  const [showShareModal, setShowShareModal] = useState(false)
-  const [comments, setComments] = useState([])
-  const [newComment, setNewComment] = useState('')
-  
-  const timerRefs = useRef({})
-  const speechSynthesis = useRef(null)
+  const [servings, setServings] = useState(4)
+  const [activeTab, setActiveTab] = useState('ingredients')
 
-  // Charger la recette
   useEffect(() => {
-    const fetchRecipe = async () => {
-      if (!id) return
-      
-      try {
-        setLoading(true)
-        const response = await fetch(`/api/recipes?id=${id}`)
-        if (response.ok) {
-          const data = await response.json()
-          setRecipe(data)
-        } else {
-          throw new Error('Recette non trouvée')
-        }
-      } catch (err) {
-        setError(err.message)
-      } finally {
-        setLoading(false)
-      }
+    if (id) {
+      loadRecipe()
+      loadUserPreferences()
     }
-    
-    fetchRecipe()
   }, [id])
 
-  // Initialiser speech synthesis
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      speechSynthesis.current = window.speechSynthesis
-    }
-  }, [])
-
-  // Fonction pour convertir bytea en URL d'image - VERSION AMÉLIORÉE
-  const getImageUrl = (imageData) => {
-    logDebug('RecipeDetail: Conversion image pour affichage', {
-      recipeId: recipe?.id,
-      recipeTitle: recipe?.title,
-      hasImageData: !!imageData,
-      imageDataType: typeof imageData,
-      imageDataLength: imageData?.length,
-      isArray: Array.isArray(imageData)
-    })
-    
-    return getRecipeImageUrl(imageData, '/placeholder-recipe.jpg')
-  }
-
-  // Gestion des minuteurs
-  const startTimer = (stepIndex, minutes) => {
-    const duration = minutes * 60 * 1000
-    
-    setActiveTimers(prev => ({
-      ...prev,
-      [stepIndex]: {
-        startTime: Date.now(),
-        duration,
-        remaining: duration
+  const loadRecipe = async () => {
+    try {
+      setLoading(true)
+      
+      // First try to get from API
+      const response = await fetch(`/api/recipes/${id}`)
+      
+      if (response.ok) {
+        const recipeData = await response.json()
+        setRecipe(recipeData)
+        setServings(parseInt(recipeData.servings) || 4)
+      } else {
+        // Fallback to mock data if API fails
+        const mockRecipe = getMockRecipe(id)
+        setRecipe(mockRecipe)
+        setServings(mockRecipe.servings || 4)
       }
-    }))
-
-    const intervalId = setInterval(() => {
-      setActiveTimers(prev => {
-        const timer = prev[stepIndex]
-        if (!timer) return prev
-        
-        const elapsed = Date.now() - timer.startTime
-        const remaining = Math.max(0, timer.duration - elapsed)
-        
-        if (remaining === 0) {
-          clearInterval(intervalId)
-          showTimerComplete(stepIndex)
-          const { [stepIndex]: _, ...rest } = prev
-          return rest
-        }
-        
-        return {
-          ...prev,
-          [stepIndex]: { ...timer, remaining }
-        }
+      
+      logUserInteraction('VIEW_RECIPE_DETAIL', 'recipe-page', {
+        recipeId: id,
+        userId: user?.id
       })
-    }, 1000)
-
-    timerRefs.current[stepIndex] = intervalId
-  }
-
-  const showTimerComplete = (stepIndex) => {
-    // Notification et vibration
-    if (navigator.vibrate) {
-      navigator.vibrate([200, 100, 200])
-    }
-    
-    // Notification audio
-    if (speechSynthesis.current) {
-      const utterance = new SpeechSynthesisUtterance(`Étape ${stepIndex + 1} terminée !`)
-      speechSynthesis.current.speak(utterance)
-    }
-    
-    alert(`⏰ Minuteur terminé pour l'étape ${stepIndex + 1} !`)
-  }
-
-  // Mode cuisson
-  const toggleCookingMode = () => {
-    setIsCookingMode(!isCookingMode)
-    if (!isCookingMode) {
-      setCurrentStep(0)
+    } catch (err) {
+      logError('Failed to load recipe', err, { recipeId: id })
+      
+      // Use mock data as fallback
+      const mockRecipe = getMockRecipe(id)
+      setRecipe(mockRecipe)
+      setServings(mockRecipe.servings || 4)
+    } finally {
+      setLoading(false)
     }
   }
 
-  // Marquer un ingrédient comme utilisé
-  const toggleIngredient = (index) => {
-    setIngredients(prev => ({
-      ...prev,
-      [index]: !prev[index]
-    }))
+  const getMockRecipe = (recipeId) => {
+    const mockRecipes = {
+      '1': {
+        id: '1',
+        title: 'Pâtes Carbonara Authentiques',
+        description: 'La vraie recette de carbonara romaine, crémeuse et savoureuse, préparée avec des œufs frais et du pecorino romano.',
+        image: '/placeholder-recipe.jpg',
+        author: 'Chef Marco Romano',
+        category: 'Pâtes',
+        difficulty: 'Facile',
+        prepTime: '10 min',
+        cookTime: '15 min',
+        servings: 4,
+        likes: 234,
+        rating: 4.8,
+        ingredients: [
+          '400g de spaghetti',
+          '200g de guanciale ou pancetta',
+          '4 œufs entiers + 2 jaunes',
+          '100g de pecorino romano râpé',
+          '50g de parmesan râpé',
+          'Poivre noir fraîchement moulu',
+          'Sel pour l\'eau de cuisson'
+        ],
+        instructions: [
+          {
+            step: 1,
+            instruction: 'Faire bouillir une grande casserole d\'eau salée pour les pâtes.'
+          },
+          {
+            step: 2,
+            instruction: 'Couper le guanciale en petits dés et le faire revenir dans une poêle jusqu\'à ce qu\'il soit croustillant.'
+          },
+          {
+            step: 3,
+            instruction: 'Dans un bol, battre les œufs avec les fromages râpés et une généreuse quantité de poivre noir.'
+          },
+          {
+            step: 4,
+            instruction: 'Cuire les spaghetti selon les instructions jusqu\'à ce qu\'ils soient al dente.'
+          },
+          {
+            step: 5,
+            instruction: 'Réserver une tasse d\'eau de cuisson des pâtes, puis égoutter.'
+          },
+          {
+            step: 6,
+            instruction: 'Ajouter les pâtes chaudes dans la poêle avec le guanciale, retirer du feu.'
+          },
+          {
+            step: 7,
+            instruction: 'Verser le mélange d\'œufs en remuant rapidement pour créer une sauce crémeuse.'
+          },
+          {
+            step: 8,
+            instruction: 'Ajouter l\'eau de cuisson si nécessaire pour obtenir la consistance désirée.'
+          }
+        ],
+        tips: [
+          'Ne jamais ajouter de crème dans une vraie carbonara',
+          'La chaleur des pâtes cuit les œufs, ne pas remettre sur le feu',
+          'Utiliser du pecorino romano pour l\'authenticité'
+        ],
+        nutrition: {
+          calories: 520,
+          protein: 28,
+          carbs: 65,
+          fat: 18
+        }
+      }
+    }
+
+    return mockRecipes[recipeId] || {
+      id: recipeId,
+      title: 'Recette Découverte',
+      description: 'Une délicieuse recette à découvrir',
+      image: '/placeholder-recipe.jpg',
+      author: 'Chef COCO',
+      category: 'Autre',
+      difficulty: 'Moyen',
+      prepTime: '15 min',
+      cookTime: '30 min',
+      servings: 4,
+      likes: 0,
+      rating: 4.5,
+      ingredients: ['Ingrédients à venir...'],
+      instructions: [{ step: 1, instruction: 'Instructions à venir...' }],
+      tips: ['Conseils à venir...'],
+      nutrition: { calories: 0, protein: 0, carbs: 0, fat: 0 }
+    }
   }
 
-  // Ajuster les portions
-  const adjustPortions = (newPortions) => {
-    setPortions(Math.max(1, newPortions))
+  const loadUserPreferences = () => {
+    try {
+      const savedLikes = localStorage.getItem('userLikedRecipes')
+      const savedRecipes = localStorage.getItem('userSavedRecipes')
+      
+      if (savedLikes) {
+        const likes = JSON.parse(savedLikes)
+        setIsLiked(likes.includes(id))
+      }
+      
+      if (savedRecipes) {
+        const saves = JSON.parse(savedRecipes)
+        setIsSaved(saves.includes(id))
+      }
+    } catch (err) {
+      console.error('Failed to load user preferences', err)
+    }
   }
 
-  // Calculer les quantités ajustées
-  const getAdjustedQuantity = (originalQuantity) => {
-    const basePortions = recipe?.portions || 2
-    const multiplier = portions / basePortions
-    return originalQuantity * multiplier
-  }
+  const toggleLike = () => {
+    if (!user) {
+      router.push('/login?redirect=' + encodeURIComponent(`/recipe/${id}`))
+      return
+    }
 
-  // Actions sociales
-  const toggleLike = async () => {
-    setIsLiked(!isLiked)
-    // Animation de like
-    if (!isLiked && navigator.vibrate) {
-      navigator.vibrate(50)
+    try {
+      const savedLikes = JSON.parse(localStorage.getItem('userLikedRecipes') || '[]')
+      let newLikes
+      
+      if (isLiked) {
+        newLikes = savedLikes.filter(likeId => likeId !== id)
+      } else {
+        newLikes = [...savedLikes, id]
+      }
+      
+      localStorage.setItem('userLikedRecipes', JSON.stringify(newLikes))
+      setIsLiked(!isLiked)
+      
+      // Animation effect
+      if (!isLiked) {
+        const hearts = ['❤️', '💖', '💕']
+        for (let i = 0; i < 5; i++) {
+          setTimeout(() => {
+            const heart = document.createElement('div')
+            heart.innerHTML = hearts[Math.floor(Math.random() * hearts.length)]
+            heart.style.cssText = `
+              position: fixed;
+              font-size: 1.5rem;
+              z-index: 10000;
+              pointer-events: none;
+              animation: heartFloat 2s ease-out forwards;
+              left: ${Math.random() * 100}vw;
+              top: 50vh;
+            `
+            document.body.appendChild(heart)
+            setTimeout(() => heart.remove(), 2000)
+          }, i * 100)
+        }
+      }
+      
+      logUserInteraction('TOGGLE_LIKE_RECIPE', 'recipe-detail', {
+        recipeId: id,
+        action: isLiked ? 'unlike' : 'like',
+        userId: user.id
+      })
+    } catch (err) {
+      console.error('Failed to toggle like', err)
     }
   }
 
   const toggleSave = () => {
-    setIsSaved(!isSaved)
+    if (!user) {
+      router.push('/login?redirect=' + encodeURIComponent(`/recipe/${id}`))
+      return
+    }
+
+    try {
+      const savedRecipes = JSON.parse(localStorage.getItem('userSavedRecipes') || '[]')
+      let newSaves
+      
+      if (isSaved) {
+        newSaves = savedRecipes.filter(saveId => saveId !== id)
+      } else {
+        newSaves = [...savedRecipes, id]
+      }
+      
+      localStorage.setItem('userSavedRecipes', JSON.stringify(newSaves))
+      setIsSaved(!isSaved)
+      
+      logUserInteraction('TOGGLE_SAVE_RECIPE', 'recipe-detail', {
+        recipeId: id,
+        action: isSaved ? 'unsave' : 'save',
+        userId: user.id
+      })
+    } catch (err) {
+      console.error('Failed to toggle save', err)
+    }
+  }
+
+  const adjustServings = (newServings) => {
+    if (newServings < 1 || newServings > 20) return
+    setServings(newServings)
+  }
+
+  const shareRecipe = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: recipe.title,
+          text: recipe.description,
+          url: window.location.href
+        })
+      } catch (err) {
+        console.error('Error sharing', err)
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(window.location.href)
+        alert('Lien copié dans le presse-papiers!')
+      } catch (err) {
+        console.error('Error copying to clipboard', err)
+      }
+    }
+  }
+
+  const getDifficultyColor = (difficulty) => {
+    switch(difficulty) {
+      case 'Facile': return '#10b981'
+      case 'Moyen': return '#f59e0b'
+      case 'Difficile': return '#ef4444'
+      default: return '#6b7280'
+    }
   }
 
   if (loading) {
     return (
-      <div style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>👨‍🍳</div>
-          <p>Préparation de la recette...</p>
-        </div>
+      <div className={styles.loadingContainer}>
+        <div className={styles.loadingSpinner}></div>
+        <p>Chargement de la recette...</p>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        textAlign: 'center'
-      }}>
-        <div>
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>😕</div>
-          <h2>Recette non trouvée</h2>
-          <p>{error}</p>
-          <button onClick={() => router.back()}>
-            Retour
-          </button>
-        </div>
+      <div className={styles.errorContainer}>
+        <div className={styles.errorIcon}>😓</div>
+        <h3>Erreur de chargement</h3>
+        <p>{error}</p>
+        <button onClick={() => router.back()} className={styles.backButton}>
+          Retour
+        </button>
       </div>
     )
   }
 
   if (!recipe) {
-    return null
+    return (
+      <div className={styles.errorContainer}>
+        <div className={styles.errorIcon}>🔍</div>
+        <h3>Recette introuvable</h3>
+        <p>Cette recette n'existe pas ou a été supprimée.</p>
+        <button onClick={() => router.push('/explorer')} className={styles.backButton}>
+          Explorer d'autres recettes
+        </button>
+      </div>
+    )
   }
 
+  const multiplier = servings / (recipe.servings || 4)
+
   return (
-    <div>
+    <div className={styles.container}>
       <Head>
         <title>{recipe.title} - COCO</title>
         <meta name="description" content={recipe.description} />
       </Head>
 
-      <div style={{ maxWidth: '800px', margin: '0 auto', padding: '1rem' }}>
-        {/* Image principale avec logging amélioré */}
-        {recipe.image && (
-          <div style={{
-            width: '100%',
-            height: '300px',
-            borderRadius: '12px',
-            overflow: 'hidden',
-            marginBottom: '1rem'
-          }}>
-            <img
-              src={getImageUrl(recipe.image)}
-              alt={recipe.title}
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover'
-              }}
-              onLoad={() => {
-                logInfo('Image de recette chargée avec succès', {
-                  recipeId: recipe.id,
-                  recipeTitle: recipe.title
-                })
-              }}
-              onError={(e) => {
-                logError('Erreur de chargement d\'image de recette', new Error('Image load failed'), {
-                  recipeId: recipe.id,
-                  recipeTitle: recipe.title,
-                  imageSrc: e.target.src
-                })
-                e.target.src = '/placeholder-recipe.jpg'
-              }}
-            />
-          </div>
-        )}
-
-        {/* Titre et métadonnées */}
-        <div style={{ marginBottom: '2rem' }}>
-          <h1>{recipe.title}</h1>
-          <p style={{ color: 'var(--text-medium)' }}>{recipe.description}</p>
-          
-          <div style={{
-            display: 'flex',
-            gap: '1rem',
-            flexWrap: 'wrap',
-            margin: '1rem 0'
-          }}>
-            {recipe.prepTime && <span>⏱️ Prep: {recipe.prepTime}</span>}
-            {recipe.cookTime && <span>🔥 Cuisson: {recipe.cookTime}</span>}
-            {recipe.difficulty && <span>⭐ {recipe.difficulty}</span>}
-            {recipe.category && <span>📂 {recipe.category}</span>}
-          </div>
-
-          {/* Actions */}
-          <div style={{ display: 'flex', gap: '1rem', margin: '1rem 0' }}>
-            <button
-              onClick={toggleLike}
-              style={{
-                background: isLiked ? 'var(--primary-coral)' : 'var(--bg-light)',
-                color: isLiked ? 'white' : 'var(--text-dark)',
-                border: 'none',
-                padding: '0.5rem 1rem',
-                borderRadius: '8px',
-                cursor: 'pointer'
-              }}
-            >
-              {isLiked ? '❤️' : '🤍'} J'aime
-            </button>
-            
-            <button
-              onClick={toggleSave}
-              style={{
-                background: isSaved ? 'var(--secondary-mint)' : 'var(--bg-light)',
-                color: isSaved ? 'white' : 'var(--text-dark)',
-                border: 'none',
-                padding: '0.5rem 1rem',
-                borderRadius: '8px',
-                cursor: 'pointer'
-              }}
-            >
-              {isSaved ? '⭐' : '🤍'} Sauvegarder
-            </button>
-            
-            <button
-              onClick={toggleCookingMode}
-              style={{
-                background: 'var(--primary-orange)',
-                color: 'white',
-                border: 'none',
-                padding: '0.5rem 1rem',
-                borderRadius: '8px',
-                cursor: 'pointer'
-              }}
-            >
-              {isCookingMode ? '📖 Mode lecture' : '👨‍🍳 Mode cuisson'}
-            </button>
-          </div>
+      {/* Header avec image */}
+      <div className={styles.heroSection}>
+        <button 
+          className={styles.backButton}
+          onClick={() => router.back()}
+        >
+          ← Retour
+        </button>
+        
+        <div className={styles.heroImage}>
+          <Image
+            src={recipe.image || '/placeholder-recipe.jpg'}
+            alt={recipe.title}
+            fill
+            className={styles.image}
+            priority
+          />
+          <div className={styles.heroOverlay} />
         </div>
 
-        {/* Ingrédients */}
-        {recipe.ingredients && Array.isArray(recipe.ingredients) && (
-          <div style={{ marginBottom: '2rem' }}>
-            <h2>Ingrédients</h2>
-            <div style={{ marginBottom: '1rem' }}>
-              <label>Portions: </label>
-              <button onClick={() => adjustPortions(portions - 1)}>-</button>
-              <span style={{ margin: '0 1rem' }}>{portions}</span>
-              <button onClick={() => adjustPortions(portions + 1)}>+</button>
+        <div className={styles.heroContent}>
+          <div className={styles.recipeHeader}>
+            <h1 className={styles.title}>{recipe.title}</h1>
+            <p className={styles.description}>{recipe.description}</p>
+            
+            <div className={styles.authorInfo}>
+              <span className={styles.authorIcon}>👨‍🍳</span>
+              <span className={styles.authorName}>{recipe.author}</span>
             </div>
-            
-            <ul style={{ listStyle: 'none', padding: 0 }}>
-              {recipe.ingredients.map((ingredient, index) => (
-                <li
-                  key={index}
-                  style={{
-                    padding: '0.5rem',
-                    backgroundColor: ingredients[index] ? 'var(--bg-light)' : 'transparent',
-                    textDecoration: ingredients[index] ? 'line-through' : 'none',
-                    cursor: 'pointer',
-                    borderRadius: '4px',
-                    margin: '0.25rem 0'
-                  }}
-                  onClick={() => toggleIngredient(index)}
-                >
-                  {ingredients[index] ? '✅' : '⭕'} {ingredient}
-                </li>
-              ))}
-            </ul>
           </div>
-        )}
-
-        {/* Instructions */}
-        {recipe.instructions && Array.isArray(recipe.instructions) && (
-          <div>
-            <h2>Instructions</h2>
-            {recipe.instructions.map((instruction, index) => (
-              <div
-                key={index}
-                style={{
-                  padding: '1rem',
-                  margin: '1rem 0',
-                  backgroundColor: isCookingMode && index === currentStep 
-                    ? 'var(--primary-coral-light)' 
-                    : 'var(--bg-light)',
-                  borderRadius: '8px',
-                  border: isCookingMode && index === currentStep 
-                    ? '2px solid var(--primary-coral)' 
-                    : '1px solid var(--border-light)'
-                }}
-              >
-                <h3>Étape {index + 1}</h3>
-                <p>
-                  {typeof instruction === 'string' 
-                    ? instruction 
-                    : instruction.instruction || instruction}
-                </p>
-                
-                {isCookingMode && index === currentStep && (
-                  <div style={{ marginTop: '1rem' }}>
-                    <button
-                      onClick={() => startTimer(index, 5)}
-                      style={{
-                        background: 'var(--accent-yellow)',
-                        border: 'none',
-                        padding: '0.5rem 1rem',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        marginRight: '0.5rem'
-                      }}
-                    >
-                      ⏲️ Timer 5min
-                    </button>
-                    
-                    {activeTimers[index] && (
-                      <span style={{ color: 'var(--primary-coral)', fontWeight: 'bold' }}>
-                        ⏰ {Math.ceil(activeTimers[index].remaining / 1000)}s
-                      </span>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
-            
-            {isCookingMode && (
-              <div style={{
-                position: 'fixed',
-                bottom: '100px',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                display: 'flex',
-                gap: '1rem',
-                background: 'white',
-                padding: '1rem',
-                borderRadius: '12px',
-                boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
-              }}>
-                <button
-                  onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
-                  disabled={currentStep === 0}
-                  style={{
-                    background: 'var(--bg-light)',
-                    border: 'none',
-                    padding: '0.5rem 1rem',
-                    borderRadius: '8px',
-                    cursor: currentStep === 0 ? 'not-allowed' : 'pointer'
-                  }}
-                >
-                  ⬅️ Précédent
-                </button>
-                
-                <span style={{ 
-                  display: 'flex', 
-                  alignItems: 'center',
-                  color: 'var(--text-medium)'
-                }}>
-                  {currentStep + 1} / {recipe.instructions.length}
-                </span>
-                
-                <button
-                  onClick={() => setCurrentStep(Math.min(recipe.instructions.length - 1, currentStep + 1))}
-                  disabled={currentStep === recipe.instructions.length - 1}
-                  style={{
-                    background: 'var(--primary-coral)',
-                    color: 'white',
-                    border: 'none',
-                    padding: '0.5rem 1rem',
-                    borderRadius: '8px',
-                    cursor: currentStep === recipe.instructions.length - 1 ? 'not-allowed' : 'pointer'
-                  }}
-                >
-                  Suivant ➡️
-                </button>
-              </div>
-            )}
-          </div>
-        )}
+        </div>
       </div>
+
+      {/* Actions rapides */}
+      <div className={styles.quickActions}>
+        <button 
+          onClick={toggleLike}
+          className={`${styles.actionBtn} ${isLiked ? styles.liked : ''}`}
+        >
+          {isLiked ? '❤️' : '🤍'} {recipe.likes || 0}
+        </button>
+        
+        <button 
+          onClick={toggleSave}
+          className={`${styles.actionBtn} ${isSaved ? styles.saved : ''}`}
+        >
+          {isSaved ? '⭐' : '☆'} Sauvegarder
+        </button>
+        
+        <button onClick={shareRecipe} className={styles.actionBtn}>
+          📤 Partager
+        </button>
+      </div>
+
+      {/* Informations de la recette */}
+      <div className={styles.recipeInfo}>
+        <div className={styles.infoGrid}>
+          <div className={styles.infoItem}>
+            <span className={styles.infoIcon}>⏱️</span>
+            <div>
+              <span className={styles.infoLabel}>Préparation</span>
+              <span className={styles.infoValue}>{recipe.prepTime}</span>
+            </div>
+          </div>
+          
+          <div className={styles.infoItem}>
+            <span className={styles.infoIcon}>🔥</span>
+            <div>
+              <span className={styles.infoLabel}>Cuisson</span>
+              <span className={styles.infoValue}>{recipe.cookTime}</span>
+            </div>
+          </div>
+          
+          <div className={styles.infoItem}>
+            <span className={styles.infoIcon}>👥</span>
+            <div>
+              <span className={styles.infoLabel}>Portions</span>
+              <div className={styles.servingsControl}>
+                <button 
+                  onClick={() => adjustServings(servings - 1)}
+                  className={styles.servingBtn}
+                >
+                  -
+                </button>
+                <span className={styles.infoValue}>{servings}</span>
+                <button 
+                  onClick={() => adjustServings(servings + 1)}
+                  className={styles.servingBtn}
+                >
+                  +
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <div className={styles.infoItem}>
+            <span 
+              className={styles.difficultyBadge}
+              style={{ backgroundColor: getDifficultyColor(recipe.difficulty) }}
+            >
+              {recipe.difficulty}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Onglets de contenu */}
+      <div className={styles.tabsContainer}>
+        <div className={styles.tabsHeader}>
+          <button 
+            onClick={() => setActiveTab('ingredients')}
+            className={`${styles.tab} ${activeTab === 'ingredients' ? styles.active : ''}`}
+          >
+            🧾 Ingrédients
+          </button>
+          <button 
+            onClick={() => setActiveTab('instructions')}
+            className={`${styles.tab} ${activeTab === 'instructions' ? styles.active : ''}`}
+          >
+            📝 Étapes
+          </button>
+          <button 
+            onClick={() => setActiveTab('tips')}
+            className={`${styles.tab} ${activeTab === 'tips' ? styles.active : ''}`}
+          >
+            💡 Conseils
+          </button>
+        </div>
+
+        <div className={styles.tabContent}>
+          {/* Onglet Ingrédients */}
+          {activeTab === 'ingredients' && (
+            <div className={styles.ingredientsTab}>
+              <div className={styles.ingredientsList}>
+                {recipe.ingredients.map((ingredient, index) => (
+                  <div key={index} className={styles.ingredient}>
+                    <span className={styles.ingredientBullet}>•</span>
+                    <span className={styles.ingredientText}>
+                      {multiplier !== 1 ? 
+                        ingredient.replace(/(\d+\.?\d*)/g, (match) => {
+                          const num = parseFloat(match)
+                          return isNaN(num) ? match : (num * multiplier).toFixed(num % 1 === 0 ? 0 : 1)
+                        }) : 
+                        ingredient
+                      }
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Onglet Instructions */}
+          {activeTab === 'instructions' && (
+            <div className={styles.instructionsTab}>
+              <div className={styles.instructionsList}>
+                {recipe.instructions.map((instruction, index) => (
+                  <div key={index} className={styles.instructionStep}>
+                    <div className={styles.stepNumber}>{instruction.step || index + 1}</div>
+                    <div className={styles.stepContent}>
+                      <p className={styles.stepText}>{instruction.instruction}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Onglet Conseils */}
+          {activeTab === 'tips' && (
+            <div className={styles.tipsTab}>
+              {recipe.tips && recipe.tips.length > 0 ? (
+                <div className={styles.tipsList}>
+                  {recipe.tips.map((tip, index) => (
+                    <div key={index} className={styles.tip}>
+                      <span className={styles.tipIcon}>💡</span>
+                      <span className={styles.tipText}>{tip}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className={styles.noTips}>
+                  <span className={styles.noTipsIcon}>🤔</span>
+                  <p>Aucun conseil spécial pour cette recette.</p>
+                </div>
+              )}
+              
+              {recipe.nutrition && (
+                <div className={styles.nutritionInfo}>
+                  <h3 className={styles.nutritionTitle}>Informations nutritionnelles (par portion)</h3>
+                  <div className={styles.nutritionGrid}>
+                    <div className={styles.nutritionItem}>
+                      <span className={styles.nutritionValue}>{Math.round(recipe.nutrition.calories * multiplier / servings)}</span>
+                      <span className={styles.nutritionLabel}>Calories</span>
+                    </div>
+                    <div className={styles.nutritionItem}>
+                      <span className={styles.nutritionValue}>{Math.round(recipe.nutrition.protein * multiplier / servings)}g</span>
+                      <span className={styles.nutritionLabel}>Protéines</span>
+                    </div>
+                    <div className={styles.nutritionItem}>
+                      <span className={styles.nutritionValue}>{Math.round(recipe.nutrition.carbs * multiplier / servings)}g</span>
+                      <span className={styles.nutritionLabel}>Glucides</span>
+                    </div>
+                    <div className={styles.nutritionItem}>
+                      <span className={styles.nutritionValue}>{Math.round(recipe.nutrition.fat * multiplier / servings)}g</span>
+                      <span className={styles.nutritionLabel}>Lipides</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <style jsx>{`
+        @keyframes heartFloat {
+          0% {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+          }
+          100% {
+            transform: translateY(-100px) scale(0.5);
+            opacity: 0;
+          }
+        }
+      `}</style>
     </div>
   )
 }

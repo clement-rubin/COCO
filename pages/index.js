@@ -448,11 +448,26 @@ export default function Home() {
           minHeight: '60vh',
           padding: '0 8px 20px'
         }}>
-          {viewMode === 'stories' ? (
-            <FriendsFeed feedType={feedType} />
-          ) : (
-            <AddictiveFeed />
-          )}
+          <div style={{
+            maxWidth: '100%',
+            overflow: 'hidden'
+          }}>
+            {viewMode === 'stories' ? (
+              <div style={{
+                '--max-image-height': '300px',
+                '--max-image-width': '100%'
+              }}>
+                <FriendsFeed feedType={feedType} />
+              </div>
+            ) : (
+              <div style={{
+                '--max-image-height': '250px',
+                '--max-image-width': '100%'
+              }}>
+                <AddictiveFeed />
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -473,6 +488,27 @@ export default function Home() {
           scroll-behavior: smooth;
         }
         
+        /* Fix photo sizes in feeds */
+        :global(.feed-image),
+        :global(.story-image),
+        :global(.recipe-image) {
+          max-height: var(--max-image-height, 300px) !important;
+          max-width: var(--max-image-width, 100%) !important;
+          width: 100% !important;
+          height: auto !important;
+          object-fit: cover !important;
+          border-radius: 12px !important;
+        }
+        
+        :global(.feed-item img),
+        :global(.story-item img) {
+          max-height: 300px !important;
+          width: 100% !important;
+          height: auto !important;
+          object-fit: cover !important;
+          border-radius: 12px !important;
+        }
+        
         @media (prefers-reduced-motion: reduce) {
           * {
             animation-duration: 0.01ms !important;
@@ -489,6 +525,11 @@ export default function Home() {
           
           .quick-actions {
             gridTemplateColumns: '1fr 1fr !important';
+          }
+          
+          :global(.feed-image),
+          :global(.story-image) {
+            max-height: 250px !important;
           }
         }
       `}</style>
