@@ -15,37 +15,130 @@ export default function Amis() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [activeTab, setActiveTab] = useState('friends') // 'friends', 'requests', 'search'
+  
+  // Enhanced logging state
+  const [pageLoadStartTime] = useState(Date.now())
+  const [userInteractionCount, setUserInteractionCount] = useState(0)
+  const [apiCallHistory, setApiCallHistory] = useState([])
+  const [errorHistory, setErrorHistory] = useState([])
+  const [searchHistory, setSearchHistory] = useState([])
 
-  // Component lifecycle logging
+  // Component lifecycle logging with enhanced metrics
   useEffect(() => {
+    const sessionId = Math.random().toString(36).substring(2, 15)
+    const pageLoadTime = Date.now() - pageLoadStartTime
+
     logComponentLifecycle('Amis', 'component-mount', {
+      sessionId,
+      pageLoadTime,
       authLoading,
       hasUser: !!user,
       userEmail: user?.email,
+      userDisplayName: user?.user_metadata?.display_name,
+      userId: user?.id?.substring(0, 8) + '...',
       initialActiveTab: activeTab,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
+      screenSize: typeof window !== 'undefined' ? `${window.innerWidth}x${window.innerHeight}` : 'unknown',
+      connectionType: typeof navigator !== 'undefined' && navigator.connection ? navigator.connection.effectiveType : 'unknown',
+      language: typeof navigator !== 'undefined' ? navigator.language : 'unknown',
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      referrer: typeof document !== 'undefined' ? document.referrer : 'unknown'
     })
 
+    // Track page visibility changes
+    const handleVisibilityChange = () => {
+      logUserInteraction('PAGE_VISIBILITY_CHANGE', 'amis-page', {
+        isVisible: !document.hidden,
+        timestamp: new Date().toISOString(),
+        sessionId
+      })
+    }
+
+    // Track page focus/blur
+    const handleFocus = () => {
+      logUserInteraction('PAGE_FOCUS', 'amis-page', {
+        timestamp: new Date().toISOString(),
+        sessionId
+      })
+    }
+
+    const handleBlur = () => {
+      logUserInteraction('PAGE_BLUR', 'amis-page', {
+        timestamp: new Date().toISOString(),
+        sessionId
+      })
+    }
+
+    // Track scroll behavior
+    const handleScroll = () => {
+      const scrollPercentage = Math.round((window.scrollY / (document.body.scrollHeight - window.innerHeight)) * 100)
+      logUserInteraction('PAGE_SCROLL', 'amis-page', {
+        scrollPercentage,
+        scrollY: window.scrollY,
+        timestamp: new Date().toISOString(),
+        sessionId
+      })
+    }
+
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', handleVisibilityChange)
+      window.addEventListener('focus', handleFocus)
+      window.addEventListener('blur', handleBlur)
+      
+      // Throttled scroll logging
+      let scrollTimeout
+      const throttledScroll = () => {
+        clearTimeout(scrollTimeout)
+        scrollTimeout = setTimeout(handleScroll, 1000)
+      }
+      window.addEventListener('scroll', throttledScroll)
+    }
+
     return () => {
+      const sessionDuration = Date.now() - pageLoadStartTime
+      
       logComponentLifecycle('Amis', 'component-unmount', {
+        sessionId,
+        sessionDuration,
         finalState: {
           friendsCount: friends.length,
           pendingRequestsCount: pendingRequests.length,
           searchResultsCount: searchResults.length,
           activeTab,
-          wasLoading: loading
+          wasLoading: loading,
+          totalUserInteractions: userInteractionCount,
+          totalApiCalls: apiCallHistory.length,
+          totalErrors: errorHistory.length,
+          totalSearches: searchHistory.length
+        },
+        performanceMetrics: {
+          totalSessionTime: sessionDuration,
+          averageApiResponseTime: apiCallHistory.length > 0 ? 
+            apiCallHistory.reduce((sum, call) => sum + (call.responseTime || 0), 0) / apiCallHistory.length : 0,
+          errorRate: apiCallHistory.length > 0 ? (errorHistory.length / apiCallHistory.length) * 100 : 0
         }
       })
+
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', handleVisibilityChange)
+        window.removeEventListener('focus', handleFocus)
+        window.removeEventListener('blur', handleBlur)
+        window.removeEventListener('scroll', throttledScroll)
+      }
     }
   }, [])
 
-  // Redirect if not authenticated
+  // Enhanced auth check logging
   useEffect(() => {
     logComponentLifecycle('Amis', 'useEffect-auth-check', {
       authLoading,
       hasUser: !!user,
       userEmail: user?.email,
-      step: 'auth_check_start'
+      userDisplayName: user?.user_metadata?.display_name,
+      userId: user?.id?.substring(0, 8) + '...',
+      step: 'auth_check_start',
+      pageLoadTime: Date.now() - pageLoadStartTime
     })
 
     if (!authLoading && !user) {
@@ -54,7 +147,8 @@ export default function Amis() {
         targetPage: '/amis',
         authLoading,
         redirectUrl: '/login?redirect=' + encodeURIComponent('/amis'),
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        pageLoadTime: Date.now() - pageLoadStartTime
       })
       router.push('/login?redirect=' + encodeURIComponent('/amis'))
     } else if (user) {
@@ -62,17 +156,23 @@ export default function Amis() {
         userEmail: user.email,
         userId: user.id?.substring(0, 8) + '...',
         userDisplayName: user.user_metadata?.display_name,
-        step: 'auth_check_success'
+        userCreatedAt: user.created_at,
+        userLastSignIn: user.last_sign_in_at,
+        step: 'auth_check_success',
+        authMethod: user.app_metadata?.provider,
+        userRole: user.role
       })
     }
   }, [user, authLoading, router])
 
-  // Load friends and pending requests
+  // Load friends and pending requests with enhanced logging
   useEffect(() => {
     logComponentLifecycle('Amis', 'useEffect-load-friends', {
       hasUser: !!user,
       userEmail: user?.email,
-      step: 'load_friends_effect_start'
+      userId: user?.id?.substring(0, 8) + '...',
+      step: 'load_friends_effect_start',
+      pageLoadTime: Date.now() - pageLoadStartTime
     })
 
     if (user) {
@@ -80,7 +180,8 @@ export default function Amis() {
         userEmail: user.email,
         userId: user.id?.substring(0, 8) + '...',
         userDisplayName: user.user_metadata?.display_name,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        pageLoadTime: Date.now() - pageLoadStartTime
       })
       loadFriendsData()
     } else {
@@ -92,14 +193,32 @@ export default function Amis() {
     }
   }, [user])
 
-  // Tab change logging
+  // Tab change logging with user behavior analysis
   useEffect(() => {
+    setUserInteractionCount(prev => prev + 1)
+    
     logComponentEvent('Amis', 'tab-change', {
       newTab: activeTab,
       friendsCount: friends.length,
       pendingRequestsCount: pendingRequests.length,
       searchResultsCount: searchResults.length,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      interactionCount: userInteractionCount + 1,
+      sessionTime: Date.now() - pageLoadStartTime
+    })
+
+    // Track tab usage patterns
+    const tabUsagePattern = {
+      friends: activeTab === 'friends',
+      requests: activeTab === 'requests', 
+      search: activeTab === 'search'
+    }
+
+    logUserInteraction('TAB_USAGE_PATTERN', 'amis-page', {
+      pattern: tabUsagePattern,
+      currentTab: activeTab,
+      sessionTime: Date.now() - pageLoadStartTime,
+      totalInteractions: userInteractionCount + 1
     })
   }, [activeTab])
 
@@ -108,19 +227,25 @@ export default function Amis() {
       logWarning('loadFriendsData called without user', {
         hasUser: !!user,
         authLoading,
-        step: 'early_return_no_user'
+        step: 'early_return_no_user',
+        callStack: new Error().stack?.substring(0, 500)
       })
       return
     }
 
     const startTime = Date.now()
+    const apiCallId = Math.random().toString(36).substring(2, 15)
     
     logInfo('loadFriendsData: DEBUT du processus', {
+      apiCallId,
       userEmail: user.email,
       userId: user.id?.substring(0, 8) + '...',
       userDisplayName: user.user_metadata?.display_name,
       step: 'process_start',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      sessionTime: Date.now() - pageLoadStartTime,
+      currentFriendsCount: friends.length,
+      currentPendingCount: pendingRequests.length
     })
 
     try {
@@ -128,6 +253,7 @@ export default function Amis() {
       setError(null)
       
       logDebug('loadFriendsData: État initial défini', {
+        apiCallId,
         loadingSet: true,
         errorReset: true,
         step: 'state_reset'
@@ -136,10 +262,14 @@ export default function Amis() {
       const apiUrl = `/api/friends?user_id=${user.id}`
       
       logDebug('loadFriendsData: Préparation appel API', {
+        apiCallId,
         url: apiUrl,
         userId: user.id?.substring(0, 8) + '...',
         method: 'GET',
-        step: 'api_preparation'
+        step: 'api_preparation',
+        headers: {
+          'Content-Type': 'application/json'
+        }
       })
 
       logApiCall('GET', apiUrl, null, null)
@@ -147,28 +277,57 @@ export default function Amis() {
       const response = await fetch(apiUrl)
       const responseTime = Date.now() - startTime
       
+      // Add to API call history for analytics
+      const apiCallRecord = {
+        id: apiCallId,
+        method: 'GET',
+        url: apiUrl,
+        status: response.status,
+        responseTime,
+        timestamp: new Date().toISOString(),
+        success: response.ok
+      }
+      setApiCallHistory(prev => [...prev, apiCallRecord])
+      
       logInfo('loadFriendsData: Réponse API reçue', {
+        apiCallId,
         status: response.status,
         statusText: response.statusText,
         ok: response.ok,
         responseTime,
         step: 'api_response_received',
-        headers: Object.fromEntries(response.headers.entries())
+        headers: Object.fromEntries(response.headers.entries()),
+        contentType: response.headers.get('content-type'),
+        contentLength: response.headers.get('content-length')
       })
 
       logPerformance('Friends API fetch', responseTime, {
+        apiCallId,
         url: apiUrl,
         status: response.status,
-        ok: response.ok
+        ok: response.ok,
+        userId: user.id?.substring(0, 8) + '...'
       })
 
       if (!response.ok) {
         const errorText = await response.text()
+        const errorRecord = {
+          id: apiCallId,
+          type: 'API_ERROR',
+          status: response.status,
+          message: errorText,
+          timestamp: new Date().toISOString()
+        }
+        setErrorHistory(prev => [...prev, errorRecord])
+        
         logError('loadFriendsData: Réponse API non-OK', {
+          apiCallId,
           status: response.status,
           statusText: response.statusText,
           errorText,
-          step: 'api_error_response'
+          step: 'api_error_response',
+          userId: user.id?.substring(0, 8) + '...',
+          retryCount: 0
         })
         throw new Error(`Erreur HTTP: ${response.status} - ${response.statusText}`)
       }
@@ -176,27 +335,32 @@ export default function Amis() {
       const data = await response.json()
       
       logInfo('loadFriendsData: Données reçues et parsées', {
+        apiCallId,
         dataType: typeof data,
         hasFriends: !!data.friends,
         hasPendingRequests: !!data.pendingRequests,
         friendsCount: data.friends?.length || 0,
         pendingRequestsCount: data.pendingRequests?.length || 0,
         step: 'data_parsed',
+        dataSize: JSON.stringify(data).length,
         sampleFriends: data.friends?.slice(0, 2).map(f => ({
           id: f.id,
           friendId: f.friend_id,
           profileName: f.profiles?.display_name,
-          profileId: f.profiles?.id
+          profileId: f.profiles?.id,
+          createdAt: f.created_at
         })) || [],
         samplePendingRequests: data.pendingRequests?.slice(0, 2).map(r => ({
           id: r.id,
           userId: r.user_id,
           profileName: r.profiles?.display_name,
-          profileId: r.profiles?.id
+          profileId: r.profiles?.id,
+          createdAt: r.created_at
         })) || []
       })
 
       logApiCall('GET', apiUrl, null, {
+        apiCallId,
         status: response.status,
         statusText: response.statusText,
         ok: response.ok,
@@ -207,21 +371,62 @@ export default function Amis() {
         }
       })
 
+      // Track data changes
+      const previousFriendsCount = friends.length
+      const previousPendingCount = pendingRequests.length
+      const newFriendsCount = data.friends?.length || 0
+      const newPendingCount = data.pendingRequests?.length || 0
+
+      if (previousFriendsCount !== newFriendsCount || previousPendingCount !== newPendingCount) {
+        logUserInteraction('DATA_CHANGE_DETECTED', 'amis-page', {
+          changes: {
+            friends: {
+              before: previousFriendsCount,
+              after: newFriendsCount,
+              delta: newFriendsCount - previousFriendsCount
+            },
+            pendingRequests: {
+              before: previousPendingCount,
+              after: newPendingCount,
+              delta: newPendingCount - previousPendingCount
+            }
+          },
+          timestamp: new Date().toISOString(),
+          apiCallId
+        })
+      }
+
       setFriends(data.friends || [])
       setPendingRequests(data.pendingRequests || [])
       setError(null)
       
       logInfo('loadFriendsData: État mis à jour avec succès', {
+        apiCallId,
         finalFriendsCount: data.friends?.length || 0,
         finalPendingRequestsCount: data.pendingRequests?.length || 0,
         totalProcessingTime: Date.now() - startTime,
-        step: 'state_updated_success'
+        step: 'state_updated_success',
+        dataChangesSummary: {
+          friendsAdded: Math.max(0, newFriendsCount - previousFriendsCount),
+          friendsRemoved: Math.max(0, previousFriendsCount - newFriendsCount),
+          requestsAdded: Math.max(0, newPendingCount - previousPendingCount),
+          requestsRemoved: Math.max(0, previousPendingCount - newPendingCount)
+        }
       })
 
     } catch (err) {
       const totalTime = Date.now() - startTime
+      const errorRecord = {
+        id: apiCallId,
+        type: 'LOAD_FRIENDS_ERROR',
+        message: err.message,
+        stack: err.stack?.substring(0, 500),
+        timestamp: new Date().toISOString()
+      }
+      setErrorHistory(prev => [...prev, errorRecord])
       
       logError('Erreur lors du chargement des amis', err, {
+        apiCallId,
         userEmail: user?.email,
         userId: user?.id?.substring(0, 8) + '...',
         errorMessage: err.message,
@@ -229,7 +434,9 @@ export default function Amis() {
         errorName: err.name,
         totalTime,
         step: 'error_caught',
-        networkStatus: typeof navigator !== 'undefined' ? navigator.onLine : 'unknown'
+        networkStatus: typeof navigator !== 'undefined' ? navigator.onLine : 'unknown',
+        retryCount: 0,
+        errorCategory: err.name === 'TypeError' ? 'NETWORK_ERROR' : 'API_ERROR'
       })
       
       setError(err.message)
@@ -237,6 +444,7 @@ export default function Amis() {
       const totalDuration = Date.now() - startTime
       
       logDebug('loadFriendsData: Nettoyage final', {
+        apiCallId,
         step: 'cleanup',
         totalDuration
       })
@@ -244,16 +452,23 @@ export default function Amis() {
       setLoading(false)
       
       logPerformance('loadFriendsData total', totalDuration, {
+        apiCallId,
         userEmail: user?.email,
         userId: user?.id?.substring(0, 8) + '...',
-        success: !error
+        success: !error,
+        finalCounts: {
+          friends: friends.length,
+          pendingRequests: pendingRequests.length
+        }
       })
       
       logInfo('loadFriendsData: PROCESSUS TERMINÉ', {
+        apiCallId,
         success: !error,
         totalDuration,
         step: 'process_end',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        performanceGrade: totalDuration < 1000 ? 'EXCELLENT' : totalDuration < 3000 ? 'GOOD' : 'SLOW'
       })
     }
   }
@@ -263,25 +478,45 @@ export default function Amis() {
       logDebug('searchUsers: Query vide, reset des résultats', {
         queryLength: query.length,
         queryTrimmed: query.trim(),
-        step: 'early_return_empty_query'
+        step: 'early_return_empty_query',
+        previousResultsCount: searchResults.length
       })
       setSearchResults([])
       return
     }
 
     const startTime = Date.now()
+    const searchId = Math.random().toString(36).substring(2, 15)
+    
+    // Add to search history
+    const searchRecord = {
+      id: searchId,
+      query: query.trim(),
+      timestamp: new Date().toISOString(),
+      startTime
+    }
+    setSearchHistory(prev => [...prev, searchRecord])
     
     logUserInteraction('SEARCH_USERS', 'amis-page', {
+      searchId,
       query: query.trim(),
       queryLength: query.trim().length,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      searchHistoryCount: searchHistory.length + 1,
+      sessionTime: Date.now() - pageLoadStartTime
     })
 
     logInfo('searchUsers: DEBUT de la recherche', {
+      searchId,
       query: query.trim(),
       queryLength: query.trim().length,
       currentResultsCount: searchResults.length,
-      step: 'search_start'
+      step: 'search_start',
+      searchContext: {
+        friendsCount: friends.length,
+        pendingRequestsCount: pendingRequests.length,
+        previousSearchesCount: searchHistory.length
+      }
     })
 
     setSearchLoading(true)
@@ -290,6 +525,7 @@ export default function Amis() {
       const apiUrl = `/api/friends?query=${encodeURIComponent(query)}`
       
       logDebug('searchUsers: Préparation appel API recherche', {
+        searchId,
         url: apiUrl,
         encodedQuery: encodeURIComponent(query),
         method: 'GET',
@@ -302,6 +538,7 @@ export default function Amis() {
       const responseTime = Date.now() - startTime
       
       logInfo('searchUsers: Réponse API recherche reçue', {
+        searchId,
         status: response.status,
         statusText: response.statusText,
         ok: response.ok,
@@ -313,6 +550,7 @@ export default function Amis() {
       if (!response.ok) {
         const errorText = await response.text()
         logError('searchUsers: Réponse API non-OK', {
+          searchId,
           status: response.status,
           statusText: response.statusText,
           errorText,
@@ -325,13 +563,14 @@ export default function Amis() {
       const data = await response.json()
       
       logInfo('searchUsers: Données de recherche reçues', {
+        searchId,
         dataType: typeof data,
         isArray: Array.isArray(data),
         rawResultsCount: data?.length || 0,
         query: query.trim(),
         step: 'data_received',
         sampleResults: data?.slice(0, 3).map(u => ({
-          id: u.id,
+          id: u.id?.substring(0, 8) + '...',
           displayName: u.display_name,
           createdAt: u.created_at
         })) || []
@@ -343,6 +582,7 @@ export default function Amis() {
         const isExistingFriend = friends.some(f => f.profiles?.id === u.id)
         
         logDebug('searchUsers: Filtrage utilisateur', {
+          searchId,
           userId: u.id?.substring(0, 8) + '...',
           displayName: u.display_name,
           isCurrentUser,
@@ -354,12 +594,17 @@ export default function Amis() {
       })
       
       logInfo('searchUsers: Résultats filtrés', {
+        searchId,
         originalCount: data?.length || 0,
         filteredCount: filtered.length,
         currentUserId: user.id?.substring(0, 8) + '...',
         existingFriendsCount: friends.length,
         query: query.trim(),
         step: 'results_filtered',
+        filteringStats: {
+          removedCurrentUser: data?.some(u => u.id === user.id) || false,
+          removedExistingFriends: (data?.length || 0) - filtered.length - (data?.some(u => u.id === user.id) ? 1 : 0)
+        },
         filteredResults: filtered.map(u => ({
           id: u.id?.substring(0, 8) + '...',
           displayName: u.display_name,
@@ -368,6 +613,7 @@ export default function Amis() {
       })
 
       logApiCall('GET', apiUrl, { query }, {
+        searchId,
         status: response.status,
         ok: response.ok,
         responseTime,
@@ -379,17 +625,41 @@ export default function Amis() {
       
       setSearchResults(filtered)
       
+      // Update search history with results
+      setSearchHistory(prev => 
+        prev.map(search => 
+          search.id === searchId 
+            ? { ...search, resultsCount: filtered.length, responseTime, success: true }
+            : search
+        )
+      )
+      
       logInfo('searchUsers: Résultats de recherche mis à jour', {
+        searchId,
         finalResultsCount: filtered.length,
         query: query.trim(),
         totalTime: Date.now() - startTime,
-        step: 'search_completed'
+        step: 'search_completed',
+        searchEfficiency: {
+          resultsPerSecond: Math.round((filtered.length / (responseTime / 1000)) * 100) / 100,
+          searchQuality: filtered.length > 0 ? 'RESULTS_FOUND' : 'NO_RESULTS'
+        }
       })
       
     } catch (err) {
       const totalTime = Date.now() - startTime
       
+      // Update search history with error
+      setSearchHistory(prev => 
+        prev.map(search => 
+          search.id === searchId 
+            ? { ...search, error: err.message, responseTime: totalTime, success: false }
+            : search
+        )
+      )
+      
       logError('Erreur lors de la recherche', err, {
+        searchId,
         query: query.trim(),
         errorMessage: err.message,
         errorStack: err.stack?.substring(0, 500),
@@ -403,11 +673,13 @@ export default function Amis() {
       setSearchLoading(false)
       
       logPerformance('searchUsers', totalDuration, {
+        searchId,
         query: query.trim(),
         resultsCount: searchResults.length
       })
       
       logDebug('searchUsers: PROCESSUS TERMINÉ', {
+        searchId,
         query: query.trim(),
         totalDuration,
         step: 'search_end'
@@ -417,17 +689,29 @@ export default function Amis() {
 
   const sendFriendRequest = async (friendId) => {
     const startTime = Date.now()
+    const requestId = Math.random().toString(36).substring(2, 15)
+    
+    setUserInteractionCount(prev => prev + 1)
     
     logUserInteraction('SEND_FRIEND_REQUEST_START', 'amis-page', {
+      requestId,
       friendId: friendId?.substring(0, 8) + '...',
       currentUserId: user.id?.substring(0, 8) + '...',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      interactionCount: userInteractionCount + 1,
+      sessionTime: Date.now() - pageLoadStartTime
     })
 
     logInfo('sendFriendRequest: DEBUT envoi demande', {
+      requestId,
       friendId: friendId?.substring(0, 8) + '...',
       currentUserId: user.id?.substring(0, 8) + '...',
-      step: 'send_request_start'
+      step: 'send_request_start',
+      context: {
+        currentFriendsCount: friends.length,
+        currentPendingCount: pendingRequests.length,
+        searchResultsCount: searchResults.length
+      }
     })
 
     try {
@@ -438,6 +722,7 @@ export default function Amis() {
       }
 
       logDebug('sendFriendRequest: Préparation données requête', {
+        requestId,
         action: requestData.action,
         hasUserId: !!requestData.user_id,
         hasFriendId: !!requestData.friend_id,
@@ -455,6 +740,7 @@ export default function Amis() {
       const responseTime = Date.now() - startTime
 
       logInfo('sendFriendRequest: Réponse reçue', {
+        requestId,
         status: response.status,
         ok: response.ok,
         responseTime,
@@ -465,6 +751,7 @@ export default function Amis() {
       if (!response.ok) {
         const errorText = await response.text()
         logError('sendFriendRequest: Erreur réponse', {
+          requestId,
           status: response.status,
           statusText: response.statusText,
           errorText,
@@ -474,26 +761,32 @@ export default function Amis() {
         throw new Error('Erreur lors de l\'envoi')
       }
 
-      // Remove from search results
+      // Remove from search results with logging
       const previousResultsCount = searchResults.length
+      const targetUser = searchResults.find(u => u.id === friendId)
       setSearchResults(prev => prev.filter(u => u.id !== friendId))
       
       logInfo('sendFriendRequest: Demande envoyée avec succès', {
+        requestId,
         friendId: friendId?.substring(0, 8) + '...',
+        targetUserName: targetUser?.display_name,
         previousResultsCount,
-        newResultsCount: searchResults.length - 1,
+        newResultsCount: previousResultsCount - 1,
         responseTime,
         step: 'request_sent_success'
       })
 
       logApiCall('POST', '/api/friends', requestData, {
+        requestId,
         status: response.status,
         ok: response.ok,
         responseTime
       })
 
       logUserInteraction('SEND_FRIEND_REQUEST_SUCCESS', 'amis-page', { 
+        requestId,
         friendId: friendId?.substring(0, 8) + '...',
+        targetUserName: targetUser?.display_name,
         responseTime,
         timestamp: new Date().toISOString()
       })
@@ -502,6 +795,7 @@ export default function Amis() {
       const totalTime = Date.now() - startTime
 
       logError('Erreur envoi demande d\'ami', err, {
+        requestId,
         friendId: friendId?.substring(0, 8) + '...',
         currentUserId: user.id?.substring(0, 8) + '...',
         errorMessage: err.message,
@@ -513,6 +807,7 @@ export default function Amis() {
       setError('Impossible d\'envoyer la demande')
 
       logUserInteraction('SEND_FRIEND_REQUEST_ERROR', 'amis-page', { 
+        requestId,
         friendId: friendId?.substring(0, 8) + '...',
         error: err.message,
         totalTime,
@@ -520,6 +815,7 @@ export default function Amis() {
       })
     } finally {
       logPerformance('sendFriendRequest', Date.now() - startTime, {
+        requestId,
         friendId: friendId?.substring(0, 8) + '...'
       })
     }
@@ -527,15 +823,27 @@ export default function Amis() {
 
   const acceptRequest = async (requestId) => {
     const startTime = Date.now()
+    const actionId = Math.random().toString(36).substring(2, 15)
+
+    setUserInteractionCount(prev => prev + 1)
+
+    const targetRequest = pendingRequests.find(r => r.id === requestId)
 
     logUserInteraction('ACCEPT_FRIEND_REQUEST_START', 'amis-page', {
+      actionId,
       requestId,
+      requesterName: targetRequest?.profiles?.display_name,
+      requesterId: targetRequest?.user_id?.substring(0, 8) + '...',
       currentUserId: user.id?.substring(0, 8) + '...',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      interactionCount: userInteractionCount + 1
     })
 
     logInfo('acceptRequest: DEBUT acceptation demande', {
+      actionId,
       requestId,
+      requesterName: targetRequest?.profiles?.display_name,
+      requesterId: targetRequest?.user_id?.substring(0, 8) + '...',
       currentUserId: user.id?.substring(0, 8) + '...',
       step: 'accept_start'
     })
@@ -557,6 +865,7 @@ export default function Amis() {
       const responseTime = Date.now() - startTime
 
       logInfo('acceptRequest: Réponse reçue', {
+        actionId,
         status: response.status,
         ok: response.ok,
         responseTime,
@@ -567,6 +876,7 @@ export default function Amis() {
       if (!response.ok) {
         const errorText = await response.text()
         logError('acceptRequest: Erreur réponse', {
+          actionId,
           status: response.status,
           statusText: response.statusText,
           errorText,
@@ -577,6 +887,7 @@ export default function Amis() {
       }
 
       logInfo('acceptRequest: Rechargement des données après acceptation', {
+        actionId,
         requestId,
         step: 'reloading_data'
       })
@@ -584,13 +895,16 @@ export default function Amis() {
       loadFriendsData()
 
       logApiCall('POST', '/api/friends', requestData, {
+        actionId,
         status: response.status,
         ok: response.ok,
         responseTime
       })
 
       logUserInteraction('ACCEPT_FRIEND_REQUEST_SUCCESS', 'amis-page', { 
+        actionId,
         requestId,
+        requesterName: targetRequest?.profiles?.display_name,
         responseTime,
         timestamp: new Date().toISOString()
       })
@@ -599,6 +913,7 @@ export default function Amis() {
       const totalTime = Date.now() - startTime
 
       logError('Erreur acceptation demande', err, {
+        actionId,
         requestId,
         currentUserId: user.id?.substring(0, 8) + '...',
         errorMessage: err.message,
@@ -609,27 +924,40 @@ export default function Amis() {
       setError('Impossible d\'accepter la demande')
 
       logUserInteraction('ACCEPT_FRIEND_REQUEST_ERROR', 'amis-page', { 
+        actionId,
         requestId,
         error: err.message,
         totalTime,
         timestamp: new Date().toISOString()
       })
     } finally {
-      logPerformance('acceptRequest', Date.now() - startTime, { requestId })
+      logPerformance('acceptRequest', Date.now() - startTime, { actionId, requestId })
     }
   }
 
   const rejectRequest = async (requestId) => {
     const startTime = Date.now()
+    const actionId = Math.random().toString(36).substring(2, 15)
+
+    setUserInteractionCount(prev => prev + 1)
+
+    const targetRequest = pendingRequests.find(r => r.id === requestId)
 
     logUserInteraction('REJECT_FRIEND_REQUEST_START', 'amis-page', {
+      actionId,
       requestId,
+      requesterName: targetRequest?.profiles?.display_name,
+      requesterId: targetRequest?.user_id?.substring(0, 8) + '...',
       currentUserId: user.id?.substring(0, 8) + '...',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      interactionCount: userInteractionCount + 1
     })
 
     logInfo('rejectRequest: DEBUT refus demande', {
+      actionId,
       requestId,
+      requesterName: targetRequest?.profiles?.display_name,
+      requesterId: targetRequest?.user_id?.substring(0, 8) + '...',
       currentUserId: user.id?.substring(0, 8) + '...',
       step: 'reject_start'
     })
@@ -653,6 +981,7 @@ export default function Amis() {
       if (!response.ok) {
         const errorText = await response.text()
         logError('rejectRequest: Erreur réponse', {
+          actionId,
           status: response.status,
           statusText: response.statusText,
           errorText,
@@ -665,19 +994,23 @@ export default function Amis() {
       loadFriendsData()
 
       logApiCall('POST', '/api/friends', requestData, {
+        actionId,
         status: response.status,
         ok: response.ok,
         responseTime
       })
 
       logUserInteraction('REJECT_FRIEND_REQUEST_SUCCESS', 'amis-page', { 
+        actionId,
         requestId,
+        requesterName: targetRequest?.profiles?.display_name,
         responseTime,
         timestamp: new Date().toISOString()
       })
 
     } catch (err) {
       logError('Erreur refus demande', err, {
+        actionId,
         requestId,
         errorMessage: err.message,
         step: 'reject_error'
@@ -685,44 +1018,102 @@ export default function Amis() {
       
       setError('Impossible de refuser la demande')
     } finally {
-      logPerformance('rejectRequest', Date.now() - startTime, { requestId })
+      logPerformance('rejectRequest', Date.now() - startTime, { actionId, requestId })
     }
   }
 
-  // Handle tab changes with logging
+  // Handle tab changes with enhanced logging
   const handleTabChange = (newTab) => {
+    const tabChangeId = Math.random().toString(36).substring(2, 15)
+    
+    setUserInteractionCount(prev => prev + 1)
+    
     logUserInteraction('TAB_CHANGE', 'amis-page', {
+      tabChangeId,
       fromTab: activeTab,
       toTab: newTab,
       friendsCount: friends.length,
       pendingRequestsCount: pendingRequests.length,
       searchResultsCount: searchResults.length,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      interactionCount: userInteractionCount + 1,
+      sessionTime: Date.now() - pageLoadStartTime,
+      tabUsagePattern: {
+        previousTab: activeTab,
+        newTab: newTab,
+        timeOnPreviousTab: Date.now() - pageLoadStartTime
+      }
     })
 
     logComponentEvent('Amis', 'tab-changed', {
+      tabChangeId,
       previousTab: activeTab,
       newTab: newTab,
-      availableTabs: ['friends', 'requests', 'search']
+      availableTabs: ['friends', 'requests', 'search'],
+      userBehavior: {
+        totalInteractions: userInteractionCount + 1,
+        sessionDuration: Date.now() - pageLoadStartTime,
+        tabSwitchFrequency: (userInteractionCount + 1) / ((Date.now() - pageLoadStartTime) / 1000)
+      }
     })
 
     setActiveTab(newTab)
   }
 
-  // Handle search input changes with logging
+  // Handle search input changes with enhanced logging
   const handleSearchChange = (e) => {
     const newQuery = e.target.value
+    const searchChangeId = Math.random().toString(36).substring(2, 15)
+    
+    setUserInteractionCount(prev => prev + 1)
     
     logUserInteraction('SEARCH_INPUT_CHANGE', 'amis-page', {
+      searchChangeId,
       previousQuery: searchQuery,
       newQuery: newQuery,
       queryLength: newQuery.length,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      interactionCount: userInteractionCount + 1,
+      searchBehavior: {
+        charactersAdded: newQuery.length - searchQuery.length,
+        isBackspacing: newQuery.length < searchQuery.length,
+        searchPattern: newQuery.length > 0 ? 'TYPING' : 'CLEARING'
+      }
     })
 
     setSearchQuery(newQuery)
     searchUsers(newQuery)
   }
+
+  // Log component performance on unmount
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      const sessionSummary = {
+        sessionDuration: Date.now() - pageLoadStartTime,
+        totalInteractions: userInteractionCount,
+        totalApiCalls: apiCallHistory.length,
+        totalErrors: errorHistory.length,
+        totalSearches: searchHistory.length,
+        finalCounts: {
+          friends: friends.length,
+          pendingRequests: pendingRequests.length,
+          searchResults: searchResults.length
+        },
+        performanceMetrics: {
+          averageApiResponseTime: apiCallHistory.length > 0 ? 
+            apiCallHistory.reduce((sum, call) => sum + (call.responseTime || 0), 0) / apiCallHistory.length : 0,
+          errorRate: apiCallHistory.length > 0 ? (errorHistory.length / apiCallHistory.length) * 100 : 0,
+          searchSuccessRate: searchHistory.length > 0 ? 
+            (searchHistory.filter(s => s.success).length / searchHistory.length) * 100 : 0
+        }
+      }
+
+      logInfo('Amis page session summary', sessionSummary)
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [userInteractionCount, apiCallHistory, errorHistory, searchHistory, friends, pendingRequests, searchResults])
 
   if (authLoading || !user) {
     return (
@@ -1125,6 +1516,29 @@ export default function Amis() {
           </div>
         )}
       </section>
+
+      {/* Debug Info - Only in development */}
+      {process.env.NODE_ENV === 'development' && (
+        <div style={{
+          position: 'fixed',
+          bottom: '10px',
+          right: '10px',
+          background: 'rgba(0,0,0,0.8)',
+          color: 'white',
+          padding: '10px',
+          borderRadius: '5px',
+          fontSize: '12px',
+          maxWidth: '300px',
+          zIndex: 9999
+        }}>
+          <div>Session: {Math.round((Date.now() - pageLoadStartTime) / 1000)}s</div>
+          <div>Interactions: {userInteractionCount}</div>
+          <div>API Calls: {apiCallHistory.length}</div>
+          <div>Errors: {errorHistory.length}</div>
+          <div>Searches: {searchHistory.length}</div>
+          <div>Tab: {activeTab}</div>
+        </div>
+      )}
     </div>
   )
 }
