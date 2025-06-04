@@ -1,11 +1,13 @@
 import Head from 'next/head'
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../components/AuthContext'
+import { useRouter } from 'next/router'
 import { logUserInteraction, logComponentEvent, logInfo } from '../utils/logger'
 import AddictiveFeed from '../components/AddictiveFeed'
 
 export default function Home() {
-  const { user } = useAuth()
+  const { user, loading } = useAuth()
+  const router = useRouter()
   const [isScrolled, setIsScrolled] = useState(false)
   const [showWelcome, setShowWelcome] = useState(false)
   const [feedType, setFeedType] = useState('all')
@@ -96,6 +98,46 @@ export default function Home() {
       }
     }
   }, [user, showWelcome])
+
+  // Rediriger vers la page de présentation si non connecté
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/presentation')
+    }
+  }, [user, loading, router])
+
+  // Afficher un écran de chargement pendant la vérification
+  if (loading) {
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '100vh',
+        background: 'linear-gradient(180deg, #fff5f0 0%, #ffffff 40%)'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{
+            width: '48px',
+            height: '48px',
+            border: '4px solid #e2e8f0',
+            borderTop: '4px solid #ff6b35',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            margin: '0 auto 16px'
+          }} />
+          <p style={{ color: '#64748b', fontSize: '1.1rem', fontWeight: '600' }}>
+            Chargement...
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  // Ne pas afficher le contenu si l'utilisateur n'est pas connecté
+  if (!user) {
+    return null // Sera redirigé
+  }
 
   return (
     <div style={{

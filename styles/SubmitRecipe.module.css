@@ -233,7 +233,6 @@
   margin-top: 16px;
   border: 1px solid #f59e0b;
   box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15);
-  animation: pulse 2s infinite;
 }
 
 .uploadSuccess {
@@ -563,6 +562,17 @@
   0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
   40% { transform: translateY(-10px); }
   60% { transform: translateY(-5px); }
+}
+
+@keyframes gentleBounce {
+  0%, 100% { 
+    transform: translateY(0px) scale(1); 
+    box-shadow: 0 12px 40px rgba(255, 107, 53, 0.3);
+  }
+  50% { 
+    transform: translateY(-8px) scale(1.02); 
+    box-shadow: 0 16px 50px rgba(255, 107, 53, 0.4);
+  }
 }
 
 /* Responsive Design */
