@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { useAuth } from '../components/AuthContext'
 import { logUserInteraction, logError, logInfo } from '../utils/logger'
+import { getUserStats } from '../utils/profileUtils'
 
 export default function Profil() {
   const router = useRouter()
@@ -100,24 +101,14 @@ export default function Profil() {
         setUserRecipes([])
       }
 
-      // Load user stats
+      // Load user stats using the utility function
       try {
-        const statsResponse = await fetch(`/api/user-stats?user_id=${user.id}`)
-        if (statsResponse.ok) {
-          const statsData = await statsResponse.json()
-          setUserStats({
-            recipesCount: Array.isArray(recipesData) ? recipesData.length : 0,
-            likesReceived: statsData.likesReceived || 0,
-            friendsCount: statsData.friendsCount || 0
-          })
-        } else {
-          // Use actual recipes count if stats API fails
-          setUserStats({
-            recipesCount: Array.isArray(recipesData) ? recipesData.length : 0,
-            likesReceived: 0,
-            friendsCount: 0
-          })
-        }
+        const statsData = await getUserStats(user.id)
+        setUserStats({
+          recipesCount: Array.isArray(recipesData) ? recipesData.length : 0,
+          likesReceived: statsData.likesReceived || 0,
+          friendsCount: statsData.friendsCount || 0
+        })
       } catch (statsError) {
         logError('Failed to load user stats', statsError)
         setUserStats({

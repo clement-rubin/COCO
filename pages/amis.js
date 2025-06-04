@@ -69,7 +69,7 @@ export default function Amis() {
 
   const loadFriendRequests = async (userId) => {
     try {
-      // Get friend requests directly without joins to avoid relationship ambiguity
+      // Get friend requests without joins to avoid foreign key ambiguity
       const { data: friendships, error: friendshipsError } = await supabase
         .from('friendships')
         .select('id, user_id, status, created_at')
@@ -148,7 +148,7 @@ export default function Amis() {
 
       if (allFriendships.length > 0) {
         // Get profiles for all friends
-        const friendIds = allFriendships.map(f => f.other_user_id);
+        const friendIds = [...new Set(allFriendships.map(f => f.other_user_id))]; // Remove duplicates
         const { data: profiles, error: profilesError } = await supabase
           .from('profiles')
           .select('user_id, display_name, avatar_url, bio')
@@ -158,15 +158,19 @@ export default function Amis() {
           logError('Error loading profiles for friends:', profilesError);
         }
 
-        // Combine the data manually
-        const friendsWithProfiles = allFriendships.map(friendship => {
-          const profile = profiles?.find(p => p.user_id === friendship.other_user_id);
-          return {
-            id: friendship.id,
-            friend_id: friendship.other_user_id,
-            profiles: profile || { display_name: 'Utilisateur', bio: 'Aucune bio' }
-          };
-        });
+        // Combine the data manually and remove duplicates
+        const friendsWithProfiles = allFriendships
+          .filter((friendship, index, self) => 
+            index === self.findIndex(f => f.other_user_id === friendship.other_user_id)
+          )
+          .map(friendship => {
+            const profile = profiles?.find(p => p.user_id === friendship.other_user_id);
+            return {
+              id: friendship.id,
+              friend_id: friendship.other_user_id,
+              profiles: profile || { display_name: 'Utilisateur', bio: 'Aucune bio' }
+            };
+          });
 
         setFriends(friendsWithProfiles);
       } else {

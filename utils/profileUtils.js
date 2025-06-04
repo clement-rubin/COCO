@@ -219,12 +219,20 @@ export async function getUserStats(userId) {
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
 
-    // Compter les amis
-    const { count: friendsCount } = await supabase
+    // Compter les amis - use both directions of friendships
+    const { count: friendsCount1 } = await supabase
       .from('friendships')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
       .eq('status', 'accepted')
+
+    const { count: friendsCount2 } = await supabase
+      .from('friendships')
+      .select('*', { count: 'exact', head: true })
+      .eq('friend_id', userId)
+      .eq('status', 'accepted')
+
+    const totalFriendsCount = (friendsCount1 || 0) + (friendsCount2 || 0)
 
     // Obtenir le profil pour calculer la complétude
     const { data: profile } = await supabase
@@ -242,7 +250,7 @@ export async function getUserStats(userId) {
 
     const stats = {
       recipesCount: recipesCount || 0,
-      friendsCount: friendsCount || 0,
+      friendsCount: totalFriendsCount,
       profileCompleteness
     }
 
@@ -254,7 +262,7 @@ export async function getUserStats(userId) {
     return stats
 
   } catch (error) {
-    logError('Exception while getting user stats', error, {
+    logError('Error getting user stats', error, {
       userId: userId.substring(0, 8) + '...'
     })
     return {
