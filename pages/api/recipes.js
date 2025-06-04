@@ -216,11 +216,66 @@ export default async function handler(req, res) {
       try {
         const { user_id } = req.query
         
-        logInfo('API recipes - Récupération des recettes', {
+        logInfo('API recipes - Récupération des recettes - DEBUT', {
           hasUserId: !!user_id,
-          userId: user_id?.substring(0, 8) + '...' // Log partial ID for privacy
+          userId: user_id,
+          userIdSubstring: user_id?.substring(0, 8) + '...',
+          userIdType: typeof user_id,
+          userIdLength: user_id?.length,
+          allQueryParams: req.query
         })
         
+        // Première étape: récupérer TOUTES les recettes pour diagnostic
+        const { data: allRecipes, error: allError } = await supabase
+          .from('recipes')
+          .select('*')
+          .order('created_at', { ascending: false })
+
+        if (allError) {
+          logError('Erreur lors de la récupération de TOUTES les recettes', allError)
+        } else {
+          logInfo('DIAGNOSTIC - Toutes les recettes en base', {
+            totalRecipes: allRecipes?.length || 0,
+            recipesWithUserId: allRecipes?.filter(r => r.user_id).length || 0,
+            recipesWithoutUserId: allRecipes?.filter(r => !r.user_id).length || 0,
+            sampleRecipes: allRecipes?.slice(0, 5).map(r => ({
+              id: r.id,
+              title: r.title,
+              author: r.author,
+              user_id: r.user_id,
+              user_id_type: typeof r.user_id,
+              user_id_length: r.user_id?.length,
+              created_at: r.created_at,
+              category: r.category
+            })) || [],
+            allUserIds: [...new Set(allRecipes?.map(r => r.user_id).filter(Boolean))] || [],
+            requestedUserId: user_id,
+            requestedUserIdType: typeof user_id
+          })
+
+          // Si un user_id est fourni, montrer les comparaisons
+          if (user_id && allRecipes) {
+            const matchingRecipes = allRecipes.filter(r => r.user_id === user_id)
+            const exactMatches = allRecipes.filter(r => r.user_id === user_id)
+            const typeMatches = allRecipes.filter(r => String(r.user_id) === String(user_id))
+            
+            logInfo('DIAGNOSTIC - Comparaisons de user_id', {
+              requestedUserId: user_id,
+              exactMatches: exactMatches.length,
+              typeMatches: typeMatches.length,
+              strictComparisons: allRecipes.slice(0, 5).map(r => ({
+                recipeUserId: r.user_id,
+                requestedUserId: user_id,
+                strictEqual: r.user_id === user_id,
+                typeEqual: String(r.user_id) === String(user_id),
+                recipeUserIdType: typeof r.user_id,
+                requestedUserIdType: typeof user_id
+              })),
+              matchingRecipeTitles: exactMatches.map(r => r.title)
+            })
+          }
+        }
+
         let query = supabase
           .from('recipes')
           .select('*')
@@ -229,27 +284,64 @@ export default async function handler(req, res) {
         // Si un user_id est fourni, filtrer par user_id
         if (user_id) {
           query = query.eq('user_id', user_id)
-          logDebug('Filtrage par user_id appliqué', { userId: user_id.substring(0, 8) + '...' })
+          logDebug('Filtrage par user_id appliqué', { 
+            userId: user_id,
+            userIdSubstring: user_id.substring(0, 8) + '...',
+            filterApplied: 'eq(user_id, ' + user_id + ')'
+          })
         }
 
         const { data, error } = await query
 
         if (error) {
-          logError('Erreur lors de la récupération des recettes', error, {
+          logError('Erreur lors de la récupération des recettes filtrées', error, {
             hasUserId: !!user_id,
+            userId: user_id,
             errorCode: error.code,
-            errorMessage: error.message
+            errorMessage: error.message,
+            errorDetails: error.details
           })
           return res.status(500).json({ 
             error: 'Erreur lors de la récupération des recettes' 
           })
         }
 
-        logInfo('Recettes récupérées avec succès', { 
+        logInfo('Recettes récupérées avec succès - RESULTAT FINAL', { 
           count: data?.length || 0,
           hasUserId: !!user_id,
-          userIdProvided: !!user_id
+          userIdProvided: user_id,
+          recipesFound: data?.map(r => ({
+            id: r.id,
+            title: r.title,
+            author: r.author,
+            user_id: r.user_id,
+            created_at: r.created_at,
+            category: r.category
+          })) || [],
+          userIdsInResults: data?.map(r => r.user_id) || [],
+          requestedUserId: user_id
         })
+
+        // Log supplémentaire si aucune recette trouvée mais user_id fourni
+        if (user_id && (!data || data.length === 0)) {
+          logWarning('AUCUNE RECETTE TROUVEE pour l\'utilisateur', {
+            requestedUserId: user_id,
+            userIdType: typeof user_id,
+            userIdLength: user_id?.length,
+            possibleCauses: [
+              'Aucune recette créée par cet utilisateur',
+              'user_id pas renseigné lors de la création des recettes',
+              'Problème de correspondance de type de données',
+              'user_id modifié ou corrompu'
+            ],
+            suggestions: [
+              'Vérifier si les recettes ont bien un user_id renseigné',
+              'Vérifier la création de recettes dans submit-recipe ou share-photo',
+              'Vérifier la session utilisateur',
+              'Regarder les logs de création de recettes'
+            ]
+          })
+        }
 
         res.status(200).json(data || [])
 
