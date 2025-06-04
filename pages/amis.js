@@ -13,6 +13,7 @@ export default function Amis() {
   const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchLoading, setSearchLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     checkUser();
@@ -31,6 +32,7 @@ export default function Amis() {
       }
     } catch (error) {
       logError('Error checking user:', error);
+      setError('Erreur de connexion');
     } finally {
       setLoading(false);
     }
@@ -38,6 +40,7 @@ export default function Amis() {
 
   const loadFriendRequests = async (userId) => {
     try {
+      // First check if friendships table exists, if not skip
       const { data, error } = await supabase
         .from('friendships')
         .select(`
@@ -54,10 +57,13 @@ export default function Amis() {
         .eq('friend_id', userId)
         .eq('status', 'pending');
 
-      if (error) throw error;
+      if (error && error.code !== 'PGRST116') { // Table doesn't exist
+        throw error;
+      }
       setFriendRequests(data || []);
     } catch (error) {
       logError('Error loading friend requests:', error);
+      // Don't set error state for missing tables in development
     }
   };
 
@@ -78,7 +84,9 @@ export default function Amis() {
         .eq('user_id', userId)
         .eq('status', 'accepted');
 
-      if (error) throw error;
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
       setFriends(data || []);
     } catch (error) {
       logError('Error loading friends:', error);
@@ -87,13 +95,26 @@ export default function Amis() {
 
   const loadSuggestions = async (userId) => {
     try {
+      // Try to use the RPC function, fallback to simple profile search
       const { data, error } = await supabase.rpc('get_friend_suggestions', {
         user_id_param: userId,
         limit_param: 5
       });
 
-      if (error) throw error;
-      setSuggestions(data || []);
+      if (error) {
+        // Fallback: get random profiles
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('profiles')
+          .select('user_id, display_name, bio, avatar_url')
+          .neq('user_id', userId)
+          .limit(5);
+        
+        if (!fallbackError) {
+          setSuggestions(fallbackData || []);
+        }
+      } else {
+        setSuggestions(data || []);
+      }
     } catch (error) {
       logError('Error loading suggestions:', error);
     }
@@ -107,15 +128,40 @@ export default function Amis() {
 
     setSearchLoading(true);
     try {
-      const { data, error } = await supabase.rpc('search_profiles', {
-        search_term: term,
-        current_user_id: user?.id
-      });
+      // Try RPC function first, fallback to simple search
+      let data, error;
+      
+      try {
+        const rpcResult = await supabase.rpc('search_profiles', {
+          search_term: term,
+          current_user_id: user?.id
+        });
+        data = rpcResult.data;
+        error = rpcResult.error;
+      } catch (rpcError) {
+        // Fallback to simple profile search
+        const fallbackResult = await supabase
+          .from('profiles')
+          .select('user_id, display_name, bio, avatar_url')
+          .neq('user_id', user?.id)
+          .ilike('display_name', `%${term}%`)
+          .limit(10);
+        
+        data = fallbackResult.data;
+        error = fallbackResult.error;
+      }
 
       if (error) throw error;
       setSearchResults(data || []);
+      
+      if (data?.length === 0) {
+        setError('Aucun utilisateur trouvé');
+        setTimeout(() => setError(null), 3000);
+      }
     } catch (error) {
       logError('Error searching users:', error);
+      setError('Erreur lors de la recherche');
+      setTimeout(() => setError(null), 3000);
     } finally {
       setSearchLoading(false);
     }
@@ -133,10 +179,14 @@ export default function Amis() {
 
       if (error) throw error;
       logInfo('Friend request sent successfully');
+      setError('Demande d\'amitié envoyée !');
+      setTimeout(() => setError(null), 3000);
       // Refresh search results to update button states
       await searchUsers(searchTerm);
     } catch (error) {
       logError('Error sending friend request:', error);
+      setError('Erreur lors de l\'envoi de la demande');
+      setTimeout(() => setError(null), 3000);
     }
   };
 
@@ -177,13 +227,16 @@ export default function Amis() {
     }, 300);
 
     return () => clearTimeout(timeoutId);
-  }, [searchTerm]);
+  }, [searchTerm, user]);
 
   if (loading) {
     return (
       <div className={styles.container}>
         <Navigation />
-        <div className={styles.loading}>Chargement...</div>
+        <div className={styles.loading}>
+          <div className={styles.spinner}></div>
+          <p>Chargement...</p>
+        </div>
       </div>
     );
   }
@@ -193,7 +246,8 @@ export default function Amis() {
       <div className={styles.container}>
         <Navigation />
         <div className={styles.loginPrompt}>
-          <h2>Connectez-vous pour accéder à vos amis</h2>
+          <h2>👥 Connectez-vous pour accéder à vos amis</h2>
+          <p>Découvrez et connectez-vous avec d'autres passionnés de cuisine</p>
           <a href="/login" className={styles.loginButton}>Se connecter</a>
         </div>
       </div>
@@ -204,17 +258,24 @@ export default function Amis() {
     <div className={styles.container}>
       <Navigation />
       
+      {error && (
+        <div className={styles.errorBanner}>
+          {error}
+        </div>
+      )}
+
       <header className={styles.header}>
         <h1>👥 Mes Amis</h1>
         <p>Connectez-vous avec d'autres passionnés de cuisine</p>
       </header>
 
       {/* Search Section */}
-      <section className={styles.searchSection}>
+      <section className={styles.card}>
+        <h2>🔍 Rechercher des amis</h2>
         <div className={styles.searchBox}>
           <input
             type="text"
-            placeholder="Rechercher des amis..."
+            placeholder="Tapez un nom d'utilisateur..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className={styles.searchInput}
@@ -224,7 +285,7 @@ export default function Amis() {
 
         {searchResults.length > 0 && (
           <div className={styles.searchResults}>
-            <h3>Résultats de recherche</h3>
+            <h3>Résultats ({searchResults.length})</h3>
             {searchResults.map((profile) => (
               <div key={profile.user_id} className={styles.userCard}>
                 <div className={styles.userInfo}>
@@ -233,20 +294,20 @@ export default function Amis() {
                       <img src={profile.avatar_url} alt={profile.display_name} />
                     ) : (
                       <div className={styles.avatarPlaceholder}>
-                        {profile.display_name?.charAt(0)?.toUpperCase() || '?'}
+                        {profile.display_name?.charAt(0)?.toUpperCase() || '👤'}
                       </div>
                     )}
                   </div>
                   <div className={styles.userDetails}>
                     <h4>{profile.display_name || 'Utilisateur'}</h4>
-                    <p>{profile.bio || 'Aucune bio'}</p>
+                    <p>{profile.bio || 'Passionné de cuisine'}</p>
                   </div>
                 </div>
                 <button
                   onClick={() => sendFriendRequest(profile.user_id)}
-                  className={styles.addFriendButton}
+                  className={styles.addButton}
                 >
-                  Ajouter
+                  ➕ Ajouter
                 </button>
               </div>
             ))}
@@ -295,8 +356,8 @@ export default function Amis() {
       )}
 
       {/* Friends List */}
-      <section className={styles.friendsSection}>
-        <h2>Mes amis ({friends.length})</h2>
+      <section className={styles.card}>
+        <h2>👥 Mes amis ({friends.length})</h2>
         {friends.length > 0 ? (
           <div className={styles.friendsGrid}>
             {friends.map((friendship) => (
@@ -306,54 +367,23 @@ export default function Amis() {
                     <img src={friendship.profiles.avatar_url} alt={friendship.profiles.display_name} />
                   ) : (
                     <div className={styles.avatarPlaceholder}>
-                      {friendship.profiles?.display_name?.charAt(0)?.toUpperCase() || '?'}
+                      {friendship.profiles?.display_name?.charAt(0)?.toUpperCase() || '👤'}
                     </div>
                   )}
                 </div>
                 <h4>{friendship.profiles?.display_name || 'Utilisateur'}</h4>
-                <p>{friendship.profiles?.bio || 'Aucune bio'}</p>
+                <p>{friendship.profiles?.bio || 'Passionné de cuisine'}</p>
               </div>
             ))}
           </div>
         ) : (
           <div className={styles.emptyState}>
-            <p>Vous n'avez pas encore d'amis. Utilisez la recherche pour en trouver !</p>
+            <div className={styles.emptyIcon}>🍳</div>
+            <h3>Aucun ami pour le moment</h3>
+            <p>Utilisez la recherche ci-dessus pour trouver des amis passionnés de cuisine !</p>
           </div>
         )}
       </section>
-
-      {/* Friend Suggestions */}
-      {suggestions.length > 0 && (
-        <section className={styles.suggestionsSection}>
-          <h2>Suggestions d'amis</h2>
-          <div className={styles.suggestionsGrid}>
-            {suggestions.map((suggestion) => (
-              <div key={suggestion.user_id} className={styles.suggestionCard}>
-                <div className={styles.avatar}>
-                  {suggestion.avatar_url ? (
-                    <img src={suggestion.avatar_url} alt={suggestion.display_name} />
-                  ) : (
-                    <div className={styles.avatarPlaceholder}>
-                      {suggestion.display_name?.charAt(0)?.toUpperCase() || '?'}
-                    </div>
-                  )}
-                </div>
-                <h4>{suggestion.display_name || 'Utilisateur'}</h4>
-                <p>{suggestion.bio || 'Aucune bio'}</p>
-                {suggestion.mutual_friends_count > 0 && (
-                  <small>{suggestion.mutual_friends_count} ami(s) en commun</small>
-                )}
-                <button
-                  onClick={() => sendFriendRequest(suggestion.user_id)}
-                  className={styles.addFriendButton}
-                >
-                  Ajouter
-                </button>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
     </div>
   );
 }
