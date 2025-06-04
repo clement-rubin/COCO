@@ -58,25 +58,10 @@ async function handleGetRequest(req, res, requestId) {
   }
   
   try {
-    // Récupérer les amis acceptés avec leurs profils
-    const { data: friends, error: friendsError } = await supabase
+    // Récupérer les amis acceptés
+    const { data: friendships, error: friendsError } = await supabase
       .from('friendships')
-      .select(`
-        id,
-        user_id,
-        friend_id,
-        status,
-        created_at,
-        updated_at,
-        friend_profile:profiles!friend_id (
-          id,
-          user_id,
-          display_name,
-          avatar_url,
-          bio,
-          created_at
-        )
-      `)
+      .select('id, user_id, friend_id, status, created_at, updated_at')
       .eq('user_id', user_id)
       .eq('status', 'accepted')
       .order('created_at', { ascending: false })
@@ -86,25 +71,26 @@ async function handleGetRequest(req, res, requestId) {
       throw new Error(`Erreur lors de la récupération des amis: ${friendsError.message}`)
     }
     
-    // Récupérer les demandes en attente avec les profils des demandeurs
-    const { data: pendingRequests, error: pendingError } = await supabase
+    // Récupérer les profils des amis
+    const friendIds = friendships?.map(f => f.friend_id) || []
+    let friendProfiles = []
+    if (friendIds.length > 0) {
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, user_id, display_name, avatar_url, bio, created_at')
+        .in('user_id', friendIds)
+      
+      if (profilesError) {
+        logError('Erreur récupération profils amis', profilesError, { requestId })
+      } else {
+        friendProfiles = profiles || []
+      }
+    }
+    
+    // Récupérer les demandes en attente
+    const { data: pendingFriendships, error: pendingError } = await supabase
       .from('friendships')
-      .select(`
-        id,
-        user_id,
-        friend_id,
-        status,
-        created_at,
-        updated_at,
-        requester_profile:profiles!user_id (
-          id,
-          user_id,
-          display_name,
-          avatar_url,
-          bio,
-          created_at
-        )
-      `)
+      .select('id, user_id, friend_id, status, created_at, updated_at')
       .eq('friend_id', user_id)
       .eq('status', 'pending')
       .order('created_at', { ascending: false })
@@ -114,15 +100,31 @@ async function handleGetRequest(req, res, requestId) {
       throw new Error(`Erreur lors de la récupération des demandes: ${pendingError.message}`)
     }
     
-    // Transform data to match expected format
-    const transformedFriends = friends?.map(f => ({
+    // Récupérer les profils des demandeurs
+    const requesterIds = pendingFriendships?.map(f => f.user_id) || []
+    let requesterProfiles = []
+    if (requesterIds.length > 0) {
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, user_id, display_name, avatar_url, bio, created_at')
+        .in('user_id', requesterIds)
+      
+      if (profilesError) {
+        logError('Erreur récupération profils demandeurs', profilesError, { requestId })
+      } else {
+        requesterProfiles = profiles || []
+      }
+    }
+    
+    // Combiner les données
+    const transformedFriends = friendships?.map(f => ({
       ...f,
-      profiles: f.friend_profile
+      profiles: friendProfiles.find(p => p.user_id === f.friend_id)
     })) || []
     
-    const transformedPendingRequests = pendingRequests?.map(r => ({
+    const transformedPendingRequests = pendingFriendships?.map(r => ({
       ...r,
-      profiles: r.requester_profile
+      profiles: requesterProfiles.find(p => p.user_id === r.user_id)
     })) || []
     
     logInfo('Données récupérées avec succès', {
