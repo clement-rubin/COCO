@@ -39,6 +39,7 @@ export default function MesRecettes() {
           userEmail: user.email,
           userId: user.id,
           userDisplayName: user.user_metadata?.display_name,
+          userFullName: user.user_metadata?.full_name,
           refreshKey,
           timestamp: new Date().toISOString()
         })
@@ -59,46 +60,104 @@ export default function MesRecettes() {
 
         const allRecipes = await response.json()
         
+        logInfo('Données brutes reçues de l\'API', {
+          totalRecipes: allRecipes.length,
+          sampleRecipes: allRecipes.slice(0, 3).map(r => ({
+            id: r.id,
+            title: r.title,
+            author: r.author,
+            category: r.category,
+            created_at: r.created_at
+          })),
+          allAuthors: [...new Set(allRecipes.map(r => r.author))].slice(0, 10)
+        })
+        
         // Logique de filtrage améliorée côté client
         const userIdentifiers = [
           user.email,
           user.user_metadata?.display_name,
           user.user_metadata?.full_name,
+          user.user_metadata?.name,
           'Anonyme'
-        ].filter(Boolean)
+        ].filter(Boolean).filter(id => id && id.trim())
         
         logInfo('Identifiants utilisateur pour filtrage', {
           identifiers: userIdentifiers,
-          totalRecipes: allRecipes.length,
-          fetchTimestamp: timestamp
+          userObject: {
+            email: user.email,
+            display_name: user.user_metadata?.display_name,
+            full_name: user.user_metadata?.full_name,
+            name: user.user_metadata?.name
+          }
         })
         
         const userRecipes = allRecipes.filter(recipe => {
-          if (!recipe.author) return false
+          if (!recipe.author || typeof recipe.author !== 'string') {
+            logDebug('Recette sans auteur valide', { recipe: { id: recipe.id, title: recipe.title, author: recipe.author } })
+            return false
+          }
           
-          return userIdentifiers.some(identifier => 
-            recipe.author === identifier || 
-            recipe.author.toLowerCase() === identifier.toLowerCase()
-          )
+          const authorMatch = userIdentifiers.some(identifier => {
+            const match = recipe.author === identifier || 
+                         recipe.author.toLowerCase().trim() === identifier.toLowerCase().trim()
+            
+            if (match) {
+              logDebug('Match trouvé', { 
+                recipeAuthor: recipe.author, 
+                userIdentifier: identifier,
+                recipeTitle: recipe.title 
+              })
+            }
+            
+            return match
+          })
+          
+          return authorMatch
         })
         
         // Trier les recettes par date de création (plus récente en premier)
         userRecipes.sort((a, b) => {
-          return new Date(b.created_at || 0) - new Date(a.created_at || 0)
+          const dateA = new Date(a.created_at || 0)
+          const dateB = new Date(b.created_at || 0)
+          return dateB - dateA
         })
 
         setRecipes(userRecipes)
+        
         logInfo('Recettes utilisateur filtrées avec succès', {
           totalRecipes: allRecipes.length,
           userRecipesFound: userRecipes.length,
           photoShares: userRecipes.filter(r => r.category === 'Photo partagée').length,
-          fullRecipes: userRecipes.filter(r => r.category !== 'Photo partagée').length
+          fullRecipes: userRecipes.filter(r => r.category !== 'Photo partagée').length,
+          userRecipesTitles: userRecipes.map(r => r.title).slice(0, 5),
+          firstRecipeDetails: userRecipes[0] ? {
+            id: userRecipes[0].id,
+            title: userRecipes[0].title,
+            author: userRecipes[0].author,
+            category: userRecipes[0].category
+          } : null
         })
+
+        // Si aucune recette trouvée, logger pour debug
+        if (userRecipes.length === 0 && allRecipes.length > 0) {
+          logWarning('Aucune recette utilisateur trouvée malgré des recettes disponibles', {
+            totalRecipes: allRecipes.length,
+            userIdentifiers,
+            sampleAuthors: [...new Set(allRecipes.map(r => r.author))].slice(0, 10),
+            exactMatches: allRecipes.filter(r => userIdentifiers.includes(r.author)).length,
+            caseInsensitiveMatches: allRecipes.filter(r => 
+              userIdentifiers.some(id => 
+                r.author && r.author.toLowerCase().trim() === id.toLowerCase().trim()
+              )
+            ).length
+          })
+        }
 
       } catch (err) {
         logError('Erreur lors de la récupération des recettes utilisateur', err, {
           userEmail: user?.email,
           errorMessage: err.message,
+          errorStack: err.stack,
           refreshKey,
           timestamp: new Date().toISOString()
         })

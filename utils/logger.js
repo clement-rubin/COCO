@@ -74,6 +74,16 @@ export const logComponentEvent = (componentName, event, data = {}) => {
   })
 }
 
+// Logger spécialisé pour le debug des données
+export const logDataDebug = (operation, data = {}) => {
+  if (isDevelopment) {
+    console.group(`🔍 DEBUG: ${operation}`)
+    console.log('Timestamp:', new Date().toISOString())
+    console.log('Data:', data)
+    console.groupEnd()
+  }
+}
+
 // Logger spécialisé pour les erreurs frontend avec context enrichi
 export const logFrontendError = (error, context = {}) => {
   const errorId = `fe_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
