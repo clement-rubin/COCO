@@ -62,12 +62,13 @@ export default function MesRecettes() {
           authProvider: user.app_metadata?.provider
         })
 
-        // Force cache bypass with timestamp
+        // Force cache bypass with timestamp and add user_id parameter
         const timestamp = Date.now()
-        const apiUrl = `/api/recipes?_t=${timestamp}`
+        const apiUrl = `/api/recipes?user_id=${encodeURIComponent(user.id)}&_t=${timestamp}`
         
         logDebug('Préparation de l\'appel API', {
           url: apiUrl,
+          userId: user.id?.substring(0, 8) + '...',
           timestamp,
           cacheHeaders: {
             'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -101,86 +102,37 @@ export default function MesRecettes() {
           throw new Error(`Erreur HTTP: ${response.status} - ${response.statusText}`)
         }
 
-        const allRecipes = await response.json()
+        const userRecipes = await response.json()
         
-        logInfo('Données brutes reçues de l\'API', {
-          totalRecipes: allRecipes.length,
-          recipesTypes: allRecipes.map(r => r.category).reduce((acc, cat) => {
-            acc[cat] = (acc[cat] || 0) + 1
-            return acc
-          }, {}),
-          sampleRecipes: allRecipes.slice(0, 3).map(r => ({
+        logInfo('Données reçues de l\'API (filtrées par user_id)', {
+          userRecipesFound: userRecipes.length,
+          photoShares: userRecipes.filter(r => r.category === 'Photo partagée').length,
+          fullRecipes: userRecipes.filter(r => r.category !== 'Photo partagée').length,
+          sampleRecipes: userRecipes.slice(0, 3).map(r => ({
             id: r.id,
             title: r.title,
             author: r.author,
             category: r.category,
             created_at: r.created_at,
             hasImage: !!r.image,
-            imageType: typeof r.image
+            imageType: typeof r.image,
+            hasUserId: !!r.user_id,
+            userIdMatch: r.user_id === user.id
           })),
-          allAuthors: [...new Set(allRecipes.map(r => r.author))].slice(0, 10),
-          authorsCount: [...new Set(allRecipes.map(r => r.author))].length
-        })
-        
-        // Logique de filtrage améliorée côté client
-        const userIdentifiers = [
-          user.email,
-          user.user_metadata?.display_name,
-          user.user_metadata?.full_name,
-          user.user_metadata?.name,
-          'Anonyme'
-        ].filter(Boolean).filter(id => id && id.trim())
-        
-        logInfo('Identifiants utilisateur pour filtrage', {
-          identifiers: userIdentifiers,
-          userObject: {
-            email: user.email,
-            display_name: user.user_metadata?.display_name,
-            full_name: user.user_metadata?.full_name,
-            name: user.user_metadata?.name,
-            allMetadata: user.user_metadata
-          }
-        })
-        
-        const userRecipes = allRecipes.filter(recipe => {
-          if (!recipe.author || typeof recipe.author !== 'string') {
-            logDebug('Recette sans auteur valide', { 
-              recipe: { 
-                id: recipe.id, 
-                title: recipe.title, 
-                author: recipe.author,
-                authorType: typeof recipe.author 
-              } 
-            })
-            return false
-          }
-          
-          const authorMatch = userIdentifiers.some(identifier => {
-            const exactMatch = recipe.author === identifier
-            const caseInsensitiveMatch = recipe.author.toLowerCase().trim() === identifier.toLowerCase().trim()
-            const match = exactMatch || caseInsensitiveMatch
-            
-            if (match) {
-              logDebug('Match trouvé', { 
-                recipeAuthor: recipe.author, 
-                userIdentifier: identifier,
-                recipeTitle: recipe.title,
-                matchType: exactMatch ? 'exact' : 'case-insensitive'
-              })
-            } else {
-              logDebug('Pas de match', {
-                recipeAuthor: recipe.author,
-                userIdentifier: identifier,
-                recipeTitle: recipe.title,
-                exactMatch,
-                caseInsensitiveMatch
-              })
-            }
-            
-            return match
-          })
-          
-          return authorMatch
+          userRecipesCategories: userRecipes.map(r => r.category).reduce((acc, cat) => {
+            acc[cat] = (acc[cat] || 0) + 1
+            return acc
+          }, {}),
+          firstRecipeDetails: userRecipes[0] ? {
+            id: userRecipes[0].id,
+            title: userRecipes[0].title,
+            author: userRecipes[0].author,
+            category: userRecipes[0].category,
+            created_at: userRecipes[0].created_at,
+            hasImage: !!userRecipes[0].image,
+            user_id: userRecipes[0].user_id?.substring(0, 8) + '...'
+          } : null,
+          processingTime: Date.now() - fetchStartTime
         })
         
         // Trier les recettes par date de création (plus récente en premier)
@@ -192,47 +144,21 @@ export default function MesRecettes() {
 
         setRecipes(userRecipes)
         
-        logInfo('Recettes utilisateur filtrées avec succès', {
-          totalRecipes: allRecipes.length,
-          userRecipesFound: userRecipes.length,
+        logInfo('Recettes utilisateur définies avec succès', {
+          userRecipesCount: userRecipes.length,
           photoShares: userRecipes.filter(r => r.category === 'Photo partagée').length,
           fullRecipes: userRecipes.filter(r => r.category !== 'Photo partagée').length,
           userRecipesTitles: userRecipes.map(r => r.title).slice(0, 5),
-          userRecipesCategories: userRecipes.map(r => r.category).reduce((acc, cat) => {
-            acc[cat] = (acc[cat] || 0) + 1
-            return acc
-          }, {}),
-          firstRecipeDetails: userRecipes[0] ? {
-            id: userRecipes[0].id,
-            title: userRecipes[0].title,
-            author: userRecipes[0].author,
-            category: userRecipes[0].category,
-            created_at: userRecipes[0].created_at,
-            hasImage: !!userRecipes[0].image
-          } : null,
           processingTime: Date.now() - fetchStartTime
         })
 
         // Si aucune recette trouvée, logger pour debug
-        if (userRecipes.length === 0 && allRecipes.length > 0) {
-          logWarning('Aucune recette utilisateur trouvée malgré des recettes disponibles', {
-            totalRecipes: allRecipes.length,
-            userIdentifiers,
-            sampleAuthors: [...new Set(allRecipes.map(r => r.author))].slice(0, 10),
-            exactMatches: allRecipes.filter(r => userIdentifiers.includes(r.author)).length,
-            caseInsensitiveMatches: allRecipes.filter(r => 
-              userIdentifiers.some(id => 
-                r.author && r.author.toLowerCase().trim() === id.toLowerCase().trim()
-              )
-            ).length,
-            detailedComparison: allRecipes.slice(0, 5).map(r => ({
-              recipeAuthor: r.author,
-              matches: userIdentifiers.map(id => ({
-                identifier: id,
-                exact: r.author === id,
-                caseInsensitive: r.author && r.author.toLowerCase().trim() === id.toLowerCase().trim()
-              }))
-            }))
+        if (userRecipes.length === 0) {
+          logInfo('Aucune recette utilisateur trouvée', {
+            userId: user.id?.substring(0, 8) + '...',
+            userEmail: user.email,
+            userDisplayName: user.user_metadata?.display_name,
+            searchedWith: 'user_id filtering'
           })
         }
 
@@ -241,6 +167,7 @@ export default function MesRecettes() {
         
         logError('Erreur lors de la récupération des recettes utilisateur', err, {
           userEmail: user?.email,
+          userId: user?.id?.substring(0, 8) + '...',
           errorMessage: err.message,
           errorStack: err.stack,
           errorName: err.name,
@@ -257,6 +184,7 @@ export default function MesRecettes() {
         const totalDuration = Date.now() - fetchStartTime
         logPerformance('fetchUserRecipes total', totalDuration, {
           userEmail: user?.email,
+          userId: user?.id?.substring(0, 8) + '...',
           refreshKey
         })
       }
@@ -265,6 +193,7 @@ export default function MesRecettes() {
     if (user && !authLoading) {
       logComponentLifecycle('MesRecettes', 'fetchUserRecipes-start', {
         userEmail: user?.email,
+        userId: user?.id?.substring(0, 8) + '...',
         refreshKey,
         routerPath: router.asPath
       })

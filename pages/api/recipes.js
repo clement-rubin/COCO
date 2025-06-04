@@ -214,22 +214,41 @@ export default async function handler(req, res) {
       return
     } else if (req.method === 'GET') {
       try {
-        logInfo('API recipes - Récupération des recettes')
+        const { user_id } = req.query
         
-        const { data, error } = await supabase
+        logInfo('API recipes - Récupération des recettes', {
+          hasUserId: !!user_id,
+          userId: user_id?.substring(0, 8) + '...' // Log partial ID for privacy
+        })
+        
+        let query = supabase
           .from('recipes')
           .select('*')
           .order('created_at', { ascending: false })
 
+        // Si un user_id est fourni, filtrer par user_id
+        if (user_id) {
+          query = query.eq('user_id', user_id)
+          logDebug('Filtrage par user_id appliqué', { userId: user_id.substring(0, 8) + '...' })
+        }
+
+        const { data, error } = await query
+
         if (error) {
-          logError('Erreur lors de la récupération des recettes', error)
+          logError('Erreur lors de la récupération des recettes', error, {
+            hasUserId: !!user_id,
+            errorCode: error.code,
+            errorMessage: error.message
+          })
           return res.status(500).json({ 
             error: 'Erreur lors de la récupération des recettes' 
           })
         }
 
         logInfo('Recettes récupérées avec succès', { 
-          count: data?.length || 0 
+          count: data?.length || 0,
+          hasUserId: !!user_id,
+          userIdProvided: !!user_id
         })
 
         res.status(200).json(data || [])
