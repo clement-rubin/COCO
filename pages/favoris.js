@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { useAuth } from '../components/AuthContext'
 import { supabase } from '../lib/supabase'
-import { logError, logInfo, logWarning } from '../utils/logger'
+import { logError, logInfo } from '../utils/logger'
 
 export default function Favoris() {
   const router = useRouter();
@@ -13,7 +13,6 @@ export default function Favoris() {
   const [searchResults, setSearchResults] = useState([]);
   const [friends, setFriends] = useState([]);
   const [pendingRequests, setPendingRequests] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('friends');
 

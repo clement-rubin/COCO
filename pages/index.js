@@ -1,19 +1,16 @@
 import Head from 'next/head'
-import { useRouter } from 'next/router'
 import { useState, useEffect, useRef } from 'react'
+import { useAuth } from '../components/AuthContext'
+import { logUserInteraction, logComponentEvent, logInfo } from '../utils/logger'
 import FriendsFeed from '../components/FriendsFeed'
 import AddictiveFeed from '../components/AddictiveFeed'
-import { useAuth } from '../components/AuthContext'
-import Image from 'next/image'
-import Link from 'next/link'
 
 export default function Home() {
-  const router = useRouter()
   const { user } = useAuth()
-  const [feedType, setFeedType] = useState('featured')
-  const [viewMode, setViewMode] = useState('stories')
   const [isScrolled, setIsScrolled] = useState(false)
-  const [showWelcome, setShowWelcome] = useState(true)
+  const [showWelcome, setShowWelcome] = useState(false)
+  const [viewMode, setViewMode] = useState('stories') // 'stories' or 'vertical'
+  const [feedType, setFeedType] = useState('all')
   const heroRef = useRef(null)
 
   // Détection du scroll
@@ -40,58 +37,76 @@ export default function Home() {
     }
   }, [user, showWelcome])
 
-  const handleQuickShare = () => {
-    if (!user) {
-      router.push('/login?redirect=' + encodeURIComponent('/share-photo'))
-      return
-    }
-    router.push('/share-photo')
-  }
-
-  const handleRecipeCreate = () => {
-    if (!user) {
-      router.push('/login?redirect=' + encodeURIComponent('/submit-recipe'))
-      return
-    }
-    router.push('/submit-recipe')
-  }
-
-  const toggleViewMode = () => {
-    setViewMode(prev => prev === 'stories' ? 'vertical' : 'stories')
-  }
-
-  const categories = [
-    { id: 'featured', icon: '⭐', label: 'En vedette', color: '#ff6b35' },
-    { id: 'recent', icon: '🕒', label: 'Récent', color: '#36b37e' },
-    { id: 'trending', icon: '🔥', label: 'Tendance', color: '#ff5722' }
-  ]
-
   const quickActions = [
     {
-      id: 'photo',
-      icon: '📷',
-      label: 'Photo rapide',
-      description: 'Partage instantané',
-      color: '#4caf50',
-      action: handleQuickShare
-    },
-    {
-      id: 'recipe',
-      icon: '📝',
-      label: 'Nouvelle recette',
-      description: 'Recette complète',
-      color: '#2196f3',
-      action: handleRecipeCreate
+      id: 'share',
+      label: 'Partager',
+      description: 'Photo & recette',
+      icon: '📸',
+      color: '#10b981',
+      action: () => {
+        if (user) {
+          window.location.href = '/share-photo'
+        } else {
+          window.location.href = '/login?redirect=' + encodeURIComponent('/share-photo')
+        }
+      }
     },
     {
       id: 'explore',
-      icon: '🔍',
       label: 'Explorer',
       description: 'Découvrir',
-      color: '#ff9800',
-      action: () => router.push('/explorer')
+      icon: '🔍',
+      color: '#3b82f6',
+      action: () => window.location.href = '/explorer'
+    },
+    {
+      id: 'favorites',
+      label: 'Favoris',
+      description: 'Mes préférés',
+      icon: '❤️',
+      color: '#ef4444',
+      action: () => {
+        if (user) {
+          window.location.href = '/favoris'
+        } else {
+          window.location.href = '/login?redirect=' + encodeURIComponent('/favoris')
+        }
+      }
     }
   ]
+
+  const categories = [
+    { id: 'all', label: 'Tout', icon: '🍽️', color: '#6366f1' },
+    { id: 'dessert', label: 'Desserts', icon: '🍰', color: '#ec4899' },
+    { id: 'plat', label: 'Plats', icon: '🍝', color: '#f59e0b' },
+    { id: 'apero', label: 'Apéro', icon: '🥂', color: '#10b981' }
+  ]
+
+  const toggleViewMode = () => {
+    const newMode = viewMode === 'stories' ? 'vertical' : 'stories'
+    setViewMode(newMode)
+    logUserInteraction('TOGGLE_VIEW_MODE', 'bouton-vue', {
+      newMode,
+      previousMode: viewMode
+    })
+  }
+
+  // Check for welcome message
+  useEffect(() => {
+    if (user && !showWelcome) {
+      const hasSeenWelcome = localStorage.getItem(`welcome_${user.id}`)
+      if (!hasSeenWelcome) {
+        setShowWelcome(true)
+        localStorage.setItem(`welcome_${user.id}`, 'true')
+        
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+          setShowWelcome(false)
+        }, 5000)
+      }
+    }
+  }, [user, showWelcome])
 
   return (
     <div style={{
@@ -106,7 +121,7 @@ export default function Home() {
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
       </Head>
 
-      {/* Header fixe redesigné */}
+      {/* Header avec navigation sticky */}
       <div style={{
         position: 'fixed',
         top: 0,
@@ -129,7 +144,7 @@ export default function Home() {
           alignItems: 'center',
           justifyContent: 'space-between'
         }}>
-          {/* Logo et branding */}
+          {/* Logo et titre */}
           <div style={{ 
             display: 'flex', 
             alignItems: 'center', 
@@ -182,7 +197,7 @@ export default function Home() {
             )}
           </div>
 
-          {/* Actions header */}
+          {/* Contrôles de vue et salutation */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             {user && (
               <span style={{ 
@@ -221,7 +236,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Message de bienvenue amélioré */}
+      {/* Message de bienvenue */}
       {user && showWelcome && (
         <div style={{
           position: 'fixed',
@@ -251,14 +266,14 @@ export default function Home() {
         </div>
       )}
 
-      {/* Hero section redesignée */}
+      {/* Section Hero */}
       <div ref={heroRef} style={{
         paddingTop: '100px',
         paddingBottom: '40px',
         position: 'relative',
         overflow: 'hidden'
       }}>
-        {/* Background décoratif */}
+        {/* Gradient de fond décoratif */}
         <div style={{
           position: 'absolute',
           top: 0,
@@ -308,7 +323,7 @@ export default function Home() {
             </p>
           </div>
 
-          {/* Actions rapides redesignées */}
+          {/* Actions rapides */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(3, 1fr)',
@@ -332,7 +347,7 @@ export default function Home() {
                 }}
                 onMouseEnter={(e) => {
                   e.target.style.transform = 'translateY(-4px) scale(1.02)'
-                  e.target.style.boxShadow = `0 8px 25px ${action.color}30`
+                  e.target.style.boxShadow = `0 8px 25px ${action.color}40`
                   e.target.style.borderColor = `${action.color}40`
                 }}
                 onMouseLeave={(e) => {
@@ -366,7 +381,7 @@ export default function Home() {
             ))}
           </div>
 
-          {/* Filtres de contenu redesignés */}
+          {/* Filtres de catégories */}
           <div style={{
             display: 'flex',
             gap: '8px',
@@ -404,7 +419,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Contenu principal avec transition améliorée */}
+      {/* Section Feed principale */}
       <div style={{ 
         maxWidth: '400px', 
         margin: '0 auto',
@@ -416,7 +431,7 @@ export default function Home() {
         boxShadow: '0 -4px 20px rgba(0,0,0,0.08)',
         overflow: 'hidden'
       }}>
-        {/* Indicateur de mode */}
+        {/* En-tête du feed */}
         <div style={{
           padding: '16px 20px 8px',
           textAlign: 'center',
@@ -443,7 +458,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Feed content */}
+        {/* Contenu du feed */}
         <div style={{ 
           minHeight: '60vh',
           padding: '0 8px 20px'
@@ -471,7 +486,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Styles CSS inline pour les animations */}
+      {/* Styles globaux pour les animations et responsive */}
       <style jsx>{`
         @keyframes welcomeSlide {
           from {
