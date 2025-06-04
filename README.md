@@ -248,304 +248,129 @@ DROP POLICY IF EXISTS "Permettre mise à jour profil utilisateur" ON profiles;
 DROP POLICY IF EXISTS "Permettre insertion profil utilisateur" ON profiles;
 DROP POLICY IF EXISTS "Permettre suppression profil utilisateur" ON profiles;
 
-CREATE POLICY "Permettre lecture publique profils" ON profiles FOR SELECT USING (true);
+CREATE POLICY "Permettre lecture publique profils" ON profiles FOR SELECT USING (NOT is_private OR auth.uid() = user_id);
 CREATE POLICY "Permettre mise à jour profil utilisateur" ON profiles FOR UPDATE USING (auth.uid() = user_id);
 CREATE POLICY "Permettre insertion profil utilisateur" ON profiles FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Permettre suppression profil utilisateur" ON profiles FOR DELETE USING (auth.uid() = user_id);
 
--- Fonction pour mettre à jour updated_at automatiquement
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
+-- Contraintes pour les noms d'utilisateur
+ALTER TABLE profiles ADD CONSTRAINT display_name_length CHECK (length(display_name) >= 2 AND length(display_name) <= 30);
+ALTER TABLE profiles ADD CONSTRAINT display_name_format CHECK (display_name ~ '^[a-zA-ZÀ-ÿ0-9_\-\s]+$');
+
+-- Index pour les recherches d'amis
+CREATE INDEX IF NOT EXISTS idx_profiles_display_name_trgm ON profiles USING gin(display_name gin_trgm_ops);
+
+-- Fonction pour la recherche floue de profils
+CREATE OR REPLACE FUNCTION search_profiles(search_term text, current_user_id uuid DEFAULT NULL)
+RETURNS TABLE (
+  user_id uuid,
+  display_name text,
+  bio text,
+  avatar_url text,
+  similarity_score real
+) AS $$
 BEGIN
-  NEW.updated_at = NOW();
-  RETURN NEW;
+  RETURN QUERY
+  SELECT 
+    p.user_id,
+    p.display_name,
+    p.bio,
+    p.avatar_url,
+    similarity(p.display_name, search_term) as similarity_score
+  FROM profiles p
+  WHERE 
+    p.is_private = false 
+    AND (current_user_id IS NULL OR p.user_id != current_user_id)
+    AND (
+      p.display_name ILIKE '%' || search_term || '%'
+      OR similarity(p.display_name, search_term) > 0.3
+    )
+  ORDER BY similarity_score DESC, p.display_name ASC
+  LIMIT 20;
 END;
 $$ LANGUAGE plpgsql;
 
--- Trigger pour updated_at
-DROP TRIGGER IF EXISTS update_profiles_updated_at ON profiles;
-CREATE TRIGGER update_profiles_updated_at
-  BEFORE UPDATE ON profiles
-  FOR EACH ROW
-  EXECUTE FUNCTION update_updated_at_column();
-
--- Fonction pour créer automatiquement un profil lors de l'inscription
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS trigger AS $$
+-- Fonction pour obtenir les suggestions d'amis
+CREATE OR REPLACE FUNCTION get_friend_suggestions(user_id_param uuid, limit_param integer DEFAULT 10)
+RETURNS TABLE (
+  user_id uuid,
+  display_name text,
+  bio text,
+  avatar_url text,
+  mutual_friends_count integer,
+  common_interests_count integer
+) AS $$
 BEGIN
-  INSERT INTO public.profiles (user_id, display_name)
-  VALUES (NEW.id, COALESCE(NEW.raw_user_meta_data->>'display_name', split_part(NEW.email, '@', 1)));
-  RETURN NEW;
+  RETURN QUERY
+  WITH user_friends AS (
+    SELECT friend_id 
+    FROM friendships 
+    WHERE user_id = user_id_param AND status = 'accepted'
+  ),
+  mutual_friends AS (
+    SELECT 
+      p.user_id,
+      p.display_name,
+      p.bio,
+      p.avatar_url,
+      COUNT(DISTINCT f2.user_id) as mutual_count
+    FROM profiles p
+    JOIN friendships f1 ON f1.friend_id = p.user_id
+    JOIN user_friends uf ON uf.friend_id = f1.user_id
+    LEFT JOIN friendships f2 ON f2.user_id = user_id_param AND f2.friend_id = p.user_id
+    WHERE 
+      p.user_id != user_id_param
+      AND p.is_private = false
+      AND f2.user_id IS NULL -- Pas déjà ami
+      AND p.user_id NOT IN (SELECT friend_id FROM user_friends)
+    GROUP BY p.user_id, p.display_name, p.bio, p.avatar_url
+  )
+  SELECT 
+    mf.user_id,
+    mf.display_name,
+    mf.bio,
+    mf.avatar_url,
+    mf.mutual_count::integer as mutual_friends_count,
+    0 as common_interests_count -- À implémenter avec les catégories de recettes préférées
+  FROM mutual_friends mf
+  ORDER BY mf.mutual_count DESC, mf.display_name ASC
+  LIMIT limit_param;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql;
 
--- Trigger pour créer automatiquement un profil
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
-```
-
-5. **Configuration de la table `recipes` :**
-   
-   **Étape 1 : Créer/Mettre à jour la table**
-   - Allez dans **SQL Editor** dans votre dashboard Supabase
-   - Exécutez le SQL suivant :
-
-```sql
--- Création ou mise à jour de la table recipes avec la structure correcte
-CREATE TABLE IF NOT EXISTS public.recipes (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  title TEXT NOT NULL,
-  description TEXT,
-  image BYTEA,
-  prepTime TEXT,
-  cookTime TEXT,
-  servings TEXT,
-  category TEXT,
-  author TEXT,
-  ingredients JSON,
-  instructions JSON,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  difficulty TEXT DEFAULT 'Facile',
-  user_id UUID REFERENCES auth.users(id)
-);
-
--- Si la table existe déjà sans la colonne servings, l'ajouter
-ALTER TABLE public.recipes ADD COLUMN IF NOT EXISTS servings TEXT;
-
--- Créer les index pour de meilleures performances
-CREATE INDEX IF NOT EXISTS idx_recipes_created_at ON recipes(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_recipes_category ON recipes(category);
-CREATE INDEX IF NOT EXISTS idx_recipes_difficulty ON recipes(difficulty);
-CREATE INDEX IF NOT EXISTS idx_recipes_user_id ON recipes(user_id);
-
--- Activer Row Level Security
-ALTER TABLE recipes ENABLE ROW LEVEL SECURITY;
-
--- Créer les politiques pour l'accès public
-DROP POLICY IF EXISTS "Permettre lecture publique" ON recipes;
-DROP POLICY IF EXISTS "Permettre insertion publique" ON recipes;
-DROP POLICY IF EXISTS "Permettre mise à jour publique" ON recipes;
-DROP POLICY IF EXISTS "Permettre suppression publique" ON recipes;
-
-CREATE POLICY "Permettre lecture publique" ON recipes FOR SELECT USING (true);
-CREATE POLICY "Permettre insertion publique" ON recipes FOR INSERT WITH CHECK (true);
-CREATE POLICY "Permettre mise à jour publique" ON recipes FOR UPDATE USING (true);
-CREATE POLICY "Permettre suppression publique" ON recipes FOR DELETE USING (true);
-```
-
-6. **Configuration des tables pour le système d'amis :**
-
-```sql
--- Table des profils utilisateurs (structure correcte)
-CREATE TABLE IF NOT EXISTS public.profiles (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID UNIQUE REFERENCES auth.users(id),
-  display_name TEXT,
-  avatar_url TEXT,
-  bio TEXT,
-  location TEXT,
-  website TEXT,
-  is_private BOOLEAN DEFAULT false,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Table des amitiés (structure correcte)
-CREATE TABLE IF NOT EXISTS public.friendships (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID NOT NULL REFERENCES auth.users(id),
-  friend_id UUID NOT NULL REFERENCES auth.users(id),
-  status TEXT CHECK (status IN ('pending', 'accepted', 'rejected', 'blocked')) DEFAULT 'pending',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Index pour les performances
-CREATE INDEX IF NOT EXISTS idx_friendships_user_id ON friendships(user_id);
-CREATE INDEX IF NOT EXISTS idx_friendships_friend_id ON friendships(friend_id);
-CREATE INDEX IF NOT EXISTS idx_friendships_status ON friendships(status);
-
--- Activer Row Level Security
-ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE friendships ENABLE ROW LEVEL SECURITY;
-
--- Politiques pour profiles (structure correcte)
-CREATE POLICY "Permettre lecture publique profils" ON profiles FOR SELECT USING (true);
-CREATE POLICY "Permettre mise à jour profil utilisateur" ON profiles FOR UPDATE USING (auth.uid() = user_id);
-CREATE POLICY "Permettre insertion profil utilisateur" ON profiles FOR INSERT WITH CHECK (auth.uid() = user_id);
-
--- Politiques pour friendships (structure correcte)
-CREATE POLICY "Voir ses amitiés" ON friendships FOR SELECT USING (auth.uid() = user_id OR auth.uid() = friend_id);
-CREATE POLICY "Créer demande amitié" ON friendships FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Modifier ses amitiés" ON friendships FOR UPDATE USING (auth.uid() = friend_id OR auth.uid() = user_id);
-CREATE POLICY "Supprimer ses amitiés" ON friendships FOR DELETE USING (auth.uid() = friend_id OR auth.uid() = user_id);
-
--- Fonction pour créer automatiquement un profil (structure correcte)
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS trigger AS $$
-BEGIN
-  INSERT INTO public.profiles (user_id, display_name)
-  VALUES (NEW.id, COALESCE(NEW.raw_user_meta_data->>'display_name', NEW.email));
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Trigger pour créer automatiquement un profil
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
-```
-
-7. **Configuration Storage pour les images :**
-   
-   **Étape 1 : Créer le bucket**
-   - Allez dans **Storage > Buckets** dans votre dashboard Supabase
-   - Cliquez sur **"New bucket"**
-   - Nom : `recipe-images`
-   - **⚠️ OBLIGATOIRE : Cochez "Public bucket"**
-   - Cliquez sur "Create bucket"
-
-   **Étape 2 : Configurer les politiques de sécurité**
-   - Allez dans **SQL Editor** dans votre dashboard Supabase
-   - Exécutez le SQL suivant :
-
-```sql
--- Politiques pour permettre l'upload et la lecture publique
-CREATE POLICY IF NOT EXISTS "Permettre upload public" ON storage.objects
-  FOR INSERT WITH CHECK (bucket_id = 'recipe-images');
-
-CREATE POLICY IF NOT EXISTS "Permettre lecture publique" ON storage.objects
-  FOR SELECT USING (bucket_id = 'recipe-images');
-
-CREATE POLICY IF NOT EXISTS "Permettre suppression publique" ON storage.objects
-  FOR DELETE USING (bucket_id = 'recipe-images');
-```
-
-   **Étape 3 : Vérifier la configuration**
-   - Utilisez la page `/test-upload` pour vérifier que tout fonctionne
-   - Le statut du bucket doit afficher "✅ Bucket recipe-images disponible"
-   - Utilisez la page `/test-recipes` pour vérifier la structure de la table
-
-8. **Script de mise à jour des auteurs existants :**
-   
-   Après avoir créé la table profiles, exécutez ce script pour mettre à jour les recettes existantes :
-
-```sql
--- Mettre à jour les recettes existantes avec les noms d'utilisateur
-UPDATE public.recipes 
-SET author = COALESCE(p.display_name, 'Chef Anonyme')
-FROM public.profiles p 
-WHERE recipes.user_id = p.user_id 
-AND (recipes.author IS NULL 
-     OR recipes.author = 'Chef Anonyme' 
-     OR recipes.author = '' 
-     OR recipes.author = 'Utilisateur');
-
--- Définir un nom par défaut pour les recettes orphelines
-UPDATE public.recipes 
-SET author = 'Chef Communauté'
-WHERE user_id IS NULL 
-AND (author IS NULL OR author = '' OR author = 'Chef Anonyme');
-```
-
-## 🔧 Tests et Debug
-
-### Test d'Upload d'Images
-Accédez à `/test-upload` pour :
-- Tester l'upload depuis la galerie
-- Tester la prise de photo avec caméra
-- Voir les logs détaillés en temps réel
-- Identifier les problèmes de configuration
-
-### Test de la Base de Données
-Accédez à `/test-recipes` pour :
-- Vérifier la configuration de la table
-- Obtenir le SQL de création automatique
-- Tester les opérations CRUD sur les recettes
-- Afficher les logs en temps réel
-
-### Test de l'API
-Accédez à `/api/recipes` pour :
-- Tester les endpoints GET, POST, PUT, DELETE
-- Vérifier la communication avec Supabase
-- Valider le format des données
-
-### Test HTML Standalone
-Ouvrez `/test-api.html` dans votre navigateur pour :
-- Tester l'API sans Next.js
-- Interface de test simple et rapide
-- Debug des problèmes de CORS
-
-## 📸 Gestion des Images
-
-- **Conversion automatique** en données binaires
-- **Compression intelligente** (max 800px, qualité 80%)
-- **Stockage optimisé** dans la base de données
-- **Support multi-images** (jusqu'à 3 photos par recette)
-- **Validation** avant soumission du formulaire
-- **Partage rapide** de photos avec description simple
-- **Logs détaillés** pour troubleshooting
-
-## 🌐 Déploiement
-
-### Vercel (Recommandé)
-```bash
-npm install -g vercel
-vercel --prod
-```
-
-### Netlify
-1. Connectez votre repository GitHub à Netlify
-2. Configurez les variables d'environnement
-3. Déployez automatiquement
-
-## 🎯 Fonctionnalités à Venir
-
-- [x] Feed social addictif des amis
-- [x] Défilement vertical immersif
-- [x] Animations de like Instagram-style
-- [ ] Système de favoris
-- [ ] Notation des recettes
-- [ ] Catégories avancées
-- [ ] Mode hors ligne (PWA)
-- [ ] Notifications push
-- [ ] Partage social direct des recettes
-- [ ] Mode photo instantané avec géolocalisation
-
-## 🎯 Roadmap Addictif
-
-### Phase 1 : Foundation Addictive ✅
-- [x] Feed vertical immersif
-- [x] Pages recettes détaillées
-- [x] Système de points basique
-- [x] Animations fluides
-- [x] Mode cuisson guidé
-
-### Phase 2 : Social & Gamification 🚧
-- [ ] Stories culinaires 24h
-- [ ] Défis quotidiens/hebdomadaires
-- [ ] Système de badges complet
-- [ ] Chat en temps réel
-- [ ] Notifications push intelligentes
-
-### Phase 3 : IA & Personnalisation 🔮
-- [ ] Recommandations IA avancées
-- [ ] Assistant culinaire vocal
-- [ ] Reconnaissance d'ingrédients par photo
-- [ ] Suggestions selon le frigo
-- [ ] Adaptation automatique des portions
-
-### Phase 4 : Réalité Augmentée 🥽
-- [ ] Visualisation AR des plats
-- [ ] Instructions AR superposées
-- [ ] Partage de recettes en AR
-- [ ] Filtres culinaires pour photos
-- [ ] Mesure d'ingrédients en AR
-
-## 📄 Licence
+-- Extension pour la recherche floue (optionnel)
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 **COCO** - *Où chaque recette raconte une histoire* 🍴✨
+
+## 🌟 Fonctionnalités Principales
+
+### 👥 Système d'Amis Avancé
+- **Recherche d'utilisateurs** par nom avec recherche floue
+- **Suggestions d'amis** basées sur les amis mutuels
+- **Profils utilisateur** complets avec statistiques
+- **Gestion des demandes d'amitié** (envoi, acceptation, refus)
+- **Paramètres de confidentialité** pour les profils
+- **Noms d'utilisateur personnalisés** avec validation
+
+### 🍽️ Partage de Recettes
+- Création et modification de recettes avec photos
+- Catégorisation et système de tags
+- Recherche avancée par ingrédients, catégorie, auteur
+- Attribution automatique des auteurs via les profils
+
+### 🔐 Authentification et Sécurité
+- Système d'authentification Supabase
+- Politiques de sécurité Row Level Security (RLS)
+- Validation des données côté client et serveur
+- Gestion des erreurs avec stratégies de récupération
+
+## 🚀 Installation et Configuration
+
+### Prérequis
+- Node.js 18+ et npm/yarn
+- Compte Supabase
+- Variables d'environnement configurées
+
+### Configuration de la Base de Données
+Exécutez le SQL suivant dans votre tableau de bord Supabase pour configurer les tables et fonctions :

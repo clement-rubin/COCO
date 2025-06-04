@@ -114,41 +114,199 @@ export async function updateRecipeAuthor(recipeId, userId) {
  */
 export async function updateAllUserRecipeAuthors(userId) {
   if (!userId) {
-    logWarning('updateAllUserRecipeAuthors called with missing userId')
+    logWarning('updateAllUserRecipeAuthors called without userId')
     return 0
   }
 
   try {
     const displayName = await getUserDisplayName(userId)
     
-    const { data, error } = await supabase
+    const { count, error } = await supabase
       .from('recipes')
       .update({ author: displayName })
       .eq('user_id', userId)
-      .select('id')
+      .select('*', { count: 'exact', head: true })
 
     if (error) {
-      logError('Error batch updating user recipe authors', error, {
+      logError('Error batch updating recipe authors', error, {
         userId: userId.substring(0, 8) + '...',
         displayName
       })
       return 0
     }
 
-    const updatedCount = data ? data.length : 0
-    
-    logInfo('Batch updated user recipe authors', {
+    logInfo('Batch update of recipe authors completed', {
       userId: userId.substring(0, 8) + '...',
-      displayName,
-      updatedCount
+      updatedCount: count,
+      newAuthor: displayName
     })
 
-    return updatedCount
+    return count || 0
 
   } catch (error) {
-    logError('Exception while batch updating user recipe authors', error, {
+    logError('Exception during batch update of recipe authors', error, {
       userId: userId.substring(0, 8) + '...'
     })
     return 0
+  }
+}
+
+/**
+ * Recherche d'utilisateurs par nom d'affichage
+ * @param {string} query - Terme de recherche
+ * @param {number} limit - Nombre maximum de résultats
+ * @returns {Promise<Array>} Liste des utilisateurs trouvés
+ */
+export async function searchUsersByDisplayName(query, limit = 10) {
+  if (!query || typeof query !== 'string' || query.trim().length < 2) {
+    logWarning('searchUsersByDisplayName called with invalid query', { query, limit })
+    return []
+  }
+
+  try {
+    const { data: users, error } = await supabase
+      .from('profiles')
+      .select('user_id, display_name, bio, avatar_url, created_at, is_private')
+      .ilike('display_name', `%${query.trim()}%`)
+      .eq('is_private', false)
+      .order('display_name', { ascending: true })
+      .limit(limit)
+
+    if (error) {
+      logError('Error searching users by display name', error, {
+        query: query.substring(0, 20) + '...',
+        limit
+      })
+      return []
+    }
+
+    logInfo('User search completed', {
+      query: query.substring(0, 20) + '...',
+      resultsCount: users?.length || 0,
+      limit
+    })
+
+    return users || []
+
+  } catch (error) {
+    logError('Exception while searching users', error, {
+      query: query.substring(0, 20) + '...',
+      limit
+    })
+    return []
+  }
+}
+
+/**
+ * Obtient les statistiques d'un utilisateur incluant ses amis
+ * @param {string} userId - L'ID de l'utilisateur
+ * @returns {Promise<Object>} Statistiques de l'utilisateur
+ */
+export async function getUserStats(userId) {
+  if (!userId) {
+    logWarning('getUserStats called without userId')
+    return {
+      recipesCount: 0,
+      friendsCount: 0,
+      profileCompleteness: 0
+    }
+  }
+
+  try {
+    // Compter les recettes
+    const { count: recipesCount } = await supabase
+      .from('recipes')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+
+    // Compter les amis
+    const { count: friendsCount } = await supabase
+      .from('friendships')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('status', 'accepted')
+
+    // Obtenir le profil pour calculer la complétude
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('display_name, bio, avatar_url, location, website')
+      .eq('user_id', userId)
+      .single()
+
+    let profileCompleteness = 0
+    if (profile) {
+      const fields = ['display_name', 'bio', 'avatar_url', 'location', 'website']
+      const filledFields = fields.filter(field => profile[field] && profile[field].trim())
+      profileCompleteness = Math.round((filledFields.length / fields.length) * 100)
+    }
+
+    const stats = {
+      recipesCount: recipesCount || 0,
+      friendsCount: friendsCount || 0,
+      profileCompleteness
+    }
+
+    logInfo('User stats retrieved', {
+      userId: userId.substring(0, 8) + '...',
+      stats
+    })
+
+    return stats
+
+  } catch (error) {
+    logError('Exception while getting user stats', error, {
+      userId: userId.substring(0, 8) + '...'
+    })
+    return {
+      recipesCount: 0,
+      friendsCount: 0,
+      profileCompleteness: 0
+    }
+  }
+}
+
+/**
+ * Vérifie si deux utilisateurs sont amis
+ * @param {string} userId1 - Premier utilisateur
+ * @param {string} userId2 - Deuxième utilisateur
+ * @returns {Promise<Object>} Statut de l'amitié
+ */
+export async function getFriendshipStatus(userId1, userId2) {
+  if (!userId1 || !userId2 || userId1 === userId2) {
+    return { status: 'none', canSendRequest: false }
+  }
+
+  try {
+    const { data: friendship, error } = await supabase
+      .from('friendships')
+      .select('status, user_id, friend_id')
+      .or(`and(user_id.eq.${userId1},friend_id.eq.${userId2}),and(user_id.eq.${userId2},friend_id.eq.${userId1})`)
+      .single()
+
+    if (error && error.code !== 'PGRST116') {
+      logError('Error checking friendship status', error)
+      return { status: 'error', canSendRequest: false }
+    }
+
+    if (!friendship) {
+      return { status: 'none', canSendRequest: true }
+    }
+
+    logInfo('Friendship status checked', {
+      user1: userId1.substring(0, 8) + '...',
+      user2: userId2.substring(0, 8) + '...',
+      status: friendship.status
+    })
+
+    return {
+      status: friendship.status,
+      canSendRequest: friendship.status === 'rejected',
+      isRequester: friendship.user_id === userId1,
+      friendshipId: friendship.id
+    }
+
+  } catch (error) {
+    logError('Exception while checking friendship status', error)
+    return { status: 'error', canSendRequest: false }
   }
 }

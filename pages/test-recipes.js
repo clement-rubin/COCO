@@ -331,34 +331,47 @@ ALTER TABLE recipes ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(
 -- Table des profils utilisateurs (STRUCTURE CORRIGÉE)
 CREATE TABLE IF NOT EXISTS profiles (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID UNIQUE REFERENCES auth.users(id),
-  display_name TEXT,
-  avatar_url TEXT,
+  user_id UUID UNIQUE NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  display_name TEXT NOT NULL,
   bio TEXT,
+  avatar_url TEXT,
   location TEXT,
   website TEXT,
+  date_of_birth DATE,
+  phone TEXT,
   is_private BOOLEAN DEFAULT false,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  CONSTRAINT display_name_length CHECK (length(display_name) >= 2 AND length(display_name) <= 30),
+  CONSTRAINT display_name_format CHECK (display_name ~ '^[a-zA-ZÀ-ÿ0-9_\\-\\s]+$')
 );
 
 -- Table des amitiés (STRUCTURE CORRIGÉE)
 CREATE TABLE IF NOT EXISTS friendships (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID NOT NULL REFERENCES auth.users(id),
-  friend_id UUID NOT NULL REFERENCES auth.users(id),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  friend_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   status TEXT CHECK (status IN ('pending', 'accepted', 'rejected', 'blocked')) DEFAULT 'pending',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(user_id, friend_id),
+  CONSTRAINT no_self_friendship CHECK (user_id != friend_id)
 );
 
 -- Index pour les performances
 CREATE INDEX IF NOT EXISTS idx_recipes_created_at ON recipes(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_recipes_category ON recipes(category);
 CREATE INDEX IF NOT EXISTS idx_recipes_user_id ON recipes(user_id);
+CREATE INDEX IF NOT EXISTS idx_profiles_user_id ON profiles(user_id);
+CREATE INDEX IF NOT EXISTS idx_profiles_display_name ON profiles(display_name);
 CREATE INDEX IF NOT EXISTS idx_friendships_user_id ON friendships(user_id);
 CREATE INDEX IF NOT EXISTS idx_friendships_friend_id ON friendships(friend_id);
 CREATE INDEX IF NOT EXISTS idx_friendships_status ON friendships(status);
+CREATE INDEX IF NOT EXISTS idx_friendships_user_status ON friendships(user_id, status);
+
+-- Extension pour recherche floue
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE INDEX IF NOT EXISTS idx_profiles_display_name_trgm ON profiles USING gin(display_name gin_trgm_ops);
 
 -- Row Level Security
 ALTER TABLE recipes ENABLE ROW LEVEL SECURITY;
@@ -371,10 +384,11 @@ CREATE POLICY "Enable insert for all users" ON recipes FOR INSERT WITH CHECK (tr
 CREATE POLICY "Enable update for all users" ON recipes FOR UPDATE USING (true);
 CREATE POLICY "Enable delete for all users" ON recipes FOR DELETE USING (true);
 
--- Politiques pour profiles
-CREATE POLICY "Permettre lecture publique profils" ON profiles FOR SELECT USING (true);
-CREATE POLICY "Permettre mise à jour profil utilisateur" ON profiles FOR UPDATE USING (auth.uid() = id);
-CREATE POLICY "Permettre insertion profil utilisateur" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
+-- Politiques pour profiles (améliorées)
+CREATE POLICY "Permettre lecture publique profils" ON profiles FOR SELECT USING (NOT is_private OR auth.uid() = user_id);
+CREATE POLICY "Permettre mise à jour profil utilisateur" ON profiles FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Permettre insertion profil utilisateur" ON profiles FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Permettre suppression profil utilisateur" ON profiles FOR DELETE USING (auth.uid() = user_id);
 
 -- Politiques pour friendships
 CREATE POLICY "Voir ses amitiés" ON friendships FOR SELECT USING (auth.uid() = user_id OR auth.uid() = friend_id);
@@ -387,7 +401,7 @@ CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 BEGIN
   INSERT INTO public.profiles (user_id, display_name)
-  VALUES (NEW.id, COALESCE(NEW.raw_user_meta_data->>'display_name', NEW.email));
+  VALUES (NEW.id, COALESCE(NEW.raw_user_meta_data->>'display_name', split_part(NEW.email, '@', 1)));
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -397,6 +411,81 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
+-- Fonction de recherche de profils avec recherche floue
+CREATE OR REPLACE FUNCTION search_profiles(search_term text, current_user_id uuid DEFAULT NULL)
+RETURNS TABLE (
+  user_id uuid,
+  display_name text,
+  bio text,
+  avatar_url text,
+  similarity_score real
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    p.user_id,
+    p.display_name,
+    p.bio,
+    p.avatar_url,
+    similarity(p.display_name, search_term) as similarity_score
+  FROM profiles p
+  WHERE 
+    p.is_private = false 
+    AND (current_user_id IS NULL OR p.user_id != current_user_id)
+    AND (
+      p.display_name ILIKE '%' || search_term || '%'
+      OR similarity(p.display_name, search_term) > 0.3
+    )
+  ORDER BY similarity_score DESC, p.display_name ASC
+  LIMIT 20;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Fonction pour obtenir des suggestions d'amis
+CREATE OR REPLACE FUNCTION get_friend_suggestions(user_id_param uuid, limit_param integer DEFAULT 10)
+RETURNS TABLE (
+  user_id uuid,
+  display_name text,
+  bio text,
+  avatar_url text,
+  mutual_friends_count integer
+) AS $$
+BEGIN
+  RETURN QUERY
+  WITH user_friends AS (
+    SELECT friend_id 
+    FROM friendships 
+    WHERE user_id = user_id_param AND status = 'accepted'
+  ),
+  potential_friends AS (
+    SELECT 
+      p.user_id,
+      p.display_name,
+      p.bio,
+      p.avatar_url,
+      COUNT(DISTINCT uf.friend_id) as mutual_count
+    FROM profiles p
+    LEFT JOIN friendships f1 ON f1.friend_id = p.user_id AND f1.status = 'accepted'
+    LEFT JOIN user_friends uf ON uf.friend_id = f1.user_id
+    LEFT JOIN friendships existing ON (existing.user_id = user_id_param AND existing.friend_id = p.user_id)
+    WHERE 
+      p.user_id != user_id_param
+      AND p.is_private = false
+      AND existing.user_id IS NULL -- Pas déjà ami ou demande en cours
+    GROUP BY p.user_id, p.display_name, p.bio, p.avatar_url
+  )
+  SELECT 
+    pf.user_id,
+    pf.display_name,
+    pf.bio,
+    pf.avatar_url,
+    pf.mutual_count::integer as mutual_friends_count
+  FROM potential_friends pf
+  ORDER BY pf.mutual_count DESC, pf.display_name ASC
+  LIMIT limit_param;
+END;
+$$ LANGUAGE plpgsql;
 
 === FIN DU SQL ===
     `

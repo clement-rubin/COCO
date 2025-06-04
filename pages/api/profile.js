@@ -15,21 +15,55 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
-      const { user_id } = req.query
+      const { user_id, search } = req.query
 
+      // Si c'est une recherche d'utilisateurs
+      if (search && search.trim().length >= 2) {
+        logInfo('Searching users by display name', { requestId, query: search })
+        
+        const { data: users, error: searchError } = await supabase
+          .rpc('search_profiles', { 
+            search_term: search.trim(),
+            current_user_id: user_id || null
+          })
+
+        if (searchError) {
+          logError('Error searching profiles', searchError, { requestId, search })
+          return res.status(500).json({ 
+            error: 'Erreur lors de la recherche',
+            message: searchError.message
+          })
+        }
+
+        logInfo('Profile search completed', { 
+          requestId, 
+          query: search, 
+          resultsCount: users?.length || 0 
+        })
+
+        return res.status(200).json(users || [])
+      }
+
+      // Recherche d'un profil spécifique
       if (!user_id) {
         return res.status(400).json({ 
-          error: 'user_id est requis',
-          message: 'Veuillez fournir un user_id valide'
+          error: 'user_id ou search est requis',
+          message: 'Veuillez fournir un user_id valide ou un terme de recherche'
         })
       }
 
       logInfo('Getting user profile', { requestId, user_id: user_id.substring(0, 8) + '...' })
 
-      // Récupérer le profil utilisateur
+      // Récupérer le profil utilisateur avec statistiques
       const { data: profile, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select(`
+          *,
+          user_stats:user_id (
+            recipes_count:recipes(count),
+            friends_count:friendships!user_id(count)
+          )
+        `)
         .eq('user_id', user_id)
         .single()
 
@@ -46,11 +80,19 @@ export default async function handler(req, res) {
         logInfo('No profile found, creating default profile', { requestId, user_id })
         
         // Récupérer les infos de base de l'utilisateur depuis auth.users
-        const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(user_id)
+        let defaultDisplayName = 'Utilisateur'
+        try {
+          const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(user_id)
+          if (!authError && authUser?.user?.email) {
+            defaultDisplayName = authUser.user.email.split('@')[0]
+          }
+        } catch (authErr) {
+          logWarning('Could not fetch auth user for default profile', authErr)
+        }
         
         const defaultProfile = {
           user_id,
-          display_name: authUser?.user?.email?.split('@')[0] || 'Utilisateur',
+          display_name: defaultDisplayName,
           bio: null,
           avatar_url: null,
           location: null,
@@ -99,22 +141,55 @@ export default async function handler(req, res) {
         hasBio: !!data.bio
       })
 
+      // Validation du nom d'affichage
+      if (data.display_name) {
+        const displayName = data.display_name.trim()
+        if (displayName.length < 2 || displayName.length > 30) {
+          return res.status(400).json({
+            error: 'Nom d\'utilisateur invalide',
+            message: 'Le nom doit contenir entre 2 et 30 caractères'
+          })
+        }
+        
+        if (!/^[a-zA-ZÀ-ÿ0-9_\-\s]+$/.test(displayName)) {
+          return res.status(400).json({
+            error: 'Nom d\'utilisateur invalide',
+            message: 'Le nom ne peut contenir que des lettres, chiffres, espaces, tirets et underscores'
+          })
+        }
+
+        // Vérifier l'unicité du nom d'affichage
+        const { data: existingProfile, error: checkError } = await supabase
+          .from('profiles')
+          .select('user_id')
+          .eq('display_name', displayName)
+          .neq('user_id', data.user_id)
+          .single()
+
+        if (!checkError && existingProfile) {
+          return res.status(409).json({
+            error: 'Nom d\'utilisateur déjà pris',
+            message: 'Ce nom d\'utilisateur est déjà utilisé par un autre compte'
+          })
+        }
+      }
+
       // Préparer les données de mise à jour (seulement les champs autorisés)
       const updateData = {
-        display_name: data.display_name || null,
-        bio: data.bio || null,
+        display_name: data.display_name?.trim() || null,
+        bio: data.bio?.trim() || null,
         avatar_url: data.avatar_url || null,
-        location: data.location || null,
-        website: data.website || null,
+        location: data.location?.trim() || null,
+        website: data.website?.trim() || null,
         date_of_birth: data.date_of_birth || null,
-        phone: data.phone || null,
+        phone: data.phone?.trim() || null,
         is_private: data.is_private !== undefined ? data.is_private : false,
         updated_at: new Date().toISOString()
       }
 
-      // Supprimer les valeurs undefined/null pour éviter d'écraser les données existantes
+      // Supprimer les valeurs null pour éviter d'écraser les données existantes
       Object.keys(updateData).forEach(key => {
-        if (updateData[key] === null || updateData[key] === undefined) {
+        if (updateData[key] === null && key !== 'bio' && key !== 'avatar_url' && key !== 'location' && key !== 'website' && key !== 'date_of_birth' && key !== 'phone') {
           delete updateData[key]
         }
       })

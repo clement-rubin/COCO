@@ -90,7 +90,16 @@ const USER_FRIENDLY_MESSAGES = {
   'Search query too short': 'La recherche doit contenir au moins 2 caractères.',
   'No users found': 'Aucun utilisateur trouvé.',
   'Profile creation failed': 'Impossible de créer le profil utilisateur.',
-  'Invalid user data': 'Données utilisateur invalides.'
+  'Invalid user data': 'Données utilisateur invalides.',
+  'Display name already taken': 'Ce nom d\'utilisateur est déjà pris.',
+  'Display name too short': 'Le nom d\'utilisateur doit contenir au moins 2 caractères.',
+  'Display name too long': 'Le nom d\'utilisateur ne peut pas dépasser 30 caractères.',
+  'Invalid characters in display name': 'Le nom d\'utilisateur contient des caractères non autorisés.',
+  'Friends limit reached': 'Vous avez atteint la limite d\'amis (500).',
+  'Cannot remove friendship': 'Impossible de supprimer cette amitié.',
+  'Blocked user': 'Cet utilisateur vous a bloqué.',
+  'User blocked': 'Vous avez bloqué cet utilisateur.',
+  'Profile privacy settings': 'Les paramètres de confidentialité de ce profil empêchent cette action.'
 }
 
 /**
@@ -147,6 +156,13 @@ function getRecoveryStrategy(error, context = {}) {
   if (error.message?.includes('JWT') || error.code?.includes('JW')) {
     return RECOVERY_STRATEGIES.LOGIN
   }
+
+  // Erreurs spécifiques aux amis
+  if (error.message?.includes('friendship') || 
+      error.message?.includes('friend request') ||
+      error.message?.includes('Profile not found')) {
+    return RECOVERY_STRATEGIES.RELOAD
+  }
   
   return RECOVERY_STRATEGIES.CONTACT_SUPPORT
 }
@@ -168,25 +184,24 @@ function getActionSuggestions(error, recoveryStrategy) {
       suggestions.push('Vérifiez vos identifiants')
       break
       
-    case RECOVERY_STRATEGIES.RESEND_EMAIL:
-      suggestions.push('Vérifiez votre boîte mail (et les spams)')
-      suggestions.push('Demandez un nouvel email de confirmation')
-      break
-      
-    case RECOVERY_STRATEGIES.CHECK_CONNECTION:
-      suggestions.push('Vérifiez votre connexion internet')
-      suggestions.push('Essayez de recharger la page')
+    case RECOVERY_STRATEGIES.RELOAD:
+      suggestions.push('Rafraîchissez la page')
+      suggestions.push('Videz le cache de votre navigateur')
       break
       
     case RECOVERY_STRATEGIES.WAIT:
       suggestions.push('Attendez quelques minutes avant de réessayer')
-      suggestions.push('Vous avez effectué trop d\'actions récemment')
+      suggestions.push('Réduisez votre fréquence d\'utilisation')
       break
       
-    case RECOVERY_STRATEGIES.CONTACT_SUPPORT:
-      suggestions.push('Contactez notre équipe si le problème persiste')
-      suggestions.push('Notez le code d\'erreur ci-dessous')
+    case RECOVERY_STRATEGIES.RESEND_EMAIL:
+      suggestions.push('Vérifiez votre boîte email')
+      suggestions.push('Demandez un nouvel email de confirmation')
       break
+      
+    default:
+      suggestions.push('Contactez le support technique')
+      suggestions.push('Décrivez ce que vous faisiez quand l\'erreur s\'est produite')
   }
   
   // Additional suggestions for database/API errors
