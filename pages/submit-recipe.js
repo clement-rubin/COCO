@@ -156,52 +156,48 @@ export default function SubmitRecipe() {
       )
       
       if (validPhotos.length === 0) {
-        logError('Aucune photo valide trouvée pour partage', null, {
-          totalPhotos: photos.length,
-          photosState: photos.map(p => ({
-            processed: p.processed,
-            hasImageUrl: !!p.imageUrl,
-            imageUrlType: typeof p.imageUrl,
-            imageUrlLength: p.imageUrl?.length,
-            error: p.error,
-            errorMessage: p.errorMessage
-          }))
-        })
-        throw new Error('Aucune photo valide trouvée. Veuillez réessayer le traitement.')
+        setErrors(prev => ({
+          ...prev,
+          photos: 'Au moins une photo traitée est requise'
+        }))
+        return
+      }
+      
+      // Get user's display name from profile or email
+      let authorName = user?.email || 'Utilisateur anonyme'
+      try {
+        const profileResponse = await fetch(`/api/profile?user_id=${user.id}`)
+        if (profileResponse.ok) {
+          const profileData = await profileResponse.json()
+          authorName = profileData.display_name || user?.email || 'Utilisateur anonyme'
+        }
+      } catch (profileError) {
+        addLog('warning', 'Impossible de récupérer le nom d\'utilisateur, utilisation de l\'email', { error: profileError.message })
       }
       
       // Préparer les données selon le schéma Data URL
       const recipeData = {
         title: formData.title.trim(),
         description: formData.description.trim(),
-        ingredients: ['Photo partagée sans liste d\'ingrédients'],
-        instructions: [{ step: 1, instruction: 'Voir la photo pour inspiration' }],
-        author: user?.user_metadata?.display_name || user?.email || 'Anonyme',
-        image: validPhotos[0].imageUrl, // Image en Data URL
         category: 'Photo partagée',
+        difficulty: 'Facile',
+        author: authorName,
+        user_id: user.id,
+        image: validPhotos[0].imageUrl, // Utiliser la première photo comme image principale
+        ingredients: [],
+        instructions: [],
         prepTime: null,
-        cookTime: null,
-        difficulty: 'Facile'
-        // Note: servings omitted to handle tables without this column
+        cookTime: null
       }
       
-      logDebug('Données de photo préparées pour API', {
-        hasTitle: !!recipeData.title,
-        hasDescription: !!recipeData.description,
-        photosCount: photos.length,
-        validPhotosCount: validPhotos.length,
-        mainImageUrlLength: recipeData.image.length,
-        category: recipeData.category,
-        author: recipeData.author
+      addLog('info', 'Données de recette préparées', {
+        title: recipeData.title,
+        author: recipeData.author,
+        user_id: recipeData.user_id,
+        hasImage: !!recipeData.image,
+        category: recipeData.category
       })
       
-      // Valider que les données sont complètes avant l'envoi
-      if (!recipeData.image || typeof recipeData.image !== 'string' || recipeData.image.length === 0) {
-        throw new Error('Image principale manquante ou invalide')
-      }
-      
-      // Call API to submit photo as recipe
-      logInfo('Envoi des données vers l\'API /api/recipes')
       const response = await fetch('/api/recipes', {
         method: 'POST',
         headers: {
@@ -210,62 +206,17 @@ export default function SubmitRecipe() {
         body: JSON.stringify(recipeData)
       })
       
-      logDebug('Réponse de l\'API reçue', {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok,
-        contentType: response.headers.get('content-type')
-      })
-      
-      // Check if response is JSON before parsing
-      const contentType = response.headers.get('content-type')
-      let result
-      
-      if (contentType && contentType.includes('application/json')) {
-        result = await response.json()
-      } else {
-        // Server returned HTML or other content - likely an error page
-        const textContent = await response.text()
-        addLog('error', 'API a retourné du contenu non-JSON', {
-          status: response.status,
-          statusText: response.statusText,
-          contentType,
-          contentPreview: textContent.substring(0, 500)
-        })
-        
-        if (response.status === 500) {
-          throw new Error('Erreur serveur interne. Vérifiez la configuration de la base de données et les variables d\'environnement.')
-        } else if (response.status === 404) {
-          throw new Error('API non trouvée. Vérifiez que le fichier /api/recipes.js existe.')
-        } else {
-          throw new Error(`Erreur serveur (${response.status}): Le serveur a retourné une page d'erreur au lieu d'une réponse JSON.`)
-        }
-      }
-      
-      logDebug('Contenu de la réponse API', {
-        hasResult: !!result,
-        resultKeys: Object.keys(result || {}),
-        message: result?.message,
-        id: result?.id,
-        error: result?.error
-      })
-      
       if (!response.ok) {
-        const errorMessage = result?.message || result?.error || `Erreur HTTP ${response.status}: ${response.statusText}`
-        logError('Erreur de l\'API lors du partage de photo', null, {
-          status: response.status,
-          statusText: response.statusText,
-          responseBody: result,
-          errorMessage
-        })
-        throw new Error(errorMessage)
+        const errorData = await response.json()
+        throw new Error(errorData.message || `Erreur ${response.status}`)
       }
       
-      addLog('interaction', 'PHOTO_SOUMISE', {
-        title: recipeData.title,
-        photosCount: validPhotos.length,
+      const result = await response.json()
+      
+      addLog('info', 'Photo partagée avec succès', {
         recipeId: result.id,
-        imageBytesLength: recipeData.image.length
+        title: result.title,
+        author: result.author
       })
       
       // Afficher le message de succès
@@ -273,72 +224,19 @@ export default function SubmitRecipe() {
       
       // Redirection après 3 secondes
       setTimeout(() => {
-        router.push('/?success=photo-shared')
+        router.push('/')
       }, 3000)
       
     } catch (error) {
-      addLog('error', 'Erreur lors de la soumission de photo', {
-        errorName: error.constructor.name,
-        errorMessage: error.message,
-        errorStack: error.stack,
-        formData: {
-          title: formData.title,
-          hasDescription: !!formData.description
-        },
-        photosState: {
-          total: photos.length,
-          processed: photos.filter(p => p.processed).length,
-          withBytes: photos.filter(p => p.imageBytes?.length > 0).length,
-          withErrors: photos.filter(p => p.error).length
-        }
+      addLog('error', 'Erreur lors du partage de photo', {
+        error: error.message,
+        stack: error.stack
       })
       
-      // Amélioration du diagnostic et des messages d'erreur
-      let errorMessage = 'Une erreur est survenue lors de l\'envoi. Veuillez réessayer.'
-      
-      // Analyse plus précise des erreurs API
-      if (error.message.includes('structure de base de données')) {
-        errorMessage = 'Problème de configuration de la base de données. La table recipes n\'a pas toutes les colonnes requises. Contactez l\'administrateur.'
-      } else if (error.message.includes('JSON')) {
-        errorMessage = 'Erreur serveur: Le serveur a retourné une réponse invalide. Vérifiez la configuration du serveur et de la base de données.'
-      } else if (error.message.includes('serveur interne')) {
-        errorMessage = 'Erreur de base de données. Vérifiez la configuration Supabase dans les variables d\'environnement.'
-      } else if (error.message.includes('API non trouvée')) {
-        errorMessage = 'Configuration manquante: L\'API de recettes n\'est pas configurée correctement.'
-      } else if (error.message.includes('photo')) {
-        errorMessage = 'Problème avec la photo. Veuillez la recharger et réessayer.'
-      } else if (error.message.includes('fetch')) {
-        errorMessage = 'Problème de connexion. Vérifiez votre connexion internet et réessayez.'
-      } else if (error.message.includes('Données manquantes')) {
-        errorMessage = 'Erreur de validation: Certaines données requises sont manquantes.'
-      } else if (error.message.includes('Données trop longues')) {
-        errorMessage = 'Le titre ou la description est trop long. Veuillez raccourcir votre texte.'
-      } else if (error.message.includes('bytes')) {
-        errorMessage = 'Problème avec le format de l\'image. L\'image est peut-être trop volumineuse ou dans un format non supporté.'
-      } else if (error.message.includes('RangeError') || error.message.includes('JSON.stringify')) {
-        errorMessage = 'L\'image est trop volumineuse pour être envoyée. Essayez une image plus petite ou compressée.'
-      } else if (error.message.includes('403')) {
-        errorMessage = 'Vous n\'avez pas l\'autorisation d\'effectuer cette action. Veuillez vous reconnecter.'
-      } else if (error.message.includes('429')) {
-        errorMessage = 'Trop de requêtes. Veuillez attendre quelques instants avant de réessayer.'
-      } else if (error.message.includes('creation')) {
-        errorMessage = 'Erreur lors de la sauvegarde de la recette. Vérifiez que tous les champs sont correctement remplis.'
-      } else if (error.message) {
-        // Si on a un message d'erreur précis, on l'affiche directement
-        errorMessage = `Erreur: ${error.message}`
-      }
-      
-      // Tentative de reconnexion à la base de données en cas d'erreur
-      if (
-        error.message.includes('serveur interne') ||
-        error.message.includes('base de données') ||
-        error.message.includes('500')
-      ) {
-        // Log supplémentaire pour diagnostic
-        addLog('warning', 'Tentative de reconnexion à la base de données')
-      }
-      
-      setErrors({ submit: errorMessage })
+      setErrors(prev => ({
+        ...prev,
+        submit: error.message || 'Erreur lors du partage de la photo'
+      }))
     } finally {
       setIsSubmitting(false)
     }

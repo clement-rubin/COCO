@@ -62,6 +62,7 @@ export default function RecipeCard({ recipe, isUserRecipe = true, isPhotoOnly = 
   }
 
   const navigateToRecipe = () => {
+    // Always use the standard recipe route
     router.push(`/recipe/${recipe.id}`)
   }
 

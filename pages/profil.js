@@ -55,7 +55,7 @@ export default function Profil() {
         })
       }
 
-      // Load user recipes with proper error handling
+      // Load user recipes using user_id instead of author
       let recipesData = []
       try {
         const recipesResponse = await fetch(`/api/recipes?user_id=${user.id}&limit=6`)
@@ -63,11 +63,30 @@ export default function Profil() {
           recipesData = await recipesResponse.json()
           // Ensure recipesData is an array
           setUserRecipes(Array.isArray(recipesData) ? recipesData : [])
+          
+          logInfo('User recipes loaded', {
+            userId: user.id,
+            recipesCount: Array.isArray(recipesData) ? recipesData.length : 0,
+            recipesData: recipesData?.slice(0, 2)?.map(r => ({
+              id: r.id,
+              title: r.title,
+              author: r.author,
+              user_id: r.user_id,
+              category: r.category
+            }))
+          })
         } else {
+          logError('Failed to load user recipes', new Error(`HTTP ${recipesResponse.status}`), {
+            userId: user.id,
+            status: recipesResponse.status
+          })
           setUserRecipes([])
         }
       } catch (recipesError) {
-        logError('Failed to load user recipes', recipesError)
+        logError('Failed to load user recipes', recipesError, {
+          userId: user.id,
+          error: recipesError.message
+        })
         setUserRecipes([])
       }
 
@@ -77,13 +96,25 @@ export default function Profil() {
         if (statsResponse.ok) {
           const statsData = await statsResponse.json()
           setUserStats({
-            recipesCount: statsData.recipesCount || 0,
+            recipesCount: Array.isArray(recipesData) ? recipesData.length : 0,
             likesReceived: statsData.likesReceived || 0,
             friendsCount: statsData.friendsCount || 0
+          })
+        } else {
+          // Use actual recipes count if stats API fails
+          setUserStats({
+            recipesCount: Array.isArray(recipesData) ? recipesData.length : 0,
+            likesReceived: 0,
+            friendsCount: 0
           })
         }
       } catch (statsError) {
         logError('Failed to load user stats', statsError)
+        setUserStats({
+          recipesCount: Array.isArray(recipesData) ? recipesData.length : 0,
+          likesReceived: 0,
+          friendsCount: 0
+        })
       }
 
       logInfo('User profile loaded successfully', {
