@@ -20,7 +20,9 @@ export default function SubmitRecipe() {
   
   const [formData, setFormData] = useState({
     title: '',
-    description: ''
+    description: '',
+    ingredients: '',
+    instructions: ''
   })
   const [photos, setPhotos] = useState([])
 
@@ -379,6 +381,34 @@ export default function SubmitRecipe() {
                   className={errors.description ? styles.inputError : ''}
                 />
                 {errors.description && <span className={styles.error}>{errors.description}</span>}
+              </div>
+
+              <div className={styles.formGroup}>
+                <label htmlFor="ingredients">Ingrédients *</label>
+                <textarea
+                  id="ingredients"
+                  name="ingredients"
+                  value={formData.ingredients}
+                  onChange={handleInputChange}
+                  placeholder="Listez les ingrédients (un par ligne)&#10;Ex:&#10;- 3 pommes&#10;- 200g de farine&#10;- 100g de beurre"
+                  rows={6}
+                  className={errors.ingredients ? styles.inputError : ''}
+                />
+                {errors.ingredients && <span className={styles.error}>{errors.ingredients}</span>}
+              </div>
+
+              <div className={styles.formGroup}>
+                <label htmlFor="instructions">Instructions *</label>
+                <textarea
+                  id="instructions"
+                  name="instructions"
+                  value={formData.instructions}
+                  onChange={handleInputChange}
+                  placeholder="Décrivez les étapes de préparation (une par ligne)&#10;Ex:&#10;1. Préchauffer le four à 180°C&#10;2. Éplucher et couper les pommes&#10;3. Mélanger la farine et le beurre"
+                  rows={8}
+                  className={errors.instructions ? styles.inputError : ''}
+                />
+                {errors.instructions && <span className={styles.error}>{errors.instructions}</span>}
               </div>
             </div>
 

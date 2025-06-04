@@ -486,3 +486,60 @@ export default async function handler(req, res) {
           reference: requestReference,
           hasBody: !!req.body,
           bodyKeys: req.body ? Object.keys(req.body) : [],
+          queryStep: 'insert_operation'
+        })
+        
+        return safeResponse(res, 500, {
+          error: 'Erreur lors de la création de la recette',
+          message: error.message || 'Erreur inconnue',
+          reference: requestReference,
+          details: process.env.NODE_ENV === 'development' ? errorDetails : undefined,
+          timestamp: new Date().toISOString()
+        })
+      }
+    }
+    
+    // Méthode non supportée
+    logWarning('Unsupported method', {
+      reference: requestReference,
+      method: req.method,
+      supportedMethods: ['GET', 'POST']
+    })
+    
+    return safeResponse(res, 405, {
+      error: 'Méthode non autorisée',
+      message: `La méthode ${req.method} n'est pas supportée`,
+      allowedMethods: ['GET', 'POST'],
+      reference: requestReference
+    })
+    
+  } catch (globalError) {
+    const errorDetails = logApiError('GLOBAL_API_ERROR', globalError, {
+      reference: requestReference,
+      method: req.method,
+      hasQuery: !!req.query,
+      hasBody: !!req.body,
+      queryKeys: req.query ? Object.keys(req.query) : [],
+      bodyKeys: req.body ? Object.keys(req.body) : []
+    })
+    
+    return safeResponse(res, 500, {
+      error: 'Erreur serveur interne',
+      message: 'Une erreur inattendue s\'est produite',
+      reference: requestReference,
+      details: process.env.NODE_ENV === 'development' ? errorDetails : undefined,
+      timestamp: new Date().toISOString()
+    })
+  } finally {
+    // Log API request completion
+    const endTime = Date.now()
+    const duration = endTime - startTime
+    
+    logApiCall(`API recipes - ${req.method} completed`, 'recipes', {
+      reference: requestReference,
+      method: req.method,
+      duration: `${duration}ms`,
+      timestamp: new Date().toISOString()
+    })
+  }
+}
