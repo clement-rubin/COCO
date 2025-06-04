@@ -6,31 +6,47 @@ import { logDebug, logInfo, logError } from './logger'
 export async function processImageToUrl(file) {
   return new Promise((resolve, reject) => {
     if (!file) {
+      logError('processImageToUrl: Aucun fichier fourni')
       reject(new Error('Aucun fichier fourni'))
       return
     }
 
     // Validation du fichier
     if (!file.type.startsWith('image/')) {
+      logError('processImageToUrl: Type de fichier invalide', null, { fileType: file.type })
       reject(new Error('Le fichier doit être une image'))
       return
     }
 
     if (file.size > 10 * 1024 * 1024) { // 10MB max pour Data URLs
+      logError('processImageToUrl: Fichier trop volumineux', null, { fileSize: file.size })
       reject(new Error('Fichier trop volumineux (max 10MB)'))
       return
     }
+
+    logDebug('processImageToUrl: Début de conversion', {
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type
+    })
 
     const reader = new FileReader()
     
     reader.onload = () => {
       try {
         const dataUrl = reader.result
-        logInfo('Image convertie en Data URL', {
+        
+        // Validation de la Data URL
+        if (!dataUrl || typeof dataUrl !== 'string' || !dataUrl.startsWith('data:')) {
+          throw new Error('Data URL invalide générée')
+        }
+        
+        logInfo('Image convertie en Data URL avec succès', {
           fileName: file.name,
           originalSize: file.size,
           dataUrlLength: dataUrl.length,
-          mimeType: file.type
+          mimeType: file.type,
+          dataUrlPrefix: dataUrl.substring(0, 50) + '...'
         })
         
         resolve({
@@ -45,13 +61,25 @@ export async function processImageToUrl(file) {
       }
     }
     
-    reader.onerror = () => {
-      const error = new Error('Erreur lors de la lecture du fichier')
-      logError('Erreur FileReader', error)
+    reader.onerror = (event) => {
+      const error = new Error(`Erreur lors de la lecture du fichier: ${reader.error?.message || 'Erreur inconnue'}`)
+      logError('Erreur FileReader', error, { event })
       reject(error)
     }
     
-    reader.readAsDataURL(file)
+    reader.onabort = () => {
+      const error = new Error('Lecture du fichier interrompue')
+      logError('FileReader interrompu', error)
+      reject(error)
+    }
+    
+    // Démarrer la lecture
+    try {
+      reader.readAsDataURL(file)
+    } catch (error) {
+      logError('Erreur lors du démarrage de la lecture', error)
+      reject(error)
+    }
   })
 }
 

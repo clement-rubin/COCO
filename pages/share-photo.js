@@ -134,6 +134,8 @@ export default function SharePhoto() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     
+    addLog('INFO', 'Début de handleSubmit')
+    
     if (!validateForm()) {
       addLog('ERROR', 'Validation du formulaire échouée', errors)
       return
@@ -142,17 +144,52 @@ export default function SharePhoto() {
     setIsSubmitting(true)
     addLog('INFO', 'Début de la soumission', { 
       title: formData.title, 
-      photosCount: photos.length 
+      photosCount: photos.length,
+      photosDetails: photos.map(p => ({
+        id: p.id,
+        name: p.name,
+        hasImageUrl: !!p.imageUrl,
+        hasPreview: !!p.preview,
+        processed: p.processed,
+        error: p.error
+      }))
     })
     
     try {
+      // Vérifier que nous avons au moins une photo valide
+      const validPhoto = photos.find(photo => 
+        photo.processed && 
+        !photo.error && 
+        (photo.imageUrl || photo.preview)
+      )
+      
+      if (!validPhoto) {
+        throw new Error('Aucune photo valide trouvée')
+      }
+      
+      // Utiliser imageUrl en priorité, puis preview
+      const imageToSubmit = validPhoto.imageUrl || validPhoto.preview
+      
+      if (!imageToSubmit) {
+        throw new Error('Impossible de récupérer l\'image à soumettre')
+      }
+      
+      // Validation de l'image
+      if (typeof imageToSubmit !== 'string') {
+        throw new Error('Format d\'image invalide (doit être une chaîne)')
+      }
+      
+      if (!imageToSubmit.startsWith('data:image/')) {
+        throw new Error('Format d\'image invalide (doit être une Data URL)')
+      }
+      
       // Préparer les données pour la soumission
       const submitData = {
-        title: formData.title,
-        description: formData.description || `Photo partagée: ${formData.title}`,
+        title: formData.title.trim(),
+        description: formData.description?.trim() || `Photo partagée: ${formData.title}`,
         category: 'Photo partagée',
         author: 'Utilisateur anonyme',
-        image: photos[0]?.imageUrl || photos[0]?.preview, // Utiliser imageUrl en priorité
+        image: imageToSubmit,
         ingredients: ['Photo partagée sans recette détaillée'],
         instructions: [{ step: 1, instruction: 'Voir la photo pour inspiration' }],
         prepTime: null,
@@ -160,11 +197,14 @@ export default function SharePhoto() {
         difficulty: 'Facile'
       }
       
-      addLog('INFO', 'Envoi des données', {
+      addLog('INFO', 'Données prêtes pour envoi', {
         hasTitle: !!submitData.title,
+        titleLength: submitData.title.length,
         hasImage: !!submitData.image,
         imageType: typeof submitData.image,
-        imageLength: submitData.image?.length
+        imageLength: submitData.image.length,
+        imagePrefix: submitData.image.substring(0, 50) + '...',
+        hasDescription: !!submitData.description
       })
       
       const response = await fetch('/api/recipes', {
@@ -177,7 +217,8 @@ export default function SharePhoto() {
       
       addLog('INFO', 'Réponse reçue', { 
         status: response.status, 
-        statusText: response.statusText 
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries())
       })
       
       if (!response.ok) {
@@ -191,9 +232,11 @@ export default function SharePhoto() {
         
         addLog('ERROR', 'Erreur de soumission', { 
           status: response.status, 
-          error: errorData 
+          statusText: response.statusText,
+          errorText: errorText.substring(0, 500),
+          errorData 
         })
-        throw new Error(errorData.error || `Erreur ${response.status}`)
+        throw new Error(errorData.error || errorText || `Erreur HTTP ${response.status}`)
       }
       
       const result = await response.json()
@@ -204,9 +247,10 @@ export default function SharePhoto() {
     } catch (error) {
       addLog('ERROR', 'Erreur lors de la soumission', { 
         message: error.message, 
-        stack: error.stack 
+        stack: error.stack,
+        name: error.name
       })
-      setErrors({ submit: error.message })
+      setErrors({ submit: `Erreur: ${error.message}` })
     } finally {
       setIsSubmitting(false)
     }
