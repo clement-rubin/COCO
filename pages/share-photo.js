@@ -527,63 +527,91 @@ export default function SharePhoto() {
   // Message de confirmation de soumission
   if (showSuccessMessage) {
     return (
-      <div style={{
-        minHeight: '100vh',
-        background: 'linear-gradient(135deg, #4CAF50 0%, #45a049 100%)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '20px',
-        position: 'relative'
-      }}>
-        <div style={{
-          background: 'rgba(255, 255, 255, 0.95)',
-          backdropFilter: 'blur(10px)',
-          borderRadius: '24px',
-          padding: '48px',
-          width: '100%',
-          maxWidth: '420px',
-          textAlign: 'center',
-          position: 'relative',
-          zIndex: 1
-        }}>
+      <div className={styles.successMessage}>
+        <div className={styles.successCard}>
           <div style={{ 
-            fontSize: '4rem', 
-            marginBottom: '24px'
+            fontSize: '5rem', 
+            marginBottom: '1.5rem',
+            animation: 'bounce 1s ease-in-out infinite alternate'
           }}>
-            ✅
+            🎉
           </div>
           <h1 style={{ 
-            fontSize: '1.8rem',
-            fontWeight: '700',
-            background: 'linear-gradient(135deg, #4CAF50, #45a049)',
+            fontSize: '2.2rem',
+            fontWeight: '800',
+            background: 'linear-gradient(135deg, #10b981, #059669)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
-            marginBottom: '16px'
+            marginBottom: '1rem',
+            letterSpacing: '-0.02em'
           }}>
-            Photo partagée !
+            Photo partagée avec succès !
           </h1>
           <p style={{ 
-            color: '#6b7280',
+            color: '#64748b',
             lineHeight: '1.6',
-            marginBottom: '32px'
+            marginBottom: '2rem',
+            fontSize: '1.1rem',
+            fontWeight: '500'
           }}>
-            Votre photo "{formData.title}" a été partagée avec succès !
+            Votre délicieux plat <strong>"{formData.title}"</strong> est maintenant visible par toute la communauté COCO !
           </p>
-          <button
-            onClick={() => router.push('/')}
-            style={{
-              padding: '16px 32px',
-              background: 'linear-gradient(135deg, #4CAF50 0%, #45a049 100%)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '16px',
-              fontWeight: '700',
-              cursor: 'pointer'
-            }}
-          >
-            Retour à l'accueil
-          </button>
+          <div style={{
+            display: 'flex',
+            gap: '1rem',
+            flexDirection: 'column'
+          }}>
+            <button
+              onClick={() => router.push('/')}
+              style={{
+                padding: '1rem 2rem',
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '1rem',
+                fontWeight: '700',
+                cursor: 'pointer',
+                fontSize: '1rem',
+                transition: 'all 0.3s ease',
+                boxShadow: '0 4px 15px rgba(16, 185, 129, 0.3)'
+              }}
+              onMouseOver={(e) => {
+                e.target.style.transform = 'translateY(-2px) scale(1.02)'
+                e.target.style.boxShadow = '0 8px 25px rgba(16, 185, 129, 0.4)'
+              }}
+              onMouseOut={(e) => {
+                e.target.style.transform = 'none'
+                e.target.style.boxShadow = '0 4px 15px rgba(16, 185, 129, 0.3)'
+              }}
+            >
+              🏠 Retour à l'accueil
+            </button>
+            <button
+              onClick={() => router.push('/share-photo')}
+              style={{
+                padding: '0.75rem 2rem',
+                background: 'rgba(255, 255, 255, 0.1)',
+                color: '#059669',
+                border: '2px solid rgba(16, 185, 129, 0.3)',
+                borderRadius: '1rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                fontSize: '0.95rem',
+                transition: 'all 0.3s ease',
+                backdropFilter: 'blur(10px)'
+              }}
+              onMouseOver={(e) => {
+                e.target.style.background = 'rgba(16, 185, 129, 0.1)'
+                e.target.style.borderColor = 'rgba(16, 185, 129, 0.5)'
+              }}
+              onMouseOut={(e) => {
+                e.target.style.background = 'rgba(255, 255, 255, 0.1)'
+                e.target.style.borderColor = 'rgba(16, 185, 129, 0.3)'
+              }}
+            >
+              📸 Partager une autre photo
+            </button>
+          </div>
         </div>
       </div>
     )
