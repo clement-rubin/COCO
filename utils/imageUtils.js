@@ -637,3 +637,59 @@ function convertFileToBase64(file) {
     reader.readAsDataURL(file)
   })
 }
+
+/**
+ * Upload une image (File ou dataURL) vers Supabase Storage et retourne l'URL publique
+ * @param {File|string} fileOrDataUrl - Fichier image ou dataURL
+ * @param {string} [filename] - Nom du fichier (optionnel)
+ * @returns {Promise<string>} URL publique de l'image
+ */
+export async function uploadImageToSupabaseAndGetUrl(fileOrDataUrl, filename = null) {
+  // Import dynamique pour éviter les problèmes SSR
+  const { supabase } = require('../lib/supabase');
+  const { logInfo, logError } = require('./logger');
+  try {
+    logInfo('uploadImageToSupabaseAndGetUrl: start', {
+      typeofInput: typeof fileOrDataUrl,
+      isFile: typeof File !== 'undefined' && fileOrDataUrl instanceof File,
+      filename,
+    });
+
+    let file, ext = 'jpg';
+    if (typeof File !== 'undefined' && fileOrDataUrl instanceof File) {
+      file = fileOrDataUrl;
+      ext = file.name.split('.').pop() || 'jpg';
+    } else if (typeof fileOrDataUrl === 'string' && fileOrDataUrl.startsWith('data:image/')) {
+      // Convertir dataURL en Blob
+      const matches = fileOrDataUrl.match(/^data:image\/(\w+);base64,/);
+      ext = matches ? matches[1] : 'jpg';
+      const b64 = fileOrDataUrl.split(',')[1];
+      const bin = atob(b64);
+      const arr = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+      file = new Blob([arr], { type: `image/${ext}` });
+    } else {
+      throw new Error('Format d\'image non supporté');
+    }
+
+    const uniqueName = filename || `photo_${Date.now()}.${ext}`;
+    logInfo('uploadImageToSupabaseAndGetUrl: uploading', { uniqueName, ext });
+
+    const { data, error } = await supabase.storage
+      .from('images')
+      .upload(uniqueName, file, { upsert: true, contentType: file.type || `image/${ext}` });
+
+    if (error) {
+      logError('uploadImageToSupabaseAndGetUrl: upload error', error);
+      throw error;
+    }
+
+    // Récupérer l'URL publique
+    const { data: publicUrlData } = supabase.storage.from('images').getPublicUrl(uniqueName);
+    logInfo('uploadImageToSupabaseAndGetUrl: success', { publicUrl: publicUrlData?.publicUrl });
+    return publicUrlData?.publicUrl;
+  } catch (err) {
+    logError('uploadImageToSupabaseAndGetUrl: global error', err);
+    throw err;
+  }
+}
