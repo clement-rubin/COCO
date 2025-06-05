@@ -30,7 +30,14 @@ export default function AddictiveFeed() {
     setLoading(true)
     try {
       const timestamp = Date.now()
-      const response = await fetch(`/api/recipes?_t=${timestamp}&limit=10`)
+      let apiUrl = `/api/recipes?_t=${timestamp}&limit=10`
+      
+      // Si l'utilisateur est connecté, charger uniquement les recettes de ses amis
+      if (user?.id) {
+        apiUrl += `&friends_only=true&current_user_id=${user.id}`
+      }
+      
+      const response = await fetch(apiUrl)
       
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`)
@@ -40,7 +47,8 @@ export default function AddictiveFeed() {
       
       logInfo('Recipes loaded successfully', {
         count: recipesData.length,
-        source: 'AddictiveFeed'
+        source: 'AddictiveFeed',
+        friendsOnly: !!user?.id
       })
       
       const formattedRecipes = recipesData.map(recipe => formatRecipeData(recipe))
@@ -64,7 +72,14 @@ export default function AddictiveFeed() {
     try {
       const offset = page * 10
       const timestamp = Date.now()
-      const response = await fetch(`/api/recipes?_t=${timestamp}&limit=10&offset=${offset}`)
+      let apiUrl = `/api/recipes?_t=${timestamp}&limit=10&offset=${offset}`
+      
+      // Si l'utilisateur est connecté, charger uniquement les recettes de ses amis
+      if (user?.id) {
+        apiUrl += `&friends_only=true&current_user_id=${user.id}`
+      }
+      
+      const response = await fetch(apiUrl)
       
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`)
@@ -334,12 +349,29 @@ export default function AddictiveFeed() {
   if (recipes.length === 0) {
     return (
       <div className={styles.emptyContainer}>
-        <div className={styles.emptyIcon}>🍽️</div>
-        <h3>Aucune recette disponible</h3>
-        <p>Nous n'avons pas trouvé de recettes pour le moment.</p>
-        <button onClick={() => loadInitialRecipes()} className={styles.retryButton}>
-          Rafraîchir
-        </button>
+        <div className={styles.emptyIcon}>👥</div>
+        <h3>Aucune recette d'amis</h3>
+        <p>
+          {user 
+            ? "Vos amis n'ont pas encore partagé de recettes. Invitez-les à rejoindre COCO !"
+            : "Connectez-vous pour voir les recettes de vos amis."
+          }
+        </p>
+        {user ? (
+          <button 
+            onClick={() => router.push('/amis')} 
+            className={styles.retryButton}
+          >
+            Gérer mes amis
+          </button>
+        ) : (
+          <button 
+            onClick={() => router.push('/login')} 
+            className={styles.retryButton}
+          >
+            Se connecter
+          </button>
+        )}
       </div>
     )
   }

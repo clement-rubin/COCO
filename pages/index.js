@@ -459,7 +459,7 @@ export default function Home() {
             fontWeight: '600',
             color: '#6b7280'
           }}>
-            📋 Feed des recettes
+            👥 Feed de mes amis
             <span style={{
               width: '4px',
               height: '4px',
