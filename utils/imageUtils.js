@@ -568,9 +568,6 @@ function determineMimeType(bytes) {
  * @returns {Promise<string>} URL publique de l'image
  */
 export async function uploadImageToSupabaseAndGetUrl(fileOrDataUrl, filename = null) {
-  // Import dynamique pour éviter les problèmes SSR
-  const { supabase } = require('../lib/supabase');
-  const { logInfo, logError } = require('./logger');
   try {
     logInfo('uploadImageToSupabaseAndGetUrl: start', {
       typeofInput: typeof fileOrDataUrl,
@@ -611,14 +608,13 @@ export async function uploadImageToSupabaseAndGetUrl(fileOrDataUrl, filename = n
     const { data: publicUrlData } = supabase.storage.from('images').getPublicUrl(uniqueName);
     logInfo('uploadImageToSupabaseAndGetUrl: success', { publicUrl: publicUrlData?.publicUrl });
 
-    // Ajout d'un log explicite pour la page de test
     if (!publicUrlData?.publicUrl) {
       logError('Aucune URL publique retournée après upload', { uniqueName, data });
-    } else {
-      logInfo('URL publique obtenue', { url: publicUrlData.publicUrl });
+      throw new Error('Impossible de récupérer l\'URL publique de l\'image');
     }
 
-    return publicUrlData?.publicUrl;
+    logInfo('URL publique obtenue', { url: publicUrlData.publicUrl });
+    return publicUrlData.publicUrl;
   } catch (err) {
     logError('uploadImageToSupabaseAndGetUrl: global error', err);
     throw err;
