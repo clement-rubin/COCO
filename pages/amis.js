@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { logError, logInfo } from '../utils/logger';
 import styles from '../styles/Amis.module.css';
 import { useRouter } from 'next/router';
+import { blockUser, unblockUser, getFriendshipStatus } from '../utils/profileUtils';
 
 export default function Amis() {
   const [user, setUser] = useState(null);
@@ -16,6 +17,7 @@ export default function Amis() {
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
   const [buttonStates, setButtonStates] = useState({});
+  const [friendshipActions, setFriendshipActions] = useState({});
   const router = useRouter();
 
   useEffect(() => {
@@ -314,6 +316,52 @@ export default function Amis() {
     }
   };
 
+  // Ajout état pour la gestion des amitiés
+  const [friendshipStatuses, setFriendshipStatuses] = useState({});
+  const fetchFriendshipStatus = async (friendId) => {
+    setFriendshipStatuses(prev => ({ ...prev, [friendId]: { loading: true } }));
+    try {
+      const status = await getFriendshipStatus(user.id, friendId);
+      setFriendshipStatuses(prev => ({ ...prev, [friendId]: { ...status, loading: false } }));
+    } catch (error) {
+      setFriendshipStatuses(prev => ({ ...prev, [friendId]: { status: 'error', loading: false } }));
+    }
+  };
+
+  const handleBlockUser = async (friendId) => {
+    setFriendshipActions(prev => ({ ...prev, [friendId]: { loading: true } }));
+    try {
+      const result = await blockUser(user.id, friendId);
+      if (result.success) {
+        showMessage('Utilisateur bloqué avec succès');
+        await loadFriends(user.id);
+      } else {
+        showMessage(result.error || 'Erreur lors du blocage', true);
+      }
+    } catch (error) {
+      showMessage('Erreur lors du blocage', true);
+    } finally {
+      setFriendshipActions(prev => ({ ...prev, [friendId]: { loading: false } }));
+    }
+  };
+
+  const handleUnblockUser = async (friendId) => {
+    setFriendshipActions(prev => ({ ...prev, [friendId]: { loading: true } }));
+    try {
+      const result = await unblockUser(user.id, friendId);
+      if (result.success) {
+        showMessage('Utilisateur débloqué avec succès');
+        await loadFriends(user.id);
+      } else {
+        showMessage(result.error || 'Erreur lors du déblocage', true);
+      }
+    } catch (error) {
+      showMessage('Erreur lors du déblocage', true);
+    } finally {
+      setFriendshipActions(prev => ({ ...prev, [friendId]: { loading: false } }));
+    }
+  };
+
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (searchTerm) {
@@ -475,6 +523,60 @@ export default function Amis() {
                 </div>
                 <h4>{friendship.profiles?.display_name || 'Utilisateur'}</h4>
                 <p>{friendship.profiles?.bio || 'Amateur de cuisine passionné 🍽️'}</p>
+                
+                {/* Section Gestion des amitiés */}
+                <div style={{ marginTop: 12, borderTop: '1px solid #eee', paddingTop: 8 }}>
+                  <strong>Gestion de l'amitié</strong>
+                  <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+                    <button
+                      onClick={() => handleBlockUser(friendship.friend_id)}
+                      disabled={friendshipActions[friendship.friend_id]?.loading}
+                      style={{
+                        background: '#fee2e2',
+                        color: '#b91c1c',
+                        border: 'none',
+                        borderRadius: 4,
+                        padding: '4px 10px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {friendshipActions[friendship.friend_id]?.loading ? '...' : '🚫 Bloquer'}
+                    </button>
+                    <button
+                      onClick={() => handleUnblockUser(friendship.friend_id)}
+                      disabled={friendshipActions[friendship.friend_id]?.loading}
+                      style={{
+                        background: '#d1fae5',
+                        color: '#065f46',
+                        border: 'none',
+                        borderRadius: 4,
+                        padding: '4px 10px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {friendshipActions[friendship.friend_id]?.loading ? '...' : '✅ Débloquer'}
+                    </button>
+                    <button
+                      onClick={() => fetchFriendshipStatus(friendship.friend_id)}
+                      style={{
+                        background: '#f3f4f6',
+                        color: '#374151',
+                        border: 'none',
+                        borderRadius: 4,
+                        padding: '4px 10px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Statut
+                    </button>
+                  </div>
+                  {/* Affichage du statut d'amitié */}
+                  {friendshipStatuses[friendship.friend_id] && (
+                    <div style={{ fontSize: 12, marginTop: 4 }}>
+                      Statut: <b>{friendshipStatuses[friendship.friend_id].status}</b>
+                    </div>
+                  )}
+                </div>
               </div>
             ))}
           </div>
