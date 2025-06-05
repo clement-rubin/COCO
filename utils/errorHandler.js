@@ -119,6 +119,32 @@ const USER_FRIENDLY_MESSAGES = {
   'unique_friendship': 'Cette relation d\'amitié existe déjà.',
   'no_self_friendship': 'Vous ne pouvez pas vous ajouter comme ami.',
   'foreign key violation': 'Profil utilisateur requis pour cette action.',
+
+  // Erreurs spécifiques aux nouvelles fonctionnalités
+  'User already blocked': 'Cet utilisateur est déjà bloqué.',
+  'Cannot block yourself': 'Vous ne pouvez pas vous bloquer vous-même.',
+  'User not blocked': 'Cet utilisateur n\'est pas bloqué.',
+  'Block limit exceeded': 'Limite de blocages atteinte (max 100).',
+  'Group name already exists': 'Un groupe avec ce nom existe déjà.',
+  'Group not found': 'Groupe introuvable.',
+  'Cannot delete default group': 'Impossible de supprimer le groupe par défaut.',
+  'Group member limit exceeded': 'Limite de membres du groupe atteinte.',
+  'Friend not in group': 'Cet ami n\'est pas dans ce groupe.',
+  'Notification not found': 'Notification introuvable.',
+  'Invalid notification type': 'Type de notification invalide.',
+  'Search query too complex': 'Requête de recherche trop complexe.',
+  'Advanced search not available': 'Recherche avancée temporairement indisponible.',
+  'Suggestion generation failed': 'Impossible de générer des suggestions.',
+  'Online status update failed': 'Échec de la mise à jour du statut en ligne.',
+  'Interaction history full': 'Historique des interactions plein.',
+  'Invalid interaction type': 'Type d\'interaction invalide.',
+  'Statistics unavailable': 'Statistiques temporairement indisponibles.',
+  'Cache refresh required': 'Actualisation du cache requise.',
+  'Real-time sync failed': 'Échec de la synchronisation en temps réel.',
+  'Notification delivery failed': 'Échec de l\'envoi de la notification.',
+  'Group creation limit reached': 'Limite de création de groupes atteinte.',
+  'Feature temporarily disabled': 'Fonctionnalité temporairement désactivée.',
+
 }
 
 /**

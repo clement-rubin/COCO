@@ -165,7 +165,7 @@ async function searchUsers(req, res, requestId, query) {
 }
 
 async function handlePostRequest(req, res, requestId) {
-  const { action, user_id, friend_id, request_id } = req.body
+  const { action, user_id, friend_id, request_id, target_user_id, group_name, notification_id } = req.body
   
   logInfo('Traitement requête POST friends', {
     requestId,
@@ -183,6 +183,16 @@ async function handlePostRequest(req, res, requestId) {
         return await acceptFriendRequest(req, res, requestId, request_id)
       case 'reject_request':
         return await rejectFriendRequest(req, res, requestId, request_id)
+      case 'block_user':
+        return await blockUser(req, res, requestId, user_id, target_user_id)
+      case 'unblock_user':
+        return await unblockUser(req, res, requestId, user_id, target_user_id)
+      case 'create_group':
+        return await createFriendGroup(req, res, requestId, user_id, group_name)
+      case 'mark_notification_read':
+        return await markNotificationRead(req, res, requestId, notification_id)
+      case 'update_online_status':
+        return await updateOnlineStatus(req, res, requestId, user_id)
       default:
         return res.status(400).json({ error: 'Invalid action' })
     }
@@ -285,5 +295,121 @@ async function rejectFriendRequest(req, res, requestId, request_id) {
   } catch (error) {
     logError('Erreur dans rejectFriendRequest', error, { requestId })
     return res.status(500).json({ error: 'Erreur lors du refus' })
+  }
+}
+
+async function blockUser(req, res, requestId, user_id, target_user_id) {
+  try {
+    if (!user_id || !target_user_id) {
+      return res.status(400).json({ error: 'user_id and target_user_id are required' })
+    }
+    
+    if (user_id === target_user_id) {
+      return res.status(400).json({ error: 'Cannot block yourself' })
+    }
+    
+    const { blockUser: blockUserFunc } = await import('../../utils/profileUtils')
+    const result = await blockUserFunc(user_id, target_user_id)
+    
+    if (!result.success) {
+      return res.status(400).json({ error: result.error })
+    }
+    
+    return res.status(200).json({ success: true })
+    
+  } catch (error) {
+    logError('Erreur dans blockUser', error, { requestId })
+    return res.status(500).json({ error: 'Erreur lors du blocage' })
+  }
+}
+
+async function unblockUser(req, res, requestId, user_id, target_user_id) {
+  try {
+    if (!user_id || !target_user_id) {
+      return res.status(400).json({ error: 'user_id and target_user_id are required' })
+    }
+    
+    const { unblockUser: unblockUserFunc } = await import('../../utils/profileUtils')
+    const result = await unblockUserFunc(user_id, target_user_id)
+    
+    if (!result.success) {
+      return res.status(400).json({ error: result.error })
+    }
+    
+    return res.status(200).json({ success: true })
+    
+  } catch (error) {
+    logError('Erreur dans unblockUser', error, { requestId })
+    return res.status(500).json({ error: 'Erreur lors du déblocage' })
+  }
+}
+
+async function createFriendGroup(req, res, requestId, user_id, group_name) {
+  try {
+    if (!user_id || !group_name) {
+      return res.status(400).json({ error: 'user_id and group_name are required' })
+    }
+    
+    const { data: group, error } = await supabase
+      .from('friend_groups')
+      .insert({
+        user_id,
+        name: group_name,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .select()
+      .single()
+    
+    if (error) {
+      if (error.code === '23505') {
+        return res.status(400).json({ error: 'Group name already exists' })
+      }
+      throw error
+    }
+    
+    return res.status(200).json({ success: true, group })
+    
+  } catch (error) {
+    logError('Erreur dans createFriendGroup', error, { requestId })
+    return res.status(500).json({ error: 'Erreur lors de la création du groupe' })
+  }
+}
+
+async function markNotificationRead(req, res, requestId, notification_id) {
+  try {
+    if (!notification_id) {
+      return res.status(400).json({ error: 'notification_id is required' })
+    }
+    
+    const { markNotificationAsRead } = await import('../../utils/profileUtils')
+    const result = await markNotificationAsRead(notification_id)
+    
+    if (!result.success) {
+      return res.status(400).json({ error: result.error })
+    }
+    
+    return res.status(200).json({ success: true })
+    
+  } catch (error) {
+    logError('Erreur dans markNotificationRead', error, { requestId })
+    return res.status(500).json({ error: 'Erreur lors de la mise à jour de la notification' })
+  }
+}
+
+async function updateOnlineStatus(req, res, requestId, user_id) {
+  try {
+    if (!user_id) {
+      return res.status(400).json({ error: 'user_id is required' })
+    }
+    
+    const { updateLastSeen } = await import('../../utils/profileUtils')
+    await updateLastSeen(user_id)
+    
+    return res.status(200).json({ success: true })
+    
+  } catch (error) {
+    logError('Erreur dans updateOnlineStatus', error, { requestId })
+    return res.status(500).json({ error: 'Erreur lors de la mise à jour du statut' })
   }
 }

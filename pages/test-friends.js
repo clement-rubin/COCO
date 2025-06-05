@@ -469,6 +469,143 @@ export default function TestFriends() {
     }
   };
 
+  const testBlockUser = async (targetUserId) => {
+    if (!user) {
+      addLog('error', 'Aucun utilisateur connecté pour le test de blocage');
+      return;
+    }
+
+    addLog('info', `Test de blocage d'utilisateur ${targetUserId.substring(0, 8)}...`);
+    setIsLoading(true);
+
+    try {
+      const { blockUser } = await import('../utils/profileUtils');
+      const result = await blockUser(user.id, targetUserId);
+
+      if (result.success) {
+        addLog('info', 'Utilisateur bloqué avec succès', result);
+        setTestResults(prev => ({ ...prev, blockUser: 'success' }));
+      } else {
+        addLog('error', 'Échec du blocage', result);
+        setTestResults(prev => ({ ...prev, blockUser: 'error' }));
+      }
+    } catch (error) {
+      addLog('error', 'Erreur lors du test de blocage', error);
+      setTestResults(prev => ({ ...prev, blockUser: 'error' }));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const testGetNotifications = async () => {
+    if (!user) {
+      addLog('error', 'Aucun utilisateur connecté pour le test des notifications');
+      return;
+    }
+
+    addLog('info', 'Test de récupération des notifications...');
+    setIsLoading(true);
+
+    try {
+      const { getUnreadNotifications } = await import('../utils/profileUtils');
+      const notifications = await getUnreadNotifications(user.id);
+
+      addLog('info', 'Notifications récupérées', { 
+        count: notifications.length,
+        data: notifications 
+      });
+      setTestResults(prev => ({ ...prev, getNotifications: 'success' }));
+    } catch (error) {
+      addLog('error', 'Erreur lors du test des notifications', error);
+      setTestResults(prev => ({ ...prev, getNotifications: 'error' }));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const testAdvancedSearch = async () => {
+    if (!searchTerm || searchTerm.length < 2) {
+      addLog('warning', 'Terme de recherche requis pour la recherche avancée');
+      return;
+    }
+
+    addLog('info', `Test de recherche avancée avec: "${searchTerm}"`);
+    setIsLoading(true);
+
+    try {
+      const { searchUsersAdvanced } = await import('../utils/profileUtils');
+      const results = await searchUsersAdvanced(searchTerm, {
+        hasAvatar: true,
+        excludeBlocked: true,
+        sortBy: 'display_name'
+      });
+
+      addLog('info', 'Recherche avancée terminée', { 
+        count: results.length,
+        data: results 
+      });
+      setSearchResults(results);
+      setTestResults(prev => ({ ...prev, advancedSearch: 'success' }));
+    } catch (error) {
+      addLog('error', 'Erreur lors de la recherche avancée', error);
+      setTestResults(prev => ({ ...prev, advancedSearch: 'error' }));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const testIntelligentSuggestions = async () => {
+    if (!user) {
+      addLog('error', 'Aucun utilisateur connecté pour les suggestions intelligentes');
+      return;
+    }
+
+    addLog('info', 'Test des suggestions intelligentes...');
+    setIsLoading(true);
+
+    try {
+      const { getIntelligentFriendSuggestions } = await import('../utils/profileUtils');
+      const suggestions = await getIntelligentFriendSuggestions(user.id, 5);
+
+      addLog('info', 'Suggestions intelligentes récupérées', { 
+        count: suggestions.length,
+        data: suggestions 
+      });
+      setSuggestions(suggestions);
+      setTestResults(prev => ({ ...prev, intelligentSuggestions: 'success' }));
+    } catch (error) {
+      addLog('error', 'Erreur lors du test des suggestions intelligentes', error);
+      setTestResults(prev => ({ ...prev, intelligentSuggestions: 'error' }));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const testOnlineStatus = async () => {
+    if (!user) {
+      addLog('error', 'Aucun utilisateur connecté pour le test du statut en ligne');
+      return;
+    }
+
+    addLog('info', 'Test de mise à jour du statut en ligne...');
+    setIsLoading(true);
+
+    try {
+      const { updateLastSeen, isUserOnline } = await import('../utils/profileUtils');
+      
+      await updateLastSeen(user.id);
+      const isOnline = await isUserOnline(user.id);
+
+      addLog('info', 'Statut en ligne mis à jour', { isOnline });
+      setTestResults(prev => ({ ...prev, onlineStatus: 'success' }));
+    } catch (error) {
+      addLog('error', 'Erreur lors du test du statut en ligne', error);
+      setTestResults(prev => ({ ...prev, onlineStatus: 'error' }));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <Head>
