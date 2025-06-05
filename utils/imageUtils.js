@@ -612,10 +612,11 @@ export async function uploadImageToSupabaseAndGetUrl(fileOrDataUrl, filename = n
     // Générer un nom de fichier unique
     const timestamp = Date.now();
     const random = Math.random().toString(36).substring(2, 8);
-    const uniqueName = filename || `photo_${timestamp}_${random}.${ext}`;
-    
+    const uniqueName = (filename || `photo_${timestamp}_${random}.${ext}`).replace(/^images\//, '');
+    const filePath = `images/${uniqueName}`; // Always prefix with images/
+
     logInfo('uploadImageToSupabaseAndGetUrl: uploading to Supabase', { 
-      uniqueName, 
+      filePath, 
       ext,
       fileSize: file.size,
       fileType: file.type || `image/${ext}`
@@ -624,7 +625,7 @@ export async function uploadImageToSupabaseAndGetUrl(fileOrDataUrl, filename = n
     // Tentative d'upload vers Supabase storage
     const { data, error } = await supabase.storage
       .from('images')
-      .upload(uniqueName, file, { 
+      .upload(filePath, file, { 
         upsert: true, 
         contentType: file.type || `image/${ext}`,
         cacheControl: '3600'
@@ -633,7 +634,7 @@ export async function uploadImageToSupabaseAndGetUrl(fileOrDataUrl, filename = n
     // Gestion d'erreur d'upload
     if (error) {
       logError('uploadImageToSupabaseAndGetUrl: Supabase upload error', error, {
-        uniqueName,
+        filePath,
         errorCode: error.statusCode,
         errorMessage: error.message,
         fileSize: file.size,
@@ -653,7 +654,7 @@ export async function uploadImageToSupabaseAndGetUrl(fileOrDataUrl, filename = n
     }
 
     if (!data) {
-      logError('uploadImageToSupabaseAndGetUrl: No data returned from upload', null, { uniqueName });
+      logError('uploadImageToSupabaseAndGetUrl: No data returned from upload', null, { filePath });
       throw new Error('Aucune donnée retournée après l\'upload');
     }
 
@@ -666,11 +667,11 @@ export async function uploadImageToSupabaseAndGetUrl(fileOrDataUrl, filename = n
     // Récupérer l'URL publique
     const { data: publicUrlData } = supabase.storage
       .from('images')
-      .getPublicUrl(uniqueName);
+      .getPublicUrl(filePath);
 
     if (!publicUrlData?.publicUrl) {
       logError('uploadImageToSupabaseAndGetUrl: No public URL returned', null, { 
-        uniqueName, 
+        filePath, 
         publicUrlData 
       });
       throw new Error('Impossible de récupérer l\'URL publique de l\'image');
