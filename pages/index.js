@@ -43,7 +43,8 @@ export default function Home() {
       label: 'Partager',
       description: 'Photo & recette',
       icon: '📸',
-      color: '#10b981',
+      gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+      shadow: 'rgba(16, 185, 129, 0.4)',
       action: () => {
         if (user) {
           window.location.href = '/share-photo'
@@ -57,7 +58,8 @@ export default function Home() {
       label: 'Explorer',
       description: 'Découvrir',
       icon: '🔍',
-      color: '#3b82f6',
+      gradient: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+      shadow: 'rgba(59, 130, 246, 0.4)',
       action: () => window.location.href = '/explorer'
     },
     {
@@ -65,7 +67,8 @@ export default function Home() {
       label: 'Amis',
       description: 'Mon réseau',
       icon: '👥',
-      color: '#ef4444',
+      gradient: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+      shadow: 'rgba(239, 68, 68, 0.4)',
       action: () => {
         if (user) {
           window.location.href = '/amis'
@@ -241,60 +244,140 @@ export default function Home() {
             </p>
           </div>
 
-          {/* Actions rapides */}
+          {/* Actions rapides améliorées */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '12px',
-            marginBottom: '32px'
+            gap: '16px',
+            marginBottom: '32px',
+            perspective: '1000px'
           }}>
-            {quickActions.map(action => (
+            {quickActions.map((action, index) => (
               <button
                 key={action.id}
                 onClick={action.action}
                 style={{
                   background: 'white',
-                  border: `2px solid ${action.color}20`,
-                  borderRadius: '16px',
-                  padding: '16px 8px',
+                  border: 'none',
+                  borderRadius: '20px',
+                  padding: '20px 12px',
                   cursor: 'pointer',
-                  transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-                  boxShadow: '0 4px 15px rgba(0,0,0,0.05)',
+                  transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+                  boxShadow: `0 8px 25px rgba(0,0,0,0.08), 0 4px 10px rgba(0,0,0,0.05)`,
                   position: 'relative',
-                  overflow: 'hidden'
+                  overflow: 'hidden',
+                  transform: 'translateZ(0)',
+                  animationDelay: `${index * 100}ms`,
+                  animation: 'slideInUp 0.6s ease-out forwards',
+                  opacity: 0
                 }}
                 onMouseEnter={(e) => {
-                  e.target.style.transform = 'translateY(-4px) scale(1.02)'
-                  e.target.style.boxShadow = `0 8px 25px ${action.color}40`
-                  e.target.style.borderColor = `${action.color}40`
+                  e.target.style.transform = 'translateY(-8px) scale(1.05) rotateY(5deg)'
+                  e.target.style.boxShadow = `0 20px 40px ${action.shadow}, 0 10px 20px rgba(0,0,0,0.1)`
+                  
+                  // Vibration légère sur mobile
+                  if (navigator.vibrate) {
+                    navigator.vibrate(10)
+                  }
                 }}
                 onMouseLeave={(e) => {
-                  e.target.style.transform = 'translateY(0) scale(1)'
-                  e.target.style.boxShadow = '0 4px 15px rgba(0,0,0,0.05)'
-                  e.target.style.borderColor = `${action.color}20`
+                  e.target.style.transform = 'translateY(0) scale(1) rotateY(0deg)'
+                  e.target.style.boxShadow = '0 8px 25px rgba(0,0,0,0.08), 0 4px 10px rgba(0,0,0,0.05)'
+                }}
+                onMouseDown={(e) => {
+                  e.target.style.transform = 'translateY(-4px) scale(0.98)'
+                }}
+                onMouseUp={(e) => {
+                  e.target.style.transform = 'translateY(-8px) scale(1.05)'
                 }}
               >
+                {/* Effet de brillance au survol */}
                 <div style={{
-                  fontSize: '1.8rem',
-                  marginBottom: '6px'
+                  position: 'absolute',
+                  top: 0,
+                  left: '-100%',
+                  width: '100%',
+                  height: '100%',
+                  background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)',
+                  transition: 'left 0.6s ease',
+                  pointerEvents: 'none'
+                }} className="shine-effect" />
+                
+                {/* Icône avec animation */}
+                <div style={{
+                  fontSize: '2.2rem',
+                  marginBottom: '8px',
+                  display: 'block',
+                  position: 'relative',
+                  animation: 'iconFloat 3s ease-in-out infinite',
+                  animationDelay: `${index * 0.5}s`
                 }}>
                   {action.icon}
+                  
+                  {/* Effet de glow autour de l'icône */}
+                  <div style={{
+                    position: 'absolute',
+                    inset: '-4px',
+                    background: action.gradient,
+                    borderRadius: '50%',
+                    opacity: 0,
+                    filter: 'blur(8px)',
+                    transition: 'opacity 0.3s ease',
+                    zIndex: -1
+                  }} className="icon-glow" />
                 </div>
+                
+                {/* Texte avec meilleure hiérarchie */}
                 <div style={{
-                  fontSize: '0.8rem',
+                  fontSize: '0.9rem',
                   fontWeight: '700',
                   color: '#1f2937',
-                  marginBottom: '2px'
+                  marginBottom: '4px',
+                  letterSpacing: '-0.02em'
                 }}>
                   {action.label}
                 </div>
+                
                 <div style={{
-                  fontSize: '0.65rem',
+                  fontSize: '0.7rem',
                   color: '#6b7280',
-                  fontWeight: '500'
+                  fontWeight: '500',
+                  letterSpacing: '0.01em'
                 }}>
                   {action.description}
                 </div>
+                
+                {/* Indicateur de statut pour les actions nécessitant une connexion */}
+                {(action.id === 'share' || action.id === 'friends') && !user && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '8px',
+                    right: '8px',
+                    width: '8px',
+                    height: '8px',
+                    background: '#f59e0b',
+                    borderRadius: '50%',
+                    animation: 'pulse 2s infinite'
+                  }} />
+                )}
+                
+                {/* Badge de nouveauté */}
+                {action.id === 'explore' && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '8px',
+                    right: '8px',
+                    background: 'linear-gradient(135deg, #ff6b35, #f7931e)',
+                    color: 'white',
+                    fontSize: '0.6rem',
+                    fontWeight: '700',
+                    padding: '2px 6px',
+                    borderRadius: '8px',
+                    animation: 'bounce 2s infinite'
+                  }}>
+                    NEW
+                  </div>
+                )}
               </button>
             ))}
           </div>
@@ -395,65 +478,133 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Styles globaux pour les animations et responsive */}
+      {/* Styles améliorés pour les animations et interactions */}
       <style jsx>{`
-        @keyframes welcomeSlide {
+        @keyframes slideInUp {
           from {
             opacity: 0;
-            transform: translateX(-50%) translateY(-10px);
+            transform: translateY(30px) scale(0.9);
           }
           to {
             opacity: 1;
-            transform: translateX(-50%) translateY(0);
+            transform: translateY(0) scale(1);
           }
         }
         
-        html {
-          scroll-behavior: smooth;
-        }
-        
-        /* Fix photo sizes in feeds */
-        :global(.feed-image),
-        :global(.story-image),
-        :global(.recipe-image) {
-          max-height: var(--max-image-height, 300px) !important;
-          max-width: var(--max-image-width, 100%) !important;
-          width: 100% !important;
-          height: auto !important;
-          object-fit: cover !important;
-          border-radius: 12px !important;
-        }
-        
-        :global(.feed-item img),
-        :global(.story-item img) {
-          max-height: 300px !important;
-          width: 100% !important;
-          height: auto !important;
-          object-fit: cover !important;
-          border-radius: 12px !important;
-        }
-        
-        @media (prefers-reduced-motion: reduce) {
-          * {
-            animation-duration: 0.01ms !important;
-            animation-iteration-count: 1 !important;
-            transition-duration: 0.01ms !important;
-            scroll-behavior: auto !important;
+        @keyframes iconFloat {
+          0%, 100% { 
+            transform: translateY(0px); 
+          }
+          50% { 
+            transform: translateY(-4px); 
           }
         }
-
+        
+        @keyframes pulse {
+          0%, 100% { 
+            transform: scale(1);
+            opacity: 1;
+          }
+          50% { 
+            transform: scale(1.2);
+            opacity: 0.7;
+          }
+        }
+        
+        @keyframes bounce {
+          0%, 20%, 50%, 80%, 100% {
+            transform: translateY(0);
+          }
+          40% {
+            transform: translateY(-4px);
+          }
+          60% {
+            transform: translateY(-2px);
+          }
+        }
+        
+        /* Effet de brillance au survol */
+        button:hover .shine-effect {
+          left: 100% !important;
+        }
+        
+        /* Effet de glow au survol */
+        button:hover .icon-glow {
+          opacity: 0.3 !important;
+        }
+        
+        /* Amélioration responsive */
         @media (max-width: 380px) {
-          .hero-title {
-            fontSize: '1.8rem !important';
+          .quick-actions-grid {
+            gap: 12px !important;
           }
           
-          .quick-actions {
-            gridTemplateColumns: '1fr 1fr !important';
+          .quick-action-button {
+            padding: 16px 8px !important;
           }
           
-          :global(.feed-image),
-          :global(.story-image) {
-            max-height: 250px !important;
+          .action-icon {
+            font-size: 1.8rem !important;
+          }
+          
+          .action-label {
+            font-size: 0.8rem !important;
+          }
+          
+          .action-description {
+            font-size: 0.65rem !important;
+          }
+        }
+        
+        /* États de focus pour l'accessibilité */
+        button:focus {
+          outline: 3px solid rgba(59, 130, 246, 0.5);
+          outline-offset: 2px;
+        }
+        
+        /* Optimisation des performances */
+        button {
+          will-change: transform, box-shadow;
+          backface-visibility: hidden;
+        }
+        
+        /* Animation d'entrée décalée */
+        button:nth-child(1) { animation-delay: 0ms; }
+        button:nth-child(2) { animation-delay: 100ms; }
+        button:nth-child(3) { animation-delay: 200ms; }
+        
+        /* Effet de succès après clic */
+        button:active {
+          animation: successPulse 0.3s ease-out;
+        }
+        
+        @keyframes successPulse {
+          0% { transform: scale(1); }
+          50% { transform: scale(0.95); }
+          100% { transform: scale(1); }
+        }
+        
+        /* Mode sombre automatique (si supporté) */
+        @media (prefers-color-scheme: dark) {
+          button {
+            background: rgba(255, 255, 255, 0.1) !important;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+          }
+          
+          .action-label {
+            color: #f9fafb !important;
+          }
+          
+          .action-description {
+            color: #d1d5db !important;
+          }
+        }
+        
+        /* Amélioration pour les écrans haute densité */
+        @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+          button {
+            border: 0.5px solid rgba(0,0,0,0.05);
           }
         }
       `}</style>
