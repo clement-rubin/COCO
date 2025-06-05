@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { useRouter } from 'next/router'
 import ShareButton from './ShareButton'
-import { getRecipeImageUrl } from '../lib/supabase'
+import { processImageData } from '../utils/imageUtils'
 import { logDebug, logInfo, logError } from '../utils/logger'
 import styles from '../styles/RecipeCard.module.css'
 
@@ -20,7 +20,34 @@ export default function RecipeCard({ recipe, isUserRecipe = true, isPhotoOnly = 
 
   // Fonction améliorée pour traiter les images avec debugging détaillé
   const getImageUrl = (imageData) => {
-    return getRecipeImageUrl(imageData, '/placeholder-recipe.jpg');
+    try {
+      logDebug('RecipeCard: Processing image data', {
+        recipeId: recipe?.id,
+        dataType: typeof imageData,
+        isArray: Array.isArray(imageData),
+        hasData: !!imageData,
+        dataLength: imageData?.length
+      });
+
+      const processedUrl = processImageData(imageData, '/placeholder-recipe.jpg');
+      
+      logDebug('RecipeCard: Image processed successfully', {
+        recipeId: recipe?.id,
+        originalDataType: typeof imageData,
+        processedUrl: processedUrl?.substring(0, 100) + (processedUrl?.length > 100 ? '...' : ''),
+        isDataUrl: processedUrl?.startsWith('data:'),
+        isPlaceholder: processedUrl === '/placeholder-recipe.jpg'
+      });
+
+      return processedUrl;
+    } catch (error) {
+      logError('RecipeCard: Error processing image', error, {
+        recipeId: recipe?.id,
+        imageData: typeof imageData,
+        hasData: !!imageData
+      });
+      return '/placeholder-recipe.jpg';
+    }
   }
 
   const toggleFavorite = (e) => {

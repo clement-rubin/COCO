@@ -421,52 +421,70 @@ export async function uploadImageAsBytes(file) {
 /**
  * Uploads a base64 image to Supabase storage
  * @param {string} base64Data - Base64 image data
+ * @param {string} fileName - Name for the file
  * @returns {Promise<string>} - URL to the uploaded image
  */
-export async function uploadBase64Image(base64Data) {
+export async function uploadImageToSupabase(base64Data, fileName = null) {
   try {
-    // Extract file data and mime type
-    const [mimeTypeHeader, base64Content] = base64Data.split(',')
-    const mimeType = mimeTypeHeader.match(/:(.*?);/)[1]
-    const fileExt = mimeType.split('/')[1]
+    if (!base64Data || typeof base64Data !== 'string') {
+      throw new Error('Invalid base64 data provided')
+    }
+
+    // Generate unique filename if not provided
+    if (!fileName) {
+      const timestamp = Date.now()
+      const random = Math.random().toString(36).substring(2, 8)
+      fileName = `recipe_${timestamp}_${random}.jpg`
+    }
+
+    // Remove data URL prefix if present
+    const base64Content = base64Data.replace(/^data:image\/[a-z]+;base64,/, '')
     
     // Convert base64 to blob
-    const byteString = atob(base64Content)
-    const ab = new ArrayBuffer(byteString.length)
-    const ia = new Uint8Array(ab)
-    
-    for (let i = 0; i < byteString.length; i++) {
-      ia[i] = byteString.charCodeAt(i)
+    const byteCharacters = atob(base64Content)
+    const byteNumbers = new Array(byteCharacters.length)
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i)
     }
-    
-    const blob = new Blob([ab], { type: mimeType })
-    
-    // Generate a unique filename
-    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
-    const filePath = `images/${fileName}`
-    
+    const byteArray = new Uint8Array(byteNumbers)
+    const blob = new Blob([byteArray], { type: 'image/jpeg' })
+
+    logDebug('Uploading image to Supabase storage', {
+      fileName,
+      blobSize: blob.size,
+      base64Length: base64Content.length
+    })
+
     // Upload to Supabase storage
     const { data, error } = await supabase.storage
-      .from('images')
-      .upload(filePath, blob, {
-        contentType: mimeType,
-        cacheControl: '3600'
+      .from('recipe-images')
+      .upload(fileName, blob, {
+        contentType: 'image/jpeg',
+        upsert: false
       })
-    
+
     if (error) {
+      logError('Supabase storage upload failed', error, { fileName })
       throw error
     }
-    
-    logInfo('Image uploaded successfully', { filePath: data.path })
-    
-    // Get the public URL
+
+    // Get public URL
     const { data: { publicUrl } } = supabase.storage
-      .from('images')
-      .getPublicUrl(filePath)
-    
+      .from('recipe-images')
+      .getPublicUrl(fileName)
+
+    logInfo('Image uploaded successfully to Supabase', {
+      fileName,
+      publicUrl: publicUrl?.substring(0, 50) + '...'
+    })
+
     return publicUrl
+
   } catch (error) {
-    logError('Failed to upload base64 image', error)
+    logError('Error uploading image to Supabase', error, {
+      fileName,
+      hasBase64Data: !!base64Data
+    })
     throw error
   }
 }

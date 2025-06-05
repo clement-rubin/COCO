@@ -112,13 +112,14 @@ export default function AddictiveFeed() {
     
     if (apiRecipe.image) {
       try {
-        const { getRecipeImageUrl } = require('../lib/supabase')
-        imageUrl = getRecipeImageUrl(apiRecipe.image, '/placeholder-recipe.jpg')
+        const { processImageData } = require('../utils/imageUtils')
+        imageUrl = processImageData(apiRecipe.image, '/placeholder-recipe.jpg')
         
         logDebug('AddictiveFeed: Image processed', {
           recipeId: apiRecipe.id,
           originalImageType: typeof apiRecipe.image,
           isArray: Array.isArray(apiRecipe.image),
+          arrayLength: Array.isArray(apiRecipe.image) ? apiRecipe.image.length : null,
           processedUrl: imageUrl?.substring(0, 50) + '...',
           isDataUrl: imageUrl?.startsWith('data:'),
           isFallback: imageUrl === '/placeholder-recipe.jpg'
@@ -126,7 +127,9 @@ export default function AddictiveFeed() {
       } catch (err) {
         logError('Error processing image in AddictiveFeed', err, { 
           recipeId: apiRecipe.id,
-          imageDataType: typeof apiRecipe.image
+          imageDataType: typeof apiRecipe.image,
+          isArray: Array.isArray(apiRecipe.image),
+          hasImageData: !!apiRecipe.image
         })
       }
     }

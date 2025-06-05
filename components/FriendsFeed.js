@@ -82,10 +82,22 @@ export default function FriendsFeed({ feedType = 'featured' }) {
       let imageUrl = '/placeholder-recipe.jpg'
       if (recipe.image) {
         try {
-          const { getRecipeImageUrl } = require('../lib/supabase')
-          imageUrl = getRecipeImageUrl(recipe.image, '/placeholder-recipe.jpg')
+          const { processImageData } = require('../utils/imageUtils')
+          imageUrl = processImageData(recipe.image, '/placeholder-recipe.jpg')
+          
+          console.log('FriendsFeed: Image processed', {
+            recipeId: recipe.id,
+            originalType: typeof recipe.image,
+            isArray: Array.isArray(recipe.image),
+            processedUrl: imageUrl?.substring(0, 50) + '...',
+            isDataUrl: imageUrl?.startsWith('data:'),
+            isFallback: imageUrl === '/placeholder-recipe.jpg'
+          })
         } catch (err) {
-          // fallback
+          console.error('FriendsFeed: Error processing image', err, {
+            recipeId: recipe.id,
+            imageType: typeof recipe.image
+          })
         }
       }
       
