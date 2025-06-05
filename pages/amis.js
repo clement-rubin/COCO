@@ -197,7 +197,7 @@ export default function Amis() {
 
   const sendFriendRequest = async (friendId) => {
     try {
-      // Vérifier d'abord le statut existant
+      // Vérifier d'abord le statut existant avec la fonction SQL corrigée
       const { data: existingStatus, error: statusError } = await supabase
         .rpc('check_friendship_status', {
           user1_id: user.id,
@@ -210,31 +210,42 @@ export default function Amis() {
         return;
       }
 
+      // S'assurer que les profils existent (optionnel, mais recommandé)
       await ensureProfileExists(user.id);
       await ensureProfileExists(friendId);
       
-      const { error } = await supabase
+      // Créer la demande d'amitié avec auth.users.id directement
+      const { data: newFriendship, error } = await supabase
         .from('friendships')
         .insert({
-          user_id: user.id,
-          friend_id: friendId,
+          user_id: user.id,  // auth.users.id
+          friend_id: friendId,  // auth.users.id
           status: 'pending',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
-        });
+        })
+        .select()
+        .single();
 
       if (error) {
         if (error.code === '23505') {
           setError('Demande d\'amitié déjà envoyée');
+        } else if (error.code === '23503') {
+          setError('Erreur de référence utilisateur - veuillez réessayer');
+          logError('Foreign key constraint error:', error);
         } else {
           logError('Detailed error sending friend request:', error);
           setError(`Erreur: ${error.message}`);
         }
       } else {
-        logInfo('Friend request sent successfully');
+        logInfo('Friend request sent successfully', newFriendship);
         setError('Demande d\'amitié envoyée !');
         setTimeout(() => setError(null), 3000);
-        await searchUsers(searchTerm);
+        
+        // Rafraîchir les résultats de recherche
+        if (searchTerm) {
+          await searchUsers(searchTerm);
+        }
       }
     } catch (error) {
       logError('Error sending friend request:', error);

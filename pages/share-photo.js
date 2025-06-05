@@ -83,7 +83,7 @@ export default function SharePhoto() {
     }
   }
 
-  // Validation du formulaire
+  // Validation du formulaire avec messages d'aide
   const validateStep = (step) => {
     switch (step) {
       case 1:
@@ -96,6 +96,32 @@ export default function SharePhoto() {
       default:
         return true
     }
+  }
+
+  const getStepValidationMessage = (step) => {
+    switch (step) {
+      case 1:
+        return photos.length === 0 ? "Ajoutez au moins une photo pour continuer" : ""
+      case 2:
+        if (!title.trim()) return "Le titre est requis"
+        if (!description.trim()) return "La description est requise"
+        if (!category) return "Choisissez une catégorie"
+        return ""
+      case 3:
+        if (!ingredients.some(ing => ing.trim())) return "Ajoutez au moins un ingrédient"
+        if (!instructions.some(inst => inst.instruction.trim())) return "Ajoutez au moins une étape"
+        return ""
+      default:
+        return ""
+    }
+  }
+
+  // Navigation avec animations
+  const goToStep = (targetStep) => {
+    if (targetStep > currentStep && !validateStep(currentStep)) {
+      return
+    }
+    setCurrentStep(targetStep)
   }
 
   // Soumission du formulaire
@@ -193,6 +219,7 @@ export default function SharePhoto() {
       <Head>
         <title>Partager une recette - COCO</title>
         <meta name="description" content="Partagez votre recette avec la communauté COCO" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
 
       {/* Header */}
@@ -200,32 +227,50 @@ export default function SharePhoto() {
         <button onClick={() => router.back()} className={styles.backButton}>
           ← Retour
         </button>
-        <h1>Partager ma recette</h1>
+        <h1>✨ Partager ma recette</h1>
         <button 
           onClick={() => setShowPreview(!showPreview)} 
           className={styles.previewButton}
         >
-          {showPreview ? 'Éditer' : 'Aperçu'}
+          {showPreview ? '✏️ Éditer' : '👁️ Aperçu'}
         </button>
       </div>
 
       {/* Indicateur de progression */}
       <div className={styles.progressBar}>
         <div className={styles.progressSteps}>
-          {[1, 2, 3].map(step => (
+          {{
+            step: 1,
+            label: '📸',
+            title: 'Photos'
+          },
+          {
+            step: 2,
+            label: '📝',
+            title: 'Détails'
+          },
+          {
+            step: 3,
+            label: '🥘',
+            title: 'Recette'
+          }
+          ].map(({ step, label, title }) => (
             <div 
               key={step}
               className={`${styles.progressStep} ${
                 currentStep >= step ? styles.active : ''
               } ${validateStep(step) ? styles.completed : ''}`}
+              onClick={() => goToStep(step)}
+              style={{ cursor: step <= currentStep ? 'pointer' : 'default' }}
+              title={title}
             >
-              <span>{step}</span>
+              {validateStep(step) ? '✓' : label}
             </div>
           ))}
         </div>
         <div 
           className={styles.progressFill}
-          style={{ width: `${(currentStep / 3) * 100}%` }}
+          style={{ width: `${((currentStep - 1) / 2) * 100}%` }}
         />
       </div>
 
@@ -235,8 +280,8 @@ export default function SharePhoto() {
         {currentStep === 1 && (
           <div className={styles.step}>
             <div className={styles.stepHeader}>
-              <h2>📸 Ajoutez vos photos</h2>
-              <p>Montrez votre délicieuse création</p>
+              <h2>📸 Montrez-nous votre création</h2>
+              <p>Ajoutez des photos appétissantes de votre plat</p>
             </div>
             
             <PhotoUpload 
@@ -246,8 +291,16 @@ export default function SharePhoto() {
             
             {photos.length > 0 && (
               <div className={styles.photoTips}>
-                <p>✨ Parfait ! {photos.length} photo{photos.length > 1 ? 's' : ''} ajoutée{photos.length > 1 ? 's' : ''}</p>
-                <p>💡 Conseil : Ajoutez des photos sous différents angles pour inspirer votre communauté</p>
+                <p>🎉 Parfait ! {photos.length} photo{photos.length > 1 ? 's' : ''} ajoutée{photos.length > 1 ? 's' : ''}</p>
+                <p>💡 Conseil : La première photo sera votre image principale</p>
+                <p>✨ Astuce : Variez les angles pour inspirer votre communauté</p>
+              </div>
+            )}
+
+            {!validateStep(1) && (
+              <div className={styles.validationHint}>
+                <span className={styles.errorIcon}>📷</span>
+                {getStepValidationMessage(1)}
               </div>
             )}
           </div>
@@ -257,8 +310,8 @@ export default function SharePhoto() {
         {currentStep === 2 && (
           <div className={styles.step}>
             <div className={styles.stepHeader}>
-              <h2>📝 Décrivez votre recette</h2>
-              <p>Donnez envie avec un titre et une description alléchante</p>
+              <h2>📝 Décrivez votre chef-d'œuvre</h2>
+              <p>Donnez envie avec un titre accrocheur et une description savoureuse</p>
             </div>
 
             <div className={styles.formGroup}>
@@ -295,7 +348,7 @@ export default function SharePhoto() {
                   onChange={(e) => setCategory(e.target.value)}
                   className={styles.select}
                 >
-                  <option value="">Choisir une catégorie</option>
+                  <option value="">🍽️ Choisir une catégorie</option>
                   {categories.map(cat => (
                     <option key={cat} value={cat}>{cat}</option>
                   ))}
@@ -303,14 +356,19 @@ export default function SharePhoto() {
               </div>
 
               <div className={styles.formGroup}>
-                <label>Difficulté</label>
+                <label>Niveau de difficulté</label>
                 <select
                   value={difficulty}
                   onChange={(e) => setDifficulty(e.target.value)}
                   className={styles.select}
                 >
                   {difficulties.map(diff => (
-                    <option key={diff} value={diff}>{diff}</option>
+                    <option key={diff} value={diff}>
+                      {diff === 'Très facile' ? '🟢' : 
+                       diff === 'Facile' ? '🟡' : 
+                       diff === 'Moyen' ? '🟠' : 
+                       diff === 'Difficile' ? '🔴' : '🔴'} {diff}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -318,7 +376,7 @@ export default function SharePhoto() {
 
             <div className={styles.formRow}>
               <div className={styles.formGroup}>
-                <label>Temps de préparation</label>
+                <label>⏱️ Temps de préparation</label>
                 <input
                   type="text"
                   value={prepTime}
@@ -329,7 +387,7 @@ export default function SharePhoto() {
               </div>
 
               <div className={styles.formGroup}>
-                <label>Temps de cuisson</label>
+                <label>🔥 Temps de cuisson</label>
                 <input
                   type="text"
                   value={cookTime}
@@ -340,7 +398,7 @@ export default function SharePhoto() {
               </div>
 
               <div className={styles.formGroup}>
-                <label>Portions</label>
+                <label>👥 Portions</label>
                 <input
                   type="number"
                   value={servings}
@@ -351,6 +409,13 @@ export default function SharePhoto() {
                 />
               </div>
             </div>
+
+            {!validateStep(2) && (
+              <div className={styles.validationHint}>
+                <span className={styles.errorIcon}>📝</span>
+                {getStepValidationMessage(2)}
+              </div>
+            )}
           </div>
         )}
 
@@ -358,20 +423,20 @@ export default function SharePhoto() {
         {currentStep === 3 && (
           <div className={styles.step}>
             <div className={styles.stepHeader}>
-              <h2>🥘 Ingrédients et étapes</h2>
-              <p>Détaillez votre recette pour que chacun puisse la réaliser</p>
+              <h2>🥘 Détaillez votre recette</h2>
+              <p>Listez les ingrédients et décrivez chaque étape pour que tout le monde puisse la réaliser</p>
             </div>
 
             {/* Ingrédients */}
             <div className={styles.section}>
-              <h3>Ingrédients</h3>
+              <h3>🛒 Liste des ingrédients</h3>
               {ingredients.map((ingredient, index) => (
                 <div key={index} className={styles.ingredientRow}>
                   <input
                     type="text"
                     value={ingredient}
                     onChange={(e) => updateIngredient(index, e.target.value)}
-                    placeholder={`Ingrédient ${index + 1} (ex: 200g de pâtes)`}
+                    placeholder={`Ingrédient ${index + 1} (ex: 200g de pâtes fraîches)`}
                     className={styles.input}
                   />
                   {ingredients.length > 1 && (
@@ -379,6 +444,7 @@ export default function SharePhoto() {
                       type="button"
                       onClick={() => removeIngredient(index)}
                       className={styles.removeButton}
+                      title="Supprimer cet ingrédient"
                     >
                       ✕
                     </button>
@@ -390,20 +456,20 @@ export default function SharePhoto() {
                 onClick={addIngredient}
                 className={styles.addButton}
               >
-                + Ajouter un ingrédient
+                ➕ Ajouter un ingrédient
               </button>
             </div>
 
             {/* Instructions */}
             <div className={styles.section}>
-              <h3>Instructions</h3>
+              <h3>👨‍🍳 Étapes de préparation</h3>
               {instructions.map((instruction, index) => (
                 <div key={index} className={styles.instructionRow}>
                   <div className={styles.stepNumber}>{instruction.step}</div>
                   <textarea
                     value={instruction.instruction}
                     onChange={(e) => updateInstruction(index, e.target.value)}
-                    placeholder={`Étape ${instruction.step}: Décrivez cette étape en détail...`}
+                    placeholder={`Étape ${instruction.step}: Décrivez cette étape en détail (ex: Dans une grande casserole, faites bouillir l'eau salée...)`}
                     rows={3}
                     className={styles.textarea}
                   />
@@ -412,6 +478,7 @@ export default function SharePhoto() {
                       type="button"
                       onClick={() => removeInstruction(index)}
                       className={styles.removeButton}
+                      title="Supprimer cette étape"
                     >
                       ✕
                     </button>
@@ -423,21 +490,28 @@ export default function SharePhoto() {
                 onClick={addInstruction}
                 className={styles.addButton}
               >
-                + Ajouter une étape
+                ➕ Ajouter une étape
               </button>
             </div>
 
             {/* Tags optionnels */}
             <div className={styles.formGroup}>
-              <label>Tags (optionnel)</label>
+              <label>🏷️ Tags (optionnel)</label>
               <input
                 type="text"
                 value={tags}
                 onChange={(e) => setTags(e.target.value)}
-                placeholder="italien, fait-maison, rapide (séparés par des virgules)"
+                placeholder="italien, fait-maison, rapide, végétarien (séparés par des virgules)"
                 className={styles.input}
               />
             </div>
+
+            {!validateStep(3) && (
+              <div className={styles.validationHint}>
+                <span className={styles.errorIcon}>🥘</span>
+                {getStepValidationMessage(3)}
+              </div>
+            )}
           </div>
         )}
 
@@ -445,7 +519,10 @@ export default function SharePhoto() {
         {submitError && (
           <div className={styles.errorMessage}>
             <span className={styles.errorIcon}>⚠️</span>
-            {submitError}
+            <div>
+              <strong>Oups ! Une erreur s'est produite</strong>
+              <p>{submitError}</p>
+            </div>
           </div>
         )}
 
@@ -470,6 +547,7 @@ export default function SharePhoto() {
               onClick={() => setCurrentStep(currentStep + 1)}
               className={styles.navButton}
               disabled={!validateStep(currentStep)}
+              title={!validateStep(currentStep) ? getStepValidationMessage(currentStep) : ''}
             >
               Suivant →
             </button>
@@ -483,7 +561,7 @@ export default function SharePhoto() {
               {isSubmitting ? (
                 <>
                   <div className={styles.spinner}></div>
-                  Publication...
+                  Publication en cours...
                 </>
               ) : (
                 <>

@@ -231,35 +231,38 @@ export default function TestFriends() {
     setIsLoading(true);
 
     try {
-      // Check if request already exists
+      // Vérifier si une relation existe déjà avec la fonction SQL
       const { data: existing, error: checkError } = await supabase
-        .from('friendships')
-        .select('*')
-        .or(`and(user_id.eq.${user.id},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${user.id})`);
+        .rpc('check_friendship_status', {
+          user1_id: user.id,
+          user2_id: friendId
+        });
 
-      if (checkError) {
-        throw checkError;
-      }
-
-      if (existing && existing.length > 0) {
+      if (!checkError && existing && existing.length > 0) {
         addLog('warning', 'Relation d\'amitié existe déjà', existing[0]);
         setTestResults(prev => ({ ...prev, sendRequest: 'already_exists' }));
         return;
       }
 
-      // Send friend request
+      // Envoyer la demande d'amitié avec auth.users.id
       const { data: newRequest, error: insertError } = await supabase
         .from('friendships')
         .insert({
-          user_id: user.id,
-          friend_id: friendId,
+          user_id: user.id,  // auth.users.id directement
+          friend_id: friendId,  // auth.users.id directement
           status: 'pending'
         })
         .select()
         .single();
 
       if (insertError) {
-        throw insertError;
+        if (insertError.code === '23503') {
+          addLog('error', 'Erreur contrainte clé étrangère - utilisateurs non valides', insertError);
+          setTestResults(prev => ({ ...prev, sendRequest: 'foreign_key_error' }));
+        } else {
+          throw insertError;
+        }
+        return;
       }
 
       addLog('info', 'Demande d\'amitié envoyée avec succès', newRequest);

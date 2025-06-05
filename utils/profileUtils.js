@@ -219,13 +219,30 @@ export async function getUserStats(userId) {
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
 
-    // Utiliser la nouvelle fonction SQL pour obtenir les statistiques d'amitié
+    // Utiliser la fonction SQL corrigée pour obtenir les statistiques d'amitié
     const { data: friendshipStats, error: friendshipError } = await supabase
       .rpc('get_friendship_stats', { target_user_id: userId })
 
     let totalFriendsCount = 0
+    let pendingSent = 0
+    let pendingReceived = 0
+    
     if (!friendshipError && friendshipStats && friendshipStats.length > 0) {
       totalFriendsCount = friendshipStats[0].friends_count || 0
+      pendingSent = friendshipStats[0].pending_sent || 0
+      pendingReceived = friendshipStats[0].pending_received || 0
+    } else if (friendshipError) {
+      logWarning('Error getting friendship stats, using fallback', friendshipError)
+      // Fallback direct query
+      try {
+        const { count: friendsCount } = await supabase
+          .from('friendships')
+          .select('*', { count: 'exact', head: true })
+          .or(`and(user_id.eq.${userId},status.eq.accepted),and(friend_id.eq.${userId},status.eq.accepted)`)
+        totalFriendsCount = friendsCount || 0
+      } catch (fallbackError) {
+        logError('Fallback friends count failed', fallbackError)
+      }
     }
 
     // Obtenir le profil pour calculer la complétude
@@ -246,8 +263,8 @@ export async function getUserStats(userId) {
       recipesCount: recipesCount || 0,
       friendsCount: totalFriendsCount,
       profileCompleteness,
-      pendingSent: friendshipStats?.[0]?.pending_sent || 0,
-      pendingReceived: friendshipStats?.[0]?.pending_received || 0
+      pendingSent,
+      pendingReceived
     }
 
   } catch (error) {
