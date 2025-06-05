@@ -465,11 +465,11 @@ export default async function handler(req, res) {
         const newRecipe = {
           title: data.title.trim(),
           description: data.description && typeof data.description === 'string' ? data.description.trim() : null,
-          image: data.image || null,
+          image: data.image && typeof data.image === 'string' ? data.image.trim() : null, // Assurez-vous que l'image est une string (URL)
           prepTime: data.prepTime && typeof data.prepTime === 'string' ? data.prepTime.trim() : null,
           cookTime: data.cookTime && typeof data.cookTime === 'string' ? data.cookTime.trim() : null,
           category: data.category && typeof data.category === 'string' ? data.category.trim() : 'Autre',
-          author: authorName, // Utilise le nom amélioré récupéré du profil
+          author: authorName,
           user_id: data.user_id && typeof data.user_id === 'string' ? data.user_id.trim() : null,
           ingredients: ingredients,
           instructions: instructions,
@@ -478,8 +478,8 @@ export default async function handler(req, res) {
         }
         
         // Only add servings if it's provided (to handle tables without this column)
-        if (data.servings && typeof data.servings === 'string') {
-          newRecipe.servings = data.servings.trim()
+        if (data.servings && (typeof data.servings === 'string' || typeof data.servings === 'number')) {
+          newRecipe.servings = data.servings.toString().trim()
         }
         
         logDebug('Recipe data prepared for insertion', {
@@ -487,6 +487,9 @@ export default async function handler(req, res) {
           title: newRecipe.title,
           hasUserId: !!newRecipe.user_id,
           hasAuthor: !!newRecipe.author,
+          hasImage: !!newRecipe.image,
+          imageType: typeof newRecipe.image,
+          imageLength: newRecipe.image?.length,
           authorSource: authorName ? (authorName === data.author ? 'provided' : 'profile') : 'default',
           category: newRecipe.category,
           ingredientsCount: newRecipe.ingredients.length,

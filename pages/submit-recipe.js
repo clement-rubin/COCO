@@ -6,6 +6,7 @@ import { useAuth } from '../components/AuthContext'
 import PhotoUpload from '../components/PhotoUpload'
 import styles from '../styles/SubmitRecipe.module.css'
 import { logDebug, logInfo, logError, logWarning, logUserInteraction } from '../utils/logger'
+import { uploadImageToSupabaseAndGetUrl } from '../utils/imageUtils'
 
 export default function SubmitRecipe() {
   const router = useRouter()
@@ -172,27 +173,46 @@ export default function SubmitRecipe() {
         addLog('error', 'Erreur lors de la récupération du profil', { error: profileError.message })
       }
 
+      // Upload des images vers Supabase Storage
+      let mainImageUrl = null
+      if (photos.length > 0) {
+        addLog('info', 'Début de l\'upload des images', { photosCount: photos.length })
+        
+        const photoWithFile = photos.find(photo => photo.imageFile instanceof File)
+        if (photoWithFile) {
+          try {
+            mainImageUrl = await uploadImageToSupabaseAndGetUrl(photoWithFile.imageFile)
+            addLog('info', 'Image principale uploadée avec succès', { 
+              imageUrl: mainImageUrl?.substring(0, 50) + '...' 
+            })
+          } catch (uploadError) {
+            addLog('error', 'Erreur upload de l\'image principale', { error: uploadError.message })
+          }
+        }
+      }
+
       addLog('info', 'Préparation des données de soumission')
       
-      // Préparer les données avec l'ID utilisateur pour récupération automatique du nom
+      // Préparer les données avec l'URL de l'image
       const recipeData = {
         title: formData.title,
         description: formData.description,
-        author: authorName, // Utilisation du display_name récupéré
+        author: authorName,
         user_id: user.id,
         ingredients: formData.ingredients.split('\n').filter(ingredient => ingredient.trim()),
         instructions: formData.instructions.split('\n').filter(instruction => instruction.trim()).map((instruction, index) => ({
           step: index + 1,
           instruction: instruction.trim()
         })),
-        image: allPhotosProcessed && photos.length > 0 ? photos[0].imageBytes : null
+        image: mainImageUrl // URL de l'image uploadée
       }
 
       addLog('info', 'Données préparées pour soumission', {
         hasTitle: !!recipeData.title,
         hasDescription: !!recipeData.description,
         hasUserId: !!recipeData.user_id,
-        photosCount: recipeData.images.length
+        hasImage: !!recipeData.image,
+        imageType: typeof recipeData.image
       })
 
       // Soumettre à l'API
@@ -210,10 +230,11 @@ export default function SubmitRecipe() {
         throw new Error(result.error || result.message || 'Erreur lors de la soumission')
       }
 
-      addLog('info', 'Photo soumise avec succès', {
+      addLog('info', 'Recette soumise avec succès', {
         recipeId: result.id,
         title: result.title,
-        author: result.author
+        author: result.author,
+        hasImage: !!result.image
       })
 
       // Succès

@@ -560,3 +560,80 @@ function determineMimeType(bytes) {
   // Default to octet-stream if unknown 
   return 'application/octet-stream'
 }
+
+/**
+ * Uploads a File object to Supabase storage and returns the public URL
+ * @param {File} file - File object
+ * @param {string} fileName - Optional custom file name
+ * @returns {Promise<string>} - Public URL of the uploaded image
+ */
+export async function uploadImageToSupabaseAndGetUrl(file, fileName = null) {
+  try {
+    if (!file || !(file instanceof File)) {
+      throw new Error('Invalid file provided')
+    }
+
+    logDebug('Starting image upload to Supabase', {
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type
+    })
+
+    // Generate unique filename if not provided
+    if (!fileName) {
+      const timestamp = Date.now()
+      const random = Math.random().toString(36).substring(2, 8)
+      const extension = file.name.split('.').pop() || 'jpg'
+      fileName = `recipe_${timestamp}_${random}.${extension}`
+    }
+
+    // Check if supabase and storage are available
+    if (typeof window !== 'undefined') {
+      const { supabase } = await import('../lib/supabase')
+      
+      // Upload file directly to Supabase storage
+      const { data, error } = await supabase.storage
+        .from('recipe-images')
+        .upload(fileName, file, {
+          contentType: file.type,
+          upsert: false
+        })
+
+      if (error) {
+        logError('Supabase storage upload failed', error, { fileName })
+        throw error
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('recipe-images')
+        .getPublicUrl(fileName)
+
+      logInfo('Image uploaded successfully to Supabase', {
+        fileName,
+        publicUrl: publicUrl?.substring(0, 50) + '...'
+      })
+
+      return publicUrl
+    } else {
+      // Fallback: convert to base64 for server-side processing
+      return await convertFileToBase64(file)
+    }
+
+  } catch (error) {
+    logError('Error uploading image to Supabase', error, {
+      fileName,
+      hasFile: !!file
+    })
+    throw error
+  }
+}
+
+function convertFileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result)
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}

@@ -4,6 +4,7 @@ import Head from 'next/head'
 import { useAuth } from '../components/AuthContext'
 import PhotoUpload from '../components/PhotoUpload'
 import { logUserInteraction, logError, logInfo } from '../utils/logger'
+import { uploadImageToSupabaseAndGetUrl } from '../utils/imageUtils'
 import styles from '../styles/SharePhoto.module.css'
 
 export default function SharePhoto() {
@@ -140,7 +141,32 @@ export default function SharePhoto() {
         instructionsCount: instructions.filter(inst => inst.instruction.trim()).length
       })
 
-      // Préparer les données
+      // Upload des images vers Supabase Storage et récupération des URLs
+      let uploadedImageUrls = []
+      if (photos.length > 0) {
+        logInfo('Début de l\'upload des images vers Supabase', { photosCount: photos.length })
+        
+        for (let i = 0; i < photos.length; i++) {
+          const photo = photos[i]
+          if (photo.imageFile && photo.imageFile instanceof File) {
+            try {
+              const imageUrl = await uploadImageToSupabaseAndGetUrl(photo.imageFile, `recipe_${Date.now()}_${i}`)
+              uploadedImageUrls.push(imageUrl)
+              logInfo(`Image ${i + 1} uploadée avec succès`, { imageUrl: imageUrl?.substring(0, 50) + '...' })
+            } catch (uploadError) {
+              logError(`Erreur upload image ${i + 1}`, uploadError)
+              // Continue avec les autres images
+            }
+          }
+        }
+        
+        logInfo('Upload des images terminé', { 
+          totalPhotos: photos.length, 
+          successfulUploads: uploadedImageUrls.length 
+        })
+      }
+
+      // Préparer les données avec la première image uploadée comme image principale
       const recipeData = {
         title: title.trim(),
         description: description.trim(),
@@ -152,12 +178,17 @@ export default function SharePhoto() {
         ingredients: ingredients.filter(ing => ing.trim()),
         instructions: instructions.filter(inst => inst.instruction.trim()),
         tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag),
-        photos: photos.map(photo => ({
-          imageUrl: photo.imageUrl,
-          mimeType: photo.mimeType
-        })),
-        author: user.user_metadata?.display_name || user.email?.split('@')[0] || 'Chef Anonyme'
+        image: uploadedImageUrls.length > 0 ? uploadedImageUrls[0] : null, // Image principale
+        photos: uploadedImageUrls, // Toutes les images
+        author: user.user_metadata?.display_name || user.email?.split('@')[0] || 'Chef Anonyme',
+        user_id: user.id
       }
+
+      logInfo('Données de recette préparées', {
+        hasMainImage: !!recipeData.image,
+        photosCount: recipeData.photos.length,
+        title: recipeData.title
+      })
 
       const response = await fetch('/api/recipes', {
         method: 'POST',
@@ -178,7 +209,8 @@ export default function SharePhoto() {
         recipeId: result.id,
         userId: user.id,
         category,
-        photosCount: photos.length
+        photosCount: uploadedImageUrls.length,
+        hasMainImage: !!result.image
       })
 
       // Redirection vers la recette créée

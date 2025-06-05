@@ -37,7 +37,10 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5, compact = fal
         compressionRatio: result.compressionRatio
       })
       
-      return result
+      return {
+        ...result,
+        originalFile: file // Garder le fichier original pour l'upload
+      }
     } catch (error) {
       logError('Erreur traitement image', error, { 
         photoId, 
@@ -79,14 +82,15 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5, compact = fal
         
         const photoData = {
           id: photoId,
-          file: file,
+          file: result.originalFile, // Fichier original pour l'upload
           preview: result.url,
           name: file.name,
           size: file.size,
           processing: false,
           processed: true,
           error: false,
-          imageUrl: result.url,
+          imageUrl: result.url, // URL pour l'affichage
+          imageFile: result.originalFile, // Fichier pour l'upload à Supabase
           mimeType: result.mimeType,
           originalSize: result.originalSize
         }
