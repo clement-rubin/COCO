@@ -239,21 +239,22 @@ export default function SharePhoto() {
       {/* Indicateur de progression */}
       <div className={styles.progressBar}>
         <div className={styles.progressSteps}>
-          {{
-            step: 1,
-            label: '📸',
-            title: 'Photos'
-          },
-          {
-            step: 2,
-            label: '📝',
-            title: 'Détails'
-          },
-          {
-            step: 3,
-            label: '🥘',
-            title: 'Recette'
-          }
+          { [
+            {
+              step: 1,
+              label: '📸',
+              title: 'Photos'
+            },
+            {
+              step: 2,
+              label: '📝',
+              title: 'Détails'
+            },
+            {
+              step: 3,
+              label: '🥘',
+              title: 'Recette'
+            }
           ].map(({ step, label, title }) => (
             <div 
               key={step}
