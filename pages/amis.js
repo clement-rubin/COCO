@@ -416,79 +416,61 @@ export default function Amis() {
   return (
     <div className={styles.container}>
       {/* Barre de recherche d'utilisateurs */}
-      <div style={{ margin: '24px 0 16px 0', width: '100%', maxWidth: 480 }}>
-        <input
-          type="text"
-          placeholder="Rechercher des utilisateurs par nom..."
-          value={searchTerm}
-          onChange={e => setSearchTerm(e.target.value)}
-          style={{
-            width: '100%',
-            padding: '12px 16px',
-            borderRadius: 8,
-            border: '1px solid #eee',
-            fontSize: 16,
-            outline: 'none',
-            boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
-          }}
-        />
+      <div className={styles.searchSection}>
+        <div className={styles.searchBox}>
+          <input
+            type="text"
+            className={styles.searchInput}
+            placeholder="Rechercher des utilisateurs par nom..."
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            autoComplete="off"
+          />
+          {searchLoading && (
+            <span className={styles.searchSpinner} title="Recherche...">🔄</span>
+          )}
+        </div>
       </div>
       {/* Résultats de recherche d'utilisateurs */}
       {searchTerm.length >= 2 && (
-        <div style={{ marginBottom: 24, width: '100%', maxWidth: 480 }}>
-          {searchLoading ? (
-            <div style={{ color: '#888', padding: 12 }}>Recherche en cours...</div>
-          ) : searchResults.length > 0 ? (
-            <div style={{ border: '1px solid #eee', borderRadius: 8, background: '#fafafa' }}>
-              {searchResults.map(user => (
+        <div className={styles.searchSection}>
+          <div className={styles.searchResults}>
+            <h3>Résultats de recherche</h3>
+            {searchLoading ? (
+              <div style={{ color: '#888', padding: 12 }}>Recherche en cours...</div>
+            ) : searchResults.length > 0 ? (
+              searchResults.map(user => (
                 <div
                   key={user.user_id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
-                    padding: '10px 16px',
-                    borderBottom: '1px solid #f0f0f0'
-                  }}
+                  className={styles.userCard}
+                  style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 8 }}
                 >
-                  <div style={{
-                    width: 40, height: 40, borderRadius: '50%',
-                    background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    overflow: 'hidden'
-                  }}>
+                  <div className={styles.avatar}>
                     {user.avatar_url ? (
-                      <img src={user.avatar_url} alt={user.display_name} style={{ width: 40, height: 40, objectFit: 'cover' }} />
+                      <img src={user.avatar_url} alt={user.display_name} />
                     ) : (
-                      <span style={{ fontSize: 20, color: '#ff6b35' }}>
+                      <div className={styles.avatarPlaceholder}>
                         {user.display_name?.charAt(0)?.toUpperCase() || '👤'}
-                      </span>
+                      </div>
                     )}
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600 }}>{user.display_name || 'Utilisateur'}</div>
-                    <div style={{ fontSize: 13, color: '#888' }}>{user.bio || ''}</div>
+                  <div className={styles.userDetails}>
+                    <h4>{user.display_name || 'Utilisateur'}</h4>
+                    <p>{user.bio || ''}</p>
                   </div>
                   <button
                     onClick={() => sendFriendRequest(user.user_id)}
+                    className={styles.addFriendButton}
                     disabled={buttonStates[`add-${user.user_id}`]?.loading}
-                    style={{
-                      background: '#ff6b35',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: 6,
-                      padding: '6px 14px',
-                      fontWeight: 500,
-                      cursor: buttonStates[`add-${user.user_id}`]?.loading ? 'not-allowed' : 'pointer'
-                    }}
                   >
                     {buttonStates[`add-${user.user_id}`]?.loading ? '⏳' : '🤝 Ajouter'}
                   </button>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div style={{ color: '#888', padding: 12 }}>Aucun utilisateur trouvé</div>
-          )}
+              ))
+            ) : (
+              <div style={{ color: '#888', padding: 12 }}>Aucun utilisateur trouvé</div>
+            )}
+          </div>
         </div>
       )}
       {/* Onglets de navigation */}
