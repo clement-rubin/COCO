@@ -539,6 +539,6 @@ function determineMimeType(bytes) {
     return 'image/webp'
   }
   
-  // Default to octet-stream if unknown
+  // Default to octet-stream if unknown 
   return 'application/octet-stream'
 }
