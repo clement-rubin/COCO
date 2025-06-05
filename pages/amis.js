@@ -473,7 +473,7 @@ export default function Amis() {
                   <p>{friendship.profiles?.bio || 'Amateur de cuisine passionné 🍽️'}</p>
                   
                   {/* Section Gestion des amitiés */}
-                  <div style={{ marginTop: 12, borderTop: '1px solid #eee', paddingTop: 8 }}>
+                  <div style={{ marginTop: 12, borderTop: '1px solid #eee', paddingTop: 8, background: 'none', borderRadius: 0 }}>
                     <strong>Gestion de l'amitié</strong>
                     <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
                       <button
@@ -575,7 +575,6 @@ export default function Amis() {
       )}
 
       {activeTab === 'requests' && (
-        // ...section demandes d'amis...
         <section className={styles.requestsSection}>
           <h2>Demandes d'amitié ({friendRequests.length})</h2>
           {friendRequests.map((request) => (
@@ -617,7 +616,6 @@ export default function Amis() {
       )}
 
       {activeTab === 'suggestions' && (
-        // ...section suggestions...
         <section className={styles.suggestionsSection}>
           <h2>Suggestions d'amis</h2>
           <div className={styles.suggestionsGrid}>
