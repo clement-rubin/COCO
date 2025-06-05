@@ -270,7 +270,9 @@ CREATE TABLE IF NOT EXISTS public.friendships (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   UNIQUE(user_id, friend_id),
-  CONSTRAINT no_self_friendship CHECK (user_id != friend_id)
+  CONSTRAINT no_self_friendship CHECK (user_id != friend_id),
+  -- Empêche les doublons inversés (user_id/friend_id et friend_id/user_id)
+  CONSTRAINT unique_friendship_pair UNIQUE (LEAST(user_id, friend_id), GREATEST(user_id, friend_id))
 );
 
 -- Index pour les amitiés
@@ -456,7 +458,9 @@ CREATE TABLE IF NOT EXISTS public.friendships (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   UNIQUE(user_id, friend_id),
-  CONSTRAINT no_self_friendship CHECK (user_id != friend_id)
+  CONSTRAINT no_self_friendship CHECK (user_id != friend_id),
+  -- Empêche les doublons inversés (user_id/friend_id et friend_id/user_id)
+  CONSTRAINT unique_friendship_pair UNIQUE (LEAST(user_id, friend_id), GREATEST(user_id, friend_id))
 );
 
 -- Index pour les amitiés
@@ -564,14 +568,11 @@ Le système d'amis de COCO permet aux utilisateurs de rechercher, ajouter, accep
 ### Fonctionnalités principales
 
 - **Recherche d'utilisateurs** : via le nom d'affichage, avec recherche floue (`search_users_simple`)
-- **Envoi de demande d'amitié** : POST `/api/friends` avec `action: send_request`
-- **Acceptation/refus de demande** : POST `/api/friends` avec `action: accept_request` ou `reject_request`
-- **Blocage/déblocage d'utilisateur** : POST `/api/friends` avec `action: block_user` ou `unblock_user`
-- **Suggestions d'amis** : via la fonction SQL `get_friend_suggestions` ou fallback simple
-- **Notifications** : création et récupération via les fonctions utilitaires
-- **Groupes d'amis** : création et gestion via `/api/friends` (`action: create_group`)
-- **Statut en ligne** : mise à jour et vérification via `updateLastSeen` et `isUserOnline`
-- **Historique d'interactions** : journalisation des interactions sociales
+- **Suggestions d'amis** : basées sur les amis mutuels
+- **Profils utilisateur** complets avec statistiques
+- **Gestion des demandes d'amitié** (envoi, acceptation, refus)
+- **Paramètres de confidentialité** pour les profils
+- **Noms d'utilisateur personnalisés** avec validation
 
 ### Endpoints API
 

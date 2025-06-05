@@ -21,7 +21,7 @@ export default function Home() {
   const features = [
     {
       icon: '🎯',
-      title: 'Feed Personnalisé',
+      title: 'Feed Addictif',
       description: 'Des recettes adaptées à vos goûts grâce à notre IA avancée'
     },
     {
