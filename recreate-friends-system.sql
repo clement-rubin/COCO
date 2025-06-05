@@ -36,17 +36,17 @@ CREATE TABLE friendships (
 );
 
 -- 4. Index pour les performances
-CREATE INDEX idx_friendships_user_id ON friendships(user_id);
-CREATE INDEX idx_friendships_friend_id ON friendships(friend_id);
-CREATE INDEX idx_friendships_status ON friendships(status);
-CREATE INDEX idx_friendships_user_status ON friendships(user_id, status);
-CREATE INDEX idx_friendships_friend_status ON friendships(friend_id, status);
-CREATE INDEX idx_profiles_user_id ON profiles(user_id);
-CREATE INDEX idx_profiles_display_name ON profiles(display_name);
+CREATE INDEX IF NOT EXISTS idx_friendships_user_id ON friendships(user_id);
+CREATE INDEX IF NOT EXISTS idx_friendships_friend_id ON friendships(friend_id);
+CREATE INDEX IF NOT EXISTS idx_friendships_status ON friendships(status);
+CREATE INDEX IF NOT EXISTS idx_friendships_user_status ON friendships(user_id, status);
+CREATE INDEX IF NOT EXISTS idx_friendships_friend_status ON friendships(friend_id, status);
+CREATE INDEX IF NOT EXISTS idx_profiles_user_id ON profiles(user_id);
+CREATE INDEX IF NOT EXISTS idx_profiles_display_name ON profiles(display_name);
 
 -- 5. Extension pour recherche floue
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
-CREATE INDEX idx_profiles_display_name_trgm ON profiles USING gin(display_name gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_profiles_display_name_trgm ON profiles USING gin(display_name gin_trgm_ops);
 
 -- 6. Row Level Security
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
@@ -146,7 +146,10 @@ BEGIN
   RETURN QUERY
   SELECT 
     f.id as friendship_id,
-    p.user_id as friend_user_id,
+    CASE 
+      WHEN f.user_id = target_user_id THEN f.friend_id
+      ELSE f.user_id
+    END as friend_user_id,
     p.display_name as friend_display_name,
     p.avatar_url as friend_avatar_url,
     p.bio as friend_bio,
@@ -154,10 +157,9 @@ BEGIN
     f.created_at
   FROM friendships f
   JOIN profiles p ON (
-    CASE 
-      WHEN f.user_id = target_user_id THEN p.user_id = f.friend_id
-      ELSE p.user_id = f.user_id
-    END
+    (f.user_id = target_user_id AND p.user_id = f.friend_id)
+    OR
+    (f.friend_id = target_user_id AND p.user_id = f.user_id)
   )
   WHERE 
     (f.user_id = target_user_id OR f.friend_id = target_user_id)
@@ -180,7 +182,7 @@ BEGIN
   RETURN QUERY
   SELECT 
     f.id as friendship_id,
-    p.user_id as requester_user_id,
+    f.user_id as requester_user_id,
     p.display_name as requester_display_name,
     p.avatar_url as requester_avatar_url,
     p.bio as requester_bio,
