@@ -1,9 +1,10 @@
-/* Mobile-first Amis Design - Cohérent avec COCO */
+/* Design moderne et addictif pour la page Amis - COCO */
 .container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #ff7e5f, #feb47b);
-  padding: 20px;
+  background: linear-gradient(135deg, #fff5f0 0%, #ffffff 50%, #f8fafc 100%);
   padding-bottom: 100px;
+  position: relative;
+  overflow-x: hidden;
 }
 
 .container::before {
@@ -14,574 +15,506 @@
   right: 0;
   bottom: 0;
   background: 
-    radial-gradient(circle at 20% 20%, rgba(255, 107, 53, 0.06) 0%, transparent 50%),
-    radial-gradient(circle at 80% 80%, rgba(59, 130, 246, 0.04) 0%, transparent 50%);
+    radial-gradient(circle at 25% 25%, rgba(255, 107, 53, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 75% 75%, rgba(59, 130, 246, 0.02) 0%, transparent 50%);
   pointer-events: none;
   z-index: 0;
-  animation: gentleFloat 8s ease-in-out infinite alternate;
+  animation: gentleFloat 12s ease-in-out infinite alternate;
 }
 
 @keyframes gentleFloat {
-  0% { opacity: 0.3; transform: translateY(0px); }
-  100% { opacity: 0.5; transform: translateY(-5px); }
+  0% { opacity: 0.3; transform: translateY(0px) rotate(0deg); }
+  100% { opacity: 0.5; transform: translateY(-10px) rotate(1deg); }
 }
 
-/* Header mobile moderne */
-.mobileHeader {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 80px;
+/* Header moderne et engageant */
+.header {
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 20px;
-  z-index: 1000;
-  box-shadow: 0 1px 20px rgba(0, 0, 0, 0.04);
-}
-
-.mobileBackBtn {
-  background: #f1f5f9;
-  border: none;
-  color: #475569;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 1.2rem;
-  font-weight: 600;
-}
-
-.mobileBackBtn:active {
-  background: #e2e8f0;
-  transform: scale(0.95);
-}
-
-.mobileTitle {
-  flex: 1;
+  border-bottom: 1px solid rgba(255, 107, 53, 0.1);
+  padding: 2rem;
+  margin-bottom: 2rem;
   text-align: center;
-  padding: 0 16px;
+  position: relative;
+  z-index: 2;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
 }
 
-.mobileTitle h1 {
-  margin: 0 0 4px 0;
-  font-size: 1.35rem;
-  font-weight: 700;
-  color: #1e293b;
+.header h1 {
+  font-size: 2.2rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 0.5rem;
+  animation: fadeIn 0.8s ease;
 }
 
-.subtitle {
+.header p {
+  color: var(--text-secondary);
+  font-size: 1.1rem;
   margin: 0;
-  font-size: 0.85rem;
-  color: #64748b;
-  font-weight: 500;
+  animation: fadeIn 1s ease 0.2s both;
 }
 
-.headerActions {
-  display: flex;
-  gap: 8px;
-}
-
-.notificationBtn {
-  background: #f1f5f9;
-  border: none;
-  color: #475569;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
+/* Message d'erreur stylé */
+.errorMessage {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(220, 38, 38, 0.05) 100%);
+  border: 2px solid rgba(239, 68, 68, 0.2);
+  border-radius: 16px;
+  padding: 1.2rem;
+  margin: 1rem 2rem;
   display: flex;
   align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 1.1rem;
-  position: relative;
+  gap: 0.75rem;
+  color: #dc2626;
+  font-weight: 600;
+  animation: shake 0.5s ease, fadeIn 0.5s ease;
+  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.1);
 }
 
-.notificationBtn.hasNotifications::after {
-  content: '';
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 8px;
-  height: 8px;
-  background: #ff6b35;
-  border-radius: 50%;
-  border: 2px solid white;
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
 }
 
-/* Contenu principal */
-.mobileContent {
-  margin-top: 80px;
-  padding: 24px 20px 100px;
-  position: relative;
-  z-index: 1;
-}
-
-/* Section de recherche */
+/* Section de recherche moderne */
 .searchSection {
-  background: white;
-  border-radius: 20px;
-  padding: 20px;
-  margin-bottom: 20px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+  padding: 0 2rem;
+  margin-bottom: 2rem;
+  position: relative;
+  z-index: 2;
 }
 
 .searchBox {
   position: relative;
-  margin-bottom: 20px;
+  max-width: 500px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+  border: 2px solid transparent;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.searchBox:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 12px 35px rgba(255, 107, 53, 0.15);
+  transform: translateY(-2px);
 }
 
 .searchInput {
   width: 100%;
-  padding: 15px 20px;
-  border: 2px solid #f0f0f0;
-  border-radius: 25px;
-  font-size: 1rem;
+  padding: 1.2rem 1.5rem;
+  border: none;
   outline: none;
-  transition: border-color 0.3s;
+  font-size: 1rem;
+  background: transparent;
+  color: var(--text-primary);
 }
 
-.searchInput:focus {
-  border-color: #ff7e5f;
+.searchInput::placeholder {
+  color: var(--text-muted);
+  font-weight: 500;
 }
 
 .searchSpinner {
   position: absolute;
-  right: 15px;
-  top: 50%;
-  transform: translateY(-50%);
+  right: 1.5rem;
+  font-size: 1.2rem;
   animation: spin 1s linear infinite;
 }
 
 @keyframes spin {
-  from { transform: translateY(-50%) rotate(0deg); }
-  to { transform: translateY(-50%) rotate(360deg); }
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Résultats de recherche */
+.searchResults {
+  background: white;
+  border-radius: 20px;
+  padding: 1.5rem;
+  margin: 1rem 2rem;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(255, 107, 53, 0.1);
+  animation: slideIn 0.5s ease;
 }
 
 .searchResults h3 {
-  margin-bottom: 15px;
-  color: #333;
+  margin: 0 0 1rem 0;
+  color: var(--text-primary);
+  font-weight: 700;
   font-size: 1.2rem;
 }
 
-/* Cartes de section */
-.sectionCard {
+/* Cartes utilisateur modernes */
+.userCard, .requestCard, .friendCard, .suggestionCard {
   background: white;
-  border-radius: 20px;
-  padding: 24px;
-  margin-bottom: 24px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  border: 1px solid rgba(226, 232, 240, 0.6);
-  transition: all 0.3s ease;
+  border-radius: 16px;
+  padding: 1.2rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(255, 107, 53, 0.05);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  animation: cardSlideIn 0.6s ease var(--stagger-delay, 0ms) both;
 }
 
-.sectionCard:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+.userCard:hover, .requestCard:hover, .friendCard:hover, .suggestionCard:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 12px 35px rgba(255, 107, 53, 0.12);
+  border-color: rgba(255, 107, 53, 0.2);
 }
 
-.sectionHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 20px;
+.userCard::before, .requestCard::before, .friendCard::before, .suggestionCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 107, 53, 0.05), transparent);
+  transition: left 0.6s ease;
 }
 
-.sectionTitle {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #1e293b;
+.userCard:hover::before, .requestCard:hover::before, .friendCard:hover::before, .suggestionCard:hover::before {
+  left: 100%;
 }
 
-.sectionBadge {
-  background: linear-gradient(135deg, #ff6b35, #f97316);
-  color: white;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  box-shadow: 0 2px 8px rgba(255, 107, 53, 0.3);
-}
-
-/* Cartes utilisateur */
-.userCard, .requestCard {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 15px;
-  border: 1px solid #f0f0f0;
-  border-radius: 15px;
-  margin-bottom: 10px;
-  transition: transform 0.2s;
-}
-
-.userCard:hover, .requestCard:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+@keyframes cardSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .userInfo {
   display: flex;
   align-items: center;
+  gap: 1rem;
   flex: 1;
 }
 
 .avatar {
-  width: 50px;
-  height: 50px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
-  margin-right: 15px;
   overflow: hidden;
+  position: relative;
+  border: 3px solid transparent;
+  background: linear-gradient(135deg, #ff6b35, #f7931e);
+  padding: 2px;
+  transition: all 0.3s ease;
+}
+
+.avatar:hover {
+  transform: scale(1.1) rotate(5deg);
+  box-shadow: 0 8px 20px rgba(255, 107, 53, 0.3);
 }
 
 .avatar img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  border-radius: 50%;
 }
 
 .avatarPlaceholder {
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, #ff7e5f, #feb47b);
+  background: linear-gradient(135deg, #ff6b35, #f7931e);
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  font-weight: bold;
-  font-size: 1.2rem;
+  font-weight: 700;
+  font-size: 1.5rem;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.userDetails {
+  flex: 1;
 }
 
 .userDetails h4 {
-  margin: 0 0 5px 0;
-  color: #333;
-  font-size: 1rem;
+  margin: 0 0 0.25rem 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
 }
 
 .userDetails p {
   margin: 0;
-  color: #666;
+  color: var(--text-secondary);
   font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+/* Boutons d'action modernes */
+.addFriendButton, .acceptButton, .declineButton {
+  padding: 0.8rem 1.5rem;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .addFriendButton {
-  background: #ff7e5f;
+  background: linear-gradient(135deg, #ff6b35, #f7931e);
   color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 20px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.3s;
+  box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
 }
 
 .addFriendButton:hover {
-  background: #e66b4f;
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 8px 25px rgba(255, 107, 53, 0.4);
 }
 
-.requestsSection, .friendsSection, .suggestionsSection {
-  background: white;
-  border-radius: 20px;
-  padding: 20px;
-  margin-bottom: 20px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+.acceptButton {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
 }
 
-.requestsSection h2, .friendsSection h2, .suggestionsSection h2 {
-  margin-bottom: 20px;
-  color: #333;
-  font-size: 1.3rem;
+.acceptButton:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+}
+
+.declineButton {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+  border: 2px solid rgba(239, 68, 68, 0.2);
+}
+
+.declineButton:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.3);
+  transform: translateY(-2px);
 }
 
 .requestActions {
   display: flex;
-  gap: 10px;
+  gap: 0.75rem;
+  align-items: center;
 }
 
-.acceptButton {
-  background: #4CAF50;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 15px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.3s;
+/* Sections avec titres modernes */
+.requestsSection, .friendsSection, .suggestionsSection {
+  padding: 0 2rem;
+  margin-bottom: 2rem;
+  position: relative;
+  z-index: 2;
 }
 
-.acceptButton:hover {
-  background: #45a049;
+.requestsSection h2, .friendsSection h2, .suggestionsSection h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  animation: fadeIn 0.8s ease;
 }
 
-.declineButton {
-  background: #f44336;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 15px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.3s;
+.requestsSection h2::before {
+  content: '📬';
+  font-size: 1.2rem;
 }
 
-.declineButton:hover {
-  background: #da190b;
+.friendsSection h2::before {
+  content: '👥';
+  font-size: 1.2rem;
 }
 
+.suggestionsSection h2::before {
+  content: '✨';
+  font-size: 1.2rem;
+}
+
+/* Grilles responsives */
 .friendsGrid, .suggestionsGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
 }
 
-.friendCard, .suggestionCard {
-  text-align: center;
-  padding: 20px;
-  border: 1px solid #f0f0f0;
-  border-radius: 15px;
-  transition: transform 0.2s;
-}
-
-.friendCard:hover, .suggestionCard:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-}
-
-.friendCard .avatar, .suggestionCard .avatar {
-  width: 60px;
-  height: 60px;
-  margin: 0 auto 10px;
-}
-
-.friendCard h4, .suggestionCard h4 {
-  margin: 0 0 5px 0;
-  color: #333;
-}
-
-.friendCard p, .suggestionCard p {
-  margin: 0 0 10px 0;
-  color: #666;
-  font-size: 0.9rem;
-}
-
-.suggestionCard small {
-  color: #ff7e5f;
-  font-weight: 600;
-  display: block;
-  margin-bottom: 10px;
-}
-
+/* États vides avec style */
 .emptyState {
   text-align: center;
-  padding: 40px 20px;
-  color: #666;
+  padding: 3rem 2rem;
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
+  border: 2px dashed rgba(255, 107, 53, 0.2);
+  animation: fadeIn 0.8s ease;
 }
 
 .emptyState p {
+  color: var(--text-secondary);
   font-size: 1.1rem;
+  margin: 0;
 }
 
-/* États de chargement */
-.loading {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 50vh;
-  font-size: 1.2rem;
-  color: white;
-}
-
-/* Prompt de connexion */
+/* Prompts de connexion */
 .loginPrompt {
   text-align: center;
-  padding: 60px 20px;
-  color: white;
+  padding: 4rem 2rem;
+  background: white;
+  border-radius: 20px;
+  margin: 2rem;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+  animation: fadeIn 0.8s ease;
 }
 
 .loginPrompt h2 {
-  margin-bottom: 20px;
-  font-size: 1.5rem;
+  color: var(--text-primary);
+  margin-bottom: 1.5rem;
+  font-weight: 700;
 }
 
 .loginButton {
   display: inline-block;
-  background: white;
-  color: #ff7e5f;
-  padding: 12px 24px;
-  border-radius: 25px;
+  padding: 1rem 2rem;
+  background: linear-gradient(135deg, #ff6b35, #f7931e);
+  color: white;
   text-decoration: none;
+  border-radius: 12px;
   font-weight: 600;
-  transition: transform 0.2s;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
 }
 
 .loginButton:hover {
-  transform: scale(1.05);
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 8px 25px rgba(255, 107, 53, 0.4);
 }
 
-/* Messages d'erreur */
-.errorBanner {
-  position: fixed;
-  top: 100px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #fee2e2;
-  border: 1px solid #fecaca;
-  color: #dc2626;
-  padding: 12px 20px;
-  border-radius: 25px;
-  z-index: 1000;
-  font-weight: 600;
-  font-size: 0.9rem;
-  box-shadow: 0 8px 25px rgba(220, 38, 38, 0.2);
-  animation: slideDown 0.3s ease-out;
-  max-width: calc(100vw - 40px);
+/* Indicateur de chargement */
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+  animation: fadeIn 0.5s ease;
 }
 
-.errorBanner.success {
-  background: #d1fae5;
-  border-color: #a7f3d0;
-  color: #065f46;
-  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.2);
+.loading::before {
+  content: '👥';
+  font-size: 4rem;
+  margin-bottom: 1rem;
+  animation: bounce 2s infinite;
 }
 
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateX(-50%) translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
 }
 
-/* Responsive */
+/* Animations d'entrée */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* Responsive mobile-first */
 @media (max-width: 768px) {
-  .mobileContent {
-    padding: 20px 16px 100px;
+  .header {
+    padding: 1.5rem 1rem;
   }
   
-  .sectionCard {
-    padding: 20px;
-    margin-bottom: 20px;
+  .header h1 {
+    font-size: 1.8rem;
   }
   
-  .userCard {
-    padding: 14px;
+  .searchSection, .requestsSection, .friendsSection, .suggestionsSection {
+    padding: 0 1rem;
   }
   
-  .userInfo {
-    gap: 12px;
+  .friendsGrid, .suggestionsGrid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
   }
   
-  .avatar {
-    width: 48px;
-    height: 48px;
-  }
-  
-  .friendsGrid {
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 12px;
-  }
-  
-  .friendCard {
-    padding: 16px 12px;
-  }
-  
-  .friendCard .avatar {
-    width: 56px;
-    height: 56px;
+  .userCard, .requestCard, .friendCard, .suggestionCard {
+    padding: 1rem;
   }
   
   .requestActions {
     flex-direction: column;
-    gap: 6px;
+    gap: 0.5rem;
   }
   
-  .acceptButton, .declineButton {
-    padding: 6px 12px;
-    font-size: 0.8rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .mobileHeader {
-    padding: 0 16px;
-  }
-  
-  .mobileTitle h1 {
-    font-size: 1.2rem;
-  }
-  
-  .searchInput {
-    padding: 16px 0;
-    font-size: 15px;
-  }
-  
-  .friendsGrid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
-  .userCard {
-    flex-direction: column;
-    text-align: center;
-    gap: 12px;
-    padding: 16px;
-  }
-  
-  .userInfo {
-    flex-direction: column;
-    text-align: center;
-    gap: 8px;
-  }
-  
-  .actionButton {
+  .addFriendButton, .acceptButton, .declineButton {
     width: 100%;
-    margin-top: 8px;
+    padding: 0.75rem 1rem;
   }
 }
 
-/* Mode sombre */
+/* Mode sombre (si activé) */
 @media (prefers-color-scheme: dark) {
   .container {
-    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
-    color: #f1f5f9;
+    background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 50%, #1e1e1e 100%);
   }
   
-  .mobileHeader {
-    background: rgba(15, 23, 42, 0.95);
-    border-bottom-color: rgba(51, 65, 85, 0.8);
+  .header, .searchBox, .userCard, .requestCard, .friendCard, .suggestionCard, .searchResults, .emptyState, .loginPrompt {
+    background: rgba(40, 40, 50, 0.95);
+    color: #f0f0f0;
   }
   
-  .mobileTitle h1 {
-    color: #f1f5f9;
-  }
-  
-  .sectionCard {
-    background: #1e293b;
-    border-color: rgba(51, 65, 85, 0.6);
-  }
-  
-  .userCard {
-    background: #0f172a;
-    border-color: rgba(51, 65, 85, 0.4);
-  }
-  
-  .userCard:hover {
-    background: #1e293b;
-    border-color: #ff6b35;
+  .header h1, .requestsSection h2, .friendsSection h2, .suggestionsSection h2 {
+    color: #f0f0f0;
   }
 }
+
+/* Délais de stagger pour les animations */
+.userCard:nth-child(1) { --stagger-delay: 0ms; }
+.userCard:nth-child(2) { --stagger-delay: 100ms; }
+.userCard:nth-child(3) { --stagger-delay: 200ms; }
+.userCard:nth-child(4) { --stagger-delay: 300ms; }
+.userCard:nth-child(5) { --stagger-delay: 400ms; }
+
+.requestCard:nth-child(1) { --stagger-delay: 0ms; }
+.requestCard:nth-child(2) { --stagger-delay: 100ms; }
+.requestCard:nth-child(3) { --stagger-delay: 200ms; }
+
+.friendCard:nth-child(1) { --stagger-delay: 0ms; }
+.friendCard:nth-child(2) { --stagger-delay: 100ms; }
+.friendCard:nth-child(3) { --stagger-delay: 200ms; }
+.friendCard:nth-child(4) { --stagger-delay: 300ms; }
+
+.suggestionCard:nth-child(1) { --stagger-delay: 0ms; }
+.suggestionCard:nth-child(2) { --stagger-delay: 100ms; }
+.suggestionCard:nth-child(3) { --stagger-delay: 200ms; }
+.suggestionCard:nth-child(4) { --stagger-delay: 300ms; }
+.suggestionCard:nth-child(5) { --stagger-delay: 400ms; }
