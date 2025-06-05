@@ -15,11 +15,30 @@ export default function Amis() {
   const [loading, setLoading] = useState(true);
   const [searchLoading, setSearchLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
+  const [buttonStates, setButtonStates] = useState({});
   const router = useRouter();
 
   useEffect(() => {
     checkUser();
   }, []);
+
+  const showMessage = (message, isError = false) => {
+    if (isError) {
+      setError(message);
+      setTimeout(() => setError(null), 4000);
+    } else {
+      setSuccessMessage(message);
+      setTimeout(() => setSuccessMessage(null), 3000);
+    }
+  };
+
+  const setButtonLoading = (buttonId, loading) => {
+    setButtonStates(prev => ({
+      ...prev,
+      [buttonId]: { ...prev[buttonId], loading }
+    }));
+  };
 
   const checkUser = async () => {
     try {
@@ -34,7 +53,7 @@ export default function Amis() {
       }
     } catch (error) {
       logError('Error checking user:', error);
-      setError('Erreur de connexion');
+      showMessage('Erreur de connexion', true);
     } finally {
       setLoading(false);
     }
@@ -196,6 +215,9 @@ export default function Amis() {
   };
 
   const sendFriendRequest = async (friendId) => {
+    const buttonId = `add-${friendId}`;
+    setButtonLoading(buttonId, true);
+    
     try {
       // Vérifier d'abord le statut existant avec la fonction SQL corrigée
       const { data: existingStatus, error: statusError } = await supabase
@@ -205,8 +227,7 @@ export default function Amis() {
         });
 
       if (!statusError && existingStatus && existingStatus.length > 0) {
-        setError('Une demande d\'amitié existe déjà');
-        setTimeout(() => setError(null), 3000);
+        showMessage('Une demande d\'amitié existe déjà', true);
         return;
       }
 
@@ -229,18 +250,17 @@ export default function Amis() {
 
       if (error) {
         if (error.code === '23505') {
-          setError('Demande d\'amitié déjà envoyée');
+          showMessage('Demande d\'amitié déjà envoyée', true);
         } else if (error.code === '23503') {
-          setError('Erreur de référence utilisateur - veuillez réessayer');
+          showMessage('Erreur de référence utilisateur - veuillez réessayer', true);
           logError('Foreign key constraint error:', error);
         } else {
           logError('Detailed error sending friend request:', error);
-          setError(`Erreur: ${error.message}`);
+          showMessage(`Erreur: ${error.message}`, true);
         }
       } else {
         logInfo('Friend request sent successfully', newFriendship);
-        setError('Demande d\'amitié envoyée !');
-        setTimeout(() => setError(null), 3000);
+        showMessage('Demande d\'amitié envoyée avec succès ! 🎉');
         
         // Rafraîchir les résultats de recherche
         if (searchTerm) {
@@ -249,12 +269,16 @@ export default function Amis() {
       }
     } catch (error) {
       logError('Error sending friend request:', error);
-      setError('Erreur lors de l\'envoi de la demande');
-      setTimeout(() => setError(null), 3000);
+      showMessage('Erreur lors de l\'envoi de la demande', true);
+    } finally {
+      setButtonLoading(buttonId, false);
     }
   };
 
   const respondToFriendRequest = async (requestId, action) => {
+    const buttonId = `${action}-${requestId}`;
+    setButtonLoading(buttonId, true);
+    
     try {
       if (action === 'accept') {
         const { error } = await supabase
@@ -267,6 +291,7 @@ export default function Amis() {
 
         if (error) throw error;
         logInfo('Friend request accepted');
+        showMessage('Demande d\'amitié acceptée ! 🤝');
       } else {
         const { error } = await supabase
           .from('friendships')
@@ -275,6 +300,7 @@ export default function Amis() {
 
         if (error) throw error;
         logInfo('Friend request declined');
+        showMessage('Demande d\'amitié refusée', false);
       }
 
       await Promise.all([
@@ -283,8 +309,9 @@ export default function Amis() {
       ]);
     } catch (error) {
       logError('Error responding to friend request:', error);
-      setError('Erreur lors de la réponse à la demande');
-      setTimeout(() => setError(null), 3000);
+      showMessage('Erreur lors de la réponse à la demande', true);
+    } finally {
+      setButtonLoading(buttonId, false);
     }
   };
 
@@ -304,7 +331,7 @@ export default function Amis() {
     return (
       <div className={styles.container}>
         <Navigation />
-        <div className={styles.loading}>Chargement...</div>
+        <div className={styles.loading}>Chargement de vos amis...</div>
       </div>
     );
   }
@@ -314,7 +341,8 @@ export default function Amis() {
       <div className={styles.container}>
         <Navigation />
         <div className={styles.loginPrompt}>
-          <h2>Connectez-vous pour accéder à vos amis</h2>
+          <h2>Connectez-vous pour découvrir vos amis</h2>
+          <p>Rejoignez la communauté COCO et connectez-vous avec d'autres passionnés de cuisine !</p>
           <a href="/login" className={styles.loginButton}>Se connecter</a>
         </div>
       </div>
@@ -325,9 +353,24 @@ export default function Amis() {
     <div className={styles.container}>
       <Navigation />
       
+      <div className={styles.header}>
+        <h1>Mes Amis</h1>
+        <p>Découvrez, connectez-vous et partagez vos passions culinaires</p>
+      </div>
+
       {error && (
         <div className={styles.errorMessage}>
           {error}
+        </div>
+      )}
+
+      {successMessage && (
+        <div className={styles.errorMessage} style={{
+          background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(5, 150, 105, 0.06) 100%)',
+          borderColor: 'rgba(16, 185, 129, 0.25)',
+          color: '#059669'
+        }}>
+          ✅ {successMessage}
         </div>
       )}
 
@@ -336,7 +379,7 @@ export default function Amis() {
         <div className={styles.searchBox}>
           <input
             type="text"
-            placeholder="Rechercher des amis..."
+            placeholder="🔍 Rechercher des amis par nom..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className={styles.searchInput}
@@ -346,7 +389,7 @@ export default function Amis() {
 
         {searchResults.length > 0 && (
           <div className={styles.searchResults}>
-            <h3>Résultats de recherche</h3>
+            <h3>Résultats de recherche ({searchResults.length})</h3>
             {searchResults.map((profile) => (
               <div key={profile.user_id} className={styles.userCard}>
                 <div className={styles.userInfo}>
@@ -361,14 +404,15 @@ export default function Amis() {
                   </div>
                   <div className={styles.userDetails}>
                     <h4>{profile.display_name || 'Utilisateur'}</h4>
-                    <p>{profile.bio || 'Aucune bio'}</p>
+                    <p>{profile.bio || 'Passionné(e) de cuisine 👨‍🍳'}</p>
                   </div>
                 </div>
                 <button
                   onClick={() => sendFriendRequest(profile.user_id)}
                   className={styles.addFriendButton}
+                  disabled={buttonStates[`add-${profile.user_id}`]?.loading}
                 >
-                  Ajouter
+                  {buttonStates[`add-${profile.user_id}`]?.loading ? '⏳' : '✨'} Ajouter
                 </button>
               </div>
             ))}
@@ -394,21 +438,23 @@ export default function Amis() {
                 </div>
                 <div className={styles.userDetails}>
                   <h4>{request.profiles?.display_name || 'Utilisateur'}</h4>
-                  <p>{request.profiles?.bio || 'Aucune bio'}</p>
+                  <p>{request.profiles?.bio || 'Nouveau membre de la communauté COCO 🌟'}</p>
                 </div>
               </div>
               <div className={styles.requestActions}>
                 <button
                   onClick={() => respondToFriendRequest(request.id, 'accept')}
                   className={styles.acceptButton}
+                  disabled={buttonStates[`accept-${request.id}`]?.loading}
                 >
-                  Accepter
+                  {buttonStates[`accept-${request.id}`]?.loading ? '⏳' : '✅'} Accepter
                 </button>
                 <button
                   onClick={() => respondToFriendRequest(request.id, 'decline')}
                   className={styles.declineButton}
+                  disabled={buttonStates[`decline-${request.id}`]?.loading}
                 >
-                  Refuser
+                  {buttonStates[`decline-${request.id}`]?.loading ? '⏳' : '❌'} Refuser
                 </button>
               </div>
             </div>
@@ -433,13 +479,13 @@ export default function Amis() {
                   )}
                 </div>
                 <h4>{friendship.profiles?.display_name || 'Utilisateur'}</h4>
-                <p>{friendship.profiles?.bio || 'Aucune bio'}</p>
+                <p>{friendship.profiles?.bio || 'Amateur de cuisine passionné 🍽️'}</p>
               </div>
             ))}
           </div>
         ) : (
           <div className={styles.emptyState}>
-            <p>Vous n'avez pas encore d'amis. Utilisez la recherche pour en trouver !</p>
+            <p>Vous n'avez pas encore d'amis culinaires. Utilisez la recherche pour découvrir des passionnés comme vous !</p>
           </div>
         )}
       </section>
@@ -461,12 +507,13 @@ export default function Amis() {
                   )}
                 </div>
                 <h4>{suggestion.display_name || 'Utilisateur'}</h4>
-                <p>{suggestion.bio || 'Aucune bio'}</p>
+                <p>{suggestion.bio || 'Découvrez de nouvelles recettes ensemble ! 🌟'}</p>
                 <button
                   onClick={() => sendFriendRequest(suggestion.user_id)}
                   className={styles.addFriendButton}
+                  disabled={buttonStates[`add-${suggestion.user_id}`]?.loading}
                 >
-                  Ajouter
+                  {buttonStates[`add-${suggestion.user_id}`]?.loading ? '⏳ Envoi...' : '🤝 Ajouter'}
                 </button>
               </div>
             ))}
