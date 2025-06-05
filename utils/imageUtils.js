@@ -575,10 +575,21 @@ export async function uploadImageToSupabaseAndGetUrl(fileOrDataUrl, filename = n
       filename,
     });
 
+    // Vérifier la configuration Supabase
+    if (!supabase) {
+      throw new Error('Supabase client not configured')
+    }
+
     let file, ext = 'jpg';
     if (typeof File !== 'undefined' && fileOrDataUrl instanceof File) {
       file = fileOrDataUrl;
       ext = file.name.split('.').pop() || 'jpg';
+      logInfo('File detected', { 
+        name: file.name, 
+        size: file.size, 
+        type: file.type,
+        extension: ext 
+      });
     } else if (typeof fileOrDataUrl === 'string' && fileOrDataUrl.startsWith('data:image/')) {
       // Convertir dataURL en Blob
       const matches = fileOrDataUrl.match(/^data:image\/(\w+);base64,/);
@@ -588,35 +599,108 @@ export async function uploadImageToSupabaseAndGetUrl(fileOrDataUrl, filename = n
       const arr = new Uint8Array(bin.length);
       for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
       file = new Blob([arr], { type: `image/${ext}` });
+      logInfo('DataURL converted to Blob', { 
+        originalLength: fileOrDataUrl.length,
+        blobSize: file.size,
+        mimeType: file.type,
+        extension: ext 
+      });
     } else {
-      throw new Error('Format d\'image non supporté');
+      throw new Error('Format d\'image non supporté - doit être un File ou une dataURL')
     }
 
-    const uniqueName = filename || `photo_${Date.now()}.${ext}`;
-    logInfo('uploadImageToSupabaseAndGetUrl: uploading', { uniqueName, ext });
+    // Générer un nom de fichier unique
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).substring(2, 8);
+    const uniqueName = filename || `photo_${timestamp}_${random}.${ext}`;
+    
+    logInfo('uploadImageToSupabaseAndGetUrl: uploading to Supabase', { 
+      uniqueName, 
+      ext,
+      fileSize: file.size,
+      fileType: file.type || `image/${ext}`
+    });
 
+    // Tentative d'upload vers Supabase storage
     const { data, error } = await supabase.storage
       .from('images')
-      .upload(uniqueName, file, { upsert: true, contentType: file.type || `image/${ext}` });
+      .upload(uniqueName, file, { 
+        upsert: true, 
+        contentType: file.type || `image/${ext}`,
+        cacheControl: '3600'
+      });
 
+    // Gestion d'erreur d'upload
     if (error) {
-      logError('uploadImageToSupabaseAndGetUrl: upload error', error);
-      throw error;
+      logError('uploadImageToSupabaseAndGetUrl: Supabase upload error', error, {
+        uniqueName,
+        errorCode: error.statusCode,
+        errorMessage: error.message,
+        fileSize: file.size,
+        fileType: file.type
+      });
+      
+      // Messages d'erreur plus spécifiques
+      if (error.statusCode === 413 || error.message?.includes('too large')) {
+        throw new Error(`Fichier trop volumineux (${Math.round(file.size / 1024)}KB). Taille max: 50MB`)
+      } else if (error.statusCode === 401 || error.message?.includes('unauthorized')) {
+        throw new Error('Erreur d\'autorisation. Veuillez vous reconnecter.')
+      } else if (error.statusCode === 403 || error.message?.includes('forbidden')) {
+        throw new Error('Accès interdit au stockage. Vérifiez vos permissions.')
+      } else {
+        throw new Error(`Erreur d'upload: ${error.message || 'Erreur inconnue'}`)
+      }
     }
 
+    if (!data) {
+      logError('uploadImageToSupabaseAndGetUrl: No data returned from upload', null, { uniqueName });
+      throw new Error('Aucune donnée retournée après l\'upload');
+    }
+
+    logInfo('uploadImageToSupabaseAndGetUrl: upload successful', { 
+      path: data.path,
+      id: data.id,
+      fullPath: data.fullPath 
+    });
+
     // Récupérer l'URL publique
-    const { data: publicUrlData } = supabase.storage.from('images').getPublicUrl(uniqueName);
-    logInfo('uploadImageToSupabaseAndGetUrl: success', { publicUrl: publicUrlData?.publicUrl });
+    const { data: publicUrlData } = supabase.storage
+      .from('images')
+      .getPublicUrl(uniqueName);
 
     if (!publicUrlData?.publicUrl) {
-      logError('Aucune URL publique retournée après upload', { uniqueName, data });
+      logError('uploadImageToSupabaseAndGetUrl: No public URL returned', null, { 
+        uniqueName, 
+        publicUrlData 
+      });
       throw new Error('Impossible de récupérer l\'URL publique de l\'image');
     }
 
-    logInfo('URL publique obtenue', { url: publicUrlData.publicUrl });
+    logInfo('uploadImageToSupabaseAndGetUrl: success', { 
+      publicUrl: publicUrlData.publicUrl.substring(0, 100) + '...',
+      fullUrl: publicUrlData.publicUrl
+    });
+
     return publicUrlData.publicUrl;
+
   } catch (err) {
-    logError('uploadImageToSupabaseAndGetUrl: global error', err);
-    throw err;
+    // Log détaillé de l'erreur
+    logError('uploadImageToSupabaseAndGetUrl: global error', err, {
+      errorName: err.name,
+      errorMessage: err.message,
+      errorStack: err.stack?.substring(0, 500),
+      inputType: typeof fileOrDataUrl,
+      filename,
+      supabaseAvailable: !!supabase
+    });
+
+    // Re-lancer l'erreur avec un message plus clair
+    if (err.message?.includes('<!DOCTYPE')) {
+      throw new Error('Erreur du serveur de stockage. Veuillez réessayer dans quelques minutes.');
+    } else if (err.message?.includes('NetworkError') || err.message?.includes('fetch')) {
+      throw new Error('Erreur de connexion. Vérifiez votre connexion internet.');
+    } else {
+      throw err; // Re-lancer l'erreur originale si elle est déjà bien formatée
+    }
   }
 }
