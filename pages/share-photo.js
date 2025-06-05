@@ -174,19 +174,19 @@ export default function SharePhoto() {
         difficulty,
         prepTime: prepTime || null,
         cookTime: cookTime || null,
-        servings: parseInt(servings),
+        servings: servings ? servings.toString() : null,
         ingredients: ingredients.filter(ing => ing.trim()),
         instructions: instructions.filter(inst => inst.instruction.trim()),
         tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag),
-        image: uploadedImageUrls.length > 0 ? uploadedImageUrls[0] : null, // Image principale
-        photos: uploadedImageUrls, // Toutes les images
+        image: uploadedImageUrls.length > 0 ? uploadedImageUrls[0] : null, // <-- seule image principale
+        // photos: uploadedImageUrls, // <-- NE PAS ENVOYER ce champ à l'API
         author: user.user_metadata?.display_name || user.email?.split('@')[0] || 'Chef Anonyme',
         user_id: user.id
       }
 
       logInfo('Données de recette préparées', {
         hasMainImage: !!recipeData.image,
-        photosCount: recipeData.photos.length,
+        photosCount: uploadedImageUrls.length,
         title: recipeData.title
       })
 

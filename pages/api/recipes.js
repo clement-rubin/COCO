@@ -483,11 +483,14 @@ export default async function handler(req, res) {
             imageUrl = val;
           }
         }
-        
+        // Si pas d'image, imageUrl reste null
+
+        // On ignore tout champ "photos" (tableau) reçu dans la requête
+
         const newRecipe = {
           title: data.title.trim(),
           description: data.description && typeof data.description === 'string' ? data.description.trim() : null,
-          image: imageUrl, // <-- Utiliser l'URL publique ou la data URL
+          image: imageUrl, // <-- Utiliser l'URL publique ou la data URL (champ text)
           prepTime: data.prepTime && typeof data.prepTime === 'string' ? data.prepTime.trim() : null,
           cookTime: data.cookTime && typeof data.cookTime === 'string' ? data.cookTime.trim() : null,
           category: data.category && typeof data.category === 'string' ? data.category.trim() : 'Autre',
