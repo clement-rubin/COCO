@@ -20,30 +20,7 @@ export default function RecipeCard({ recipe, isUserRecipe = true, isPhotoOnly = 
 
   // Fonction améliorée pour traiter les images avec debugging détaillé
   const getImageUrl = (imageData) => {
-    logDebug('RecipeCard: getImageUrl appelée', {
-      recipeId: recipe.id,
-      recipeTitle: recipe.title,
-      hasImageData: !!imageData,
-      imageDataType: typeof imageData,
-      imageDataLength: imageData?.length,
-      isArray: Array.isArray(imageData),
-      isString: typeof imageData === 'string'
-    })
-    
-    // Utiliser la fonction améliorée de conversion d'images
-    const { processImageData } = require('../utils/imageUtils')
-    const processedUrl = processImageData(imageData, '/placeholder-recipe.jpg')
-    
-    logInfo('RecipeCard: URL d\'image traitée', {
-      recipeId: recipe.id,
-      originalDataType: typeof imageData,
-      processedUrl: processedUrl?.substring(0, 100) + (processedUrl?.length > 100 ? '...' : ''),
-      isDataUrl: processedUrl?.startsWith('data:'),
-      isHttpUrl: processedUrl?.startsWith('http'),
-      isFallback: processedUrl === '/placeholder-recipe.jpg'
-    })
-    
-    return processedUrl
+    return getRecipeImageUrl(imageData, '/placeholder-recipe.jpg');
   }
 
   const toggleFavorite = (e) => {

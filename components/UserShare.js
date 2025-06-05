@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import styles from '../styles/UserShare.module.css'
+import { getRecipeImageUrl } from '../lib/supabase'
 
 export default function UserShare({ recipe, isOpen, onClose }) {
   const [searchTerm, setSearchTerm] = useState('')
@@ -100,7 +101,7 @@ export default function UserShare({ recipe, isOpen, onClose }) {
           }}>
             {recipe.image && (
               <img 
-                src={recipe.image} 
+                src={getRecipeImageUrl(recipe.image)} 
                 alt={recipe.title}
                 style={{
                   width: '60px',

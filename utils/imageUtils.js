@@ -25,37 +25,51 @@ export function processImageData(imageData, fallbackUrl = '/placeholder-recipe.j
 
     // Cas 2: String (URL ou base64)
     if (typeof imageData === 'string') {
+      const val = imageData.trim()
+      
+      // chaîne vide
+      if (!val) {
+        logDebug('Empty string provided, using fallback')
+        return fallbackUrl
+      }
+      
       // URL HTTP(S) standard
-      if (imageData.startsWith('http://') || imageData.startsWith('https://')) {
-        logDebug('HTTP URL detected', { url: imageData.substring(0, 50) + '...' })
-        return imageData
+      if (val.startsWith('http://') || val.startsWith('https://')) {
+        logDebug('HTTP URL detected', { url: val.substring(0, 50) + '...' })
+        return val
       }
       
       // Data URL (base64)
-      if (imageData.startsWith('data:image/')) {
-        logDebug('Data URL detected', { length: imageData.length })
-        return imageData
+      if (val.startsWith('data:image/')) {
+        logDebug('Data URL detected', { length: val.length })
+        return val
       }
       
       // Base64 sans préfixe data:
-      if (isBase64String(imageData)) {
-        const dataUrl = `data:image/jpeg;base64,${imageData}`
+      if (isBase64String(val)) {
+        const dataUrl = `data:image/jpeg;base64,${val}`
         logDebug('Base64 string converted to data URL', { 
-          originalLength: imageData.length,
+          originalLength: val.length,
           newLength: dataUrl.length 
         })
         return dataUrl
       }
       
       // Blob URL
-      if (imageData.startsWith('blob:')) {
+      if (val.startsWith('blob:')) {
         logDebug('Blob URL detected')
-        return imageData
+        return val
+      }
+
+      // Si c'est un nom de fichier (ex: "image.jpg"), retourner comme /images/image.jpg
+      if (!val.includes('/') && (val.endsWith('.jpg') || val.endsWith('.jpeg') || val.endsWith('.png') || val.endsWith('.webp') || val.endsWith('.gif'))) {
+        logDebug('Filename detected, constructing image URL', { fileName: val })
+        return `/images/${val}`
       }
 
       logWarning('Unknown string format for image data', { 
-        start: imageData.substring(0, 20),
-        length: imageData.length 
+        start: val.substring(0, 20),
+        length: val.length 
       })
       return fallbackUrl
     }

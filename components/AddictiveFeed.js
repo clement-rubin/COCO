@@ -112,8 +112,8 @@ export default function AddictiveFeed() {
     
     if (apiRecipe.image) {
       try {
-        const { processImageData } = require('../utils/imageUtils')
-        imageUrl = processImageData(apiRecipe.image, '/placeholder-recipe.jpg')
+        const { getRecipeImageUrl } = require('../lib/supabase')
+        imageUrl = getRecipeImageUrl(apiRecipe.image, '/placeholder-recipe.jpg')
         
         logDebug('AddictiveFeed: Image processed', {
           recipeId: apiRecipe.id,

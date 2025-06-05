@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from 'react'
 import { processImageToUrl } from '../utils/imageUtils'
 import { logDebug, logInfo, logError, logUserInteraction } from '../utils/logger'
+import { getRecipeImageUrl } from '../lib/supabase'
 import styles from '../styles/PhotoUpload.module.css'
 
 export default function PhotoUpload({ onPhotoSelect, maxFiles = 5, compact = false }) {

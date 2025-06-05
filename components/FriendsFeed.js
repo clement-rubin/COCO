@@ -82,10 +82,10 @@ export default function FriendsFeed({ feedType = 'featured' }) {
       let imageUrl = '/placeholder-recipe.jpg'
       if (recipe.image) {
         try {
-          const { processImageData } = require('../utils/imageUtils')
-          imageUrl = processImageData(recipe.image, '/placeholder-recipe.jpg')
+          const { getRecipeImageUrl } = require('../lib/supabase')
+          imageUrl = getRecipeImageUrl(recipe.image, '/placeholder-recipe.jpg')
         } catch (err) {
-          console.error('Error processing image', err)
+          // fallback
         }
       }
       

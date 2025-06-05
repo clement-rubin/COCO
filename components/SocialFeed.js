@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import ShareButton from './ShareButton'
 import styles from '../styles/SocialFeed.module.css'
+import { getRecipeImageUrl } from '../lib/supabase'
 
 export default function SocialFeed() {
   const [posts, setPosts] = useState([])
@@ -19,7 +20,7 @@ export default function SocialFeed() {
         recipe: {
           id: 1,
           title: 'Pâtes Carbonara Authentiques',
-          image: 'https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5',
+          image: getRecipeImageUrl('https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5'),
           description: 'Ma recette familiale de carbonara, transmise par ma nonna italienne 🇮🇹'
         },
         likes: 156,
@@ -33,7 +34,7 @@ export default function SocialFeed() {
         recipe: {
           id: 2,
           title: 'Tarte Tatin Revisitée',
-          image: 'https://images.unsplash.com/photo-1571115764595-644a1f56a55c',
+          image: getRecipeImageUrl('https://images.unsplash.com/photo-1571115764595-644a1f56a55c'),
           description: 'Une version moderne du classique français 🍎✨'
         },
         likes: 289,

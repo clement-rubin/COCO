@@ -1,6 +1,7 @@
 import { useRouter } from 'next/router'
 import { useState, useEffect } from 'react'
 import styles from '../styles/ShareButton.module.css'
+import { getRecipeImageUrl } from '../lib/supabase'
 
 export default function ShareButton({ recipe, recipeUrl, onShare, compact = false }) {
   const router = useRouter()
@@ -13,7 +14,7 @@ export default function ShareButton({ recipe, recipeUrl, onShare, compact = fals
     title: recipe.title,
     text: `🍴 Découvre cette délicieuse recette: ${recipe.title} sur COCO!`,
     url: recipeUrl || (typeof window !== 'undefined' ? window.location.href : ''),
-    image: recipe.image
+    image: getRecipeImageUrl(recipe.image)
   }
 
   // Simuler des partages récents pour créer de l'engagement
