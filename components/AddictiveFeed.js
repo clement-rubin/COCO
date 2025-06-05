@@ -32,9 +32,18 @@ export default function AddictiveFeed() {
       const timestamp = Date.now()
       let apiUrl = `/api/recipes?_t=${timestamp}&limit=10`
       
-      // Si l'utilisateur est connecté, charger uniquement les recettes de ses amis
+      // Si l'utilisateur est connecté, TOUJOURS charger uniquement les recettes de ses amis
       if (user?.id) {
         apiUrl += `&friends_only=true&current_user_id=${user.id}`
+        
+        logInfo('Loading friends-only recipes', {
+          userId: user.id,
+          component: 'AddictiveFeed'
+        })
+      } else {
+        // Si pas connecté, rediriger vers la page de connexion
+        router.push('/login?message=' + encodeURIComponent('Connectez-vous pour voir les recettes de vos amis'))
+        return
       }
       
       const response = await fetch(apiUrl)
@@ -45,39 +54,35 @@ export default function AddictiveFeed() {
       
       const recipesData = await response.json()
       
-      logInfo('Recipes loaded successfully', {
+      logInfo('Friends recipes loaded successfully', {
         count: recipesData.length,
         source: 'AddictiveFeed',
-        friendsOnly: !!user?.id
+        userId: user.id
       })
       
       const formattedRecipes = recipesData.map(recipe => formatRecipeData(recipe))
       setRecipes(formattedRecipes)
       setPage(1)
     } catch (err) {
-      logError('Failed to load recipes', err, {
+      logError('Failed to load friends recipes', err, {
         component: 'AddictiveFeed',
-        method: 'loadInitialRecipes'
+        method: 'loadInitialRecipes',
+        userId: user?.id
       })
-      setError('Impossible de charger les recettes. Veuillez réessayer.')
+      setError('Impossible de charger les recettes de vos amis. Veuillez réessayer.')
     } finally {
       setLoading(false)
     }
   }
 
   const loadMoreRecipes = async () => {
-    if (loadingMore || !hasMore) return
+    if (loadingMore || !hasMore || !user?.id) return
     
     setLoadingMore(true)
     try {
       const offset = page * 10
       const timestamp = Date.now()
-      let apiUrl = `/api/recipes?_t=${timestamp}&limit=10&offset=${offset}`
-      
-      // Si l'utilisateur est connecté, charger uniquement les recettes de ses amis
-      if (user?.id) {
-        apiUrl += `&friends_only=true&current_user_id=${user.id}`
-      }
+      let apiUrl = `/api/recipes?_t=${timestamp}&limit=10&offset=${offset}&friends_only=true&current_user_id=${user.id}`
       
       const response = await fetch(apiUrl)
       
@@ -96,10 +101,11 @@ export default function AddictiveFeed() {
       setRecipes(prev => [...prev, ...formattedRecipes])
       setPage(prev => prev + 1)
     } catch (err) {
-      logError('Failed to load more recipes', err, {
+      logError('Failed to load more friends recipes', err, {
         component: 'AddictiveFeed',
         method: 'loadMoreRecipes',
-        page
+        page,
+        userId: user?.id
       })
     } finally {
       setLoadingMore(false)
@@ -367,26 +373,29 @@ export default function AddictiveFeed() {
         <div className={styles.emptyIcon}>👥</div>
         <h3>Aucune recette d'amis</h3>
         <p>
-          {user 
-            ? "Vos amis n'ont pas encore partagé de recettes. Invitez-les à rejoindre COCO !"
-            : "Connectez-vous pour voir les recettes de vos amis."
-          }
+          Vos amis n'ont pas encore partagé de recettes. 
+          Invitez-les à rejoindre COCO ou ajoutez de nouveaux amis !
         </p>
-        {user ? (
+        <div className={styles.emptyActions}>
           <button 
             onClick={() => router.push('/amis')} 
-            className={styles.retryButton}
+            className={styles.primaryButton}
           >
-            Gérer mes amis
+            👥 Gérer mes amis
           </button>
-        ) : (
           <button 
-            onClick={() => router.push('/login')} 
-            className={styles.retryButton}
+            onClick={() => router.push('/explorer')} 
+            className={styles.secondaryButton}
           >
-            Se connecter
+            🔍 Explorer toutes les recettes
           </button>
-        )}
+          <button 
+            onClick={() => router.push('/submit-recipe')} 
+            className={styles.tertiaryButton}
+          >
+            ➕ Partager une recette
+          </button>
+        </div>
       </div>
     )
   }

@@ -442,20 +442,80 @@ export default function Home() {
             display: 'inline-flex',
             alignItems: 'center',
             gap: '8px',
-            background: '#f8fafc',
-            padding: '6px 12px',
-            borderRadius: '20px',
-            fontSize: '0.8rem',
+            background: '#f0f9ff',
+            padding: '8px 16px',
+            borderRadius: '24px',
+            fontSize: '0.85rem',
             fontWeight: '600',
-            color: '#6b7280'
+            color: '#0369a1',
+            border: '1px solid #e0f2fe'
           }}>
-            👥 Feed de mes amis
+            👥 Recettes de mes amis
             <span style={{
-              width: '4px',
-              height: '4px',
+              width: '6px',
+              height: '6px',
               background: '#10b981',
-              borderRadius: '50%'
+              borderRadius: '50%',
+              animation: 'pulse 2s infinite'
             }} />
+          </div>
+          
+          {/* Options de navigation rapide */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            gap: '12px',
+            marginTop: '12px'
+          }}>
+            <button
+              onClick={() => router.push('/explorer')}
+              style={{
+                background: 'transparent',
+                border: '1px solid #e5e7eb',
+                color: '#6b7280',
+                padding: '6px 12px',
+                borderRadius: '16px',
+                fontSize: '0.75rem',
+                fontWeight: '500',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = '#f3f4f6'
+                e.target.style.color = '#374151'
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = 'transparent'
+                e.target.style.color = '#6b7280'
+              }}
+            >
+              🔍 Explorer tout
+            </button>
+            
+            <button
+              onClick={() => router.push('/amis')}
+              style={{
+                background: 'transparent',
+                border: '1px solid #e5e7eb',
+                color: '#6b7280',
+                padding: '6px 12px',
+                borderRadius: '16px',
+                fontSize: '0.75rem',
+                fontWeight: '500',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = '#f3f4f6'
+                e.target.style.color = '#374151'
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = 'transparent'
+                e.target.style.color = '#6b7280'
+              }}
+            >
+              ➕ Ajouter amis
+            </button>
           </div>
         </div>
 
@@ -476,6 +536,60 @@ export default function Home() {
             </div>
           </div>
         </div>
+
+        {/* Message d'encouragement si peu d'amis */}
+        {user && (
+          <div style={{
+            textAlign: 'center',
+            padding: '20px',
+            background: 'linear-gradient(135deg, #fef3c7, #fde68a)',
+            margin: '20px',
+            borderRadius: '16px',
+            border: '1px solid #f59e0b'
+          }}>
+            <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>🍳</div>
+            <p style={{
+              margin: '0 0 12px 0',
+              fontSize: '0.9rem',
+              fontWeight: '600',
+              color: '#92400e'
+            }}>
+              Invitez vos amis à rejoindre COCO !
+            </p>
+            <p style={{
+              margin: '0 0 16px 0',
+              fontSize: '0.8rem',
+              color: '#b45309',
+              lineHeight: '1.4'
+            }}>
+              Plus vous avez d'amis, plus vous découvrirez de délicieuses recettes
+            </p>
+            <button
+              onClick={() => router.push('/amis')}
+              style={{
+                background: '#f59e0b',
+                color: 'white',
+                border: 'none',
+                padding: '8px 16px',
+                borderRadius: '8px',
+                fontSize: '0.8rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = '#d97706'
+                e.target.style.transform = 'translateY(-1px)'
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = '#f59e0b'
+                e.target.style.transform = 'translateY(0)'
+              }}
+            >
+              👥 Gérer mes amis
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Styles améliorés pour les animations et interactions */}
