@@ -415,6 +415,19 @@ export default function Amis() {
 
   return (
     <div className={styles.container}>
+      {/* Header moderne */}
+      <header className={styles.header}>
+        <h1>👥 Mes amis COCO</h1>
+        <p>Retrouvez, ajoutez et gérez vos amis culinaires pour partager vos meilleures recettes !</p>
+      </header>
+
+      {/* Affichage des messages d'erreur/succès */}
+      {(error || successMessage) && (
+        <div className={styles.errorMessage} style={{ margin: '0 auto', maxWidth: 540 }}>
+          {error ? error : successMessage}
+        </div>
+      )}
+
       {/* Barre de recherche d'utilisateurs */}
       <div className={styles.searchSection}>
         <div className={styles.searchBox}>
@@ -431,6 +444,7 @@ export default function Amis() {
           )}
         </div>
       </div>
+
       {/* Résultats de recherche d'utilisateurs */}
       {searchTerm.length >= 2 && (
         <div className={styles.searchSection}>
@@ -443,7 +457,13 @@ export default function Amis() {
                 <div
                   key={user.user_id}
                   className={styles.userCard}
-                  style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 8 }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 16,
+                    marginBottom: 8,
+                    animation: 'cardSlideIn 0.7s cubic-bezier(0.68,-0.55,0.265,1.55)'
+                  }}
                 >
                   <div className={styles.avatar}>
                     {user.avatar_url ? (
@@ -473,8 +493,9 @@ export default function Amis() {
           </div>
         </div>
       )}
+
       {/* Onglets de navigation */}
-      <div className={styles.tabs}>
+      <nav className={styles.tabs} style={{ marginTop: 24, marginBottom: 24 }}>
         <button
           className={activeTab === 'friends' ? styles.activeTab : ''}
           onClick={() => setActiveTab('friends')}
@@ -499,267 +520,291 @@ export default function Amis() {
         >
           🍽️ Recettes des amis
         </button>
-      </div>
+      </nav>
 
       {/* Affichage conditionnel selon l'onglet */}
-      {activeTab === 'friends' && (
-        <section className={styles.friendsSection}>
-          <h2>Mes amis ({friends.length})</h2>
-          {friends.length > 0 ? (
-            <div className={styles.friendsGrid}>
-              {friends.map((friendship) => (
-                <div
-                  key={friendship.id}
-                  className={styles.friendCard}
-                  onMouseEnter={() => {
-                    setHoveredFriendId(friendship.friend_id);
-                    fetchFriendRecipes(friendship.friend_id);
-                  }}
-                  onMouseLeave={() => setHoveredFriendId(null)}
-                  style={{ position: 'relative' }}
-                >
-                  <div className={styles.avatar}>
-                    {friendship.profiles?.avatar_url ? (
-                      <img src={friendship.profiles.avatar_url} alt={friendship.profiles.display_name} />
-                    ) : (
-                      <div className={styles.avatarPlaceholder}>
-                        {friendship.profiles?.display_name?.charAt(0)?.toUpperCase() || '?'}
-                      </div>
-                    )}
-                  </div>
-                  <h4>{friendship.profiles?.display_name || 'Utilisateur'}</h4>
-                  <p>{friendship.profiles?.bio || 'Amateur de cuisine passionné 🍽️'}</p>
-                  
-                  {/* Section Gestion des amitiés */}
-                  <div style={{ marginTop: 12, borderTop: '1px solid #eee', paddingTop: 8, background: 'none', borderRadius: 0 }}>
-                    <strong>Gestion de l'amitié</strong>
-                    <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
-                      <button
-                        onClick={() => handleBlockUser(friendship.friend_id)}
-                        disabled={friendshipActions[friendship.friend_id]?.loading}
-                        style={{
-                          background: '#fee2e2',
-                          color: '#b91c1c',
-                          border: 'none',
-                          borderRadius: 4,
-                          padding: '4px 10px',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        {friendshipActions[friendship.friend_id]?.loading ? '...' : '🚫 Bloquer'}
-                      </button>
-                      <button
-                        onClick={() => handleUnblockUser(friendship.friend_id)}
-                        disabled={friendshipActions[friendship.friend_id]?.loading}
-                        style={{
-                          background: '#d1fae5',
-                          color: '#065f46',
-                          border: 'none',
-                          borderRadius: 4,
-                          padding: '4px 10px',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        {friendshipActions[friendship.friend_id]?.loading ? '...' : '✅ Débloquer'}
-                      </button>
-                      <button
-                        onClick={() => fetchFriendshipStatus(friendship.friend_id)}
-                        style={{
-                          background: '#f3f4f6',
-                          color: '#374151',
-                          border: 'none',
-                          borderRadius: 4,
-                          padding: '4px 10px',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        Statut
-                      </button>
-                    </div>
-                    {/* Affichage du statut d'amitié */}
-                    {friendshipStatuses[friendship.friend_id] && (
-                      <div style={{ fontSize: 12, marginTop: 4 }}>
-                        Statut: <b>{friendshipStatuses[friendship.friend_id].status}</b>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Prévisualisation des recettes au survol */}
-                  {hoveredFriendId === friendship.friend_id && (
-                    <div className={styles.friendRecipesPreview}>
-                      <strong>Recettes récentes :</strong>
-                      {friendsRecipes[friendship.friend_id] && friendsRecipes[friendship.friend_id].length > 0 ? (
-                        <div className={styles.recipesMiniGrid}>
-                          {friendsRecipes[friendship.friend_id].map(recipe => (
-                            <div
-                              key={recipe.id}
-                              className={styles.recipeMiniCard}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                router.push(`/recipe/${recipe.id}`);
-                              }}
-                            >
-                              <div className={styles.recipeMiniImage}>
-                                <img
-                                  src={recipe.image || '/placeholder-recipe.jpg'}
-                                  alt={recipe.title}
-                                  style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover' }}
-                                />
-                              </div>
-                              <div className={styles.recipeMiniTitle}>
-                                {recipe.title?.length > 18 ? recipe.title.slice(0, 18) + '…' : recipe.title}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div style={{ fontSize: 12, color: '#888' }}>
-                          {friendsRecipes[friendship.friend_id]
-                            ? "Aucune recette partagée"
-                            : "Chargement..."}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className={styles.emptyState}>
-              <p>Vous n'avez pas encore d'amis culinaires. Utilisez la recherche pour découvrir des passionnés comme vous !</p>
-            </div>
-          )}
-        </section>
-      )}
-
-      {activeTab === 'requests' && (
-        <section className={styles.requestsSection}>
-          <h2>Demandes d'amitié ({friendRequests.length})</h2>
-          {friendRequests.map((request) => (
-            <div key={request.id} className={styles.requestCard}>
-              <div className={styles.userInfo}>
-                <div className={styles.avatar}>
-                  {request.profiles?.avatar_url ? (
-                    <img src={request.profiles.avatar_url} alt={request.profiles.display_name} />
-                  ) : (
-                    <div className={styles.avatarPlaceholder}>
-                      {request.profiles?.display_name?.charAt(0)?.toUpperCase() || '?'}
-                    </div>
-                  )}
-                </div>
-                <div className={styles.userDetails}>
-                  <h4>{request.profiles?.display_name || 'Utilisateur'}</h4>
-                  <p>{request.profiles?.bio || 'Nouveau membre de la communauté COCO 🌟'}</p>
-                </div>
-              </div>
-              <div className={styles.requestActions}>
-                <button
-                  onClick={() => respondToFriendRequest(request.id, 'accept')}
-                  className={styles.acceptButton}
-                  disabled={buttonStates[`accept-${request.id}`]?.loading}
-                >
-                  {buttonStates[`accept-${request.id}`]?.loading ? '⏳' : '✅'} Accepter
-                </button>
-                <button
-                  onClick={() => respondToFriendRequest(request.id, 'decline')}
-                  className={styles.declineButton}
-                  disabled={buttonStates[`decline-${request.id}`]?.loading}
-                >
-                  {buttonStates[`decline-${request.id}`]?.loading ? '⏳' : '❌'} Refuser
-                </button>
-              </div>
-            </div>
-          ))}
-        </section>
-      )}
-
-      {activeTab === 'suggestions' && (
-        <section className={styles.suggestionsSection}>
-          <h2>Suggestions d'amis</h2>
-          <div className={styles.suggestionsGrid}>
-            {suggestions.map((suggestion) => (
-              <div key={suggestion.user_id} className={styles.suggestionCard}>
-                <div className={styles.avatar}>
-                  {suggestion.avatar_url ? (
-                    <img src={suggestion.avatar_url} alt={suggestion.display_name} />
-                  ) : (
-                    <div className={styles.avatarPlaceholder}>
-                      {suggestion.display_name?.charAt(0)?.toUpperCase() || '?'}
-                    </div>
-                  )}
-                </div>
-                <h4>{suggestion.display_name || 'Utilisateur'}</h4>
-                <p>{suggestion.bio || 'Découvrez de nouvelles recettes ensemble ! 🌟'}</p>
-                <button
-                  onClick={() => sendFriendRequest(suggestion.user_id)}
-                  className={styles.addFriendButton}
-                  disabled={buttonStates[`add-${suggestion.user_id}`]?.loading}
-                >
-                  {buttonStates[`add-${suggestion.user_id}`]?.loading ? '⏳ Envoi...' : '🤝 Ajouter'}
-                </button>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {activeTab === 'friendsRecipes' && (
-        <section className={styles.friendsRecipesSection}>
-          <h2>Recettes de mes amis</h2>
-          {friends.length === 0 ? (
-            <div className={styles.emptyState}>
-              <p>Ajoutez des amis pour découvrir leurs recettes !</p>
-            </div>
-          ) : (
-            <div className={styles.friendsRecipesGrid}>
-              {friends.map(friendship => (
-                <div key={friendship.friend_id} className={styles.friendsRecipesBlock}>
-                  <div className={styles.friendsRecipesHeader}>
-                    <div className={styles.avatarMini}>
+      <main style={{ maxWidth: 900, margin: '0 auto' }}>
+        {activeTab === 'friends' && (
+          <section className={styles.friendsSection}>
+            <h2>Mes amis ({friends.length})</h2>
+            {friends.length > 0 ? (
+              <div className={styles.friendsGrid}>
+                {friends.map((friendship) => (
+                  <div
+                    key={friendship.id}
+                    className={styles.friendCard}
+                    onMouseEnter={() => {
+                      setHoveredFriendId(friendship.friend_id);
+                      fetchFriendRecipes(friendship.friend_id);
+                    }}
+                    onMouseLeave={() => setHoveredFriendId(null)}
+                    style={{
+                      position: 'relative',
+                      animation: 'cardSlideIn 0.7s cubic-bezier(0.68,-0.55,0.265,1.55)'
+                    }}
+                  >
+                    <div className={styles.avatar}>
                       {friendship.profiles?.avatar_url ? (
                         <img src={friendship.profiles.avatar_url} alt={friendship.profiles.display_name} />
                       ) : (
-                        <div className={styles.avatarPlaceholderMini}>
+                        <div className={styles.avatarPlaceholder}>
                           {friendship.profiles?.display_name?.charAt(0)?.toUpperCase() || '?'}
                         </div>
                       )}
                     </div>
-                    <span>{friendship.profiles?.display_name || 'Utilisateur'}</span>
-                  </div>
-                  <div className={styles.friendsRecipesList}>
-                    {(friendsRecipes[friendship.friend_id] || []).length > 0 ? (
-                      friendsRecipes[friendship.friend_id].map(recipe => (
-                        <div
-                          key={recipe.id}
-                          className={styles.recipeMiniCard}
-                          onClick={() => router.push(`/recipe/${recipe.id}`)}
+                    <h4>{friendship.profiles?.display_name || 'Utilisateur'}</h4>
+                    <p>{friendship.profiles?.bio || 'Amateur de cuisine passionné 🍽️'}</p>
+                    
+                    {/* Section Gestion des amitiés */}
+                    <div style={{
+                      marginTop: 12,
+                      borderTop: '1px solid #eee',
+                      paddingTop: 8,
+                      background: 'none',
+                      borderRadius: 0,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 4
+                    }}>
+                      <strong>Gestion de l'amitié</strong>
+                      <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+                        <button
+                          onClick={() => handleBlockUser(friendship.friend_id)}
+                          disabled={friendshipActions[friendship.friend_id]?.loading}
+                          style={{
+                            background: '#fee2e2',
+                            color: '#b91c1c',
+                            border: 'none',
+                            borderRadius: 4,
+                            padding: '4px 10px',
+                            cursor: 'pointer'
+                          }}
                         >
-                          <div className={styles.recipeMiniImage}>
-                            <img
-                              src={recipe.image || '/placeholder-recipe.jpg'}
-                              alt={recipe.title}
-                              style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover' }}
-                            />
-                          </div>
-                          <div className={styles.recipeMiniTitle}>
-                            {recipe.title?.length > 18 ? recipe.title.slice(0, 18) + '…' : recipe.title}
-                          </div>
+                          {friendshipActions[friendship.friend_id]?.loading ? '...' : '🚫 Bloquer'}
+                        </button>
+                        <button
+                          onClick={() => handleUnblockUser(friendship.friend_id)}
+                          disabled={friendshipActions[friendship.friend_id]?.loading}
+                          style={{
+                            background: '#d1fae5',
+                            color: '#065f46',
+                            border: 'none',
+                            borderRadius: 4,
+                            padding: '4px 10px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {friendshipActions[friendship.friend_id]?.loading ? '...' : '✅ Débloquer'}
+                        </button>
+                        <button
+                          onClick={() => fetchFriendshipStatus(friendship.friend_id)}
+                          style={{
+                            background: '#f3f4f6',
+                            color: '#374151',
+                            border: 'none',
+                            borderRadius: 4,
+                            padding: '4px 10px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Statut
+                        </button>
+                      </div>
+                      {/* Affichage du statut d'amitié */}
+                      {friendshipStatuses[friendship.friend_id] && (
+                        <div style={{ fontSize: 12, marginTop: 4 }}>
+                          Statut: <b>{friendshipStatuses[friendship.friend_id].status}</b>
                         </div>
-                      ))
-                    ) : (
-                      <div style={{ fontSize: 12, color: '#888' }}>
-                        {friendsRecipes[friendship.friend_id]
-                          ? "Aucune recette partagée"
-                          : <button onClick={() => fetchFriendRecipes(friendship.friend_id)}>Charger</button>}
+                      )}
+                    </div>
+
+                    {/* Prévisualisation des recettes au survol */}
+                    {hoveredFriendId === friendship.friend_id && (
+                      <div className={styles.friendRecipesPreview}>
+                        <strong>Recettes récentes :</strong>
+                        {friendsRecipes[friendship.friend_id] && friendsRecipes[friendship.friend_id].length > 0 ? (
+                          <div className={styles.recipesMiniGrid}>
+                            {friendsRecipes[friendship.friend_id].map(recipe => (
+                              <div
+                                key={recipe.id}
+                                className={styles.recipeMiniCard}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  router.push(`/recipe/${recipe.id}`);
+                                }}
+                              >
+                                <div className={styles.recipeMiniImage}>
+                                  <img
+                                    src={recipe.image || '/placeholder-recipe.jpg'}
+                                    alt={recipe.title}
+                                    style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover' }}
+                                  />
+                                </div>
+                                <div className={styles.recipeMiniTitle}>
+                                  {recipe.title?.length > 18 ? recipe.title.slice(0, 18) + '…' : recipe.title}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div style={{ fontSize: 12, color: '#888' }}>
+                            {friendsRecipes[friendship.friend_id]
+                              ? "Aucune recette partagée"
+                              : "Chargement..."}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
+                ))}
+              </div>
+            ) : (
+              <div className={styles.emptyState}>
+                <p>Vous n'avez pas encore d'amis culinaires. Utilisez la recherche pour découvrir des passionnés comme vous !</p>
+              </div>
+            )}
+          </section>
+        )}
+
+        {activeTab === 'requests' && (
+          <section className={styles.requestsSection}>
+            <h2>Demandes d'amitié ({friendRequests.length})</h2>
+            {friendRequests.map((request) => (
+              <div key={request.id} className={styles.requestCard} style={{ animation: 'cardSlideIn 0.7s cubic-bezier(0.68,-0.55,0.265,1.55)' }}>
+                <div className={styles.userInfo}>
+                  <div className={styles.avatar}>
+                    {request.profiles?.avatar_url ? (
+                      <img src={request.profiles.avatar_url} alt={request.profiles.display_name} />
+                    ) : (
+                      <div className={styles.avatarPlaceholder}>
+                        {request.profiles?.display_name?.charAt(0)?.toUpperCase() || '?'}
+                      </div>
+                    )}
+                  </div>
+                  <div className={styles.userDetails}>
+                    <h4>{request.profiles?.display_name || 'Utilisateur'}</h4>
+                    <p>{request.profiles?.bio || 'Nouveau membre de la communauté COCO 🌟'}</p>
+                  </div>
+                </div>
+                <div className={styles.requestActions}>
+                  <button
+                    onClick={() => respondToFriendRequest(request.id, 'accept')}
+                    className={styles.acceptButton}
+                    disabled={buttonStates[`accept-${request.id}`]?.loading}
+                  >
+                    {buttonStates[`accept-${request.id}`]?.loading ? '⏳' : '✅'} Accepter
+                  </button>
+                  <button
+                    onClick={() => respondToFriendRequest(request.id, 'decline')}
+                    className={styles.declineButton}
+                    disabled={buttonStates[`decline-${request.id}`]?.loading}
+                  >
+                    {buttonStates[`decline-${request.id}`]?.loading ? '⏳' : '❌'} Refuser
+                  </button>
+                </div>
+              </div>
+            ))}
+            {friendRequests.length === 0 && (
+              <div className={styles.emptyState}>
+                <p>Aucune demande d'amitié en attente.</p>
+              </div>
+            )}
+          </section>
+        )}
+
+        {activeTab === 'suggestions' && (
+          <section className={styles.suggestionsSection}>
+            <h2>Suggestions d'amis</h2>
+            <div className={styles.suggestionsGrid}>
+              {suggestions.map((suggestion) => (
+                <div key={suggestion.user_id} className={styles.suggestionCard} style={{ animation: 'cardSlideIn 0.7s cubic-bezier(0.68,-0.55,0.265,1.55)' }}>
+                  <div className={styles.avatar}>
+                    {suggestion.avatar_url ? (
+                      <img src={suggestion.avatar_url} alt={suggestion.display_name} />
+                    ) : (
+                      <div className={styles.avatarPlaceholder}>
+                        {suggestion.display_name?.charAt(0)?.toUpperCase() || '?'}
+                      </div>
+                    )}
+                  </div>
+                  <h4>{suggestion.display_name || 'Utilisateur'}</h4>
+                  <p>{suggestion.bio || 'Découvrez de nouvelles recettes ensemble ! 🌟'}</p>
+                  <button
+                    onClick={() => sendFriendRequest(suggestion.user_id)}
+                    className={styles.addFriendButton}
+                    disabled={buttonStates[`add-${suggestion.user_id}`]?.loading}
+                  >
+                    {buttonStates[`add-${suggestion.user_id}`]?.loading ? '⏳ Envoi...' : '🤝 Ajouter'}
+                  </button>
                 </div>
               ))}
+              {suggestions.length === 0 && (
+                <div className={styles.emptyState}>
+                  <p>Aucune suggestion pour le moment.</p>
+                </div>
+              )}
             </div>
-          )}
-        </section>
-      )}
+          </section>
+        )}
+
+        {activeTab === 'friendsRecipes' && (
+          <section className={styles.friendsRecipesSection}>
+            <h2>Recettes de mes amis</h2>
+            {friends.length === 0 ? (
+              <div className={styles.emptyState}>
+                <p>Ajoutez des amis pour découvrir leurs recettes !</p>
+              </div>
+            ) : (
+              <div className={styles.friendsRecipesGrid}>
+                {friends.map(friendship => (
+                  <div key={friendship.friend_id} className={styles.friendsRecipesBlock} style={{ animation: 'cardSlideIn 0.7s cubic-bezier(0.68,-0.55,0.265,1.55)' }}>
+                    <div className={styles.friendsRecipesHeader}>
+                      <div className={styles.avatarMini}>
+                        {friendship.profiles?.avatar_url ? (
+                          <img src={friendship.profiles.avatar_url} alt={friendship.profiles.display_name} />
+                        ) : (
+                          <div className={styles.avatarPlaceholderMini}>
+                            {friendship.profiles?.display_name?.charAt(0)?.toUpperCase() || '?'}
+                          </div>
+                        )}
+                      </div>
+                      <span>{friendship.profiles?.display_name || 'Utilisateur'}</span>
+                    </div>
+                    <div className={styles.friendsRecipesList}>
+                      {(friendsRecipes[friendship.friend_id] || []).length > 0 ? (
+                        friendsRecipes[friendship.friend_id].map(recipe => (
+                          <div
+                            key={recipe.id}
+                            className={styles.recipeMiniCard}
+                            onClick={() => router.push(`/recipe/${recipe.id}`)}
+                          >
+                            <div className={styles.recipeMiniImage}>
+                              <img
+                                src={recipe.image || '/placeholder-recipe.jpg'}
+                                alt={recipe.title}
+                                style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover' }}
+                              />
+                            </div>
+                            <div className={styles.recipeMiniTitle}>
+                              {recipe.title?.length > 18 ? recipe.title.slice(0, 18) + '…' : recipe.title}
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div style={{ fontSize: 12, color: '#888' }}>
+                          {friendsRecipes[friendship.friend_id]
+                            ? "Aucune recette partagée"
+                            : <button onClick={() => fetchFriendRecipes(friendship.friend_id)}>Charger</button>}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+      </main>
     </div>
   );
 }
