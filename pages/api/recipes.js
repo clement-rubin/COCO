@@ -462,10 +462,32 @@ export default async function handler(req, res) {
                               })) :
                             []
         
+        // --- AJOUT : Gestion de l'upload d'image si besoin ---
+        let imageUrl = null;
+        if (data.image && typeof data.image === 'string') {
+          const val = data.image.trim();
+          if (val.startsWith('data:image/')) {
+            // Data URL: upload to Supabase Storage
+            try {
+              // Import dynamique pour éviter les problèmes de dépendances circulaires
+              const { uploadImageToSupabase } = require('../utils/imageUtils');
+              imageUrl = await uploadImageToSupabase(val);
+            } catch (uploadErr) {
+              logWarning('Erreur lors de l\'upload de l\'image base64, fallback sur la data URL', uploadErr);
+              imageUrl = val; // fallback: store the data URL if upload fails
+            }
+          } else if (val.startsWith('http://') || val.startsWith('https://')) {
+            imageUrl = val;
+          } else {
+            // Peut-être un nom de fichier ou autre format, fallback
+            imageUrl = val;
+          }
+        }
+        
         const newRecipe = {
           title: data.title.trim(),
           description: data.description && typeof data.description === 'string' ? data.description.trim() : null,
-          image: data.image && typeof data.image === 'string' ? data.image.trim() : null, // Assurez-vous que l'image est une string (URL)
+          image: imageUrl, // <-- Utiliser l'URL publique ou la data URL
           prepTime: data.prepTime && typeof data.prepTime === 'string' ? data.prepTime.trim() : null,
           cookTime: data.cookTime && typeof data.cookTime === 'string' ? data.cookTime.trim() : null,
           category: data.category && typeof data.category === 'string' ? data.category.trim() : 'Autre',
