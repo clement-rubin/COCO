@@ -1,12 +1,10 @@
 import React from 'react';
 import Link from 'next/link';
-import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 
 const HomePage = () => {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <Navbar />
       
       <main style={{ flex: 1 }}>
         {/* Hero Section */}

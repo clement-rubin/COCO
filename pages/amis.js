@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { logError, logInfo } from '../utils/logger';
 import styles from '../styles/Amis.module.css';
-import Navigation from '../components/Navigation';
 import { useRouter } from 'next/router';
 
 export default function Amis() {
@@ -330,7 +329,6 @@ export default function Amis() {
   if (loading) {
     return (
       <div className={styles.container}>
-        <Navigation />
         <div className={styles.loading}>Chargement de vos amis...</div>
       </div>
     );
@@ -339,7 +337,6 @@ export default function Amis() {
   if (!user) {
     return (
       <div className={styles.container}>
-        <Navigation />
         <div className={styles.loginPrompt}>
           <h2>Connectez-vous pour découvrir vos amis</h2>
           <p>Rejoignez la communauté COCO et connectez-vous avec d'autres passionnés de cuisine !</p>
@@ -351,8 +348,6 @@ export default function Amis() {
 
   return (
     <div className={styles.container}>
-      <Navigation />
-      
       <div className={styles.header}>
         <h1>Mes Amis</h1>
         <p>Découvrez, connectez-vous et partagez vos passions culinaires</p>
