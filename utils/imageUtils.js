@@ -1,4 +1,4 @@
-import { logDebug, logError, logWarning } from './logger'
+import { logDebug, logError, logWarning, logInfo } from './logger'
 import { supabase } from '../lib/supabase'
 
 /**
