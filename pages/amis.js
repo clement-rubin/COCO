@@ -325,11 +325,6 @@ export default function Amis() {
     <div className={styles.container}>
       <Navigation />
       
-      <header className={styles.header}>
-        <h1>👥 Mes Amis</h1>
-        <p>Connectez-vous avec d'autres passionnés de cuisine</p>
-      </header>
-
       {error && (
         <div className={styles.errorMessage}>
           {error}
