@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import Image from 'next/image'
 import { useAuth } from './AuthContext'
-import { logUserInteraction, logError, logInfo } from '../utils/logger'
+import { logUserInteraction, logError, logInfo, logDebug } from '../utils/logger'
 import styles from '../styles/AddictiveFeed.module.css'
 
 export default function AddictiveFeed() {
@@ -114,8 +114,20 @@ export default function AddictiveFeed() {
       try {
         const { processImageData } = require('../utils/imageUtils')
         imageUrl = processImageData(apiRecipe.image, '/placeholder-recipe.jpg')
+        
+        logDebug('AddictiveFeed: Image processed', {
+          recipeId: apiRecipe.id,
+          originalImageType: typeof apiRecipe.image,
+          isArray: Array.isArray(apiRecipe.image),
+          processedUrl: imageUrl?.substring(0, 50) + '...',
+          isDataUrl: imageUrl?.startsWith('data:'),
+          isFallback: imageUrl === '/placeholder-recipe.jpg'
+        })
       } catch (err) {
-        logError('Error processing image', err, { recipeId: apiRecipe.id })
+        logError('Error processing image in AddictiveFeed', err, { 
+          recipeId: apiRecipe.id,
+          imageDataType: typeof apiRecipe.image
+        })
       }
     }
 
@@ -389,7 +401,17 @@ export default function AddictiveFeed() {
                 fill
                 className={styles.recipeImage}
                 sizes="(max-width: 768px) 100vw, 50vw"
+                onLoad={() => {
+                  logDebug('AddictiveFeed: Image loaded successfully', {
+                    recipeId: post.recipe.id,
+                    imageUrl: post.recipe.image?.substring(0, 50) + '...'
+                  })
+                }}
                 onError={(e) => {
+                  logError('AddictiveFeed: Image load error', new Error('Image failed to load'), {
+                    recipeId: post.recipe.id,
+                    imageUrl: post.recipe.image?.substring(0, 50) + '...'
+                  })
                   e.target.src = '/placeholder-recipe.jpg'
                 }}
               />
