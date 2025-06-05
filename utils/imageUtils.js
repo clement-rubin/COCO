@@ -705,3 +705,132 @@ export async function uploadImageToSupabaseAndGetUrl(fileOrDataUrl, filename = n
     }
   }
 }
+
+/**
+ * Process and compress image for direct storage as data URL in database
+ * @param {File|string} fileOrDataUrl - Fichier image ou dataURL
+ * @param {string} [filename] - Nom du fichier (optionnel)
+ * @returns {Promise<string>} Data URL compressée prête pour stockage
+ */
+export async function processImageForDirectStorage(fileOrDataUrl, filename = null) {
+  try {
+    logInfo('processImageForDirectStorage: start', {
+      typeofInput: typeof fileOrDataUrl,
+      isFile: typeof File !== 'undefined' && fileOrDataUrl instanceof File,
+      filename,
+      timestamp: new Date().toISOString()
+    });
+
+    let file, ext = 'jpg';
+    
+    // Traitement selon le type d'entrée
+    if (typeof File !== 'undefined' && fileOrDataUrl instanceof File) {
+      file = fileOrDataUrl;
+      ext = file.name.split('.').pop() || 'jpg';
+      
+      logInfo('File object detected', { 
+        name: file.name, 
+        size: file.size, 
+        type: file.type,
+        extension: ext,
+        lastModified: file.lastModified
+      });
+      
+      // Validation du fichier
+      const validation = validateImageFile(file);
+      if (!validation.valid) {
+        logError('File validation failed', new Error('Invalid file'), {
+          errors: validation.errors,
+          fileName: file.name,
+          fileSize: file.size,
+          fileType: file.type
+        });
+        throw new Error(`Fichier invalide: ${validation.errors.join(', ')}`);
+      }
+      
+      logInfo('File validation passed', { fileName: file.name });
+      
+    } else if (typeof fileOrDataUrl === 'string' && fileOrDataUrl.startsWith('data:image/')) {
+      // DataURL déjà fournie
+      const matches = fileOrDataUrl.match(/^data:image\/(\w+);base64,/);
+      ext = matches ? matches[1] : 'jpg';
+      
+      logInfo('DataURL detected', { 
+        originalLength: fileOrDataUrl.length,
+        mimeType: matches ? matches[0] : 'unknown',
+        extension: ext,
+        base64Length: fileOrDataUrl.split(',')[1]?.length || 0
+      });
+      
+      // Retourner directement si c'est déjà une dataURL valide
+      return fileOrDataUrl;
+      
+    } else {
+      const errorMsg = 'Format d\'image non supporté - doit être un File ou une dataURL';
+      logError('Unsupported image format', new Error(errorMsg), {
+        inputType: typeof fileOrDataUrl,
+        isString: typeof fileOrDataUrl === 'string',
+        startsWithData: typeof fileOrDataUrl === 'string' ? fileOrDataUrl.startsWith('data:') : false
+      });
+      throw new Error(errorMsg);
+    }
+
+    // Traitement et compression de l'image
+    logInfo('Starting image processing and compression', {
+      fileName: file.name,
+      originalSize: file.size,
+      targetMaxWidth: 800,
+      targetMaxHeight: 600,
+      targetQuality: 0.8
+    });
+
+    const processed = await processImageToUrl(file, {
+      maxWidth: 800,
+      maxHeight: 600,
+      quality: 0.8,
+      maxSizeKB: 500 // Limite à 500KB pour éviter les données trop volumineuses
+    });
+
+    logInfo('Image processing completed successfully', {
+      originalSize: file.size,
+      compressedSize: processed.compressedSize,
+      compressionRatio: processed.compressionRatio + '%',
+      finalWidth: processed.width,
+      finalHeight: processed.height,
+      finalQuality: processed.quality,
+      dataUrlLength: processed.url.length,
+      estimatedStorageSize: Math.round(processed.url.length / 1024) + 'KB'
+    });
+
+    return processed.url;
+
+  } catch (err) {
+    logError('processImageForDirectStorage: global error', err, {
+      errorName: err.name,
+      errorMessage: err.message,
+      errorStack: err.stack?.substring(0, 500),
+      inputType: typeof fileOrDataUrl,
+      filename,
+      timestamp: new Date().toISOString()
+    });
+
+    // Messages d'erreur plus clairs
+    if (err.message?.includes('Canvas')) {
+      throw new Error('Erreur de traitement d\'image. Format non supporté ou fichier corrompu.');
+    } else if (err.message?.includes('too large')) {
+      throw new Error('Image trop volumineuse. Utilisez une image plus petite.');
+    } else {
+      throw err;
+    }
+  }
+}
+
+// Remplacer la fonction uploadImageToSupabaseAndGetUrl par un alias vers la nouvelle fonction
+export async function uploadImageToSupabaseAndGetUrl(fileOrDataUrl, filename = null) {
+  logInfo('uploadImageToSupabaseAndGetUrl called - redirecting to direct storage', {
+    inputType: typeof fileOrDataUrl,
+    filename
+  });
+  
+  return await processImageForDirectStorage(fileOrDataUrl, filename);
+}
