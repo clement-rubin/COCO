@@ -574,33 +574,90 @@ export async function getUserStatsCorrected(userId) {
 }
 
 /**
- * Bloque un utilisateur
- * @param {string} fromUserId - ID de l'utilisateur qui bloque (auth.users.id)
- * @param {string} toUserId - ID de l'utilisateur à bloquer (auth.users.id)
- * @returns {Promise<Object>} Résultat de l'opération
+ * Supprimer une amitié existante
+ * @param {string} userId1 - ID du premier utilisateur
+ * @param {string} userId2 - ID du second utilisateur
+ * @returns {Promise<{success: boolean, error?: string}>}
  */
-export async function blockUser(fromUserId, toUserId) {
-  if (!fromUserId || !toUserId || fromUserId === toUserId) {
-    return { success: false, error: 'Invalid user IDs' }
+export async function removeFriend(userId1, userId2) {
+  if (!userId1 || !userId2) {
+    return { success: false, error: 'IDs utilisateur requis' }
+  }
+
+  if (userId1 === userId2) {
+    return { success: false, error: 'Cannot remove yourself as friend' }
   }
 
   try {
-    // Vérifier si une relation existe déjà
+    // Vérifier que l'amitié existe et est acceptée
     const { data: existingFriendship, error: checkError } = await supabase
-      .rpc('check_friendship_status', {
-        user1_id: fromUserId,
-        user2_id: toUserId
-      })
+      .from('friendships')
+      .select('id, status')
+      .or(`and(user_id.eq.${userId1},friend_id.eq.${userId2}),and(user_id.eq.${userId2},friend_id.eq.${userId1})`)
+      .eq('status', 'accepted')
+      .single()
 
-    if (existingFriendship && existingFriendship.length > 0) {
-      // Mettre à jour la relation existante
+    if (checkError || !existingFriendship) {
+      return { success: false, error: 'Friendship not found' }
+    }
+
+    // Supprimer l'amitié
+    const { error: deleteError } = await supabase
+      .from('friendships')
+      .delete()
+      .eq('id', existingFriendship.id)
+
+    if (deleteError) {
+      logError('Error removing friendship', deleteError)
+      return { success: false, error: deleteError.message }
+    }
+
+    logInfo('Friendship removed successfully', {
+      user1: userId1.substring(0, 8) + '...',
+      user2: userId2.substring(0, 8) + '...',
+      friendshipId: existingFriendship.id
+    })
+
+    return { success: true }
+
+  } catch (error) {
+    logError('Exception while removing friendship', error)
+    return { success: false, error: 'Erreur lors de la suppression de l\'amitié' }
+  }
+}
+
+/**
+ * Bloquer un utilisateur (maintenu pour compatibilité mais maintenant avec statut 'blocked')
+ * @param {string} userId - ID de l'utilisateur qui bloque
+ * @param {string} targetUserId - ID de l'utilisateur à bloquer
+ * @returns {Promise<{success: boolean, error?: string}>}
+ */
+export async function blockUser(userId, targetUserId) {
+  if (!userId || !targetUserId) {
+    return { success: false, error: 'User IDs required' }
+  }
+
+  if (userId === targetUserId) {
+    return { success: false, error: 'Cannot block yourself' }
+  }
+
+  try {
+    // Vérifier s'il y a déjà une relation
+    const { data: existing, error: checkError } = await supabase
+      .from('friendships')
+      .select('id, status')
+      .or(`and(user_id.eq.${userId},friend_id.eq.${targetUserId}),and(user_id.eq.${targetUserId},friend_id.eq.${userId})`)
+      .single()
+
+    if (existing) {
+      // Mettre à jour vers blocked
       const { error: updateError } = await supabase
         .from('friendships')
         .update({ 
           status: 'blocked',
           updated_at: new Date().toISOString()
         })
-        .eq('id', existingFriendship[0].friendship_id)
+        .eq('id', existing.id)
 
       if (updateError) {
         throw updateError
@@ -610,8 +667,8 @@ export async function blockUser(fromUserId, toUserId) {
       const { error: insertError } = await supabase
         .from('friendships')
         .insert({
-          user_id: fromUserId,
-          friend_id: toUserId,
+          user_id: userId,
+          friend_id: targetUserId,
           status: 'blocked',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
@@ -622,160 +679,127 @@ export async function blockUser(fromUserId, toUserId) {
       }
     }
 
-    logInfo('User blocked successfully', { fromUserId, toUserId })
     return { success: true }
 
   } catch (error) {
-    logError('Error blocking user', error, { fromUserId, toUserId })
+    logError('Error blocking user', error)
     return { success: false, error: error.message }
   }
 }
 
 /**
- * Débloque un utilisateur
- * @param {string} fromUserId - ID de l'utilisateur qui débloque (auth.users.id)
- * @param {string} toUserId - ID de l'utilisateur à débloquer (auth.users.id)
- * @returns {Promise<Object>} Résultat de l'opération
+ * Débloquer un utilisateur
+ * @param {string} userId - ID de l'utilisateur qui débloque
+ * @param {string} targetUserId - ID de l'utilisateur à débloquer
+ * @returns {Promise<{success: boolean, error?: string}>}
  */
-export async function unblockUser(fromUserId, toUserId) {
-  if (!fromUserId || !toUserId || fromUserId === toUserId) {
-    return { success: false, error: 'Invalid user IDs' }
+export async function unblockUser(userId, targetUserId) {
+  if (!userId || !targetUserId) {
+    return { success: false, error: 'User IDs required' }
   }
 
   try {
     const { error } = await supabase
       .from('friendships')
       .delete()
-      .eq('user_id', fromUserId)
-      .eq('friend_id', toUserId)
+      .or(`and(user_id.eq.${userId},friend_id.eq.${targetUserId}),and(user_id.eq.${targetUserId},friend_id.eq.${userId})`)
       .eq('status', 'blocked')
 
     if (error) {
       throw error
     }
 
-    logInfo('User unblocked successfully', { fromUserId, toUserId })
     return { success: true }
 
   } catch (error) {
-    logError('Error unblocking user', error, { fromUserId, toUserId })
+    logError('Error unblocking user', error)
     return { success: false, error: error.message }
   }
 }
 
 /**
- * Obtient la liste des utilisateurs bloqués
- * @param {string} userId - L'ID de l'utilisateur (auth.users.id)
- * @returns {Promise<Array>} Liste des utilisateurs bloqués
+ * Obtenir les statistiques d'amitié d'un utilisateur
+ * @param {string} userId - ID de l'utilisateur
+ * @returns {Promise<{friends: number, pending: number, blocked: number}>}
  */
-export async function getBlockedUsers(userId) {
+export async function getFriendshipStats(userId) {
   if (!userId) {
-    return []
-  }
-
-  try {
-    const { data, error } = await supabase
-      .rpc('get_blocked_users', { user_id_param: userId })
-
-    if (error) {
-      logError('Error getting blocked users', error, { userId })
-      return []
-    }
-
-    return data || []
-
-  } catch (error) {
-    logError('Exception getting blocked users', error, { userId })
-    return []
-  }
-}
-
-/**
- * Vérifie si un utilisateur est bloqué
- * @param {string} fromUserId - Premier utilisateur (auth.users.id)
- * @param {string} toUserId - Deuxième utilisateur (auth.users.id)
- * @returns {Promise<boolean>} True si bloqué
- */
-export async function isUserBlocked(fromUserId, toUserId) {
-  if (!fromUserId || !toUserId) {
-    return false
+    return { friends: 0, pending: 0, blocked: 0 }
   }
 
   try {
     const { data, error } = await supabase
       .from('friendships')
-      .select('id')
-      .or(`and(user_id.eq.${fromUserId},friend_id.eq.${toUserId},status.eq.blocked),and(user_id.eq.${toUserId},friend_id.eq.${fromUserId},status.eq.blocked)`)
-      .maybeSingle()
+      .select('status')
+      .or(`user_id.eq.${userId},friend_id.eq.${userId}`)
 
     if (error) {
-      logError('Error checking if user is blocked', error)
-      return false
+      logError('Error getting friendship stats', error)
+      return { friends: 0, pending: 0, blocked: 0 }
     }
 
-    return !!data
+    const stats = data.reduce((acc, friendship) => {
+      acc[friendship.status] = (acc[friendship.status] || 0) + 1
+      return acc
+    }, {})
+
+    return {
+      friends: stats.accepted || 0,
+      pending: stats.pending || 0,
+      blocked: stats.blocked || 0
+    }
 
   } catch (error) {
-    logError('Exception checking if user is blocked', error)
-    return false
+    logError('Exception getting friendship stats', error)
+    return { friends: 0, pending: 0, blocked: 0 }
   }
 }
 
 /**
- * Crée une notification pour un utilisateur
- * @param {string} userId - ID de l'utilisateur destinataire
- * @param {string} type - Type de notification
- * @param {string} message - Message de la notification
- * @param {Object} metadata - Métadonnées additionnelles
- * @returns {Promise<Object>} Résultat de l'opération
+ * Recherche des utilisateurs avec filtres avancés
+ * @param {string} searchTerm - Terme de recherche
+ * @param {Object} options - Options de recherche
+ * @returns {Promise<Array>} Liste des utilisateurs trouvés
  */
-export async function createNotification(userId, type, message, metadata = {}) {
-  try {
-    const { data, error } = await supabase
-      .from('notifications')
-      .insert({
-        user_id: userId,
-        type,
-        message,
-        metadata,
-        is_read: false,
-        created_at: new Date().toISOString()
-      })
-      .select()
-      .single()
-
-    if (error) {
-      throw error
-    }
-
-    logInfo('Notification created', { userId, type, notificationId: data.id })
-    return { success: true, notification: data }
-
-  } catch (error) {
-    logError('Error creating notification', error, { userId, type })
-    return { success: false, error: error.message }
-  }
-}
-
-/**
- * Obtient les notifications non lues d'un utilisateur
- * @param {string} userId - L'ID de l'utilisateur
- * @param {number} limit - Limite de résultats
- * @returns {Promise<Array>} Liste des notifications
- */
-export async function getUnreadNotifications(userId, limit = 20) {
-  if (!userId) {
+export async function searchUsersAdvanced(searchTerm, options = {}) {
+  if (!searchTerm || searchTerm.length < 2) {
     return []
   }
 
   try {
-    const { data, error } = await supabase
-      .from('notifications')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('is_read', false)
-      .order('created_at', { ascending: false })
-      .limit(limit)
+    let query = supabase
+      .from('profiles')
+      .select('user_id, display_name, bio, avatar_url, created_at')
+      .eq('is_private', false)
+
+    // Recherche par nom
+    if (options.exactMatch) {
+      query = query.eq('display_name', searchTerm)
+    } else {
+      query = query.ilike('display_name', `%${searchTerm}%`)
+    }
+
+    // Filtrer ceux qui ont un avatar
+    if (options.hasAvatar) {
+      query = query.not('avatar_url', 'is', null)
+    }
+
+    // Exclure les utilisateurs bloqués
+    if (options.excludeBlocked && options.currentUserId) {
+      // Note: Ceci nécessiterait une requête plus complexe
+      // Pour l'instant, on fait la requête simple
+    }
+
+    // Trier les résultats
+    if (options.sortBy === 'created_at') {
+      query = query.order('created_at', { ascending: false })
+    } else {
+      query = query.order('display_name', { ascending: true })
+    }
+
+    query = query.limit(options.limit || 20)
+
+    const { data, error } = await query
 
     if (error) {
       throw error
@@ -784,121 +808,7 @@ export async function getUnreadNotifications(userId, limit = 20) {
     return data || []
 
   } catch (error) {
-    logError('Error getting unread notifications', error, { userId })
-    return []
-  }
-}
-
-/**
- * Marque une notification comme lue
- * @param {string} notificationId - ID de la notification
- * @returns {Promise<Object>} Résultat de l'opération
- */
-export async function markNotificationAsRead(notificationId) {
-  try {
-    const { error } = await supabase
-      .from('notifications')
-      .update({ 
-        is_read: true,
-        read_at: new Date().toISOString()
-      })
-      .eq('id', notificationId)
-
-    if (error) {
-      throw error
-    }
-
-    return { success: true }
-
-  } catch (error) {
-    logError('Error marking notification as read', error, { notificationId })
-    return { success: false, error: error.message }
-  }
-}
-
-/**
- * Recherche avancée d'utilisateurs avec filtres
- * @param {string} query - Terme de recherche
- * @param {Object} filters - Filtres de recherche
- * @param {number} limit - Nombre maximum de résultats
- * @returns {Promise<Array>} Liste des utilisateurs trouvés
- */
-export async function searchUsersAdvanced(query, filters = {}, limit = 20) {
-  if (!query || typeof query !== 'string' || query.trim().length < 2) {
-    return []
-  }
-
-  try {
-    const {
-      location = null,
-      hasAvatar = null,
-      isOnline = null,
-      excludeBlocked = true,
-      sortBy = 'display_name'
-    } = filters
-
-    let queryBuilder = supabase
-      .from('profiles')
-      .select(`
-        user_id,
-        display_name,
-        bio,
-        avatar_url,
-        location,
-        is_private,
-        last_seen,
-        created_at
-      `)
-      .eq('is_private', false)
-      .ilike('display_name', `%${query.trim()}%`)
-
-    // Appliquer les filtres
-    if (location) {
-      queryBuilder = queryBuilder.ilike('location', `%${location}%`)
-    }
-
-    if (hasAvatar !== null) {
-      if (hasAvatar) {
-        queryBuilder = queryBuilder.not('avatar_url', 'is', null)
-      } else {
-        queryBuilder = queryBuilder.is('avatar_url', null)
-      }
-    }
-
-    if (isOnline !== null) {
-      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString()
-      if (isOnline) {
-        queryBuilder = queryBuilder.gte('last_seen', fiveMinutesAgo)
-      } else {
-        queryBuilder = queryBuilder.lt('last_seen', fiveMinutesAgo)
-      }
-    }
-
-    // Trier les résultats
-    queryBuilder = queryBuilder.order(sortBy, { ascending: true }).limit(limit)
-
-    const { data, error } = await queryBuilder
-
-    if (error) {
-      throw error
-    }
-
-    let results = data || []
-
-    // Exclure les utilisateurs bloqués si demandé
-    if (excludeBlocked && results.length > 0) {
-      const currentUser = await supabase.auth.getUser()
-      if (currentUser.data.user) {
-        const blockedUsers = await getBlockedUsers(currentUser.data.user.id)
-        const blockedUserIds = blockedUsers.map(u => u.user_id)
-        results = results.filter(user => !blockedUserIds.includes(user.user_id))
-      }
-    }
-
-    return results
-
-  } catch (error) {
-    logError('Error in advanced user search', error, { query, filters })
+    logError('Error in advanced search', error)
     return []
   }
 }

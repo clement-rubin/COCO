@@ -217,312 +217,454 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- 15. Fonction pour obtenir des statistiques d'amitié
-CREATE OR REPLACE FUNCTION get_friendship_stats(target_user_id uuid)
+-- 13. Fonction pour supprimer une amitié
+CREATE OR REPLACE FUNCTION remove_friendship(user1_id uuid, user2_id uuid)
 RETURNS TABLE (
-  friends_count bigint,
-  pending_sent bigint,
-  pending_received bigint
+  success boolean,
+  message text
+) AS $$
+DECLARE
+  friendship_record record;
+BEGIN
+  -- Vérifier que l'amitié existe et est acceptée
+  SELECT INTO friendship_record *
+  FROM friendships
+  WHERE ((user_id = user1_id AND friend_id = user2_id) OR (user_id = user2_id AND friend_id = user1_id))
+    AND status = 'accepted';
+  
+  IF NOT FOUND THEN
+    RETURN QUERY SELECT false, 'Friendship not found or not accepted'::text;
+    RETURN;
+  END IF;
+  
+  -- Supprimer l'amitié
+  DELETE FROM friendships WHERE id = friendship_record.id;
+  
+  RETURN QUERY SELECT true, 'Friendship removed successfully'::text;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 14. Fonction pour obtenir les statistiques d'amitié
+CREATE OR REPLACE FUNCTION get_friendship_statistics(target_user_id uuid)
+RETURNS TABLE (
+  total_friends bigint,
+  pending_requests bigint,
+  blocked_users bigint,
+  sent_requests bigint
 ) AS $$
 BEGIN
   RETURN QUERY
   SELECT 
     (SELECT COUNT(*) FROM friendships 
      WHERE (user_id = target_user_id OR friend_id = target_user_id) 
-     AND status = 'accepted')::bigint as friends_count,
+       AND status = 'accepted'),
     (SELECT COUNT(*) FROM friendships 
-     WHERE user_id = target_user_id AND status = 'pending')::bigint as pending_sent,
+     WHERE friend_id = target_user_id AND status = 'pending'),
     (SELECT COUNT(*) FROM friendships 
-     WHERE friend_id = target_user_id AND status = 'pending')::bigint as pending_received;
+     WHERE (user_id = target_user_id OR friend_id = target_user_id) 
+       AND status = 'blocked'),
+    (SELECT COUNT(*) FROM friendships 
+     WHERE user_id = target_user_id AND status = 'pending');
 END;
 $$ LANGUAGE plpgsql;
 
--- 16. Table pour les notifications
-CREATE TABLE IF NOT EXISTS notifications (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  type TEXT NOT NULL CHECK (type IN ('friend_request', 'friend_accepted', 'friend_rejected', 'friend_blocked', 'system', 'recipe_shared')),
-  message TEXT NOT NULL,
-  metadata JSONB DEFAULT '{}',
-  is_read BOOLEAN DEFAULT false,
-  read_at TIMESTAMP WITH TIME ZONE,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- 17. Table pour l'historique des interactions
-CREATE TABLE IF NOT EXISTS interaction_history (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  target_user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  interaction_type TEXT NOT NULL CHECK (interaction_type IN ('profile_view', 'recipe_view', 'friend_request', 'message', 'block', 'unblock')),
-  metadata JSONB DEFAULT '{}',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- 18. Table pour les groupes d'amis
-CREATE TABLE IF NOT EXISTS friend_groups (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  name TEXT NOT NULL,
-  description TEXT,
-  color TEXT DEFAULT '#3B82F6',
-  is_default BOOLEAN DEFAULT false,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  UNIQUE(user_id, name)
-);
-
--- 19. Table de liaison pour les membres des groupes
-CREATE TABLE IF NOT EXISTS friend_group_members (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  group_id UUID NOT NULL REFERENCES friend_groups(id) ON DELETE CASCADE,
-  friend_user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  added_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  UNIQUE(group_id, friend_user_id)
-);
-
--- 20. Mise à jour de la table profiles pour inclure last_seen
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS last_seen TIMESTAMP WITH TIME ZONE DEFAULT NOW();
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_online BOOLEAN DEFAULT false;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS total_friends_count INTEGER DEFAULT 0;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS total_recipes_count INTEGER DEFAULT 0;
-
--- 21. Index pour les nouvelles tables
-CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
-CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON notifications(is_read);
-CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created_at);
-CREATE INDEX IF NOT EXISTS idx_interaction_history_user_id ON interaction_history(user_id);
-CREATE INDEX IF NOT EXISTS idx_interaction_history_target_user ON interaction_history(target_user_id);
-CREATE INDEX IF NOT EXISTS idx_interaction_history_type ON interaction_history(interaction_type);
-CREATE INDEX IF NOT EXISTS idx_friend_groups_user_id ON friend_groups(user_id);
-CREATE INDEX IF NOT EXISTS idx_friend_group_members_group_id ON friend_group_members(group_id);
-CREATE INDEX IF NOT EXISTS idx_profiles_last_seen ON profiles(last_seen);
-CREATE INDEX IF NOT EXISTS idx_profiles_is_online ON profiles(is_online);
-
--- 22. Politiques RLS pour les nouvelles tables
-ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
-ALTER TABLE interaction_history ENABLE ROW LEVEL SECURITY;
-ALTER TABLE friend_groups ENABLE ROW LEVEL SECURITY;
-ALTER TABLE friend_group_members ENABLE ROW LEVEL SECURITY;
-
--- Politiques pour notifications
-CREATE POLICY "Voir ses notifications" ON notifications 
-FOR SELECT USING (auth.uid() = user_id);
-
-CREATE POLICY "Créer notification" ON notifications 
-FOR INSERT WITH CHECK (true); -- Les notifications peuvent être créées par le système
-
-CREATE POLICY "Modifier ses notifications" ON notifications 
-FOR UPDATE USING (auth.uid() = user_id);
-
--- Politiques pour interaction_history
-CREATE POLICY "Voir son historique" ON interaction_history 
-FOR SELECT USING (auth.uid() = user_id OR auth.uid() = target_user_id);
-
-CREATE POLICY "Créer interaction" ON interaction_history 
-FOR INSERT WITH CHECK (auth.uid() = user_id);
-
--- Politiques pour friend_groups
-CREATE POLICY "Voir ses groupes" ON friend_groups 
-FOR SELECT USING (auth.uid() = user_id);
-
-CREATE POLICY "Créer ses groupes" ON friend_groups 
-FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Modifier ses groupes" ON friend_groups 
-FOR UPDATE USING (auth.uid() = user_id);
-
-CREATE POLICY "Supprimer ses groupes" ON friend_groups 
-FOR DELETE USING (auth.uid() = user_id);
-
--- Politiques pour friend_group_members
-CREATE POLICY "Voir membres de ses groupes" ON friend_group_members 
-FOR SELECT USING (EXISTS (
-  SELECT 1 FROM friend_groups fg WHERE fg.id = group_id AND fg.user_id = auth.uid()
-));
-
-CREATE POLICY "Ajouter membres à ses groupes" ON friend_group_members 
-FOR INSERT WITH CHECK (EXISTS (
-  SELECT 1 FROM friend_groups fg WHERE fg.id = group_id AND fg.user_id = auth.uid()
-));
-
-CREATE POLICY "Supprimer membres de ses groupes" ON friend_group_members 
-FOR DELETE USING (EXISTS (
-  SELECT 1 FROM friend_groups fg WHERE fg.id = group_id AND fg.user_id = auth.uid()
-));
-
--- 23. Fonction pour obtenir les utilisateurs bloqués
-CREATE OR REPLACE FUNCTION get_blocked_users(user_id_param uuid)
-RETURNS TABLE (
-  user_id uuid,
-  display_name text,
-  avatar_url text,
-  blocked_at timestamptz
-) AS $$
-BEGIN
-  RETURN QUERY
-  SELECT 
-    p.user_id,
-    p.display_name,
-    p.avatar_url,
-    f.created_at as blocked_at
-  FROM friendships f
-  JOIN profiles p ON p.user_id = f.friend_id
-  WHERE 
-    f.user_id = user_id_param
-    AND f.status = 'blocked'
-  ORDER BY f.created_at DESC;
-END;
-$$ LANGUAGE plpgsql;
-
--- 24. Fonction pour les suggestions d'amis intelligentes
-CREATE OR REPLACE FUNCTION get_intelligent_friend_suggestions(user_id_param uuid, limit_param integer DEFAULT 10)
+-- 15. Fonction pour rechercher des utilisateurs avec filtres avancés
+CREATE OR REPLACE FUNCTION search_users_advanced(
+  search_term text,
+  current_user_id uuid DEFAULT NULL,
+  has_avatar boolean DEFAULT NULL,
+  exclude_blocked boolean DEFAULT true,
+  sort_by text DEFAULT 'display_name',
+  result_limit integer DEFAULT 20
+)
 RETURNS TABLE (
   user_id uuid,
   display_name text,
   bio text,
   avatar_url text,
-  location text,
-  mutual_friends_count bigint,
-  similarity_score numeric
+  created_at timestamptz,
+  is_friend boolean,
+  friendship_status text
 ) AS $$
 BEGIN
   RETURN QUERY
-  WITH user_friends AS (
-    SELECT DISTINCT
-      CASE 
-        WHEN f.user_id = user_id_param THEN f.friend_id
-        ELSE f.user_id
-      END as friend_id
-    FROM friendships f
-    WHERE 
-      (f.user_id = user_id_param OR f.friend_id = user_id_param)
-      AND f.status = 'accepted'
-  ),
-  mutual_friends AS (
-    SELECT 
-      p.user_id,
-      COUNT(uf.friend_id) as mutual_count
-    FROM profiles p
-    LEFT JOIN friendships f2 ON (
-      (f2.user_id = p.user_id OR f2.friend_id = p.user_id)
-      AND f2.status = 'accepted'
-    )
-    LEFT JOIN user_friends uf ON (
-      CASE 
-        WHEN f2.user_id = p.user_id THEN f2.friend_id
-        ELSE f2.user_id
-      END = uf.friend_id
-    )
-    WHERE 
-      p.user_id != user_id_param
-      AND p.is_private = false
-      AND NOT EXISTS (
-        SELECT 1 FROM friendships f3 
-        WHERE (f3.user_id = user_id_param AND f3.friend_id = p.user_id)
-           OR (f3.user_id = p.user_id AND f3.friend_id = user_id_param)
-      )
-    GROUP BY p.user_id
-  )
   SELECT 
     p.user_id,
     p.display_name,
     p.bio,
     p.avatar_url,
-    p.location,
-    COALESCE(mf.mutual_count, 0) as mutual_friends_count,
-    (COALESCE(mf.mutual_count, 0) * 0.7 + 
-     CASE WHEN p.location IS NOT NULL THEN 0.2 ELSE 0 END +
-     CASE WHEN p.avatar_url IS NOT NULL THEN 0.1 ELSE 0 END) as similarity_score
+    p.created_at,
+    CASE WHEN f.status = 'accepted' THEN true ELSE false END as is_friend,
+    COALESCE(f.status, 'none') as friendship_status
   FROM profiles p
-  LEFT JOIN mutual_friends mf ON mf.user_id = p.user_id
+  LEFT JOIN friendships f ON (
+    (f.user_id = current_user_id AND f.friend_id = p.user_id) OR
+    (f.friend_id = current_user_id AND f.user_id = p.user_id)
+  )
   WHERE 
-    p.user_id != user_id_param
-    AND p.is_private = false
-  ORDER BY similarity_score DESC, p.created_at DESC
-  LIMIT limit_param;
+    p.is_private = false 
+    AND (current_user_id IS NULL OR p.user_id != current_user_id)
+    AND p.display_name ILIKE '%' || search_term || '%'
+    AND (has_avatar IS NULL OR (has_avatar = true AND p.avatar_url IS NOT NULL) OR (has_avatar = false))
+    AND (exclude_blocked = false OR f.status != 'blocked' OR f.status IS NULL)
+  ORDER BY 
+    CASE 
+      WHEN sort_by = 'created_at' THEN p.created_at::text
+      ELSE p.display_name
+    END
+  LIMIT result_limit;
 END;
 $$ LANGUAGE plpgsql;
 
--- 25. Fonction pour créer un groupe d'amis par défaut
-CREATE OR REPLACE FUNCTION create_default_friend_group(user_id_param uuid)
-RETURNS uuid AS $$
+-- 16. Fonction pour nettoyer les amitiés orphelines
+CREATE OR REPLACE FUNCTION cleanup_orphaned_friendships()
+RETURNS integer AS $$
 DECLARE
-  group_id uuid;
+  deleted_count integer;
 BEGIN
-  INSERT INTO friend_groups (user_id, name, description, is_default)
-  VALUES (user_id_param, 'Amis proches', 'Groupe par défaut pour vos amis les plus proches', true)
-  RETURNING id INTO group_id;
+  -- Supprimer les amitiés où les utilisateurs n'existent plus
+  WITH deleted AS (
+    DELETE FROM friendships 
+    WHERE user_id NOT IN (SELECT id FROM auth.users)
+       OR friend_id NOT IN (SELECT id FROM auth.users)
+    RETURNING id
+  )
+  SELECT COUNT(*) INTO deleted_count FROM deleted;
   
-  RETURN group_id;
+  RETURN deleted_count;
 END;
 $$ LANGUAGE plpgsql;
 
--- 26. Fonction pour obtenir les statistiques avancées d'un utilisateur
-CREATE OR REPLACE FUNCTION get_user_advanced_stats(target_user_id uuid)
+-- 17. Index supplémentaires pour les performances
+CREATE INDEX IF NOT EXISTS idx_friendships_status_created ON friendships(status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_friendships_compound ON friendships(user_id, friend_id, status);
+
+-- 18. Vue pour les statistiques globales du système d'amis
+CREATE OR REPLACE VIEW friendship_system_stats AS
+SELECT 
+  (SELECT COUNT(*) FROM friendships WHERE status = 'accepted') as total_friendships,
+  (SELECT COUNT(*) FROM friendships WHERE status = 'pending') as pending_requests,
+  (SELECT COUNT(*) FROM friendships WHERE status = 'blocked') as blocked_users,
+  (SELECT COUNT(*) FROM profiles WHERE is_private = false) as public_profiles,
+  (SELECT COUNT(DISTINCT user_id) FROM friendships) as users_with_friends,
+  (SELECT AVG(friend_count) FROM (
+    SELECT COUNT(*) as friend_count 
+    FROM friendships 
+    WHERE status = 'accepted' 
+    GROUP BY user_id
+  ) as avg_friends_subquery) as avg_friends_per_user;
+
+-- 19. Extension pour recherche floue
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE INDEX IF NOT EXISTS idx_profiles_display_name_trgm ON profiles USING gin(display_name gin_trgm_ops);
+
+-- 20. Row Level Security
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE friendships ENABLE ROW LEVEL SECURITY;
+
+-- 21. Politiques pour profiles
+DROP POLICY IF EXISTS "Permettre lecture publique profils" ON profiles;
+DROP POLICY IF EXISTS "Permettre mise à jour profil utilisateur" ON profiles;
+DROP POLICY IF EXISTS "Permettre insertion profil utilisateur" ON profiles;
+DROP POLICY IF EXISTS "Permettre suppression profil utilisateur" ON profiles;
+
+CREATE POLICY "Permettre lecture publique profils" ON profiles 
+FOR SELECT USING (NOT is_private OR auth.uid() = user_id);
+
+CREATE POLICY "Permettre mise à jour profil utilisateur" ON profiles 
+FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Permettre insertion profil utilisateur" ON profiles 
+FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Permettre suppression profil utilisateur" ON profiles 
+FOR DELETE USING (auth.uid() = user_id);
+
+-- 22. Politiques pour friendships
+DROP POLICY IF EXISTS "Voir ses amitiés" ON friendships;
+DROP POLICY IF EXISTS "Créer demande amitié" ON friendships;
+DROP POLICY IF EXISTS "Modifier ses amitiés" ON friendships;
+DROP POLICY IF EXISTS "Supprimer ses amitiés" ON friendships;
+
+CREATE POLICY "Voir ses amitiés" ON friendships 
+FOR SELECT USING (auth.uid() = user_id OR auth.uid() = friend_id);
+
+CREATE POLICY "Créer demande amitié" ON friendships 
+FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Modifier ses amitiés" ON friendships 
+FOR UPDATE USING (auth.uid() = friend_id OR auth.uid() = user_id);
+
+CREATE POLICY "Supprimer ses amitiés" ON friendships 
+FOR DELETE USING (auth.uid() = friend_id OR auth.uid() = user_id);
+
+-- 23. Fonction pour créer automatiquement un profil
+CREATE OR REPLACE FUNCTION handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.profiles (user_id, display_name)
+  VALUES (NEW.id, COALESCE(NEW.raw_user_meta_data->>'display_name', split_part(NEW.email, '@', 1)));
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 24. Trigger pour créer automatiquement un profil
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE handle_new_user();
+
+-- 25. Fonction de recherche simplifiée (utilise user_id directement)
+CREATE OR REPLACE FUNCTION search_users_simple(search_term text, current_user_id uuid DEFAULT NULL)
 RETURNS TABLE (
-  friends_count bigint,
-  pending_sent bigint,
-  pending_received bigint,
-  blocked_count bigint,
-  groups_count bigint,
-  unread_notifications bigint,
-  profile_views_last_week bigint,
-  is_online boolean
+  user_id uuid,
+  display_name text,
+  bio text,
+  avatar_url text,
+  created_at timestamptz
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    p.user_id,
+    p.display_name,
+    p.bio,
+    p.avatar_url,
+    p.created_at
+  FROM profiles p
+  WHERE 
+    p.is_private = false 
+    AND (current_user_id IS NULL OR p.user_id != current_user_id)
+    AND p.display_name ILIKE '%' || search_term || '%'
+  ORDER BY p.display_name ASC
+  LIMIT 20;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 26. Fonction pour obtenir les amis d'un utilisateur
+CREATE OR REPLACE FUNCTION get_user_friends_simple(target_user_id uuid)
+RETURNS TABLE (
+  friendship_id uuid,
+  friend_user_id uuid,
+  friend_display_name text,
+  friend_avatar_url text,
+  friend_bio text,
+  friendship_status text,
+  created_at timestamptz
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    f.id as friendship_id,
+    CASE 
+      WHEN f.user_id = target_user_id THEN f.friend_id
+      ELSE f.user_id
+    END as friend_user_id,
+    p.display_name as friend_display_name,
+    p.avatar_url as friend_avatar_url,
+    p.bio as friend_bio,
+    f.status as friendship_status,
+    f.created_at
+  FROM friendships f
+  JOIN profiles p ON (
+    (f.user_id = target_user_id AND p.user_id = f.friend_id)
+    OR
+    (f.friend_id = target_user_id AND p.user_id = f.user_id)
+  )
+  WHERE 
+    (f.user_id = target_user_id OR f.friend_id = target_user_id)
+    AND f.status = 'accepted'
+  ORDER BY f.created_at DESC;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 27. Fonction pour obtenir les demandes d'amitié en attente
+CREATE OR REPLACE FUNCTION get_pending_friend_requests(target_user_id uuid)
+RETURNS TABLE (
+  friendship_id uuid,
+  requester_user_id uuid,
+  requester_display_name text,
+  requester_avatar_url text,
+  requester_bio text,
+  created_at timestamptz
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    f.id as friendship_id,
+    f.user_id as requester_user_id,
+    p.display_name as requester_display_name,
+    p.avatar_url as requester_avatar_url,
+    p.bio as requester_bio,
+    f.created_at
+  FROM friendships f
+  JOIN profiles p ON p.user_id = f.user_id
+  WHERE 
+    f.friend_id = target_user_id
+    AND f.status = 'pending'
+  ORDER BY f.created_at DESC;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 28. Fonction pour vérifier le statut d'amitié entre deux utilisateurs
+CREATE OR REPLACE FUNCTION check_friendship_status(user1_id uuid, user2_id uuid)
+RETURNS TABLE (
+  status text,
+  friendship_id uuid,
+  is_requester boolean
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    f.status,
+    f.id as friendship_id,
+    (f.user_id = user1_id) as is_requester
+  FROM friendships f
+  WHERE 
+    (f.user_id = user1_id AND f.friend_id = user2_id) OR
+    (f.user_id = user2_id AND f.friend_id = user1_id)
+  LIMIT 1;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 13. Fonction pour supprimer une amitié
+CREATE OR REPLACE FUNCTION remove_friendship(user1_id uuid, user2_id uuid)
+RETURNS TABLE (
+  success boolean,
+  message text
+) AS $$
+DECLARE
+  friendship_record record;
+BEGIN
+  -- Vérifier que l'amitié existe et est acceptée
+  SELECT INTO friendship_record *
+  FROM friendships
+  WHERE ((user_id = user1_id AND friend_id = user2_id) OR (user_id = user2_id AND friend_id = user1_id))
+    AND status = 'accepted';
+  
+  IF NOT FOUND THEN
+    RETURN QUERY SELECT false, 'Friendship not found or not accepted'::text;
+    RETURN;
+  END IF;
+  
+  -- Supprimer l'amitié
+  DELETE FROM friendships WHERE id = friendship_record.id;
+  
+  RETURN QUERY SELECT true, 'Friendship removed successfully'::text;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 14. Fonction pour obtenir les statistiques d'amitié
+CREATE OR REPLACE FUNCTION get_friendship_statistics(target_user_id uuid)
+RETURNS TABLE (
+  total_friends bigint,
+  pending_requests bigint,
+  blocked_users bigint,
+  sent_requests bigint
 ) AS $$
 BEGIN
   RETURN QUERY
   SELECT 
     (SELECT COUNT(*) FROM friendships 
      WHERE (user_id = target_user_id OR friend_id = target_user_id) 
-     AND status = 'accepted')::bigint as friends_count,
+       AND status = 'accepted'),
     (SELECT COUNT(*) FROM friendships 
-     WHERE user_id = target_user_id AND status = 'pending')::bigint as pending_sent,
+     WHERE friend_id = target_user_id AND status = 'pending'),
     (SELECT COUNT(*) FROM friendships 
-     WHERE friend_id = target_user_id AND status = 'pending')::bigint as pending_received,
+     WHERE (user_id = target_user_id OR friend_id = target_user_id) 
+       AND status = 'blocked'),
     (SELECT COUNT(*) FROM friendships 
-     WHERE user_id = target_user_id AND status = 'blocked')::bigint as blocked_count,
-    (SELECT COUNT(*) FROM friend_groups 
-     WHERE user_id = target_user_id)::bigint as groups_count,
-    (SELECT COUNT(*) FROM notifications 
-     WHERE user_id = target_user_id AND is_read = false)::bigint as unread_notifications,
-    (SELECT COUNT(*) FROM interaction_history 
-     WHERE target_user_id = target_user_id 
-     AND interaction_type = 'profile_view'
-     AND created_at > NOW() - INTERVAL '7 days')::bigint as profile_views_last_week,
-    (SELECT last_seen > NOW() - INTERVAL '5 minutes' FROM profiles 
-     WHERE user_id = target_user_id)::boolean as is_online;
+     WHERE user_id = target_user_id AND status = 'pending');
 END;
 $$ LANGUAGE plpgsql;
 
--- 27. Trigger pour mettre à jour automatiquement les compteurs
-CREATE OR REPLACE FUNCTION update_profile_counters()
-RETURNS trigger AS $$
+-- 15. Fonction pour rechercher des utilisateurs avec filtres avancés
+CREATE OR REPLACE FUNCTION search_users_advanced(
+  search_term text,
+  current_user_id uuid DEFAULT NULL,
+  has_avatar boolean DEFAULT NULL,
+  exclude_blocked boolean DEFAULT true,
+  sort_by text DEFAULT 'display_name',
+  result_limit integer DEFAULT 20
+)
+RETURNS TABLE (
+  user_id uuid,
+  display_name text,
+  bio text,
+  avatar_url text,
+  created_at timestamptz,
+  is_friend boolean,
+  friendship_status text
+) AS $$
 BEGIN
-  IF TG_TABLE_NAME = 'friendships' THEN
-    -- Mettre à jour le compteur d'amis
-    UPDATE profiles SET total_friends_count = (
-      SELECT COUNT(*) FROM friendships 
-      WHERE (user_id = NEW.user_id OR friend_id = NEW.user_id) 
-      AND status = 'accepted'
-    ) WHERE user_id = NEW.user_id;
-    
-    UPDATE profiles SET total_friends_count = (
-      SELECT COUNT(*) FROM friendships 
-      WHERE (user_id = NEW.friend_id OR friend_id = NEW.friend_id) 
-      AND status = 'accepted'
-    ) WHERE user_id = NEW.friend_id;
-  END IF;
-  
-  RETURN NEW;
+  RETURN QUERY
+  SELECT 
+    p.user_id,
+    p.display_name,
+    p.bio,
+    p.avatar_url,
+    p.created_at,
+    CASE WHEN f.status = 'accepted' THEN true ELSE false END as is_friend,
+    COALESCE(f.status, 'none') as friendship_status
+  FROM profiles p
+  LEFT JOIN friendships f ON (
+    (f.user_id = current_user_id AND f.friend_id = p.user_id) OR
+    (f.friend_id = current_user_id AND f.user_id = p.user_id)
+  )
+  WHERE 
+    p.is_private = false 
+    AND (current_user_id IS NULL OR p.user_id != current_user_id)
+    AND p.display_name ILIKE '%' || search_term || '%'
+    AND (has_avatar IS NULL OR (has_avatar = true AND p.avatar_url IS NOT NULL) OR (has_avatar = false))
+    AND (exclude_blocked = false OR f.status != 'blocked' OR f.status IS NULL)
+  ORDER BY 
+    CASE 
+      WHEN sort_by = 'created_at' THEN p.created_at::text
+      ELSE p.display_name
+    END
+  LIMIT result_limit;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql;
 
-CREATE TRIGGER friendship_counter_trigger
-  AFTER INSERT OR UPDATE OR DELETE ON friendships
-  FOR EACH ROW EXECUTE PROCEDURE update_profile_counters();
+-- 16. Fonction pour nettoyer les amitiés orphelines
+CREATE OR REPLACE FUNCTION cleanup_orphaned_friendships()
+RETURNS integer AS $$
+DECLARE
+  deleted_count integer;
+BEGIN
+  -- Supprimer les amitiés où les utilisateurs n'existent plus
+  WITH deleted AS (
+    DELETE FROM friendships 
+    WHERE user_id NOT IN (SELECT id FROM auth.users)
+       OR friend_id NOT IN (SELECT id FROM auth.users)
+    RETURNING id
+  )
+  SELECT COUNT(*) INTO deleted_count FROM deleted;
+  
+  RETURN deleted_count;
+END;
+$$ LANGUAGE plpgsql;
 
--- 28. Notification de fin avec nouvelles fonctionnalités
+-- 17. Index supplémentaires pour les performances
+CREATE INDEX IF NOT EXISTS idx_friendships_status_created ON friendships(status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_friendships_compound ON friendships(user_id, friend_id, status);
+
+-- 18. Vue pour les statistiques globales du système d'amis
+CREATE OR REPLACE VIEW friendship_system_stats AS
+SELECT 
+  (SELECT COUNT(*) FROM friendships WHERE status = 'accepted') as total_friendships,
+  (SELECT COUNT(*) FROM friendships WHERE status = 'pending') as pending_requests,
+  (SELECT COUNT(*) FROM friendships WHERE status = 'blocked') as blocked_users,
+  (SELECT COUNT(*) FROM profiles WHERE is_private = false) as public_profiles,
+  (SELECT COUNT(DISTINCT user_id) FROM friendships) as users_with_friends,
+  (SELECT AVG(friend_count) FROM (
+    SELECT COUNT(*) as friend_count 
+    FROM friendships 
+    WHERE status = 'accepted' 
+    GROUP BY user_id
+  ) as avg_friends_subquery) as avg_friends_per_user;
+
+-- 19. Notification de fin avec nouvelles fonctionnalités
 DO $$
 BEGIN
   RAISE NOTICE '✅ Système d''amis amélioré avec succès !';

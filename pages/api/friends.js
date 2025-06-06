@@ -1,6 +1,6 @@
 import { supabase, initializeFriendsSystem, getUserFriends, createOrUpdateProfile } from '../../lib/supabase'
 import { logError, logInfo, logDebug, logApiCall } from '../../utils/logger'
-import { getProfileIdFromUserId, sendFriendRequestCorrected } from '../../utils/profileUtils'
+import { getProfileIdFromUserId, sendFriendRequestCorrected, removeFriend, getFriendshipStats } from '../../utils/profileUtils'
 
 export default async function handler(req, res) {
   const startTime = Date.now()
@@ -183,10 +183,14 @@ async function handlePostRequest(req, res, requestId) {
         return await acceptFriendRequest(req, res, requestId, request_id)
       case 'reject_request':
         return await rejectFriendRequest(req, res, requestId, request_id)
+      case 'remove_friend':
+        return await removeFriendAPI(req, res, requestId, user_id, target_user_id)
       case 'block_user':
         return await blockUser(req, res, requestId, user_id, target_user_id)
       case 'unblock_user':
         return await unblockUser(req, res, requestId, user_id, target_user_id)
+      case 'get_stats':
+        return await getFriendshipStatsAPI(req, res, requestId, user_id)
       case 'create_group':
         return await createFriendGroup(req, res, requestId, user_id, group_name)
       case 'mark_notification_read':
@@ -295,6 +299,33 @@ async function rejectFriendRequest(req, res, requestId, request_id) {
   } catch (error) {
     logError('Erreur dans rejectFriendRequest', error, { requestId })
     return res.status(500).json({ error: 'Erreur lors du refus' })
+  }
+}
+
+async function removeFriendAPI(req, res, requestId, user_id, target_user_id) {
+  try {
+    if (!user_id || !target_user_id) {
+      return res.status(400).json({ error: 'user_id and target_user_id are required' })
+    }
+    
+    if (user_id === target_user_id) {
+      return res.status(400).json({ error: 'Cannot remove yourself as friend' })
+    }
+    
+    const result = await removeFriend(user_id, target_user_id)
+    
+    if (!result.success) {
+      return res.status(400).json({ error: result.error })
+    }
+    
+    return res.status(200).json({ 
+      success: true,
+      message: 'Friend removed successfully'
+    })
+    
+  } catch (error) {
+    logError('Erreur dans removeFriendAPI', error, { requestId })
+    return res.status(500).json({ error: 'Erreur lors de la suppression de l\'ami' })
   }
 }
 
@@ -411,5 +442,24 @@ async function updateOnlineStatus(req, res, requestId, user_id) {
   } catch (error) {
     logError('Erreur dans updateOnlineStatus', error, { requestId })
     return res.status(500).json({ error: 'Erreur lors de la mise à jour du statut' })
+  }
+}
+
+async function getFriendshipStatsAPI(req, res, requestId, user_id) {
+  try {
+    if (!user_id) {
+      return res.status(400).json({ error: 'user_id is required' })
+    }
+    
+    const stats = await getFriendshipStats(user_id)
+    
+    return res.status(200).json({
+      success: true,
+      stats
+    })
+    
+  } catch (error) {
+    logError('Erreur dans getFriendshipStatsAPI', error, { requestId })
+    return res.status(500).json({ error: 'Erreur lors de la récupération des statistiques' })
   }
 }

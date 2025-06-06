@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { logError, logInfo } from '../utils/logger';
 import styles from '../styles/Amis.module.css';
 import { useRouter } from 'next/router';
-import { blockUser, unblockUser, getFriendshipStatus } from '../utils/profileUtils';
+import { blockUser, unblockUser, getFriendshipStatus, removeFriend, getFriendshipStats } from '../utils/profileUtils';
 
 export default function Amis() {
   const [user, setUser] = useState(null);
@@ -21,11 +21,19 @@ export default function Amis() {
   const [activeTab, setActiveTab] = useState('friends'); // 'friends', 'requests', 'suggestions', 'friendsRecipes'
   const [friendsRecipes, setFriendsRecipes] = useState({});
   const [hoveredFriendId, setHoveredFriendId] = useState(null);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(null);
+  const [friendshipStats, setFriendshipStats] = useState({ friends: 0, pending: 0, blocked: 0 });
   const router = useRouter();
 
   useEffect(() => {
     checkUser();
   }, []);
+
+  useEffect(() => {
+    if (user) {
+      loadFriendshipStats();
+    }
+  }, [user]);
 
   const showMessage = (message, isError = false) => {
     if (isError) {
@@ -331,13 +339,61 @@ export default function Amis() {
     }
   };
 
-  const handleBlockUser = async (friendId) => {
+  const handleRemoveFriend = async (friendId, friendName) => {
+    setShowConfirmDialog({
+      friendId,
+      friendName,
+      action: 'remove'
+    });
+  };
+
+  const confirmRemoveFriend = async () => {
+    if (!showConfirmDialog) return;
+    
+    const { friendId } = showConfirmDialog;
     setFriendshipActions(prev => ({ ...prev, [friendId]: { loading: true } }));
+    
+    try {
+      const result = await removeFriend(user.id, friendId);
+      if (result.success) {
+        showMessage(`${showConfirmDialog.friendName} a été retiré de vos amis`);
+        await Promise.all([
+          loadFriends(user.id),
+          loadFriendshipStats()
+        ]);
+      } else {
+        showMessage(result.error || 'Erreur lors de la suppression', true);
+      }
+    } catch (error) {
+      showMessage('Erreur lors de la suppression de l\'ami', true);
+    } finally {
+      setFriendshipActions(prev => ({ ...prev, [friendId]: { loading: false } }));
+      setShowConfirmDialog(null);
+    }
+  };
+
+  const handleBlockUser = async (friendId, friendName) => {
+    setShowConfirmDialog({
+      friendId,
+      friendName,
+      action: 'block'
+    });
+  };
+
+  const confirmBlockUser = async () => {
+    if (!showConfirmDialog) return;
+    
+    const { friendId } = showConfirmDialog;
+    setFriendshipActions(prev => ({ ...prev, [friendId]: { loading: true } }));
+    
     try {
       const result = await blockUser(user.id, friendId);
       if (result.success) {
-        showMessage('Utilisateur bloqué avec succès');
-        await loadFriends(user.id);
+        showMessage(`${showConfirmDialog.friendName} a été bloqué`);
+        await Promise.all([
+          loadFriends(user.id),
+          loadFriendshipStats()
+        ]);
       } else {
         showMessage(result.error || 'Erreur lors du blocage', true);
       }
@@ -345,52 +401,81 @@ export default function Amis() {
       showMessage('Erreur lors du blocage', true);
     } finally {
       setFriendshipActions(prev => ({ ...prev, [friendId]: { loading: false } }));
+      setShowConfirmDialog(null);
     }
   };
 
-  const handleUnblockUser = async (friendId) => {
-    setFriendshipActions(prev => ({ ...prev, [friendId]: { loading: true } }));
+  const loadFriendshipStats = async () => {
+    if (!user) return;
     try {
-      const result = await unblockUser(user.id, friendId);
-      if (result.success) {
-        showMessage('Utilisateur débloqué avec succès');
-        await loadFriends(user.id);
-      } else {
-        showMessage(result.error || 'Erreur lors du déblocage', true);
-      }
+      const stats = await getFriendshipStats(user.id);
+      setFriendshipStats(stats);
     } catch (error) {
-      showMessage('Erreur lors du déblocage', true);
-    } finally {
-      setFriendshipActions(prev => ({ ...prev, [friendId]: { loading: false } }));
+      logError('Error loading friendship stats:', error);
     }
   };
 
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (searchTerm) {
-        searchUsers(searchTerm);
-      } else {
-        setSearchResults([]);
-      }
-    }, 300);
+  const searchSection = (
+    <div className={styles.searchSection}>
+      <div className={styles.searchBox}>
+        <input
+          type="text"
+          className={styles.searchInput}
+          placeholder="Rechercher des utilisateurs par nom..."
+          value={searchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
+          autoComplete="off"
+        />
+        {searchLoading && (
+          <span className={styles.searchSpinner} title="Recherche...">🔄</span>
+        )}
+      </div>
+    </div>
+  );
 
-    return () => clearTimeout(timeoutId);
-  }, [searchTerm]);
-
-  // Charger les recettes d'un ami au survol
-  const fetchFriendRecipes = async (friendId) => {
-    if (friendsRecipes[friendId]) return; // déjà chargé
-    try {
-      const response = await fetch(`/api/recipes?user_id=${friendId}&limit=3`);
-      if (response.ok) {
-        const data = await response.json();
-        setFriendsRecipes(prev => ({ ...prev, [friendId]: Array.isArray(data) ? data : [] }));
-      } else {
-        setFriendsRecipes(prev => ({ ...prev, [friendId]: [] }));
-      }
-    } catch {
-      setFriendsRecipes(prev => ({ ...prev, [friendId]: [] }));
+  const renderSearchResults = () => {
+    if (searchLoading) {
+      return <div style={{ color: '#888', padding: 12 }}>Recherche en cours...</div>;
     }
+
+    if (searchResults.length === 0) {
+      return <div style={{ color: '#888', padding: 12 }}>Aucun utilisateur trouvé</div>;
+    }
+
+    return searchResults.map(user => (
+      <div
+        key={user.user_id}
+        className={styles.userCard}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 16,
+          marginBottom: 8,
+          animation: 'cardSlideIn 0.7s cubic-bezier(0.68,-0.55,0.265,1.55)'
+        }}
+      >
+        <div className={styles.avatar}>
+          {user.avatar_url ? (
+            <img src={user.avatar_url} alt={user.display_name} />
+          ) : (
+            <div className={styles.avatarPlaceholder}>
+              {user.display_name?.charAt(0)?.toUpperCase() || '👤'}
+            </div>
+          )}
+        </div>
+        <div className={styles.userDetails}>
+          <h4>{user.display_name || 'Utilisateur'}</h4>
+          <p>{user.bio || ''}</p>
+        </div>
+        <button
+          onClick={() => sendFriendRequest(user.user_id)}
+          className={styles.addFriendButton}
+          disabled={buttonStates[`add-${user.user_id}`]?.loading}
+        >
+          {buttonStates[`add-${user.user_id}`]?.loading ? '⏳' : '🤝 Ajouter'}
+        </button>
+      </div>
+    );
   };
 
   if (loading) {
@@ -415,10 +500,20 @@ export default function Amis() {
 
   return (
     <div className={styles.container}>
-      {/* Header moderne */}
+      {/* Header moderne avec statistiques */}
       <header className={styles.header}>
         <h1>👥 Mes amis COCO</h1>
         <p>Retrouvez, ajoutez et gérez vos amis culinaires pour partager vos meilleures recettes !</p>
+        <div className={styles.statsBar}>
+          <div className={styles.stat}>
+            <span className={styles.statNumber}>{friendshipStats.friends}</span>
+            <span className={styles.statLabel}>Amis</span>
+          </div>
+          <div className={styles.stat}>
+            <span className={styles.statNumber}>{friendshipStats.pending}</span>
+            <span className={styles.statLabel}>En attente</span>
+          </div>
+        </div>
       </header>
 
       {/* Affichage des messages d'erreur/succès */}
@@ -429,67 +524,14 @@ export default function Amis() {
       )}
 
       {/* Barre de recherche d'utilisateurs */}
-      <div className={styles.searchSection}>
-        <div className={styles.searchBox}>
-          <input
-            type="text"
-            className={styles.searchInput}
-            placeholder="Rechercher des utilisateurs par nom..."
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            autoComplete="off"
-          />
-          {searchLoading && (
-            <span className={styles.searchSpinner} title="Recherche...">🔄</span>
-          )}
-        </div>
-      </div>
+      {searchSection}
 
       {/* Résultats de recherche d'utilisateurs */}
       {searchTerm.length >= 2 && (
         <div className={styles.searchSection}>
           <div className={styles.searchResults}>
             <h3>Résultats de recherche</h3>
-            {searchLoading ? (
-              <div style={{ color: '#888', padding: 12 }}>Recherche en cours...</div>
-            ) : searchResults.length > 0 ? (
-              searchResults.map(user => (
-                <div
-                  key={user.user_id}
-                  className={styles.userCard}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 16,
-                    marginBottom: 8,
-                    animation: 'cardSlideIn 0.7s cubic-bezier(0.68,-0.55,0.265,1.55)'
-                  }}
-                >
-                  <div className={styles.avatar}>
-                    {user.avatar_url ? (
-                      <img src={user.avatar_url} alt={user.display_name} />
-                    ) : (
-                      <div className={styles.avatarPlaceholder}>
-                        {user.display_name?.charAt(0)?.toUpperCase() || '👤'}
-                      </div>
-                    )}
-                  </div>
-                  <div className={styles.userDetails}>
-                    <h4>{user.display_name || 'Utilisateur'}</h4>
-                    <p>{user.bio || ''}</p>
-                  </div>
-                  <button
-                    onClick={() => sendFriendRequest(user.user_id)}
-                    className={styles.addFriendButton}
-                    disabled={buttonStates[`add-${user.user_id}`]?.loading}
-                  >
-                    {buttonStates[`add-${user.user_id}`]?.loading ? '⏳' : '🤝 Ajouter'}
-                  </button>
-                </div>
-              ))
-            ) : (
-              <div style={{ color: '#888', padding: 12 }}>Aucun utilisateur trouvé</div>
-            )}
+            {renderSearchResults()}
           </div>
         </div>
       )}
@@ -538,10 +580,6 @@ export default function Amis() {
                       fetchFriendRecipes(friendship.friend_id);
                     }}
                     onMouseLeave={() => setHoveredFriendId(null)}
-                    style={{
-                      position: 'relative',
-                      animation: 'cardSlideIn 0.7s cubic-bezier(0.68,-0.55,0.265,1.55)'
-                    }}
                   >
                     <div className={styles.avatar}>
                       {friendship.profiles?.avatar_url ? (
@@ -555,65 +593,41 @@ export default function Amis() {
                     <h4>{friendship.profiles?.display_name || 'Utilisateur'}</h4>
                     <p>{friendship.profiles?.bio || 'Amateur de cuisine passionné 🍽️'}</p>
                     
-                    {/* Section Gestion des amitiés */}
-                    <div style={{
-                      marginTop: 12,
-                      borderTop: '1px solid #eee',
-                      paddingTop: 8,
-                      background: 'none',
-                      borderRadius: 0,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 4
-                    }}>
-                      <strong>Gestion de l'amitié</strong>
-                      <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+                    {/* Section Gestion des amitiés améliorée */}
+                    <div className={styles.friendActions}>
+                      <strong>Actions</strong>
+                      <div className={styles.actionButtons}>
                         <button
-                          onClick={() => handleBlockUser(friendship.friend_id)}
+                          onClick={() => handleRemoveFriend(friendship.friend_id, friendship.profiles?.display_name)}
                           disabled={friendshipActions[friendship.friend_id]?.loading}
-                          style={{
-                            background: '#fee2e2',
-                            color: '#b91c1c',
-                            border: 'none',
-                            borderRadius: 4,
-                            padding: '4px 10px',
-                            cursor: 'pointer'
-                          }}
+                          className={styles.removeButton}
+                          title="Retirer de mes amis"
+                        >
+                          {friendshipActions[friendship.friend_id]?.loading ? '...' : '🗑️ Supprimer'}
+                        </button>
+                        <button
+                          onClick={() => handleBlockUser(friendship.friend_id, friendship.profiles?.display_name)}
+                          disabled={friendshipActions[friendship.friend_id]?.loading}
+                          className={styles.blockButton}
+                          title="Bloquer cet utilisateur"
                         >
                           {friendshipActions[friendship.friend_id]?.loading ? '...' : '🚫 Bloquer'}
                         </button>
                         <button
-                          onClick={() => handleUnblockUser(friendship.friend_id)}
-                          disabled={friendshipActions[friendship.friend_id]?.loading}
-                          style={{
-                            background: '#d1fae5',
-                            color: '#065f46',
-                            border: 'none',
-                            borderRadius: 4,
-                            padding: '4px 10px',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          {friendshipActions[friendship.friend_id]?.loading ? '...' : '✅ Débloquer'}
-                        </button>
-                        <button
                           onClick={() => fetchFriendshipStatus(friendship.friend_id)}
-                          style={{
-                            background: '#f3f4f6',
-                            color: '#374151',
-                            border: 'none',
-                            borderRadius: 4,
-                            padding: '4px 10px',
-                            cursor: 'pointer'
-                          }}
+                          className={styles.statusButton}
+                          title="Vérifier le statut"
                         >
-                          Statut
+                          ℹ️ Statut
                         </button>
                       </div>
                       {/* Affichage du statut d'amitié */}
                       {friendshipStatuses[friendship.friend_id] && (
-                        <div style={{ fontSize: 12, marginTop: 4 }}>
-                          Statut: <b>{friendshipStatuses[friendship.friend_id].status}</b>
+                        <div className={styles.statusInfo}>
+                          Statut: <strong>{friendshipStatuses[friendship.friend_id].status}</strong>
+                          {friendshipStatuses[friendship.friend_id].canSendRequest && (
+                            <span className={styles.statusHint}> (peut renvoyer une demande)</span>
+                          )}
                         </div>
                       )}
                     </div>
@@ -805,6 +819,41 @@ export default function Amis() {
           </section>
         )}
       </main>
+
+      {/* Modal de confirmation */}
+      {showConfirmDialog && (
+        <div className={styles.modalOverlay} onClick={() => setShowConfirmDialog(null)}>
+          <div className={styles.confirmDialog} onClick={e => e.stopPropagation()}>
+            <h3>
+              {showConfirmDialog.action === 'remove' ? 'Supprimer cet ami ?' : 'Bloquer cet utilisateur ?'}
+            </h3>
+            <p>
+              {showConfirmDialog.action === 'remove' 
+                ? `Êtes-vous sûr de vouloir retirer ${showConfirmDialog.friendName} de vos amis ? Cette action est réversible.`
+                : `Êtes-vous sûr de vouloir bloquer ${showConfirmDialog.friendName} ? Cette personne ne pourra plus vous envoyer de demandes d'amitié.`
+              }
+            </p>
+            <div className={styles.confirmActions}>
+              <button
+                onClick={() => setShowConfirmDialog(null)}
+                className={styles.cancelButton}
+              >
+                Annuler
+              </button>
+              <button
+                onClick={showConfirmDialog.action === 'remove' ? confirmRemoveFriend : confirmBlockUser}
+                className={showConfirmDialog.action === 'remove' ? styles.removeButton : styles.blockButton}
+                disabled={friendshipActions[showConfirmDialog.friendId]?.loading}
+              >
+                {friendshipActions[showConfirmDialog.friendId]?.loading 
+                  ? '...' 
+                  : showConfirmDialog.action === 'remove' ? 'Supprimer' : 'Bloquer'
+                }
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
