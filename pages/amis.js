@@ -502,7 +502,7 @@ export default function Amis() {
           {buttonStates[`add-${user.user_id}`]?.loading ? '⏳' : '🤝 Ajouter'}
         </button>
       </div>
-    );
+    ));
   };
 
   if (loading) {
