@@ -269,187 +269,346 @@ export default function Profil() {
   return (
     <div style={{ 
       minHeight: '100vh', 
-      background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #bae6fd 100%)',
-      position: 'relative'
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
+      position: 'relative',
+      overflow: 'hidden'
     }}>
       <Head>
         <title>Mon Profil - COCO</title>
         <meta name="description" content="Gérez votre profil sur COCO" />
       </Head>
 
-      {/* Decorative Background Elements */}
+      {/* Enhanced Decorative Background Elements */}
       <div style={{
         position: 'fixed',
-        top: '20%',
-        left: '-10%',
-        width: '300px',
-        height: '300px',
-        background: 'radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 70%)',
+        top: '10%',
+        left: '-15%',
+        width: '400px',
+        height: '400px',
+        background: 'radial-gradient(circle, rgba(240, 147, 251, 0.2) 0%, rgba(102, 126, 234, 0.1) 50%, transparent 70%)',
         borderRadius: '50%',
         pointerEvents: 'none',
-        zIndex: 0
+        zIndex: 0,
+        animation: 'float 8s ease-in-out infinite'
       }} />
       <div style={{
         position: 'fixed',
-        bottom: '10%',
-        right: '-5%',
-        width: '200px',
-        height: '200px',
-        background: 'radial-gradient(circle, rgba(16, 185, 129, 0.1) 0%, transparent 70%)',
+        bottom: '5%',
+        right: '-10%',
+        width: '350px',
+        height: '350px',
+        background: 'radial-gradient(circle, rgba(118, 75, 162, 0.15) 0%, rgba(16, 185, 129, 0.08) 50%, transparent 70%)',
         borderRadius: '50%',
         pointerEvents: 'none',
-        zIndex: 0
+        zIndex: 0,
+        animation: 'float 10s ease-in-out infinite reverse'
+      }} />
+      
+      {/* Geometric decorative elements */}
+      <div style={{
+        position: 'fixed',
+        top: '30%',
+        right: '5%',
+        width: '0',
+        height: '0',
+        borderLeft: '40px solid transparent',
+        borderRight: '40px solid transparent',
+        borderBottom: '60px solid rgba(255, 255, 255, 0.1)',
+        pointerEvents: 'none',
+        zIndex: 0,
+        animation: 'rotate 15s linear infinite'
+      }} />
+      <div style={{
+        position: 'fixed',
+        bottom: '20%',
+        left: '8%',
+        width: '60px',
+        height: '60px',
+        background: 'rgba(255, 255, 255, 0.08)',
+        transform: 'rotate(45deg)',
+        pointerEvents: 'none',
+        zIndex: 0,
+        animation: 'pulse 4s ease-in-out infinite'
       }} />
 
-      {/* Enhanced Header */}
+      {/* Ultra Enhanced Header */}
       <section style={{
-        background: 'rgba(255, 255, 255, 0.95)',
-        backdropFilter: 'blur(20px)',
-        padding: '3rem 1rem 2rem',
+        background: 'rgba(255, 255, 255, 0.98)',
+        backdropFilter: 'blur(30px)',
+        padding: '4rem 1rem 3rem',
         textAlign: 'center',
-        border: '1px solid rgba(255, 255, 255, 0.3)',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+        border: '1px solid rgba(255, 255, 255, 0.4)',
+        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.8) inset',
         position: 'relative',
-        zIndex: 1
+        zIndex: 1,
+        borderRadius: '0 0 3rem 3rem',
+        margin: '0 1rem'
       }}>
-        {/* Avatar with enhanced styling */}
+        {/* Animated top border */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: '6px',
+          background: 'linear-gradient(90deg, #667eea, #f093fb, #764ba2, #667eea)',
+          backgroundSize: '300% 100%',
+          animation: 'gradientShift 4s ease-in-out infinite',
+          borderRadius: '0 0 3rem 3rem'
+        }} />
+
+        {/* Avatar with revolutionary styling */}
         <div style={{
           position: 'relative',
           display: 'inline-block',
-          marginBottom: '1.5rem'
+          marginBottom: '2rem'
         }}>
+          {/* Outer glow rings */}
           <div style={{
-            width: '140px',
-            height: '140px',
+            position: 'absolute',
+            inset: '-30px',
             borderRadius: '50%',
-            background: 'linear-gradient(135deg, #667eea, #764ba2)',
+            background: 'conic-gradient(from 0deg, #667eea, #f093fb, #764ba2, #667eea)',
+            opacity: 0.3,
+            animation: 'rotate 8s linear infinite',
+            filter: 'blur(20px)'
+          }} />
+          <div style={{
+            position: 'absolute',
+            inset: '-20px',
+            borderRadius: '50%',
+            background: 'conic-gradient(from 180deg, #764ba2, #667eea, #f093fb, #764ba2)',
+            opacity: 0.4,
+            animation: 'rotate 6s linear infinite reverse',
+            filter: 'blur(15px)'
+          }} />
+          
+          <div style={{
+            width: '160px',
+            height: '160px',
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, #667eea 0%, #f093fb 50%, #764ba2 100%)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             margin: '0 auto',
             color: 'white',
-            fontSize: '4rem',
+            fontSize: '4.5rem',
             fontWeight: 'bold',
-            boxShadow: '0 20px 40px rgba(102, 126, 234, 0.3)',
-            border: '6px solid white',
+            boxShadow: '0 25px 50px rgba(102, 126, 234, 0.4), 0 0 0 8px rgba(255, 255, 255, 1)',
+            border: '4px solid rgba(255, 255, 255, 0.9)',
             position: 'relative',
-            overflow: 'hidden'
-          }}>
+            overflow: 'hidden',
+            cursor: 'pointer',
+            transition: 'all 0.6s cubic-bezier(0.16, 1, 0.3, 1)'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.transform = 'scale(1.1) rotateY(15deg)'
+            e.target.style.boxShadow = '0 35px 70px rgba(102, 126, 234, 0.6), 0 0 0 12px rgba(255, 255, 255, 1)'
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = 'scale(1) rotateY(0deg)'
+            e.target.style.boxShadow = '0 25px 50px rgba(102, 126, 234, 0.4), 0 0 0 8px rgba(255, 255, 255, 1)'
+          }}
+          >
             {profile?.display_name?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || '👤'}
             
-            {/* Animated border */}
+            {/* Inner shine effect */}
             <div style={{
               position: 'absolute',
-              inset: '-6px',
-              background: 'linear-gradient(45deg, #667eea, #764ba2, #667eea)',
+              inset: 0,
+              background: 'linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.3) 50%, transparent 70%)',
               borderRadius: '50%',
-              zIndex: -1,
-              animation: 'rotate 3s linear infinite'
+              animation: 'shine 3s ease-in-out infinite'
             }} />
           </div>
           
-          {/* Online status indicator */}
+          {/* Enhanced status indicators */}
           <div style={{
             position: 'absolute',
-            bottom: '10px',
-            right: '10px',
-            width: '24px',
-            height: '24px',
-            background: '#10b981',
+            bottom: '5px',
+            right: '5px',
+            width: '32px',
+            height: '32px',
+            background: 'linear-gradient(135deg, #10b981, #059669)',
             borderRadius: '50%',
             border: '4px solid white',
-            boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)'
-          }} />
+            boxShadow: '0 4px 15px rgba(16, 185, 129, 0.4)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '0.8rem',
+            animation: 'pulse 2s ease-in-out infinite'
+          }}>
+            ✓
+          </div>
         </div>
         
         <h1 style={{ 
-          fontSize: '2.2rem', 
+          fontSize: '2.8rem', 
           margin: '0 0 0.5rem 0',
-          background: 'linear-gradient(135deg, #1f2937, #4b5563)',
+          background: 'linear-gradient(135deg, #1f2937 0%, #667eea 50%, #764ba2 100%)',
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent',
-          fontWeight: '800'
+          fontWeight: '900',
+          letterSpacing: '-0.02em',
+          textShadow: '0 4px 20px rgba(102, 126, 234, 0.3)',
+          position: 'relative'
         }}>
           {profile?.display_name || user?.email || 'Utilisateur'}
+          
+          {/* Text decoration */}
+          <div style={{
+            position: 'absolute',
+            bottom: '-8px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: '120px',
+            height: '4px',
+            background: 'linear-gradient(90deg, #667eea, #f093fb, #764ba2)',
+            borderRadius: '2px',
+            animation: 'expand 2s ease-out'
+          }} />
         </h1>
         
         <p style={{ 
-          color: '#6b7280', 
-          fontSize: '1.1rem',
-          margin: '0 0 2rem 0',
+          color: '#64748b', 
+          fontSize: '1.2rem',
+          margin: '0 0 2.5rem 0',
           fontStyle: 'italic',
-          maxWidth: '300px',
-          margin: '0 auto 2rem'
+          maxWidth: '400px',
+          margin: '0 auto 2.5rem',
+          padding: '1rem 2rem',
+          background: 'rgba(100, 116, 139, 0.08)',
+          borderRadius: '2rem',
+          border: '2px solid rgba(100, 116, 139, 0.15)',
+          backdropFilter: 'blur(10px)',
+          position: 'relative'
         }}>
           {profile?.bio || 'Passionné de cuisine et de partage 🍳'}
+          
+          {/* Quote marks decoration */}
+          <div style={{
+            position: 'absolute',
+            top: '-10px',
+            left: '20px',
+            fontSize: '2rem',
+            color: '#667eea',
+            opacity: 0.6
+          }}>"</div>
+          <div style={{
+            position: 'absolute',
+            bottom: '-10px',
+            right: '20px',
+            fontSize: '2rem',
+            color: '#667eea',
+            opacity: 0.6,
+            transform: 'rotate(180deg)'
+          }}>"</div>
         </p>
 
-        {/* Enhanced Stats */}
+        {/* Revolutionary Stats with enhanced design */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: '1.5rem',
-          maxWidth: '400px',
-          margin: '0 auto'
+          gap: '2rem',
+          maxWidth: '500px',
+          margin: '0 auto',
+          perspective: '1000px'
         }}>
           {[{
             icon: '📝',
             value: userStats.recipesCount,
             label: 'Recette',
-            color: '#3b82f6'
+            gradient: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+            shadow: 'rgba(59, 130, 246, 0.4)'
           },
           {
             icon: '❤️',
             value: userStats.likesReceived,
             label: 'Like',
-            color: '#ef4444'
+            gradient: 'linear-gradient(135deg, #ef4444, #dc2626)',
+            shadow: 'rgba(239, 68, 68, 0.4)'
           },
           {
             icon: '👥',
             value: userStats.friendsCount,
             label: 'Ami',
-            color: '#10b981'
+            gradient: 'linear-gradient(135deg, #10b981, #059669)',
+            shadow: 'rgba(16, 185, 129, 0.4)'
           }].map((stat, index) => (
             <div key={index} style={{
-              background: 'white',
-              padding: '1.5rem 1rem',
-              borderRadius: '20px',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-              border: `2px solid ${stat.color}20`,
-              transition: 'all 0.3s ease',
-              cursor: 'pointer'
+              background: 'rgba(255, 255, 255, 0.95)',
+              padding: '2rem 1.5rem',
+              borderRadius: '2rem',
+              boxShadow: `0 8px 30px ${stat.shadow}, 0 0 0 1px rgba(255, 255, 255, 0.9) inset`,
+              border: '2px solid rgba(255, 255, 255, 0.6)',
+              transition: 'all 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
+              cursor: 'pointer',
+              position: 'relative',
+              overflow: 'hidden',
+              transformStyle: 'preserve-3d'
             }}
             onMouseEnter={(e) => {
-              e.target.style.transform = 'translateY(-5px)'
-              e.target.style.boxShadow = `0 8px 30px ${stat.color}30`
+              e.target.style.transform = 'translateY(-10px) rotateX(10deg) rotateY(5deg) scale(1.05)'
+              e.target.style.boxShadow = `0 20px 50px ${stat.shadow}, 0 0 0 2px rgba(255, 255, 255, 1) inset`
             }}
             onMouseLeave={(e) => {
-              e.target.style.transform = 'translateY(0)'
-              e.target.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.08)'
+              e.target.style.transform = 'translateY(0) rotateX(0deg) rotateY(0deg) scale(1)'
+              e.target.style.boxShadow = `0 8px 30px ${stat.shadow}, 0 0 0 1px rgba(255, 255, 255, 0.9) inset`
             }}
             >
+              {/* Background pattern */}
+              <div style={{
+                position: 'absolute',
+                inset: 0,
+                background: `${stat.gradient}`,
+                opacity: 0.05,
+                borderRadius: '2rem'
+              }} />
+              
               <div style={{ 
-                fontSize: '2rem', 
-                marginBottom: '0.5rem',
-                filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))'
+                fontSize: '2.5rem', 
+                marginBottom: '1rem',
+                filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))',
+                transform: 'scale(1)',
+                transition: 'transform 0.3s ease'
               }}>
                 {stat.icon}
               </div>
               <div style={{ 
-                fontSize: '1.8rem', 
-                fontWeight: '800',
-                color: stat.color,
-                marginBottom: '0.25rem'
+                fontSize: '2.2rem', 
+                fontWeight: '900',
+                background: stat.gradient,
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                marginBottom: '0.5rem',
+                letterSpacing: '-0.02em'
               }}>
                 {stat.value}
               </div>
               <div style={{ 
-                fontSize: '0.9rem',
-                color: '#6b7280',
-                fontWeight: '600'
+                fontSize: '1rem',
+                color: '#64748b',
+                fontWeight: '700',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em'
               }}>
                 {stat.label}{stat.value > 1 ? 's' : ''}
               </div>
+              
+              {/* Hover shine effect */}
+              <div style={{
+                position: 'absolute',
+                top: '-50%',
+                left: '-50%',
+                width: '200%',
+                height: '200%',
+                background: 'linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.2), transparent)',
+                transform: 'rotate(45deg)',
+                transition: 'transform 0.6s ease',
+                pointerEvents: 'none'
+              }} />
             </div>
           ))}
         </div>
@@ -1111,14 +1270,35 @@ export default function Profil() {
           to { transform: rotate(360deg); }
         }
         
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
+        @keyframes gradientShift {
+          0%, 100% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+        }
+        
+        @keyframes shine {
+          0%, 100% { transform: translateX(-100%) rotateZ(0deg); }
+          50% { transform: translateX(100%) rotateZ(180deg); }
+        }
+        
+        @keyframes expand {
+          0% { width: 0; }
+          100% { width: 120px; }
         }
         
         @keyframes float {
-          0%, 100% { transform: translateY(0px) rotate(0deg); }
-          50% { transform: translateY(-10px) rotate(180deg); }
+          0%, 100% { transform: translateY(0px) translateX(0px) rotate(0deg); }
+          33% { transform: translateY(-20px) translateX(10px) rotate(120deg); }
+          66% { transform: translateY(10px) translateX(-10px) rotate(240deg); }
+        }
+        
+        @keyframes pulse {
+          0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; }
+          50% { transform: scale(1.1) rotate(180deg); opacity: 0.8; }
+        }
+        
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(30px) scale(0.95); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
         }
         
         /* Responsive Design */

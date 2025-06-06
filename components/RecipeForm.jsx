@@ -11,7 +11,10 @@ export default function RecipeForm({ initialData = {}, onSubmit, onCancel, isEdi
     difficulty: initialData.difficulty || 'Facile',
     ingredients: initialData.ingredients || [{ name: '', quantity: '', unit: '' }],
     instructions: initialData.instructions || [{ step: 1, description: '' }],
-    image: null
+    image: null,
+    // Nouvelles options
+    includeIngredients: initialData.includeIngredients !== false, // Par défaut true
+    includeInstructions: initialData.includeInstructions !== false // Par défaut true
   })
 
   const [imagePreview, setImagePreview] = useState(initialData.imageUrl || null)
@@ -108,11 +111,13 @@ export default function RecipeForm({ initialData = {}, onSubmit, onCancel, isEdi
       newErrors.title = 'Le titre est requis'
     }
     
-    if (formData.ingredients.some(ing => !ing.name.trim())) {
+    // Validation conditionnelle des ingrédients
+    if (formData.includeIngredients && formData.ingredients.some(ing => !ing.name.trim())) {
       newErrors.ingredients = 'Tous les ingrédients doivent avoir un nom'
     }
     
-    if (formData.instructions.some(inst => !inst.description.trim())) {
+    // Validation conditionnelle des instructions
+    if (formData.includeInstructions && formData.instructions.some(inst => !inst.description.trim())) {
       newErrors.instructions = 'Toutes les instructions doivent être remplies'
     }
     
@@ -127,8 +132,13 @@ export default function RecipeForm({ initialData = {}, onSubmit, onCancel, isEdi
     
     const submitData = {
       ...formData,
-      ingredients: formData.ingredients.filter(ing => ing.name.trim()),
-      instructions: formData.instructions.filter(inst => inst.description.trim())
+      // N'inclure les ingrédients et instructions que si l'utilisateur l'a choisi
+      ingredients: formData.includeIngredients 
+        ? formData.ingredients.filter(ing => ing.name.trim())
+        : [],
+      instructions: formData.includeInstructions 
+        ? formData.instructions.filter(inst => inst.description.trim())
+        : []
     }
     
     try {
@@ -263,88 +273,138 @@ export default function RecipeForm({ initialData = {}, onSubmit, onCancel, isEdi
           </div>
         </div>
 
-        {/* Ingrédients */}
+        {/* Options de contenu */}
         <div className="form-section">
-          <div className="section-header">
-            <h3>Ingrédients *</h3>
-            <button type="button" onClick={addIngredient} className="add-button">
-              + Ajouter un ingrédient
-            </button>
-          </div>
+          <h3>Contenu de la recette</h3>
+          <p className="section-description">
+            Choisissez les éléments que vous souhaitez inclure dans votre recette
+          </p>
           
-          <div className="ingredients-list">
-            {formData.ingredients.map((ingredient, index) => (
-              <div key={index} className="ingredient-row">
+          <div className="content-options">
+            <div className="option-item">
+              <label className="checkbox-label">
                 <input
-                  type="text"
-                  value={ingredient.name}
-                  onChange={(e) => updateIngredient(index, 'name', e.target.value)}
-                  placeholder="Nom de l'ingrédient"
-                  className="ingredient-name"
+                  type="checkbox"
+                  checked={formData.includeIngredients}
+                  onChange={(e) => handleInputChange('includeIngredients', e.target.checked)}
+                  className="checkbox-input"
                 />
+                <span className="checkbox-custom"></span>
+                <div className="option-content">
+                  <span className="option-title">📝 Inclure la liste d'ingrédients</span>
+                  <span className="option-description">
+                    Ajoutez les ingrédients nécessaires pour préparer votre recette
+                  </span>
+                </div>
+              </label>
+            </div>
+
+            <div className="option-item">
+              <label className="checkbox-label">
                 <input
-                  type="text"
-                  value={ingredient.quantity}
-                  onChange={(e) => updateIngredient(index, 'quantity', e.target.value)}
-                  placeholder="Quantité"
-                  className="ingredient-quantity"
+                  type="checkbox"
+                  checked={formData.includeInstructions}
+                  onChange={(e) => handleInputChange('includeInstructions', e.target.checked)}
+                  className="checkbox-input"
                 />
-                <input
-                  type="text"
-                  value={ingredient.unit}
-                  onChange={(e) => updateIngredient(index, 'unit', e.target.value)}
-                  placeholder="Unité"
-                  className="ingredient-unit"
-                />
-                {formData.ingredients.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeIngredient(index)}
-                    className="remove-button"
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
-            ))}
+                <span className="checkbox-custom"></span>
+                <div className="option-content">
+                  <span className="option-title">📋 Inclure les instructions de préparation</span>
+                  <span className="option-description">
+                    Détaillez étape par étape comment préparer votre recette
+                  </span>
+                </div>
+              </label>
+            </div>
           </div>
-          {errors.ingredients && <span className="error-message">{errors.ingredients}</span>}
         </div>
 
-        {/* Instructions */}
-        <div className="form-section">
-          <div className="section-header">
-            <h3>Instructions *</h3>
-            <button type="button" onClick={addInstruction} className="add-button">
-              + Ajouter une étape
-            </button>
+        {/* Ingrédients - Conditionnel */}
+        {formData.includeIngredients && (
+          <div className="form-section">
+            <div className="section-header">
+              <h3>Ingrédients *</h3>
+              <button type="button" onClick={addIngredient} className="add-button">
+                + Ajouter un ingrédient
+              </button>
+            </div>
+            
+            <div className="ingredients-list">
+              {formData.ingredients.map((ingredient, index) => (
+                <div key={index} className="ingredient-row">
+                  <input
+                    type="text"
+                    value={ingredient.name}
+                    onChange={(e) => updateIngredient(index, 'name', e.target.value)}
+                    placeholder="Nom de l'ingrédient"
+                    className="ingredient-name"
+                  />
+                  <input
+                    type="text"
+                    value={ingredient.quantity}
+                    onChange={(e) => updateIngredient(index, 'quantity', e.target.value)}
+                    placeholder="Quantité"
+                    className="ingredient-quantity"
+                  />
+                  <input
+                    type="text"
+                    value={ingredient.unit}
+                    onChange={(e) => updateIngredient(index, 'unit', e.target.value)}
+                    placeholder="Unité"
+                    className="ingredient-unit"
+                  />
+                  {formData.ingredients.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeIngredient(index)}
+                      className="remove-button"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+            {errors.ingredients && <span className="error-message">{errors.ingredients}</span>}
           </div>
-          
-          <div className="instructions-list">
-            {formData.instructions.map((instruction, index) => (
-              <div key={index} className="instruction-row">
-                <span className="step-number">{instruction.step}</span>
-                <textarea
-                  value={instruction.description}
-                  onChange={(e) => updateInstruction(index, e.target.value)}
-                  placeholder="Décrivez cette étape..."
-                  rows={2}
-                  className="instruction-text"
-                />
-                {formData.instructions.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeInstruction(index)}
-                    className="remove-button"
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
-            ))}
+        )}
+
+        {/* Instructions - Conditionnel */}
+        {formData.includeInstructions && (
+          <div className="form-section">
+            <div className="section-header">
+              <h3>Instructions *</h3>
+              <button type="button" onClick={addInstruction} className="add-button">
+                + Ajouter une étape
+              </button>
+            </div>
+            
+            <div className="instructions-list">
+              {formData.instructions.map((instruction, index) => (
+                <div key={index} className="instruction-row">
+                  <span className="step-number">{instruction.step}</span>
+                  <textarea
+                    value={instruction.description}
+                    onChange={(e) => updateInstruction(index, e.target.value)}
+                    placeholder="Décrivez cette étape..."
+                    rows={2}
+                    className="instruction-text"
+                  />
+                  {formData.instructions.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeInstruction(index)}
+                      className="remove-button"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+            {errors.instructions && <span className="error-message">{errors.instructions}</span>}
           </div>
-          {errors.instructions && <span className="error-message">{errors.instructions}</span>}
-        </div>
+        )}
 
         {/* Actions */}
         <div className="form-actions">
@@ -625,44 +685,158 @@ export default function RecipeForm({ initialData = {}, onSubmit, onCancel, isEdi
           font-size: 0.875rem;
         }
 
-        @media (max-width: 768px) {
-          .recipe-form-container {
-            padding: var(--spacing-sm);
-          }
+        .section-description {
+          color: #6b7280;
+          font-size: 0.95rem;
+          margin-bottom: 1.5rem;
+          line-height: 1.5;
+        }
 
-          .recipe-form {
-            padding: var(--spacing-lg);
-          }
+        .content-options {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+        }
 
-          .form-row {
-            grid-template-columns: 1fr;
-            gap: var(--spacing-sm);
-          }
+        .option-item {
+          background: rgba(248, 250, 252, 0.8);
+          border: 2px solid #e5e7eb;
+          border-radius: 1rem;
+          padding: 1.5rem;
+          transition: all 0.3s ease;
+          cursor: pointer;
+        }
 
-          .ingredient-row {
-            grid-template-columns: 1fr;
-            gap: var(--spacing-xs);
-          }
+        .option-item:hover {
+          background: rgba(255, 255, 255, 1);
+          border-color: #3b82f6;
+          transform: translateY(-2px);
+          box-shadow: 0 8px 25px rgba(59, 130, 246, 0.15);
+        }
 
-          .ingredient-row .remove-button {
-            justify-self: end;
-            margin-top: var(--spacing-xs);
-          }
+        .checkbox-label {
+          display: flex;
+          align-items: flex-start;
+          gap: 1rem;
+          cursor: pointer;
+          width: 100%;
+        }
 
-          .instruction-row {
-            grid-template-columns: 1fr;
-            gap: var(--spacing-xs);
-          }
+        .checkbox-input {
+          display: none;
+        }
 
-          .step-number {
-            justify-self: start;
-          }
+        .checkbox-custom {
+          width: 24px;
+          height: 24px;
+          border: 2px solid #d1d5db;
+          border-radius: 6px;
+          background: white;
+          flex-shrink: 0;
+          position: relative;
+          transition: all 0.3s ease;
+          margin-top: 2px;
+        }
 
-          .form-actions {
-            flex-direction: column;
-            gap: var(--spacing-sm);
+        .checkbox-input:checked + .checkbox-custom {
+          background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+          border-color: #3b82f6;
+          transform: scale(1.1);
+        }
+
+        .checkbox-input:checked + .checkbox-custom::after {
+          content: '✓';
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          color: white;
+          font-size: 14px;
+          font-weight: bold;
+        }
+
+        .option-content {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+          flex: 1;
+        }
+
+        .option-title {
+          font-weight: 600;
+          color: #374151;
+          font-size: 1.1rem;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .option-description {
+          color: #6b7280;
+          font-size: 0.9rem;
+          line-height: 1.4;
+        }
+
+        .checkbox-input:checked ~ .option-content .option-title {
+          color: #3b82f6;
+        }
+
+        .checkbox-input:checked ~ .option-content .option-description {
+          color: #1e40af;
+        }
+
+        /* Animation pour les sections conditionnelles */
+        .form-section {
+          animation: slideIn 0.4s ease-out;
+        }
+
+        @keyframes slideIn {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
           }
         }
+
+        /* Amélioration responsive pour les nouvelles options */
+        @media (max-width: 768px) {
+          .option-item {
+            padding: 1.25rem;
+          }
+
+          .checkbox-label {
+            gap: 0.75rem;
+          }
+
+          .option-title {
+            font-size: 1rem;
+          }
+
+          .option-description {
+            font-size: 0.85rem;
+          }
+        }
+
+        /* Style pour indiquer que les sections sont facultatives */
+        .form-section h3 {
+          position: relative;
+        }
+
+        .form-section h3::after {
+          content: ' (Facultatif)';
+          font-weight: 400;
+          color: #6b7280;
+          font-size: 0.8em;
+        }
+
+        .content-options + .form-section h3::after {
+          display: none;
+        }
+
+        /* ...existing styles... */
       `}</style>
     </div>
   )
