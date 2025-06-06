@@ -617,7 +617,7 @@ export default function Profil() {
                   type: 'tel',
                   icon: '📞'
                 }
-                }.map((field) => (
+                ].map((field) => (
                   <div key={field.key} style={{ marginBottom: '1.5rem' }}>
                     <label style={{ 
                       display: 'flex',
@@ -692,7 +692,7 @@ export default function Profil() {
                     <input
                       type="checkbox"
                       checked={editForm.is_private}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, is_private: e.target.checked }))
+                      onChange={(e) => setEditForm(prev => ({ ...prev, is_private: e.target.checked }))}
                       style={{ 
                         transform: 'scale(1.3)',
                         accentColor: '#3b82f6'
