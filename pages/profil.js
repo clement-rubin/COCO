@@ -392,7 +392,7 @@ export default function Profil() {
           maxWidth: '400px',
           margin: '0 auto'
         }}>
-          {{
+          {[{
             icon: '📝',
             value: userStats.recipesCount,
             label: 'Recette',
@@ -409,8 +409,7 @@ export default function Profil() {
             value: userStats.friendsCount,
             label: 'Ami',
             color: '#10b981'
-          }
-          ].map((stat, index) => (
+          }].map((stat, index) => (
             <div key={index} style={{
               background: 'white',
               padding: '1.5rem 1rem',
@@ -478,7 +477,7 @@ export default function Profil() {
           maxWidth: '300px',
           margin: '0 auto 2rem'
         }}>
-          {{
+          {[{
             id: 'info',
             label: '👤 Profil',
             icon: '👤'
@@ -492,8 +491,7 @@ export default function Profil() {
             id: 'settings',
             label: '⚙️ Paramètres',
             icon: '⚙️'
-          }
-          }.map(tab => (
+          }].map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
@@ -581,7 +579,7 @@ export default function Profil() {
                 boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)'
               }}>
                 {/* Form fields with enhanced styling */}
-                {{
+                {[{
                   key: 'display_name',
                   label: 'Nom d\'affichage',
                   type: 'text',
@@ -616,8 +614,7 @@ export default function Profil() {
                   label: 'Téléphone',
                   type: 'tel',
                   icon: '📞'
-                }
-                ].map((field) => (
+                }].map((field) => (
                   <div key={field.key} style={{ marginBottom: '1.5rem' }}>
                     <label style={{ 
                       display: 'flex',
@@ -746,7 +743,7 @@ export default function Profil() {
                 padding: '2rem',
                 boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)'
               }}>
-                {{
+                {[{
                   label: 'Email',
                   value: user?.email,
                   icon: '✉️'
@@ -791,8 +788,7 @@ export default function Profil() {
                   label: 'Membre depuis',
                   value: user?.created_at ? new Date(user.created_at).toLocaleDateString('fr-FR') : 'N/A',
                   icon: '📅'
-                }
-                }.map((item, index) => (
+                }].map((item, index) => (
                   <div key={index} style={{
                     display: 'flex',
                     alignItems: 'center',
