@@ -23,6 +23,9 @@ export default function Amis() {
   const [hoveredFriendId, setHoveredFriendId] = useState(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(null);
   const [friendshipStats, setFriendshipStats] = useState({ friends: 0, pending: 0, blocked: 0 });
+  const [sentRequests, setSentRequests] = useState(new Set());
+  const [successCards, setSuccessCards] = useState(new Set());
+  const [toastMessage, setToastMessage] = useState(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -226,6 +229,22 @@ export default function Amis() {
     }
   };
 
+  const showToast = (message, isError = false) => {
+    setToastMessage({ message, isError });
+    setTimeout(() => setToastMessage(null), 4000);
+  };
+
+  const markCardAsSuccess = (userId) => {
+    setSuccessCards(prev => new Set([...prev, userId]));
+    setTimeout(() => {
+      setSuccessCards(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(userId);
+        return newSet;
+      });
+    }, 2000);
+  };
+
   const sendFriendRequest = async (friendId) => {
     const buttonId = `add-${friendId}`;
     setButtonLoading(buttonId, true);
@@ -239,7 +258,7 @@ export default function Amis() {
         });
 
       if (!statusError && existingStatus && existingStatus.length > 0) {
-        showMessage('Une demande d\'amitié existe déjà', true);
+        showToast('Une demande d\'amitié existe déjà', true);
         return;
       }
 
@@ -262,17 +281,21 @@ export default function Amis() {
 
       if (error) {
         if (error.code === '23505') {
-          showMessage('Demande d\'amitié déjà envoyée', true);
+          showToast('Demande d\'amitié déjà envoyée', true);
         } else if (error.code === '23503') {
-          showMessage('Erreur de référence utilisateur - veuillez réessayer', true);
+          showToast('Erreur de référence utilisateur - veuillez réessayer', true);
           logError('Foreign key constraint error:', error);
         } else {
           logError('Detailed error sending friend request:', error);
-          showMessage(`Erreur: ${error.message}`, true);
+          showToast(`Erreur: ${error.message}`, true);
         }
       } else {
         logInfo('Friend request sent successfully', newFriendship);
-        showMessage('Demande d\'amitié envoyée avec succès ! 🎉');
+        
+        // Marquer la demande comme envoyée
+        setSentRequests(prev => new Set([...prev, friendId]));
+        markCardAsSuccess(friendId);
+        showToast('Demande d\'amitié envoyée avec succès ! 🎉');
         
         // Rafraîchir les résultats de recherche
         if (searchTerm) {
@@ -281,7 +304,7 @@ export default function Amis() {
       }
     } catch (error) {
       logError('Error sending friend request:', error);
-      showMessage('Erreur lors de l\'envoi de la demande', true);
+      showToast('Erreur lors de l\'envoi de la demande', true);
     } finally {
       setButtonLoading(buttonId, false);
     }
@@ -469,40 +492,52 @@ export default function Amis() {
       return <div style={{ color: '#888', padding: 12 }}>Aucun utilisateur trouvé</div>;
     }
 
-    return searchResults.map(user => (
-      <div
-        key={user.user_id}
-        className={styles.userCard}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 16,
-          marginBottom: 8,
-          animation: 'cardSlideIn 0.7s cubic-bezier(0.68,-0.55,0.265,1.55)'
-        }}
-      >
-        <div className={styles.avatar}>
-          {user.avatar_url ? (
-            <img src={user.avatar_url} alt={user.display_name} />
-          ) : (
-            <div className={styles.avatarPlaceholder}>
-              {user.display_name?.charAt(0)?.toUpperCase() || '👤'}
+    return searchResults.map(user => {
+      const isRequestSent = sentRequests.has(user.user_id);
+      const isSuccess = successCards.has(user.user_id);
+      const isLoading = buttonStates[`add-${user.user_id}`]?.loading;
+      
+      return (
+        <div
+          key={user.user_id}
+          className={`${styles.userCard} ${isRequestSent ? styles.requestSent : ''} ${isSuccess ? styles.success : ''}`}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 16,
+            marginBottom: 8,
+            animation: 'cardSlideIn 0.7s cubic-bezier(0.68,-0.55,0.265,1.55)'
+          }}
+        >
+          {isRequestSent && (
+            <div className={`${styles.statusBadge} ${styles.sent}`}>
+              Demande envoyée
             </div>
           )}
+          
+          <div className={styles.avatar}>
+            {user.avatar_url ? (
+              <img src={user.avatar_url} alt={user.display_name} />
+            ) : (
+              <div className={styles.avatarPlaceholder}>
+                {user.display_name?.charAt(0)?.toUpperCase() || '👤'}
+              </div>
+            )}
+          </div>
+          <div className={styles.userDetails}>
+            <h4>{user.display_name || 'Utilisateur'}</h4>
+            <p>{user.bio || ''}</p>
+          </div>
+          <button
+            onClick={() => sendFriendRequest(user.user_id)}
+            className={`${styles.addFriendButton} ${isRequestSent ? styles.sent : ''} ${isLoading ? styles.loading : ''}`}
+            disabled={isLoading || isRequestSent}
+          >
+            {isRequestSent ? 'Envoyée' : isLoading ? 'Envoi...' : '🤝 Ajouter'}
+          </button>
         </div>
-        <div className={styles.userDetails}>
-          <h4>{user.display_name || 'Utilisateur'}</h4>
-          <p>{user.bio || ''}</p>
-        </div>
-        <button
-          onClick={() => sendFriendRequest(user.user_id)}
-          className={styles.addFriendButton}
-          disabled={buttonStates[`add-${user.user_id}`]?.loading}
-        >
-          {buttonStates[`add-${user.user_id}`]?.loading ? '⏳' : '🤝 Ajouter'}
-        </button>
-      </div>
-    ));
+      );
+    });
   };
 
   if (loading) {
@@ -542,6 +577,13 @@ export default function Amis() {
           </div>
         </div>
       </header>
+
+      {/* Toast notification */}
+      {toastMessage && (
+        <div className={`${styles.toastNotification} ${toastMessage.isError ? styles.error : ''}`}>
+          {toastMessage.message}
+        </div>
+      )}
 
       {/* Affichage des messages d'erreur/succès */}
       {(error || successMessage) && (
@@ -757,28 +799,44 @@ export default function Amis() {
           <section className={styles.suggestionsSection}>
             <h2>Suggestions d'amis</h2>
             <div className={styles.suggestionsGrid}>
-              {suggestions.map((suggestion) => (
-                <div key={suggestion.user_id} className={styles.suggestionCard} style={{ animation: 'cardSlideIn 0.7s cubic-bezier(0.68,-0.55,0.265,1.55)' }}>
-                  <div className={styles.avatar}>
-                    {suggestion.avatar_url ? (
-                      <img src={suggestion.avatar_url} alt={suggestion.display_name} />
-                    ) : (
-                      <div className={styles.avatarPlaceholder}>
-                        {suggestion.display_name?.charAt(0)?.toUpperCase() || '?'}
+              {suggestions.map((suggestion) => {
+                const isRequestSent = sentRequests.has(suggestion.user_id);
+                const isSuccess = successCards.has(suggestion.user_id);
+                const isLoading = buttonStates[`add-${suggestion.user_id}`]?.loading;
+                
+                return (
+                  <div 
+                    key={suggestion.user_id} 
+                    className={`${styles.suggestionCard} ${isRequestSent ? styles.requestSent : ''} ${isSuccess ? styles.success : ''}`}
+                    style={{ animation: 'cardSlideIn 0.7s cubic-bezier(0.68,-0.55,0.265,1.55)' }}
+                  >
+                    {isRequestSent && (
+                      <div className={`${styles.statusBadge} ${styles.sent}`}>
+                        Demande envoyée
                       </div>
                     )}
+                    
+                    <div className={styles.avatar}>
+                      {suggestion.avatar_url ? (
+                        <img src={suggestion.avatar_url} alt={suggestion.display_name} />
+                      ) : (
+                        <div className={styles.avatarPlaceholder}>
+                          {suggestion.display_name?.charAt(0)?.toUpperCase() || '?'}
+                        </div>
+                      )}
+                    </div>
+                    <h4>{suggestion.display_name || 'Utilisateur'}</h4>
+                    <p>{suggestion.bio || 'Découvrez de nouvelles recettes ensemble ! 🌟'}</p>
+                    <button
+                      onClick={() => sendFriendRequest(suggestion.user_id)}
+                      className={`${styles.addFriendButton} ${isRequestSent ? styles.sent : ''} ${isLoading ? styles.loading : ''}`}
+                      disabled={isLoading || isRequestSent}
+                    >
+                      {isRequestSent ? 'Envoyée' : isLoading ? 'Envoi...' : '🤝 Ajouter'}
+                    </button>
                   </div>
-                  <h4>{suggestion.display_name || 'Utilisateur'}</h4>
-                  <p>{suggestion.bio || 'Découvrez de nouvelles recettes ensemble ! 🌟'}</p>
-                  <button
-                    onClick={() => sendFriendRequest(suggestion.user_id)}
-                    className={styles.addFriendButton}
-                    disabled={buttonStates[`add-${suggestion.user_id}`]?.loading}
-                  >
-                    {buttonStates[`add-${suggestion.user_id}`]?.loading ? '⏳ Envoi...' : '🤝 Ajouter'}
-                  </button>
-                </div>
-              ))}
+                );
+              })}
               {suggestions.length === 0 && (
                 <div className={styles.emptyState}>
                   <p>Aucune suggestion pour le moment.</p>

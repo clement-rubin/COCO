@@ -420,6 +420,11 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  min-width: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
 .addFriendButton {
@@ -428,306 +433,405 @@
   box-shadow: 0 6px 20px rgba(255, 107, 53, 0.35);
 }
 
-.addFriendButton:hover {
+.addFriendButton:hover:not(:disabled) {
   transform: translateY(-3px) scale(1.08);
   box-shadow: 0 12px 35px rgba(255, 107, 53, 0.5);
   filter: brightness(1.1);
 }
 
-.addFriendButton::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  transition: left 0.6s ease;
+.addFriendButton:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
 }
 
-.addFriendButton:hover::before {
-  left: 100%;
-}
-
-.acceptButton {
+/* État "demande envoyée" */
+.addFriendButton.sent {
   background: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%);
   color: white;
   box-shadow: 0 6px 20px rgba(16, 185, 129, 0.35);
+  cursor: default;
 }
 
-.acceptButton:hover {
-  transform: translateY(-3px) scale(1.08);
-  box-shadow: 0 12px 35px rgba(16, 185, 129, 0.5);
-  filter: brightness(1.1);
+.addFriendButton.sent::before {
+  content: '✓';
+  font-size: 1.2rem;
+  margin-right: 0.3rem;
+  animation: checkmarkPop 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
-.declineButton {
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(220, 38, 38, 0.1) 100%);
-  color: #dc2626;
-  border: 2px solid rgba(239, 68, 68, 0.25);
+@keyframes checkmarkPop {
+  0% { transform: scale(0) rotate(0deg); opacity: 0; }
+  50% { transform: scale(1.3) rotate(180deg); opacity: 1; }
+  100% { transform: scale(1) rotate(360deg); opacity: 1; }
+}
+
+/* État de chargement amélioré */
+.addFriendButton.loading {
+  background: linear-gradient(135deg, #94a3b8 0%, #64748b 50%, #475569 100%);
+  color: white;
+  cursor: wait;
+  position: relative;
+}
+
+.addFriendButton.loading::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top: 3px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Indicateurs de statut pour les cartes utilisateur */
+.userCard, .suggestionCard {
+  position: relative;
+}
+
+.userCard.requestSent, .suggestionCard.requestSent {
+  border-color: rgba(16, 185, 129, 0.3);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(255, 255, 255, 0.98) 100%);
+}
+
+.userCard.requestSent::after, .suggestionCard.requestSent::after {
+  content: 'Demande envoyée ✓';
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  padding: 0.3rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
   font-weight: 600;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+  animation: slideInBadge 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
-.declineButton:hover {
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(220, 38, 38, 0.15) 100%);
-  border-color: rgba(239, 68, 68, 0.4);
-  transform: translateY(-2px) scale(1.05);
-  box-shadow: 0 8px 20px rgba(239, 68, 68, 0.2);
+@keyframes slideInBadge {
+  0% { 
+    opacity: 0; 
+    transform: translateX(20px) scale(0.8); 
+  }
+  100% { 
+    opacity: 1; 
+    transform: translateX(0) scale(1); 
+  }
 }
 
-.requestActions {
+/* Badge de notification animé */
+.statusBadge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 0.4rem 0.9rem;
+  border-radius: 25px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  animation: fadeInScale 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.statusBadge.sent {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+}
+
+.statusBadge.pending {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+}
+
+.statusBadge.friends {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+}
+
+/* Animation de succès pour toute la carte */
+.userCard.success, .suggestionCard.success {
+  animation: successPulse 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  border-color: rgba(16, 185, 129, 0.4);
+  box-shadow: 0 0 25px rgba(16, 185, 129, 0.3);
+}
+
+@keyframes successPulse {
+  0% { 
+    transform: scale(1); 
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+  }
+  50% { 
+    transform: scale(1.05); 
+    box-shadow: 0 15px 40px rgba(16, 185, 129, 0.4);
+  }
+  100% { 
+    transform: scale(1); 
+    box-shadow: 0 8px 30px rgba(16, 185, 129, 0.2);
+  }
+}
+
+/* Toast de notification moderne */
+.toastNotification {
+  position: fixed;
+  top: 100px;
+  right: 30px;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  padding: 1.2rem 2rem;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(16, 185, 129, 0.4);
+  font-weight: 600;
+  font-size: 1rem;
+  z-index: 1000;
+  animation: toastSlideIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
   display: flex;
-  gap: 1rem;
   align-items: center;
+  gap: 0.8rem;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-/* Sections avec titres modernes améliorés */
-.requestsSection, .friendsSection, .suggestionsSection {
-  padding: 0 2rem;
-  margin-bottom: 3rem;
-  position: relative;
-  z-index: 2;
+.toastNotification.error {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  box-shadow: 0 10px 30px rgba(239, 68, 68, 0.4);
 }
 
-.requestsSection h2, .friendsSection h2, .suggestionsSection h2 {
-  font-size: 1.6rem;
-  font-weight: 800;
-  color: var(--text-primary);
-  margin-bottom: 2rem;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  animation: fadeInUp 1s ease;
-  position: relative;
-  padding-left: 1rem;
-}
-
-.requestsSection h2::before {
-  content: '📬';
+.toastNotification::before {
+  content: '🎉';
   font-size: 1.4rem;
   animation: bounce 2s infinite;
 }
 
-.friendsSection h2::before {
-  content: '👥';
-  font-size: 1.4rem;
-  animation: bounce 2s infinite 0.5s;
+.toastNotification.error::before {
+  content: '⚠️';
 }
 
-.suggestionsSection h2::before {
-  content: '✨';
-  font-size: 1.4rem;
-  animation: bounce 2s infinite 1s;
-}
-
-.requestsSection h2::after,
-.friendsSection h2::after,
-.suggestionsSection h2::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  bottom: -8px;
-  width: 60px;
-  height: 4px;
-  background: linear-gradient(90deg, #ff6b35, #f7931e);
-  border-radius: 2px;
-  animation: expandWidth 1s ease 0.5s both;
-}
-
-@keyframes expandWidth {
-  from { width: 0; }
-  to { width: 60px; }
-}
-
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
+@keyframes toastSlideIn {
+  0% { 
+    opacity: 0; 
+    transform: translateX(100px) scale(0.8); 
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+  100% { 
+    opacity: 1; 
+    transform: translateX(0) scale(1); 
   }
 }
 
-/* Grilles responsives améliorées */
-.friendsGrid, .suggestionsGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 2rem;
-  animation: gridFadeIn 0.8s ease 0.3s both;
-}
-
-@keyframes gridFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-/* États vides avec style amélioré */
-.emptyState {
-  text-align: center;
-  padding: 4rem 2rem;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.9) 100%);
-  border-radius: 25px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
-  border: 2px dashed rgba(255, 107, 53, 0.25);
-  animation: fadeInScale 1s ease;
-  position: relative;
-  overflow: hidden;
-  backdrop-filter: blur(10px);
-}
-
-.emptyState::before {
-  content: '💫';
-  font-size: 3rem;
-  display: block;
-  margin-bottom: 1rem;
-  animation: float 3s ease-in-out infinite;
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
-}
-
-@keyframes fadeInScale {
-  from {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.emptyState p {
-  color: var(--text-secondary);
-  font-size: 1.15rem;
-  font-weight: 500;
-  margin: 0;
-  opacity: 0.8;
-}
-
-/* Prompts de connexion améliorés */
-.loginPrompt {
-  text-align: center;
-  padding: 5rem 3rem;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.92) 100%);
-  border-radius: 25px;
-  margin: 2rem;
+/* Amélioration des états hover pour les cartes */
+.userCard:hover:not(.requestSent), 
+.suggestionCard:hover:not(.requestSent) {
+  transform: translateY(-6px) scale(1.03);
   box-shadow: 
-    0 15px 50px rgba(0, 0, 0, 0.1),
-    0 5px 20px rgba(255, 107, 53, 0.08);
-  animation: fadeInScale 1s ease;
-  backdrop-filter: blur(20px);
+    0 20px 50px rgba(255, 107, 53, 0.15),
+    0 8px 25px rgba(0, 0, 0, 0.1);
+  border-color: rgba(255, 107, 53, 0.25);
+}
+
+.userCard.requestSent:hover, 
+.suggestionCard.requestSent:hover {
+  transform: translateY(-3px) scale(1.01);
+  box-shadow: 0 15px 35px rgba(16, 185, 129, 0.2);
+}
+
+/* Statistiques dans le header */
+.statsBar {
+  display: flex;
+  justify-content: center;
+  gap: 3rem;
+  margin-top: 1.5rem;
+  padding: 1.5rem 2rem;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.7) 100%);
+  border-radius: 20px;
+  backdrop-filter: blur(15px);
   border: 1px solid rgba(255, 107, 53, 0.1);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.05);
 }
 
-.loginPrompt::before {
-  content: '🔐';
-  font-size: 4rem;
-  display: block;
-  margin-bottom: 1.5rem;
-  animation: pulse 2s infinite;
-}
-
-.loginPrompt h2 {
-  color: var(--text-primary);
-  margin-bottom: 2rem;
-  font-weight: 800;
-  font-size: 1.8rem;
-}
-
-.loginButton {
-  display: inline-block;
-  padding: 1.2rem 2.5rem;
-  background: linear-gradient(135deg, #ff6b35, #f7931e, #ff8c42);
-  color: white;
-  text-decoration: none;
-  border-radius: 15px;
-  font-weight: 700;
-  font-size: 1.1rem;
-  transition: all 0.4s ease;
-  box-shadow: 0 6px 20px rgba(255, 107, 53, 0.35);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  position: relative;
-  overflow: hidden;
-}
-
-.loginButton::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  transition: left 0.6s ease;
-}
-
-.loginButton:hover::before {
-  left: 100%;
-}
-
-.loginButton:hover {
-  transform: translateY(-4px) scale(1.08);
-  box-shadow: 0 12px 40px rgba(255, 107, 53, 0.5);
-  filter: brightness(1.1);
-}
-
-/* Indicateur de chargement amélioré */
-.loading {
+.stat {
+  text-align: center;
   display: flex;
   flex-direction: column;
+  gap: 0.3rem;
+}
+
+.statNumber {
+  font-size: 2rem;
+  font-weight: 900;
+  background: linear-gradient(135deg, #ff6b35, #f7931e);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+}
+
+.statLabel {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Actions d'amitié améliorées */
+.friendActions {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 12px;
+  padding: 1rem;
+  margin-top: 1rem;
+  border: 1px solid #e2e8f0;
+}
+
+.actionButtons {
+  display: flex;
+  gap: 0.8rem;
+  margin-top: 0.8rem;
+  flex-wrap: wrap;
+}
+
+.removeButton, .blockButton, .statusButton {
+  padding: 0.6rem 1.2rem;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.removeButton {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.05));
+  color: #dc2626;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.removeButton:hover {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(220, 38, 38, 0.1));
+  transform: translateY(-1px);
+}
+
+.blockButton {
+  background: linear-gradient(135deg, rgba(75, 85, 99, 0.1), rgba(55, 65, 81, 0.05));
+  color: #374151;
+  border: 1px solid rgba(75, 85, 99, 0.2);
+}
+
+.blockButton:hover {
+  background: linear-gradient(135deg, rgba(75, 85, 99, 0.15), rgba(55, 65, 81, 0.1));
+  transform: translateY(-1px);
+}
+
+.statusButton {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(37, 99, 235, 0.05));
+  color: #2563eb;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.statusButton:hover {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(37, 99, 235, 0.1));
+  transform: translateY(-1px);
+}
+
+.statusInfo {
+  margin-top: 0.8rem;
+  padding: 0.8rem;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(5, 150, 105, 0.02));
+  border-radius: 8px;
+  border: 1px solid rgba(16, 185, 129, 0.15);
+  font-size: 0.9rem;
+  color: #047857;
+}
+
+.statusHint {
+  font-size: 0.8rem;
+  opacity: 0.8;
+  font-style: italic;
+}
+
+/* Modal de confirmation amélioré */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 60vh;
-  color: var(--text-secondary);
-  font-size: 1.2rem;
-  font-weight: 500;
-  animation: fadeIn 0.8s ease;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
 }
 
-.loading::before {
-  content: '👥';
-  font-size: 5rem;
-  margin-bottom: 2rem;
-  animation: bounceScale 2s infinite;
+.confirmDialog {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 20px;
+  padding: 2.5rem;
+  max-width: 450px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 107, 53, 0.1);
+  animation: modalSlideIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
-@keyframes bounceScale {
-  0%, 100% { 
+@keyframes modalSlideIn {
+  0% { 
+    opacity: 0; 
+    transform: translateY(-30px) scale(0.9); 
+  }
+  100% { 
+    opacity: 1; 
     transform: translateY(0) scale(1); 
-    filter: brightness(1);
-  }
-  25% { 
-    transform: translateY(-15px) scale(1.1); 
-    filter: brightness(1.2);
-  }
-  50% { 
-    transform: translateY(-20px) scale(1.15); 
-    filter: brightness(1.3);
-  }
-  75% { 
-    transform: translateY(-10px) scale(1.05); 
-    filter: brightness(1.1);
   }
 }
 
-/* Animations d'entrée améliorées */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(15px); }
-  to { opacity: 1; transform: translateY(0); }
+.confirmDialog h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--text-primary);
 }
 
-@keyframes slideIn {
-  from { opacity: 0; transform: translateX(-30px) scale(0.95); }
-  to { opacity: 1; transform: translateX(0) scale(1); }
+.confirmDialog p {
+  margin: 0 0 2rem 0;
+  color: var(--text-secondary);
+  line-height: 1.6;
 }
 
-/* Responsive mobile-first amélioré */
+.confirmActions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+}
+
+.cancelButton {
+  padding: 0.8rem 1.5rem;
+  background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+  color: #64748b;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.cancelButton:hover {
+  background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
+  transform: translateY(-1px);
+}
+
+/* Responsive amélioré */
 @media (max-width: 768px) {
   .header {
     padding: 2rem 1.5rem;
@@ -768,6 +872,47 @@
   .loginPrompt {
     padding: 3rem 2rem;
     margin: 1.5rem;
+  }
+  
+  .statsBar {
+    gap: 2rem;
+    padding: 1rem;
+    flex-direction: row;
+  }
+  
+  .statNumber {
+    font-size: 1.5rem;
+  }
+  
+  .actionButtons {
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  
+  .removeButton, .blockButton, .statusButton {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .toastNotification {
+    right: 15px;
+    left: 15px;
+    top: 80px;
+    width: auto;
+  }
+  
+  .confirmDialog {
+    margin: 1rem;
+    padding: 2rem;
+  }
+  
+  .confirmActions {
+    flex-direction: column;
+    gap: 0.8rem;
+  }
+  
+  .cancelButton {
+    width: 100%;
   }
 }
 
