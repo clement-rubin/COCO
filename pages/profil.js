@@ -410,7 +410,7 @@ export default function Profil() {
             label: 'Ami',
             color: '#10b981'
           }
-          }.map((stat, index) => (
+          ].map((stat, index) => (
             <div key={index} style={{
               background: 'white',
               padding: '1.5rem 1rem',
