@@ -98,9 +98,16 @@ export default function RecipeCard({ recipe, isUserRecipe = true, isPhotoOnly = 
     ? `/recipes/user/${safeRecipe.id}`
     : `/recipes/${safeRecipe.id}`
 
+  // Détecter automatiquement si c'est un partage rapide
+  const isQuickShare = recipe.form_mode === 'quick' || 
+                      recipe.category === 'Photo partagée' ||
+                      (Array.isArray(recipe.ingredients) && recipe.ingredients.length === 0 &&
+                       Array.isArray(recipe.instructions) && recipe.instructions.length === 0) ||
+                      isPhotoOnly
+
   return (
     <div 
-      className={`${styles.card} ${isPhotoOnly ? styles.photoOnly : ''} ${imageLoading ? styles.loading : ''}`} 
+      className={`${styles.card} ${isQuickShare ? styles.photoOnly : ''} ${imageLoading ? styles.loading : ''}`} 
       onClick={navigateToRecipe}
     >
       <div className={styles.imageContainer}>
@@ -129,9 +136,9 @@ export default function RecipeCard({ recipe, isUserRecipe = true, isPhotoOnly = 
           }}
         />
         
-        {isPhotoOnly && (
+        {isQuickShare && (
           <div className={styles.photoTag}>
-            📷 Photo Instantanée
+            📷 Partage Rapide
           </div>
         )}
         
@@ -149,7 +156,7 @@ export default function RecipeCard({ recipe, isUserRecipe = true, isPhotoOnly = 
       <div className={styles.content}>
         <h3 className={styles.recipeTitle}>{safeRecipe.title}</h3>
         
-        {safeRecipe.description && !isPhotoOnly && (
+        {safeRecipe.description && !isQuickShare && (
           <p className={styles.recipeDescription}>
             {safeRecipe.description.length > 100 
               ? `${safeRecipe.description.substring(0, 100)}...` 
@@ -157,21 +164,24 @@ export default function RecipeCard({ recipe, isUserRecipe = true, isPhotoOnly = 
           </p>
         )}
         
-        {isPhotoOnly && (
+        {isQuickShare && (
           <p className={styles.recipeDescription}>
-            Une délicieuse création partagée par un membre de la communauté COCO ✨
+            {safeRecipe.description === 'Photo partagée rapidement avec COCO ✨' 
+              ? 'Une délicieuse création partagée instantanément ✨'
+              : safeRecipe.description
+            }
           </p>
         )}
         
         <div className={styles.recipeDetails}>
-          {recipe.difficulty && !isPhotoOnly && (
+          {!isQuickShare && recipe.difficulty && (
             <span className={styles.recipeDifficulty}>
               {recipe.difficulty === 'Facile' ? '🟢' : 
                recipe.difficulty === 'Moyen' ? '🟠' : '🔴'} {recipe.difficulty}
             </span>
           )}
           
-          {safeRecipe.prepTime && !isPhotoOnly && (
+          {!isQuickShare && safeRecipe.prepTime && (
             <span className={styles.recipeTime}>
               ⏱️ {safeRecipe.prepTime}
             </span>
@@ -179,7 +189,7 @@ export default function RecipeCard({ recipe, isUserRecipe = true, isPhotoOnly = 
           
           {safeRecipe.category && (
             <span className={styles.recipeCategory}>
-              {isPhotoOnly ? '📸' : '📂'} {safeRecipe.category}
+              {isQuickShare ? '📸' : '📂'} {safeRecipe.category}
             </span>
           )}
         </div>

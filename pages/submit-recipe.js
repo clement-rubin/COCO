@@ -24,9 +24,12 @@ export default function SubmitRecipe() {
     description: '',
     ingredients: '',
     instructions: ''
-    // Suppression du champ author - sera récupéré automatiquement
   })
   const [photos, setPhotos] = useState([])
+  
+  // Nouveaux états pour le choix du mode
+  const [formMode, setFormMode] = useState(null) // 'quick' ou 'complete'
+  const [showModeSelector, setShowModeSelector] = useState(true)
 
   // Logger hook to capture logs
   const addLog = (level, message, data = null) => {
@@ -81,21 +84,26 @@ export default function SubmitRecipe() {
       newErrors.title = 'Le nom de la recette est obligatoire'
       addLog('warning', 'Validation échouée: nom de la recette manquant')
     }
-    if (!formData.description.trim()) {
-      newErrors.description = 'La description est obligatoire'
-      addLog('warning', 'Validation échouée: description manquante')
-    }
-    if (!formData.ingredients.trim()) {
-      newErrors.ingredients = 'Les ingrédients sont obligatoires'
-      addLog('warning', 'Validation échouée: ingrédients manquants')
-    }
-    if (!formData.instructions.trim()) {
-      newErrors.instructions = 'Les instructions sont obligatoires'
-      logWarning('Form validation failed: missing instructions', { component: 'submit-recipe' })
-    }
+    
     if (photos.length === 0) {
       newErrors.photos = 'Au moins une photo est obligatoire'
-      logWarning('Form validation failed: no photos', { component: 'submit-recipe' })
+      addLog('warning', 'Validation échouée: photo manquante')
+    }
+    
+    // Validation conditionnelle selon le mode
+    if (formMode === 'complete') {
+      if (!formData.description.trim()) {
+        newErrors.description = 'La description est obligatoire'
+        addLog('warning', 'Validation échouée: description manquante')
+      }
+      if (!formData.ingredients.trim()) {
+        newErrors.ingredients = 'Les ingrédients sont obligatoires'
+        addLog('warning', 'Validation échouée: ingrédients manquants')
+      }
+      if (!formData.instructions.trim()) {
+        newErrors.instructions = 'Les instructions sont obligatoires'
+        addLog('warning', 'Validation échouée: instructions manquantes')
+      }
     }
     
     // Validation des photos traitées
@@ -122,6 +130,7 @@ export default function SubmitRecipe() {
     
     addLog('info', 'Résultat de la validation', {
       isValid,
+      formMode,
       errorsCount: Object.keys(newErrors).length,
       errors: Object.keys(newErrors),
       photosCount: photos.length,
@@ -135,7 +144,7 @@ export default function SubmitRecipe() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     
-    addLog('info', 'Début de soumission de recette')
+    addLog('info', 'Début de soumission de recette', { formMode })
     
     if (!validateForm()) {
       addLog('warning', 'Validation du formulaire échouée')
@@ -193,18 +202,29 @@ export default function SubmitRecipe() {
 
       addLog('info', 'Préparation des données de soumission')
       
-      // Préparer les données avec l'URL de l'image
+      // Préparer les données selon le mode
       const recipeData = {
         title: formData.title,
-        description: formData.description,
         author: authorName,
         user_id: user.id,
-        ingredients: formData.ingredients.split('\n').filter(ingredient => ingredient.trim()),
-        instructions: formData.instructions.split('\n').filter(instruction => instruction.trim()).map((instruction, index) => ({
+        image: mainImageUrl,
+        formMode: formMode // Ajouter le mode pour tracking
+      }
+
+      // Ajouter les champs optionnels seulement si en mode complet
+      if (formMode === 'complete') {
+        recipeData.description = formData.description
+        recipeData.ingredients = formData.ingredients.split('\n').filter(ingredient => ingredient.trim())
+        recipeData.instructions = formData.instructions.split('\n').filter(instruction => instruction.trim()).map((instruction, index) => ({
           step: index + 1,
           instruction: instruction.trim()
-        })),
-        image: mainImageUrl // URL de l'image uploadée
+        }))
+      } else {
+        // Mode rapide - valeurs par défaut ou vides
+        recipeData.description = 'Photo partagée rapidement avec COCO ✨'
+        recipeData.ingredients = []
+        recipeData.instructions = []
+        recipeData.category = 'Photo partagée'
       }
 
       addLog('info', 'Données préparées pour soumission', {
@@ -282,9 +302,15 @@ export default function SubmitRecipe() {
     return (
       <div className={styles.container}>
         <div className={styles.successMessage}>
-          <div className={styles.successIcon}>📸</div>
-          <h1>Photo partagée avec succès !</h1>
-          <p>Votre délicieuse photo "<strong>{formData.title}</strong>" a été ajoutée à COCO.</p>
+          <div className={styles.successIcon}>
+            {formMode === 'quick' ? '📸' : '🍳'}
+          </div>
+          <h1>
+            {formMode === 'quick' ? 'Photo partagée avec succès !' : 'Recette partagée avec succès !'}
+          </h1>
+          <p>
+            Votre délicieux{formMode === 'quick' ? 'e photo' : 'e recette'} "<strong>{formData.title}</strong>" a été ajoutée à COCO.
+          </p>
           <p>Redirection en cours vers l'accueil...</p>
           <div className={styles.successSpinner}></div>
         </div>
@@ -328,7 +354,7 @@ export default function SubmitRecipe() {
               )}
             </div>
           ))
-        )}
+        }
       </div>
     </div>
   )
@@ -354,154 +380,234 @@ export default function SubmitRecipe() {
     )
   }
 
+  // Composant de sélection du mode
+  const ModeSelector = () => (
+    <div className={styles.modeSelector}>
+      <div className={styles.modeSelectorHeader}>
+        <h2>Comment souhaitez-vous partager ?</h2>
+        <p>Choisissez le type de partage qui vous convient</p>
+      </div>
+      
+      <div className={styles.modeOptions}>
+        <div 
+          className={styles.modeOption}
+          onClick={() => {
+            setFormMode('quick')
+            setShowModeSelector(false)
+            addLog('interaction', 'Mode rapide sélectionné')
+          }}
+        >
+          <div className={styles.modeIcon}>📸</div>
+          <h3>Partage Rapide</h3>
+          <p>Photo + titre seulement</p>
+          <div className={styles.modeFeatures}>
+            <span>✨ Partage instantané</span>
+            <span>📱 Parfait pour mobile</span>
+            <span>⚡ En quelques secondes</span>
+          </div>
+          <div className={styles.modeButton}>Choisir</div>
+        </div>
+
+        <div 
+          className={styles.modeOption}
+          onClick={() => {
+            setFormMode('complete')
+            setShowModeSelector(false)
+            addLog('interaction', 'Mode complet sélectionné')
+          }}
+        >
+          <div className={styles.modeIcon}>📝</div>
+          <h3>Recette Complète</h3>
+          <p>Tous les détails de votre recette</p>
+          <div className={styles.modeFeatures}>
+            <span>🍳 Ingrédients détaillés</span>
+            <span>📋 Instructions étape par étape</span>
+            <span>💫 Partage complet</span>
+          </div>
+          <div className={styles.modeButton}>Choisir</div>
+        </div>
+      </div>
+    </div>
+  )
+
   return (
     <>
       <Head>
-        <title>Partager une photo - COCO</title>
-        <meta name="description" content="Partagez une photo de votre plat avec la communauté COCO" />
+        <title>
+          {formMode === 'quick' ? 'Partager une photo - COCO' : 'Partager une recette - COCO'}
+        </title>
+        <meta name="description" content="Partagez votre création culinaire avec la communauté COCO" />
       </Head>
       
       <div className={styles.container}>
-        <div className={styles.header}>
-          <button onClick={() => router.push('/')} className={styles.backBtn}>
-            ← Retour
-          </button>
-          <div className={styles.headerTop}>
-            <h1>📸 Partager une photo</h1>
-            <button 
-              onClick={() => setShowLogs(!showLogs)} 
-              className={styles.debugBtn}
-              title="Afficher/Masquer les logs"
-            >
-              {showLogs ? '📋' : '🔍'} Debug
-            </button>
-          </div>
-          <p className={styles.subtitle}>
-            Partagez rapidement une photo de votre création culinaire
-          </p>
-        </div>
-
-        {showLogs && <LogsDisplay />}
-
-        <div className={styles.content}>
-          <form onSubmit={handleSubmit} className={styles.form}>
-            {/* Section Photos */}
-            <div className={styles.section}>
-              <h2>📷 Photo de votre plat</h2>
-              <PhotoUpload 
-                onPhotoSelect={setPhotos}
-                maxFiles={3}
-              />
-              {errors.photos && <span className={styles.error}>{errors.photos}</span>}
-              
-              {processingPhotosCount > 0 && (
-                <div className={styles.uploadStatus}>
-                  ⏳ {processingPhotosCount} photo(s) en cours de traitement...
-                </div>
-              )}
-              
-              {allPhotosProcessed && photos.length > 0 && (
-                <div className={styles.uploadSuccess}>
-                  ✅ Toutes les photos sont prêtes !
-                </div>
-              )}
+        {showModeSelector ? (
+          <ModeSelector />
+        ) : (
+          <>
+            <div className={styles.header}>
+              <button 
+                onClick={() => setShowModeSelector(true)} 
+                className={styles.backBtn}
+              >
+                ← Changer le mode
+              </button>
+              <div className={styles.headerTop}>
+                <h1>
+                  {formMode === 'quick' ? '📸 Partage Rapide' : '🍳 Recette Complète'}
+                </h1>
+                <button 
+                  onClick={() => setShowLogs(!showLogs)} 
+                  className={styles.debugBtn}
+                  title="Afficher/Masquer les logs"
+                >
+                  {showLogs ? '📋' : '🔍'} Debug
+                </button>
+              </div>
+              <p className={styles.subtitle}>
+                {formMode === 'quick' 
+                  ? 'Partagez rapidement une photo de votre création'
+                  : 'Partagez votre recette complète avec la communauté'
+                }
+              </p>
             </div>
 
-            {/* Informations de base */}
-            <div className={styles.section}>
-              <h2>📝 Informations de base</h2>
-              
-              <div className={styles.formGroup}>
-                <label htmlFor="title">Nom de votre plat *</label>
-                <input
-                  type="text"
-                  id="title"
-                  name="title"
-                  value={formData.title}
-                  onChange={handleInputChange}
-                  placeholder="Ex: Tarte aux pommes de grand-mère"
-                  className={errors.title ? styles.inputError : ''}
-                />
-                {errors.title && <span className={styles.error}>{errors.title}</span>}
-              </div>
+            {showLogs && <LogsDisplay />}
 
-              <div className={styles.formGroup}>
-                <label htmlFor="description">Description *</label>
-                <textarea
-                  id="description"
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  placeholder="Décrivez brièvement votre plat, ce qui le rend spécial..."
-                  rows={4}
-                  className={errors.description ? styles.inputError : ''}
-                />
-                {errors.description && <span className={styles.error}>{errors.description}</span>}
-              </div>
+            <div className={styles.content}>
+              <form onSubmit={handleSubmit} className={styles.form}>
+                {/* Section Photos - toujours présente */}
+                <div className={styles.section}>
+                  <h2>📷 Photo de votre {formMode === 'quick' ? 'plat' : 'recette'}</h2>
+                  <PhotoUpload 
+                    onPhotoSelect={setPhotos}
+                    maxFiles={formMode === 'quick' ? 1 : 3}
+                  />
+                  {errors.photos && <span className={styles.error}>{errors.photos}</span>}
+                  
+                  {processingPhotosCount > 0 && (
+                    <div className={styles.uploadStatus}>
+                      ⏳ {processingPhotosCount} photo(s) en cours de traitement...
+                    </div>
+                  )}
+                  
+                  {allPhotosProcessed && photos.length > 0 && (
+                    <div className={styles.uploadSuccess}>
+                      ✅ Toutes les photos sont prêtes !
+                    </div>
+                  )}
+                </div>
 
-              <div className={styles.formGroup}>
-                <label htmlFor="ingredients">Ingrédients *</label>
-                <textarea
-                  id="ingredients"
-                  name="ingredients"
-                  value={formData.ingredients}
-                  onChange={handleInputChange}
-                  placeholder="Listez les ingrédients (un par ligne)&#10;Ex:&#10;- 3 pommes&#10;- 200g de farine&#10;- 100g de beurre"
-                  rows={6}
-                  className={errors.ingredients ? styles.inputError : ''}
-                />
-                {errors.ingredients && <span className={styles.error}>{errors.ingredients}</span>}
-              </div>
+                {/* Titre - toujours obligatoire */}
+                <div className={styles.section}>
+                  <h2>✨ Titre</h2>
+                  
+                  <div className={styles.formGroup}>
+                    <label htmlFor="title">
+                      Nom de votre {formMode === 'quick' ? 'plat' : 'recette'} *
+                    </label>
+                    <input
+                      type="text"
+                      id="title"
+                      name="title"
+                      value={formData.title}
+                      onChange={handleInputChange}
+                      placeholder={formMode === 'quick' 
+                        ? "Ex: Mon délicieux plat du jour" 
+                        : "Ex: Tarte aux pommes de grand-mère"
+                      }
+                      className={errors.title ? styles.inputError : ''}
+                    />
+                    {errors.title && <span className={styles.error}>{errors.title}</span>}
+                  </div>
+                </div>
 
-              <div className={styles.formGroup}>
-                <label htmlFor="instructions">Instructions *</label>
-                <textarea
-                  id="instructions"
-                  name="instructions"
-                  value={formData.instructions}
-                  onChange={handleInputChange}
-                  placeholder="Décrivez les étapes de préparation (une par ligne)&#10;Ex:&#10;1. Préchauffer le four à 180°C&#10;2. Éplucher et couper les pommes&#10;3. Mélanger la farine et le beurre"
-                  rows={8}
-                  className={errors.instructions ? styles.inputError : ''}
-                />
-                {errors.instructions && <span className={styles.error}>{errors.instructions}</span>}
-              </div>
+                {/* Sections conditionnelles pour le mode complet */}
+                {formMode === 'complete' && (
+                  <>
+                    <div className={styles.section}>
+                      <h2>📝 Détails de la recette</h2>
+                      
+                      <div className={styles.formGroup}>
+                        <label htmlFor="description">Description *</label>
+                        <textarea
+                          id="description"
+                          name="description"
+                          value={formData.description}
+                          onChange={handleInputChange}
+                          placeholder="Décrivez votre recette, ce qui la rend spéciale..."
+                          rows={4}
+                          className={errors.description ? styles.inputError : ''}
+                        />
+                        {errors.description && <span className={styles.error}>{errors.description}</span>}
+                      </div>
+
+                      <div className={styles.formGroup}>
+                        <label htmlFor="ingredients">Ingrédients *</label>
+                        <textarea
+                          id="ingredients"
+                          name="ingredients"
+                          value={formData.ingredients}
+                          onChange={handleInputChange}
+                          placeholder="Listez les ingrédients (un par ligne)&#10;Ex:&#10;- 3 pommes&#10;- 200g de farine&#10;- 100g de beurre"
+                          rows={6}
+                          className={errors.ingredients ? styles.inputError : ''}
+                        />
+                        {errors.ingredients && <span className={styles.error}>{errors.ingredients}</span>}
+                      </div>
+
+                      <div className={styles.formGroup}>
+                        <label htmlFor="instructions">Instructions *</label>
+                        <textarea
+                          id="instructions"
+                          name="instructions"
+                          value={formData.instructions}
+                          onChange={handleInputChange}
+                          placeholder="Décrivez les étapes de préparation (une par ligne)&#10;Ex:&#10;1. Préchauffer le four à 180°C&#10;2. Éplucher et couper les pommes&#10;3. Mélanger la farine et le beurre"
+                          rows={8}
+                          className={errors.instructions ? styles.inputError : ''}
+                        />
+                        {errors.instructions && <span className={styles.error}>{errors.instructions}</span>}
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {errors.submit && (
+                  <div className={styles.submitError}>
+                    {errors.submit}
+                  </div>
+                )}
+              </form>
             </div>
 
-            {errors.submit && (
-              <div className={styles.submitError}>
-                {errors.submit}
-              </div>
-            )}
-          </form>
-        </div>
-
-        <div className={styles.navigation}>
-          <button onClick={() => router.back()} className={styles.secondaryBtn}>
-            Annuler
-          </button>
-          
-          <button
-            onClick={handleSubmit}
-            className={`${styles.submitBtn} ${isSubmitting || processingPhotosCount > 0 ? styles.disabled : ''}`}
-            disabled={isSubmitting || processingPhotosCount > 0}
-          >
-            {isSubmitting ? (
-              <>
-                <span className={styles.spinner}></span>
-                Partage en cours...
-              </>
-            ) : processingPhotosCount > 0 ? (
-              <>
-                ⏳ Traitement en cours ({processingPhotosCount} photo(s))
-              </>
-            ) : (
-              <>
-                📸 Partager ma photo
-              </>
-            )}
-          </button>
-        </div>
+            <div className={styles.navigation}>
+              <button onClick={() => router.back()} className={styles.secondaryBtn}>
+                Annuler
+              </button>
+              
+              <button
+                onClick={handleSubmit}
+                className={`${styles.submitBtn} ${isSubmitting || processingPhotosCount > 0 ? styles.disabled : ''}`}
+                disabled={isSubmitting || processingPhotosCount > 0}
+              >
+                {isSubmitting ? (
+                  <>
+                    <span className={styles.spinner}></span>
+                    Partage en cours...
+                  </>
+                ) : processingPhotosCount > 0 ? (
+                  <>
+                    ⏳ Traitement en cours ({processingPhotosCount} photo(s))
+                  </>
+                ) : (
+                  <>
+                    {formMode === 'quick' ? '📸 Partager ma photo' : '🍳 Partager ma recette'}
+                  </>
+                )}
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </>
   )

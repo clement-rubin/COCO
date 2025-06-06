@@ -490,7 +490,7 @@ export default async function handler(req, res) {
         const newRecipe = {
           title: data.title.trim(),
           description: data.description && typeof data.description === 'string' ? data.description.trim() : null,
-          image: imageUrl, // <-- Utiliser l'URL publique ou la data URL (champ text)
+          image: imageUrl,
           prepTime: data.prepTime && typeof data.prepTime === 'string' ? data.prepTime.trim() : null,
           cookTime: data.cookTime && typeof data.cookTime === 'string' ? data.cookTime.trim() : null,
           category: data.category && typeof data.category === 'string' ? data.category.trim() : 'Autre',
@@ -499,14 +499,25 @@ export default async function handler(req, res) {
           ingredients: ingredients,
           instructions: instructions,
           difficulty: data.difficulty && typeof data.difficulty === 'string' ? data.difficulty.trim() : 'Facile',
-          created_at: new Date().toISOString()
+          created_at: new Date().toISOString(),
+          // Nouveau champ pour tracker le mode de partage
+          form_mode: data.formMode || 'complete'
         }
-        
-        // Only add servings if it's provided (to handle tables without this column)
-        if (data.servings && (typeof data.servings === 'string' || typeof data.servings === 'number')) {
-          newRecipe.servings = data.servings.toString().trim()
+
+        // Valeurs par défaut intelligentes pour les partages rapides
+        if (data.formMode === 'quick') {
+          // Si c'est un partage rapide, ajuster les valeurs par défaut
+          if (!newRecipe.description) {
+            newRecipe.description = 'Photo partagée rapidement avec COCO ✨'
+          }
+          if (!newRecipe.category || newRecipe.category === 'Autre') {
+            newRecipe.category = 'Photo partagée'
+          }
+          // S'assurer que les tableaux sont vides mais valides
+          newRecipe.ingredients = Array.isArray(newRecipe.ingredients) ? newRecipe.ingredients : []
+          newRecipe.instructions = Array.isArray(newRecipe.instructions) ? newRecipe.instructions : []
         }
-        
+
         logDebug('Recipe data prepared for insertion', {
           reference: requestReference,
           title: newRecipe.title,
