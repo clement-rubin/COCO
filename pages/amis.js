@@ -415,6 +415,33 @@ export default function Amis() {
     }
   };
 
+  const fetchFriendRecipes = async (friendId) => {
+    if (friendsRecipes[friendId]) return; // Already loaded
+    
+    try {
+      const { data, error } = await supabase
+        .from('recipes')
+        .select('id, title, image, created_at')
+        .eq('user_id', friendId)
+        .eq('is_public', true)
+        .order('created_at', { ascending: false })
+        .limit(3);
+
+      if (error) throw error;
+
+      setFriendsRecipes(prev => ({
+        ...prev,
+        [friendId]: data || []
+      }));
+    } catch (error) {
+      logError('Error fetching friend recipes:', error);
+      setFriendsRecipes(prev => ({
+        ...prev,
+        [friendId]: []
+      }));
+    }
+  };
+
   const searchSection = (
     <div className={styles.searchSection}>
       <div className={styles.searchBox}>
