@@ -107,30 +107,34 @@ export default function RecipeForm({ initialData = {}, onSubmit, onCancel, isEdi
   const validateForm = () => {
     const newErrors = {}
     
-    // Titre obligatoire
+    // VALIDATION SIMPLIFIÉE - Seulement titre et description obligatoires
     if (!formData.title.trim()) {
       newErrors.title = 'Le titre est requis'
     }
     
-    // Description obligatoire
     if (!formData.description.trim()) {
       newErrors.description = 'La description est requise'
     }
     
+    // Tout le reste est optionnel
     // Image recommandée mais pas obligatoire
     if (!formData.image && !imagePreview) {
-      // Avertissement mais pas d'erreur bloquante
-      console.warn('Aucune image fournie pour la recette')
+      console.info('Aucune image fournie - sera optionnelle')
     }
     
-    // Validation conditionnelle des ingrédients (seulement si activée)
-    if (formData.includeIngredients && formData.ingredients.some(ing => !ing.name.trim())) {
-      newErrors.ingredients = 'Tous les ingrédients doivent avoir un nom'
+    // Validation conditionnelle UNIQUEMENT si l'utilisateur a choisi d'inclure ces sections
+    if (formData.includeIngredients && formData.ingredients.length > 0) {
+      const emptyIngredients = formData.ingredients.filter(ing => !ing.name.trim())
+      if (emptyIngredients.length > 0) {
+        newErrors.ingredients = 'Si vous ajoutez des ingrédients, ils doivent avoir un nom'
+      }
     }
     
-    // Validation conditionnelle des instructions (seulement si activée)
-    if (formData.includeInstructions && formData.instructions.some(inst => !inst.description.trim())) {
-      newErrors.instructions = 'Toutes les instructions doivent être remplies'
+    if (formData.includeInstructions && formData.instructions.length > 0) {
+      const emptyInstructions = formData.instructions.filter(inst => !inst.description.trim())
+      if (emptyInstructions.length > 0) {
+        newErrors.instructions = 'Si vous ajoutez des instructions, elles doivent être remplies'
+      }
     }
     
     setErrors(newErrors)
@@ -186,14 +190,16 @@ export default function RecipeForm({ initialData = {}, onSubmit, onCancel, isEdi
           </div>
 
           <div className="form-group">
-            <label htmlFor="description">Description</label>
+            <label htmlFor="description">Description *</label>
             <textarea
               id="description"
               value={formData.description}
               onChange={(e) => handleInputChange('description', e.target.value)}
               placeholder="Une délicieuse description de votre recette..."
               rows={3}
+              className={errors.description ? 'error' : ''}
             />
+            {errors.description && <span className="error-message">{errors.description}</span>}
           </div>
         </div>
 
@@ -838,12 +844,14 @@ export default function RecipeForm({ initialData = {}, onSubmit, onCancel, isEdi
         }
 
         .form-section h3::after {
-          content: ' (Facultatif)';
+          content: ' (Optionnel)';
           font-weight: 400;
           color: #6b7280;
           font-size: 0.8em;
         }
 
+        /* Ne pas afficher "Optionnel" pour titre et description */
+        .form-section:first-of-type h3::after,
         .content-options + .form-section h3::after {
           display: none;
         }

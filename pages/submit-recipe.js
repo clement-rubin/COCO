@@ -80,22 +80,22 @@ export default function SubmitRecipe() {
     addLog('info', 'Début de la validation du formulaire recette')
     const newErrors = {}
     
-    // Titre OBLIGATOIRE dans tous les modes
+    // VALIDATION SIMPLIFIÉE - Seulement titre obligatoire dans tous les modes
     if (!formData.title.trim()) {
       newErrors.title = 'Le nom de la recette est obligatoire'
       addLog('warning', 'Validation échouée: nom de la recette manquant')
     }
     
-    // Description OBLIGATOIRE seulement en mode complet
+    // Description obligatoire UNIQUEMENT en mode complet
     if (formMode === 'complete' && !formData.description.trim()) {
       newErrors.description = 'La description est obligatoire en mode complet'
       addLog('warning', 'Validation échouée: description manquante en mode complet')
     }
     
-    // Photo OBLIGATOIRE
+    // Photo recommandée mais pas obligatoire
     if (photos.length === 0) {
-      newErrors.photos = 'Au moins une photo est obligatoire'
-      addLog('warning', 'Validation échouée: photo manquante')
+      // Simple avertissement, pas d'erreur bloquante
+      addLog('info', 'Aucune photo fournie - sera optionnelle')
     }
     
     // Validation des photos traitées (si des photos sont présentes)
@@ -120,7 +120,7 @@ export default function SubmitRecipe() {
       photosCount: photos.length,
       hasTitle: !!formData.title.trim(),
       hasDescription: !!formData.description.trim(),
-      validationMode: formMode === 'quick' ? 'flexible' : 'strict'
+      validationMode: 'simplified'
     })
     
     setErrors(newErrors)
@@ -530,7 +530,7 @@ export default function SubmitRecipe() {
                       </div>
 
                       <div className={styles.formGroup}>
-                        <label htmlFor="ingredients">Ingrédients *</label>
+                        <label htmlFor="ingredients">Ingrédients (optionnel)</label>
                         <textarea
                           id="ingredients"
                           name="ingredients"
@@ -538,13 +538,11 @@ export default function SubmitRecipe() {
                           onChange={handleInputChange}
                           placeholder="Listez les ingrédients (un par ligne)&#10;Ex:&#10;- 3 pommes&#10;- 200g de farine&#10;- 100g de beurre"
                           rows={6}
-                          className={errors.ingredients ? styles.inputError : ''}
                         />
-                        {errors.ingredients && <span className={styles.error}>{errors.ingredients}</span>}
                       </div>
 
                       <div className={styles.formGroup}>
-                        <label htmlFor="instructions">Instructions *</label>
+                        <label htmlFor="instructions">Instructions (optionnel)</label>
                         <textarea
                           id="instructions"
                           name="instructions"
@@ -552,9 +550,7 @@ export default function SubmitRecipe() {
                           onChange={handleInputChange}
                           placeholder="Décrivez les étapes de préparation (une par ligne)&#10;Ex:&#10;1. Préchauffer le four à 180°C&#10;2. Éplucher et couper les pommes&#10;3. Mélanger la farine et le beurre"
                           rows={8}
-                          className={errors.instructions ? styles.inputError : ''}
                         />
-                        {errors.instructions && <span className={styles.error}>{errors.instructions}</span>}
                       </div>
                     </div>
                   </>

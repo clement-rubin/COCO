@@ -117,27 +117,27 @@
       </div>
       
       <div class="form-group">
-        <label for="image">URL de l'image</label>
+        <label for="image">URL de l'image (optionnel)</label>
         <input type="url" id="image" placeholder="https://example.com/image.jpg">
       </div>
       
       <div class="form-group">
-        <label for="ingredients">Ingrédients (un par ligne)</label>
+        <label for="ingredients">Ingrédients (optionnel, un par ligne)</label>
         <textarea id="ingredients" placeholder="200g de farine&#10;2 œufs&#10;500ml de lait" rows="4"></textarea>
       </div>
       
       <div class="form-group">
-        <label for="instructions">Instructions (une par ligne)</label>
+        <label for="instructions">Instructions (optionnel, une par ligne)</label>
         <textarea id="instructions" placeholder="Mélanger la farine et les œufs&#10;Ajouter le lait progressivement&#10;Cuire à la poêle" rows="4"></textarea>
       </div>
       
       <div class="form-group">
-        <label for="prepTime">Temps de préparation</label>
+        <label for="prepTime">Temps de préparation (optionnel)</label>
         <input type="text" id="prepTime" placeholder="10 min">
       </div>
       
       <div class="form-group">
-        <label for="cookTime">Temps de cuisson</label>
+        <label for="cookTime">Temps de cuisson (optionnel)</label>
         <input type="text" id="cookTime" placeholder="20 min">
       </div>
       
@@ -196,7 +196,7 @@
         author: document.getElementById('author').value.trim() || undefined,
       };
       
-      // Validation côté client
+      // Validation côté client SIMPLIFIÉE
       if (!recipe.title) {
         result.className = 'result error';
         result.textContent = '❌ Le titre est obligatoire';
@@ -208,7 +208,7 @@
         result.textContent = '❌ La description est obligatoire';
         return;
       }
-      
+
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 20000);

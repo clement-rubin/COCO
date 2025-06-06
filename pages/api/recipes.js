@@ -365,7 +365,7 @@ export default async function handler(req, res) {
           imageType: typeof data.image
         })
         
-        // Validation des champs obligatoires
+        // Validation des champs obligatoires - SIMPLIFIÉ
         if (!data.title || typeof data.title !== 'string' || !data.title.trim()) {
           logWarning('Recipe creation failed - missing or invalid title', { 
             reference: requestReference,
@@ -374,13 +374,21 @@ export default async function handler(req, res) {
             titleValue: data.title
           })
           return safeResponse(res, 400, { 
-            error: 'Champs obligatoires manquants ou invalides',
+            error: 'Le titre est obligatoire',
             required: ['title (string non vide)'],
             received: Object.keys(data),
             reference: requestReference
           })
         }
 
+        // Description optionnelle mais recommandée
+        if (!data.description || typeof data.description !== 'string' || !data.description.trim()) {
+          logInfo('Recipe created without description - using default', { 
+            reference: requestReference,
+            title: data.title
+          })
+        }
+        
         // Récupérer le nom d'utilisateur depuis le profil si user_id est fourni
         let authorName = data.author && typeof data.author === 'string' ? data.author.trim() : null
         
@@ -494,7 +502,9 @@ export default async function handler(req, res) {
 
         const newRecipe = {
           title: data.title.trim(),
-          description: data.description && typeof data.description === 'string' ? data.description.trim() : null,
+          description: data.description && typeof data.description === 'string' && data.description.trim() 
+            ? data.description.trim() 
+            : 'Recette partagée avec COCO ✨', // Valeur par défaut
           image: imageUrl,
           prepTime: data.prepTime && typeof data.prepTime === 'string' ? data.prepTime.trim() : null,
           cookTime: data.cookTime && typeof data.cookTime === 'string' ? data.cookTime.trim() : null,
@@ -505,7 +515,6 @@ export default async function handler(req, res) {
           instructions: instructions,
           difficulty: data.difficulty && typeof data.difficulty === 'string' ? data.difficulty.trim() : 'Facile',
           created_at: new Date().toISOString(),
-          // Champ form_mode maintenant validé
           form_mode: formMode
         }
 
@@ -539,8 +548,8 @@ export default async function handler(req, res) {
           hasServings: !!newRecipe.servings
         })
         
-        // Vérifier que tous les champs requis sont présents avant l'insertion
-        const requiredFields = ['title', 'author', 'form_mode']
+        // Vérifier que seuls les champs vraiment obligatoires sont présents
+        const requiredFields = ['title', 'author']
         const missingFields = requiredFields.filter(field => !newRecipe[field])
         
         if (missingFields.length > 0) {
