@@ -1170,3 +1170,4 @@ export default function Profil() {
     </div>
   )
 }
+ 
