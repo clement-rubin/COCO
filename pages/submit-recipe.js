@@ -80,49 +80,33 @@ export default function SubmitRecipe() {
     addLog('info', 'Début de la validation du formulaire recette')
     const newErrors = {}
     
+    // Titre OBLIGATOIRE dans tous les modes
     if (!formData.title.trim()) {
       newErrors.title = 'Le nom de la recette est obligatoire'
       addLog('warning', 'Validation échouée: nom de la recette manquant')
     }
     
+    // Description OBLIGATOIRE dans tous les modes
+    if (!formData.description.trim()) {
+      newErrors.description = 'La description est obligatoire'
+      addLog('warning', 'Validation échouée: description manquante')
+    }
+    
+    // Photo OBLIGATOIRE
     if (photos.length === 0) {
       newErrors.photos = 'Au moins une photo est obligatoire'
       addLog('warning', 'Validation échouée: photo manquante')
     }
     
-    // Validation conditionnelle selon le mode
-    if (formMode === 'complete') {
-      if (!formData.description.trim()) {
-        newErrors.description = 'La description est obligatoire'
-        addLog('warning', 'Validation échouée: description manquante')
-      }
-      if (!formData.ingredients.trim()) {
-        newErrors.ingredients = 'Les ingrédients sont obligatoires'
-        addLog('warning', 'Validation échouée: ingrédients manquants')
-      }
-      if (!formData.instructions.trim()) {
-        newErrors.instructions = 'Les instructions sont obligatoires'
-        addLog('warning', 'Validation échouée: instructions manquantes')
-      }
-    }
-    
-    // Validation des photos traitées
+    // Validation des photos traitées (si des photos sont présentes)
     if (photos.length > 0) {
       const processingPhotos = photos.filter(photo => photo.processing)
       const errorPhotos = photos.filter(photo => photo.error)
-      const processedPhotos = photos.filter(photo => 
-        photo.processed && 
-        photo.imageBytes && 
-        Array.isArray(photo.imageBytes) &&
-        photo.imageBytes.length > 0
-      )
       
       if (processingPhotos.length > 0) {
         newErrors.photos = `Attendez que ${processingPhotos.length} photo(s) finissent d'être traitées`
       } else if (errorPhotos.length > 0) {
         newErrors.photos = `${errorPhotos.length} photo(s) ont échoué. Supprimez-les et réessayez.`
-      } else if (processedPhotos.length === 0) {
-        newErrors.photos = 'Aucune photo n\'a été correctement traitée. Veuillez réessayer.'
       }
     }
     
@@ -134,7 +118,8 @@ export default function SubmitRecipe() {
       errorsCount: Object.keys(newErrors).length,
       errors: Object.keys(newErrors),
       photosCount: photos.length,
-      processedPhotosCount: photos.filter(p => p.processed).length
+      hasTitle: !!formData.title.trim(),
+      hasDescription: !!formData.description.trim()
     })
     
     setErrors(newErrors)

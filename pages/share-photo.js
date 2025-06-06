@@ -90,10 +90,9 @@ export default function SharePhoto() {
       case 1:
         return photos.length > 0
       case 2:
-        return title.trim() && description.trim() && category
+        return title.trim() && description.trim() // Description maintenant obligatoire
       case 3:
-        return ingredients.some(ing => ing.trim()) && 
-               instructions.some(inst => inst.instruction.trim())
+        return true // Ingrédients et instructions optionnels
       default:
         return true
     }
@@ -106,12 +105,9 @@ export default function SharePhoto() {
       case 2:
         if (!title.trim()) return "Le titre est requis"
         if (!description.trim()) return "La description est requise"
-        if (!category) return "Choisissez une catégorie"
         return ""
       case 3:
-        if (!ingredients.some(ing => ing.trim())) return "Ajoutez au moins un ingrédient"
-        if (!instructions.some(inst => inst.instruction.trim())) return "Ajoutez au moins une étape"
-        return ""
+        return "" // Plus de validation obligatoire pour cette étape
       default:
         return ""
     }

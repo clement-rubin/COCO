@@ -107,16 +107,28 @@ export default function RecipeForm({ initialData = {}, onSubmit, onCancel, isEdi
   const validateForm = () => {
     const newErrors = {}
     
+    // Titre obligatoire
     if (!formData.title.trim()) {
       newErrors.title = 'Le titre est requis'
     }
     
-    // Validation conditionnelle des ingrédients
+    // Description obligatoire
+    if (!formData.description.trim()) {
+      newErrors.description = 'La description est requise'
+    }
+    
+    // Image recommandée mais pas obligatoire
+    if (!formData.image && !imagePreview) {
+      // Avertissement mais pas d'erreur bloquante
+      console.warn('Aucune image fournie pour la recette')
+    }
+    
+    // Validation conditionnelle des ingrédients (seulement si activée)
     if (formData.includeIngredients && formData.ingredients.some(ing => !ing.name.trim())) {
       newErrors.ingredients = 'Tous les ingrédients doivent avoir un nom'
     }
     
-    // Validation conditionnelle des instructions
+    // Validation conditionnelle des instructions (seulement si activée)
     if (formData.includeInstructions && formData.instructions.some(inst => !inst.description.trim())) {
       newErrors.instructions = 'Toutes les instructions doivent être remplies'
     }

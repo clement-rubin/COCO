@@ -315,10 +315,10 @@ export function validateImageFile(file) {
     result.errors.push(`Fichier trop volumineux: ${Math.round(file.size / 1024 / 1024)}MB (max: 10MB)`)
   }
   
-  // Vérifier la taille minimale
-  if (file.size < 1024) { // 1KB min
+  // Vérifier la taille minimale (plus permissive)
+  if (file.size < 100) { // 100 bytes minimum au lieu de 1024
     result.valid = false
-    result.errors.push('Fichier trop petit (minimum 1KB)')
+    result.errors.push('Fichier trop petit ou corrompu')
   }
   
   return result

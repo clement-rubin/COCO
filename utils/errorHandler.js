@@ -44,8 +44,18 @@ const USER_FRIENDLY_MESSAGES = {
   
   // Erreurs de validation
   'Title is required': 'Le titre de la recette est obligatoire.',
-  'Email is required': 'L\'adresse email est requise.',
-  'Invalid email format': 'Format d\'email invalide.',
+  'Description is required': 'La description de la recette est obligatoire.',
+  'At least one photo is required': 'Au moins une photo est obligatoire.',
+  'Recipe title cannot be empty': 'Le titre de la recette ne peut pas être vide.',
+  'Recipe description cannot be empty': 'La description de la recette ne peut pas être vide.',
+  'Form validation failed': 'Veuillez remplir tous les champs obligatoires.',
+  'Required fields missing': 'Des champs obligatoires sont manquants.',
+  
+  // Messages pour les images
+  'Image processing failed': 'Échec du traitement de l\'image.',
+  'Image too small': 'L\'image est trop petite.',
+  'Image format not supported': 'Format d\'image non supporté.',
+  'Image upload timeout': 'Délai d\'attente dépassé pour l\'upload de l\'image.',
   
   // Erreurs de téléchargement
   'File too large': 'Fichier trop volumineux (max 6MB).',
