@@ -485,7 +485,12 @@ export default async function handler(req, res) {
         }
         // Si pas d'image, imageUrl reste null
 
-        // On ignore tout champ "photos" (tableau) reçu dans la requête
+        // Valider et nettoyer le form_mode
+        const validFormModes = ['quick', 'complete']
+        const formMode = data.formMode && typeof data.formMode === 'string' && 
+                        validFormModes.includes(data.formMode.toLowerCase()) 
+                        ? data.formMode.toLowerCase() 
+                        : 'complete'
 
         const newRecipe = {
           title: data.title.trim(),
@@ -500,12 +505,12 @@ export default async function handler(req, res) {
           instructions: instructions,
           difficulty: data.difficulty && typeof data.difficulty === 'string' ? data.difficulty.trim() : 'Facile',
           created_at: new Date().toISOString(),
-          // Nouveau champ pour tracker le mode de partage
-          form_mode: data.formMode || 'complete'
+          // Champ form_mode maintenant validé
+          form_mode: formMode
         }
 
         // Valeurs par défaut intelligentes pour les partages rapides
-        if (data.formMode === 'quick') {
+        if (formMode === 'quick') {
           // Si c'est un partage rapide, ajuster les valeurs par défaut
           if (!newRecipe.description) {
             newRecipe.description = 'Photo partagée rapidement avec COCO ✨'
@@ -530,8 +535,17 @@ export default async function handler(req, res) {
           category: newRecipe.category,
           ingredientsCount: newRecipe.ingredients.length,
           instructionsCount: newRecipe.instructions.length,
+          formMode: newRecipe.form_mode,
           hasServings: !!newRecipe.servings
         })
+        
+        // Vérifier que tous les champs requis sont présents avant l'insertion
+        const requiredFields = ['title', 'author', 'form_mode']
+        const missingFields = requiredFields.filter(field => !newRecipe[field])
+        
+        if (missingFields.length > 0) {
+          throw new Error(`Champs obligatoires manquants: ${missingFields.join(', ')}`)
+        }
         
         const { data: insertedData, error } = await supabase
           .from('recipes')
@@ -539,6 +553,18 @@ export default async function handler(req, res) {
           .select()
         
         if (error) {
+          // Log detailed error information
+          logError('Supabase insertion error', error, {
+            reference: requestReference,
+            errorCode: error.code,
+            errorDetails: error.details,
+            errorHint: error.hint,
+            recipeData: {
+              ...newRecipe,
+              // Masquer les données sensibles dans les logs
+              image: newRecipe.image ? `${typeof newRecipe.image} (${newRecipe.image.length} chars)` : null
+            }
+          })
           throw error
         }
         
@@ -550,7 +576,8 @@ export default async function handler(req, res) {
           reference: requestReference,
           recipeId: insertedData[0]?.id,
           title: insertedData[0]?.title,
-          userId: insertedData[0]?.user_id
+          userId: insertedData[0]?.user_id,
+          formMode: insertedData[0]?.form_mode
         })
         
         return safeResponse(res, 201, insertedData[0])

@@ -86,10 +86,10 @@ export default function SubmitRecipe() {
       addLog('warning', 'Validation échouée: nom de la recette manquant')
     }
     
-    // Description OBLIGATOIRE dans tous les modes
-    if (!formData.description.trim()) {
-      newErrors.description = 'La description est obligatoire'
-      addLog('warning', 'Validation échouée: description manquante')
+    // Description OBLIGATOIRE seulement en mode complet
+    if (formMode === 'complete' && !formData.description.trim()) {
+      newErrors.description = 'La description est obligatoire en mode complet'
+      addLog('warning', 'Validation échouée: description manquante en mode complet')
     }
     
     // Photo OBLIGATOIRE
@@ -119,7 +119,8 @@ export default function SubmitRecipe() {
       errors: Object.keys(newErrors),
       photosCount: photos.length,
       hasTitle: !!formData.title.trim(),
-      hasDescription: !!formData.description.trim()
+      hasDescription: !!formData.description.trim(),
+      validationMode: formMode === 'quick' ? 'flexible' : 'strict'
     })
     
     setErrors(newErrors)
@@ -193,20 +194,22 @@ export default function SubmitRecipe() {
         author: authorName,
         user_id: user.id,
         image: mainImageUrl,
-        formMode: formMode // Ajouter le mode pour tracking
+        formMode: formMode // Assurer que le champ est envoyé
       }
 
-      // Ajouter les champs optionnels seulement si en mode complet
+      // Ajouter les champs selon le mode
       if (formMode === 'complete') {
-        recipeData.description = formData.description
-        recipeData.ingredients = formData.ingredients.split('\n').filter(ingredient => ingredient.trim())
-        recipeData.instructions = formData.instructions.split('\n').filter(instruction => instruction.trim()).map((instruction, index) => ({
-          step: index + 1,
-          instruction: instruction.trim()
-        }))
+        recipeData.description = formData.description || 'Recette partagée avec COCO'
+        recipeData.ingredients = formData.ingredients ? 
+          formData.ingredients.split('\n').filter(ingredient => ingredient.trim()) : []
+        recipeData.instructions = formData.instructions ? 
+          formData.instructions.split('\n').filter(instruction => instruction.trim()).map((instruction, index) => ({
+            step: index + 1,
+            instruction: instruction.trim()
+          })) : []
       } else {
-        // Mode rapide - valeurs par défaut ou vides
-        recipeData.description = 'Photo partagée rapidement avec COCO ✨'
+        // Mode rapide - valeurs par défaut optimisées
+        recipeData.description = formData.description || 'Photo partagée rapidement avec COCO ✨'
         recipeData.ingredients = []
         recipeData.instructions = []
         recipeData.category = 'Photo partagée'
