@@ -16,6 +16,7 @@ export default function TestFriends() {
   const [friends, setFriends] = useState([]);
   const [suggestions, setSuggestions] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [friendshipStats, setFriendshipStats] = useState({ friends: 0, pending: 0, sent: 0 });
   const router = useRouter();
 
   const addLog = (type, message, data = null) => {

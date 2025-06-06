@@ -76,6 +76,7 @@ const USER_FRIENDLY_MESSAGES = {
   'Cannot remove non-friend': 'Vous ne pouvez supprimer que vos amis actuels.',
   'Friend removal error': 'Erreur lors de la suppression de l\'ami.',
   'Friendship stats unavailable': 'Statistiques d\'amitié temporairement indisponibles.',
+  'Friendship stats fallback used': 'Statistiques d\'amitié calculées avec méthode de secours.',
   'Advanced search failed': 'La recherche avancée a échoué.',
   'Search filters too restrictive': 'Les filtres de recherche sont trop restrictifs.',
   'User search timeout': 'La recherche d\'utilisateur a pris trop de temps.',

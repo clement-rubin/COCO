@@ -540,6 +540,20 @@ export default function Amis() {
     });
   };
 
+  const handlePendingClick = () => {
+    setActiveTab('requests');
+    // Scroll to the requests section smoothly
+    setTimeout(() => {
+      const requestsSection = document.querySelector('[data-tab="requests"]');
+      if (requestsSection) {
+        requestsSection.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'start' 
+        });
+      }
+    }, 100);
+  };
+
   if (loading) {
     return (
       <div className={styles.container}>
@@ -571,9 +585,16 @@ export default function Amis() {
             <span className={styles.statNumber}>{friendshipStats.friends}</span>
             <span className={styles.statLabel}>Amis</span>
           </div>
-          <div className={styles.stat}>
+          <div 
+            className={`${styles.stat} ${friendshipStats.pending > 0 ? styles.clickable : ''} ${friendshipStats.pending > 0 ? styles.pending : ''}`}
+            onClick={friendshipStats.pending > 0 ? handlePendingClick : undefined}
+            title={friendshipStats.pending > 0 ? 'Cliquer pour voir les demandes en attente' : 'Aucune demande en attente'}
+          >
             <span className={styles.statNumber}>{friendshipStats.pending}</span>
             <span className={styles.statLabel}>En attente</span>
+            {friendshipStats.pending > 0 && (
+              <div className={styles.pendingBadge}>!</div>
+            )}
           </div>
         </div>
       </header>
@@ -750,7 +771,7 @@ export default function Amis() {
         )}
 
         {activeTab === 'requests' && (
-          <section className={styles.requestsSection}>
+          <section className={styles.requestsSection} data-tab="requests">
             <h2>Demandes d'amitié ({friendRequests.length})</h2>
             {friendRequests.map((request) => (
               <div key={request.id} className={styles.requestCard} style={{ animation: 'cardSlideIn 0.7s cubic-bezier(0.68,-0.55,0.265,1.55)' }}>

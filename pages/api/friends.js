@@ -1,6 +1,6 @@
 import { supabase, initializeFriendsSystem, getUserFriends, createOrUpdateProfile } from '../../lib/supabase'
 import { logError, logInfo, logDebug, logApiCall } from '../../utils/logger'
-import { getProfileIdFromUserId, sendFriendRequestCorrected, removeFriend, getFriendshipStats } from '../../utils/profileUtils'
+import { getProfileIdFromUserId, sendFriendRequestCorrected, removeFriend, getFriendshipStats, getUserStats } from '../../utils/profileUtils'
 
 export default async function handler(req, res) {
   const startTime = Date.now()

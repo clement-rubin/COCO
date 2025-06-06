@@ -240,6 +240,21 @@ export async function getUserStats(userId) {
           .select('*', { count: 'exact', head: true })
           .or(`and(user_id.eq.${userId},status.eq.accepted),and(friend_id.eq.${userId},status.eq.accepted)`)
         totalFriendsCount = friendsCount || 0
+        
+        // Also get pending sent and received counts for fallback
+        const { count: pendingSentCount } = await supabase
+          .from('friendships')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', userId)
+          .eq('status', 'pending')
+        pendingSent = pendingSentCount || 0
+        
+        const { count: pendingReceivedCount } = await supabase
+          .from('friendships')
+          .select('*', { count: 'exact', head: true })
+          .eq('friend_id', userId)
+          .eq('status', 'pending')
+        pendingReceived = pendingReceivedCount || 0
       } catch (fallbackError) {
         logError('Fallback friends count failed', fallbackError)
       }
