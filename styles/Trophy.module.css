@@ -389,114 +389,266 @@
   animation: sparkle 1s ease-in-out infinite;
 }
 
-/* Animations */
-@keyframes trophySlideIn {
+/* Bouton de déblocage manuel */
+.unlockButton {
+  position: relative;
+  overflow: hidden;
+  transform: translateY(0);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.unlockButton:hover:not(:disabled) {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4) !important;
+}
+
+.unlockButton::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s ease;
+}
+
+.unlockButton:hover::before {
+  left: 100%;
+}
+
+.unlockButton:active {
+  transform: translateY(-1px) scale(1.02);
+}
+
+/* États des cartes de progression */
+.progressCard.readyToUnlock {
+  border-color: #10b981;
+  background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+  position: relative;
+}
+
+.progressCard.readyToUnlock::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #10b981, #059669);
+  border-radius: 16px 16px 0 0;
+  animation: readyPulse 2s ease-in-out infinite;
+}
+
+.progressCard.readyToUnlock::after {
+  content: '🎉';
+  position: absolute;
+  top: -5px;
+  right: 10px;
+  font-size: 1.5rem;
+  animation: celebration 2s ease-in-out infinite;
+}
+
+/* Indicateur de trophée prêt */
+.trophyReady {
+  position: relative;
+}
+
+.trophyReady::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 16px;
+  background: linear-gradient(45deg, #10b981, #059669, #10b981);
+  background-size: 200% 200%;
+  animation: readyGlow 3s ease-in-out infinite;
+  z-index: -1;
+  filter: blur(8px);
+  opacity: 0.6;
+}
+
+/* Effet de pulsation pour les trophées prêts */
+.progressReady {
+  animation: readyPulse 1.5s ease-in-out infinite;
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+}
+
+/* Icône de synchronisation tournante */
+.syncIcon {
+  display: inline-block;
+  animation: spin 1s linear infinite;
+  margin-right: 0.5rem;
+}
+
+/* Notification améliorée de déblocage */
+.unlockNotification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  padding: 1.5rem 2rem;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(16, 185, 129, 0.4);
+  z-index: 1000;
+  animation: unlockSlideIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  max-width: 350px;
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.unlockNotification::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  border-radius: 20px;
+  animation: celebrationShine 1.5s ease-in-out infinite;
+}
+
+/* États de progression en temps réel */
+.progressRealtime {
+  position: relative;
+  overflow: hidden;
+}
+
+.progressRealtime::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  animation: progressPulse 2s ease-in-out infinite;
+}
+
+/* Animation de célébration */
+@keyframes celebration {
+  0%, 100% { 
+    transform: translateY(0) rotate(0deg) scale(1);
+    opacity: 1;
+  }
+  25% { 
+    transform: translateY(-10px) rotate(90deg) scale(1.2);
+    opacity: 0.8;
+  }
+  50% { 
+    transform: translateY(-5px) rotate(180deg) scale(1.1);
+    opacity: 0.9;
+  }
+  75% { 
+    transform: translateY(-8px) rotate(270deg) scale(1.15);
+    opacity: 0.85;
+  }
+}
+
+@keyframes unlockSlideIn {
   0% {
-    transform: translateX(100%) scale(0.8);
+    transform: translateX(100%) scale(0.8) rotate(10deg);
     opacity: 0;
   }
+  60% {
+    transform: translateX(-10px) scale(1.05) rotate(-2deg);
+    opacity: 0.9;
+  }
   100% {
-    transform: translateX(0) scale(1);
+    transform: translateX(0) scale(1) rotate(0deg);
     opacity: 1;
   }
 }
 
-@keyframes notificationShine {
-  0%, 100% { transform: translateX(-100%); }
-  50% { transform: translateX(100%); }
-}
-
-@keyframes bounce {
-  0% { transform: translateY(0); }
-  100% { transform: translateY(-4px); }
-}
-
-@keyframes progressPulse {
-  0%, 100% { left: -100%; }
-  50% { left: 100%; }
-}
-
-@keyframes readyPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
-  50% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+@keyframes celebrationShine {
+  0%, 100% { 
+    transform: translateX(-100%) rotate(45deg);
+    opacity: 0;
+  }
+  50% { 
+    transform: translateX(100%) rotate(45deg);
+    opacity: 1;
+  }
 }
 
 @keyframes readyGlow {
   0%, 100% { 
-    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
-    transform: scale(1);
+    background-position: 0% 50%;
+    opacity: 0.6;
   }
   50% { 
-    box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);
-    transform: scale(1.02);
+    background-position: 100% 50%;
+    opacity: 0.8;
   }
 }
 
-@keyframes sparkle {
-  0%, 100% { 
-    transform: scale(1) rotate(0deg);
+/* Animation de confettis pour les trophées débloqués */
+.confetti {
+  position: fixed;
+  width: 10px;
+  height: 10px;
+  background: #f59e0b;
+  animation: confettiFall 3s linear infinite;
+  z-index: 9999;
+}
+
+.confetti:nth-child(odd) {
+  background: #10b981;
+  animation-duration: 2.5s;
+}
+
+.confetti:nth-child(3n) {
+  background: #3b82f6;
+  animation-duration: 3.5s;
+}
+
+@keyframes confettiFall {
+  0% {
+    transform: translateY(-100vh) rotate(0deg);
     opacity: 1;
   }
-  50% { 
-    transform: scale(1.2) rotate(180deg);
-    opacity: 0.7;
+  100% {
+    transform: translateY(100vh) rotate(360deg);
+    opacity: 0;
   }
 }
 
-/* États de progression */
-.progressCard.near-completion {
-  border-color: #f59e0b;
-  background: linear-gradient(135deg, #fffbeb, #fef3c7);
+/* États d'interaction améliorés */
+.unlockButton:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.5);
 }
 
-.progressCard.ready-to-unlock {
-  border-color: #10b981;
-  background: linear-gradient(135deg, #ecfdf5, #d1fae5);
-  animation: readyPulse 2s ease-in-out infinite;
+.progressCard:hover .unlockButton {
+  transform: scale(1.02);
 }
 
-/* Responsive Design */
+/* Responsive design pour le bouton */
 @media (max-width: 768px) {
-  .trophyContainer {
-    padding: 0.5rem;
+  .unlockButton {
+    padding: 10px 20px;
+    font-size: 0.9rem;
+    max-width: 100%;
   }
   
-  .trophyGrid {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-  
-  .trophyStats {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1rem;
-  }
-  
-  .progressHeader {
-    flex-direction: column;
-    text-align: center;
-    gap: 0.5rem;
+  .progressCard.readyToUnlock::after {
+    right: 5px;
+    font-size: 1.2rem;
   }
 }
 
 @media (max-width: 480px) {
-  .trophyTitle {
-    font-size: 1.5rem;
+  .unlockButton {
+    padding: 8px 16px;
+    font-size: 0.8rem;
   }
   
-  .trophyCard {
-    padding: 1.5rem;
-  }
-  
-  .trophyIcon {
-    font-size: 2.5rem;
-  }
-  
-  .statItem {
-    padding: 1rem 0.75rem;
-  }
-  
-  .statValue {
-    font-size: 1.5rem;
+  .unlockNotification {
+    left: 10px;
+    right: 10px;
+    max-width: none;
+    margin: 0 10px;
   }
 }
 

@@ -871,3 +871,140 @@ export async function syncAllTrophies(userId) {
     }
   }
 }
+
+/**
+ * Débloque manuellement un trophée pour un utilisateur si les conditions sont remplies
+ * @param {string} userId - ID de l'utilisateur
+ * @param {string} trophyId - ID du trophée à débloquer
+ * @returns {Promise<{success: boolean, trophy?: Object, error?: string}>}
+ */
+export async function manuallyUnlockTrophy(userId, trophyId) {
+  try {
+    logInfo('Manual trophy unlock requested', { 
+      userId: userId?.substring(0, 8) + '...',
+      trophyId
+    })
+
+    // Vérifier que le trophée existe
+    const trophy = TROPHY_DEFINITIONS[trophyId]
+    if (!trophy) {
+      return { success: false, error: 'Trophée non trouvé' }
+    }
+
+    // Vérifier que le trophée n'est pas déjà débloqué
+    const { data: existingTrophy, error: checkError } = await supabase
+      .from('user_trophies')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('trophy_id', trophyId)
+      .single()
+
+    if (checkError && checkError.code !== 'PGRST116') {
+      logError('Error checking existing trophy', checkError)
+      return { success: false, error: 'Erreur lors de la vérification du trophée' }
+    }
+
+    if (existingTrophy) {
+      return { success: false, error: 'Trophée déjà débloqué' }
+    }
+
+    // Vérifier que les conditions sont remplies
+    const userStats = await getUserStatsForTrophies(userId)
+    const isConditionMet = checkTrophyCondition(trophy.condition, userStats)
+
+    if (!isConditionMet) {
+      return { success: false, error: 'Conditions non remplies pour ce trophée' }
+    }
+
+    // Débloquer le trophée
+    const unlockSuccess = await unlockTrophy(userId, trophyId)
+    if (!unlockSuccess) {
+      return { success: false, error: 'Erreur lors du déblocage du trophée' }
+    }
+
+    logInfo('Trophy manually unlocked successfully', {
+      userId: userId?.substring(0, 8) + '...',
+      trophyId,
+      points: trophy.points
+    })
+
+    return {
+      success: true,
+      trophy: {
+        ...trophy,
+        unlockedAt: new Date().toISOString(),
+        pointsEarned: trophy.points
+      }
+    }
+
+  } catch (error) {
+    logError('Error in manuallyUnlockTrophy', error)
+    return { success: false, error: 'Erreur serveur lors du déblocage' }
+  }
+}
+
+/**
+ * Vérifie si un trophée peut être débloqué manuellement
+ * @param {string} userId - ID de l'utilisateur
+ * @param {string} trophyId - ID du trophée
+ * @returns {Promise<{canUnlock: boolean, progress: number, reason?: string}>}
+ */
+export async function canManuallyUnlockTrophy(userId, trophyId) {
+  try {
+    const trophy = TROPHY_DEFINITIONS[trophyId]
+    if (!trophy) {
+      return { canUnlock: false, progress: 0, reason: 'Trophée introuvable' }
+    }
+
+    // Vérifier si déjà débloqué
+    const { data: existingTrophy } = await supabase
+      .from('user_trophies')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('trophy_id', trophyId)
+      .single()
+
+    if (existingTrophy) {
+      return { canUnlock: false, progress: 100, reason: 'Déjà débloqué' }
+    }
+
+    // Calculer la progression
+    const userStats = await getUserStatsForTrophies(userId)
+    let currentValue = 0
+    let progressPercent = 0
+
+    switch (trophy.condition.type) {
+      case 'recipes_count':
+        currentValue = userStats.recipesCount
+        progressPercent = Math.min((currentValue / trophy.condition.value) * 100, 100)
+        break
+      case 'friends_count':
+        currentValue = userStats.friendsCount
+        progressPercent = Math.min((currentValue / trophy.condition.value) * 100, 100)
+        break
+      case 'profile_completeness':
+        currentValue = userStats.profileCompleteness
+        progressPercent = Math.min((currentValue / trophy.condition.value) * 100, 100)
+        break
+      case 'days_since_registration':
+        currentValue = userStats.daysSinceRegistration
+        progressPercent = Math.min((currentValue / trophy.condition.value) * 100, 100)
+        break
+      case 'account_created':
+        progressPercent = 100
+        break
+    }
+
+    const canUnlock = progressPercent >= 100
+    
+    return {
+      canUnlock,
+      progress: Math.round(progressPercent),
+      reason: canUnlock ? 'Prêt à débloquer' : 'Progression incomplète'
+    }
+
+  } catch (error) {
+    logError('Error checking if trophy can be unlocked', error)
+    return { canUnlock: false, progress: 0, reason: 'Erreur lors de la vérification' }
+  }
+}

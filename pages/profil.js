@@ -151,7 +151,7 @@ export default function Profil() {
       setLoading(true)
       
       // Utiliser la fonction améliorée qui vérifie les trophées
-      const result = await updateProfileWithTrophyCheck(user.id, editForm)
+      const result = await updateProfileWithTrophySync(user.id, editForm)
 
       if (result.success) {
         setProfile(result.profile)

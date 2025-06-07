@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from './AuthContext'
-import { getUserTrophies, getTrophyProgress, TROPHY_RARITIES, syncAllTrophies, getTrophyProgressRealtime } from '../utils/trophyUtils'
+import { getUserTrophies, getTrophyProgress, TROPHY_RARITIES, syncAllTrophies, getTrophyProgressRealtime, manuallyUnlockTrophy, canManuallyUnlockTrophy } from '../utils/trophyUtils'
 import { logInfo, logError } from '../utils/logger'
 import styles from '../styles/Trophy.module.css'
 
@@ -12,6 +12,7 @@ export default function TrophySection({ userId }) {
   const [activeTab, setActiveTab] = useState('unlocked')
   const [realTimeProgress, setRealTimeProgress] = useState({})
   const [lastSyncTime, setLastSyncTime] = useState(null)
+  const [unlockingTrophies, setUnlockingTrophies] = useState(new Set())
 
   useEffect(() => {
     if (userId) {
@@ -157,6 +158,48 @@ export default function TrophySection({ userId }) {
   const getTrophyCardClass = (trophy, isUnlocked = false) => {
     const baseClass = `${styles.trophyCard} ${styles[trophy.rarity]}`
     return isUnlocked ? `${baseClass} ${styles.trophyUnlocked}` : `${baseClass} ${styles.trophyLocked}`
+  }
+
+  const handleManualUnlock = async (trophyId) => {
+    try {
+      setUnlockingTrophies(prev => new Set([...prev, trophyId]))
+
+      // Vérifier si le trophée peut être débloqué
+      const canUnlock = await canManuallyUnlockTrophy(userId, trophyId)
+      
+      if (!canUnlock.canUnlock) {
+        alert(`Impossible de débloquer ce trophée : ${canUnlock.reason}`)
+        return
+      }
+
+      // Débloquer le trophée
+      const result = await manuallyUnlockTrophy(userId, trophyId)
+      
+      if (result.success) {
+        // Afficher une notification de succès
+        showTrophyNotification([result.trophy])
+        
+        // Recharger les données
+        await loadTrophyData()
+        
+        logInfo('Trophy manually unlocked by user', {
+          userId: userId?.substring(0, 8) + '...',
+          trophyId
+        })
+      } else {
+        alert(`Erreur : ${result.error}`)
+      }
+
+    } catch (error) {
+      logError('Error during manual trophy unlock', error)
+      alert('Une erreur est survenue lors du déblocage du trophée')
+    } finally {
+      setUnlockingTrophies(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(trophyId)
+        return newSet
+      })
+    }
   }
 
   if (loading) {
@@ -349,7 +392,7 @@ export default function TrophySection({ userId }) {
         <div className={styles.progressSection}>
           {progress.length > 0 ? (
             progress.map((trophy) => (
-              <div key={trophy.id} className={styles.progressCard}>
+              <div key={trophy.id} className={`${styles.progressCard} ${trophy.progressPercent >= 100 ? styles.readyToUnlock : ''}`}>
                 <div className={styles.progressHeader}>
                   <div className={styles.progressIcon}>{trophy.icon}</div>
                   <div className={styles.progressInfo}>
@@ -366,7 +409,7 @@ export default function TrophySection({ userId }) {
                 </div>
                 <div className={styles.progressBar}>
                   <div 
-                    className={styles.progressFill}
+                    className={`${styles.progressFill} ${trophy.progressPercent >= 100 ? styles.progressReady : ''}`}
                     style={{ 
                       width: `${trophy.progressPercent}%`,
                       background: trophy.progressPercent >= 100 
@@ -383,6 +426,44 @@ export default function TrophySection({ userId }) {
                     </span>
                   )}
                 </div>
+                
+                {/* Bouton de déblocage manuel */}
+                {trophy.progressPercent >= 100 && (
+                  <div style={{ marginTop: '1rem', textAlign: 'center' }}>
+                    <button
+                      onClick={() => handleManualUnlock(trophy.id)}
+                      disabled={unlockingTrophies.has(trophy.id)}
+                      className={styles.unlockButton}
+                      style={{
+                        background: unlockingTrophies.has(trophy.id) 
+                          ? 'linear-gradient(135deg, #9ca3af, #6b7280)'
+                          : 'linear-gradient(135deg, #10b981, #059669)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '12px',
+                        padding: '12px 24px',
+                        fontSize: '1rem',
+                        fontWeight: '600',
+                        cursor: unlockingTrophies.has(trophy.id) ? 'not-allowed' : 'pointer',
+                        transition: 'all 0.3s ease',
+                        boxShadow: '0 4px 15px rgba(16, 185, 129, 0.3)',
+                        width: '100%',
+                        maxWidth: '200px'
+                      }}
+                    >
+                      {unlockingTrophies.has(trophy.id) ? (
+                        <>
+                          <span className={styles.syncIcon}>🔄</span>
+                          Déblocage...
+                        </>
+                      ) : (
+                        <>
+                          🏆 Débloquer le trophée
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
               </div>
             ))
           ) : (
