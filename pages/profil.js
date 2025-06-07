@@ -2,8 +2,10 @@ import Head from 'next/head'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { useAuth } from '../components/AuthContext'
+import TrophySection from '../components/TrophySection'
 import { logUserInteraction, logError, logInfo } from '../utils/logger'
-import { getUserStatsCorrected } from '../utils/profileUtils'
+import { getUserStatsComplete, updateProfileWithTrophyCheck } from '../utils/profileUtils'
+import { checkTrophiesAfterProfileUpdate } from '../utils/trophyUtils'
 
 export default function Profil() {
   const router = useRouter()
@@ -15,7 +17,9 @@ export default function Profil() {
   const [userStats, setUserStats] = useState({
     recipesCount: 0,
     likesReceived: 0,
-    friendsCount: 0
+    friendsCount: 0,
+    trophyPoints: 0,
+    trophiesUnlocked: 0
   })
   const [isEditing, setIsEditing] = useState(false)
   const [editForm, setEditForm] = useState({
@@ -28,6 +32,8 @@ export default function Profil() {
     is_private: false
   })
   const [activeTab, setActiveTab] = useState('info')
+  const [newTrophies, setNewTrophies] = useState([])
+  const [showTrophyNotification, setShowTrophyNotification] = useState(false)
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -102,20 +108,24 @@ export default function Profil() {
         setUserRecipes([])
       }
 
-      // Load user stats using the corrected utility function
+      // Load user stats using the corrected utility function with trophy data
       try {
-        const statsData = await getUserStatsCorrected(user.id)
+        const statsData = await getUserStatsComplete(user.id)
         setUserStats({
           recipesCount: Array.isArray(recipesData) ? recipesData.length : 0,
           likesReceived: statsData.likesReceived || 0,
-          friendsCount: statsData.friendsCount || 0
+          friendsCount: statsData.friendsCount || 0,
+          trophyPoints: statsData.trophyPoints || 0,
+          trophiesUnlocked: statsData.trophiesUnlocked || 0
         })
       } catch (statsError) {
         logError('Failed to load user stats', statsError)
         setUserStats({
           recipesCount: Array.isArray(recipesData) ? recipesData.length : 0,
           likesReceived: 0,
-          friendsCount: 0
+          friendsCount: 0,
+          trophyPoints: 0,
+          trophiesUnlocked: 0
         })
       }
 
@@ -135,30 +145,52 @@ export default function Profil() {
 
   const handleSaveProfile = async () => {
     try {
-      const response = await fetch('/api/profile', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          user_id: user.id,
-          ...editForm
-        })
-      })
+      setLoading(true)
+      
+      // Utiliser la fonction améliorée qui vérifie les trophées
+      const result = await updateProfileWithTrophyCheck(user.id, editForm)
 
-      if (response.ok) {
-        const updatedProfile = await response.json()
-        setProfile(updatedProfile)
+      if (result.success) {
+        setProfile(result.profile)
         setIsEditing(false)
+        
+        // Afficher les nouveaux trophées s'il y en a
+        if (result.newTrophies && result.newTrophies.length > 0) {
+          setNewTrophies(result.newTrophies)
+          setShowTrophyNotification(true)
+          setTimeout(() => setShowTrophyNotification(false), 5000)
+        }
+
+        // Recharger les stats pour inclure les nouveaux trophées
+        await loadUserStats()
+        
         logUserInteraction('UPDATE_PROFILE', 'profil-form', {
-          userId: user.id
+          userId: user.id,
+          newTrophiesCount: result.newTrophies?.length || 0
         })
       } else {
-        throw new Error('Failed to update profile')
+        throw new Error(result.error || 'Failed to update profile')
       }
     } catch (error) {
       logError('Failed to save profile', error)
       setError('Impossible de sauvegarder le profil. Veuillez réessayer.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const loadUserStats = async () => {
+    try {
+      const statsData = await getUserStatsComplete(user.id)
+      setUserStats({
+        recipesCount: statsData.recipesCount || 0,
+        likesReceived: statsData.likesReceived || 0,
+        friendsCount: statsData.friendsCount || 0,
+        trophyPoints: statsData.trophyPoints || 0,
+        trophiesUnlocked: statsData.trophiesUnlocked || 0
+      })
+    } catch (statsError) {
+      logError('Failed to load user stats', statsError)
     }
   }
 
@@ -507,12 +539,12 @@ export default function Profil() {
           }}>"</div>
         </p>
 
-        {/* Revolutionary Stats with enhanced design */}
+        {/* Revolutionary Stats with enhanced design including trophies */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
           gap: '2rem',
-          maxWidth: '500px',
+          maxWidth: '700px',
           margin: '0 auto',
           perspective: '1000px'
         }}>
@@ -536,6 +568,20 @@ export default function Profil() {
             label: 'Ami',
             gradient: 'linear-gradient(135deg, #10b981, #059669)',
             shadow: 'rgba(16, 185, 129, 0.4)'
+          },
+          {
+            icon: '🏆',
+            value: userStats.trophiesUnlocked,
+            label: 'Trophée',
+            gradient: 'linear-gradient(135deg, #f59e0b, #d97706)',
+            shadow: 'rgba(245, 158, 11, 0.4)'
+          },
+          {
+            icon: '⭐',
+            value: userStats.trophyPoints,
+            label: 'Point',
+            gradient: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
+            shadow: 'rgba(139, 92, 246, 0.4)'
           }].map((stat, index) => (
             <div key={index} style={{
               background: 'rgba(255, 255, 255, 0.95)',
@@ -633,7 +679,7 @@ export default function Profil() {
           background: '#f8fafc',
           borderRadius: '16px',
           padding: '6px',
-          maxWidth: '300px',
+          maxWidth: '400px',
           margin: '0 auto 2rem'
         }}>
           {[{
@@ -645,6 +691,11 @@ export default function Profil() {
             id: 'recipes',
             label: '📝 Recettes',
             icon: '📝'
+          },
+          {
+            id: 'trophies',
+            label: '🏆 Trophées',
+            icon: '🏆'
           },
           {
             id: 'settings',
@@ -661,9 +712,9 @@ export default function Profil() {
                   : 'transparent',
                 color: activeTab === tab.id ? '#1f2937' : '#6b7280',
                 border: 'none',
-                padding: '12px 16px',
+                padding: '12px 8px',
                 borderRadius: '12px',
-                fontSize: '0.9rem',
+                fontSize: '0.75rem',
                 fontWeight: '600',
                 cursor: 'pointer',
                 transition: 'all 0.3s ease',
@@ -672,13 +723,22 @@ export default function Profil() {
                   : 'none'
               }}
             >
-              <span style={{ marginRight: '6px' }}>{tab.icon}</span>
+              <span style={{ marginRight: '4px' }}>{tab.icon}</span>
               {tab.label.split(' ')[1]}
             </button>
           ))}
         </div>
 
-        {/* Tab Content */}
+        {/* Tab Content with new Trophies section */}
+        {activeTab === 'trophies' && (
+          <div style={{ 
+            opacity: 1,
+            animation: 'fadeIn 0.5s ease'
+          }}>
+            <TrophySection userId={user?.id} />
+          </div>
+        )}
+
         {activeTab === 'info' && (
           <div style={{ 
             maxWidth: '500px', 
@@ -1258,6 +1318,32 @@ export default function Profil() {
         )}
       </section>
 
+      {/* Trophy Notification */}
+      {showTrophyNotification && newTrophies.length > 0 && (
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          right: '20px',
+          background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+          color: 'white',
+          padding: '1rem 1.5rem',
+          borderRadius: '16px',
+          boxShadow: '0 8px 30px rgba(245, 158, 11, 0.4)',
+          zIndex: 1000,
+          animation: 'slideInRight 0.5s ease',
+          maxWidth: '300px'
+        }}>
+          <div style={{ fontWeight: '700', marginBottom: '0.5rem' }}>
+            🏆 Nouveau trophée débloqué !
+          </div>
+          {newTrophies.map(trophy => (
+            <div key={trophy.id} style={{ fontSize: '0.9rem' }}>
+              {trophy.icon} {trophy.name}
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Enhanced Animations */}
       <style jsx>{`
         @keyframes spin {
@@ -1299,6 +1385,11 @@ export default function Profil() {
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(30px) scale(0.95); }
           to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        
+        @keyframes slideInRight {
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
         }
         
         /* Responsive Design */

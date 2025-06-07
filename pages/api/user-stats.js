@@ -1,6 +1,7 @@
 import { supabase } from '../../lib/supabase'
 import { logInfo, logError } from '../../utils/logger'
-import { getUserStatsCorrected } from '../../utils/profileUtils'
+import { getUserStatsComplete, getUserStatsCorrected } from '../../utils/profileUtils'
+import { getTrophyStats } from '../../utils/trophyUtils'
 
 export default async function handler(req, res) {
   // En-têtes CORS
@@ -32,42 +33,24 @@ export default async function handler(req, res) {
   try {
     logInfo('Getting user stats', { requestId, user_id: user_id.substring(0, 8) + '...' })
 
-    // Compter le nombre de recettes de l'utilisateur
-    const { count: recipesCount, error: recipesError } = await supabase
-      .from('recipes')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user_id)
-
-    if (recipesError) {
-      logError('Error counting user recipes', recipesError, { requestId, user_id })
-    }
-
-    // Utiliser la fonction corrigée pour les statistiques
-    const statsData = await getUserStatsCorrected(user_id)
+    // Utiliser la fonction complète pour les statistiques incluant les trophées
+    const statsData = await getUserStatsComplete(user_id)
     
     const stats = {
       recipesCount: statsData.recipesCount || 0,
-      likesReceived: 0, // À implémenter avec une table likes
+      likesReceived: statsData.likesReceived || 0,
       friendsCount: statsData.friendsCount || 0,
       viewsTotal: 0,    // À implémenter avec une table views
       commentsReceived: 0, // À implémenter avec une table comments
       profileCompleteness: statsData.profileCompleteness || 0,
-      pendingFriendRequests: 0 // Sera calculé séparément
+      pendingFriendRequests: 0, // Sera calculé séparément
+      trophyPoints: statsData.trophyPoints || 0,
+      trophiesUnlocked: statsData.trophiesUnlocked || 0,
+      latestTrophy: statsData.latestTrophy
     }
 
-    // Essayer de récupérer le nombre d'amis si la table friendships existe
+    // Récupérer les demandes d'amitié en attente
     try {
-      const { count: friendsCount, error: friendsError } = await supabase
-        .from('friendships')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user_id)
-        .eq('status', 'accepted')
-
-      if (!friendsError) {
-        stats.friendsCount = friendsCount || 0
-      }
-
-      // Récupérer aussi les demandes en attente
       const { count: pendingRequestsCount, error: pendingError } = await supabase
         .from('friendships')
         .select('*', { count: 'exact', head: true })
@@ -77,34 +60,18 @@ export default async function handler(req, res) {
       if (!pendingError) {
         stats.pendingFriendRequests = pendingRequestsCount || 0
       }
-
-      // Calculer la complétude du profil
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('display_name, bio, avatar_url, location, website')
-        .eq('user_id', user_id)
-        .single()
-
-      if (!profileError && profile) {
-        const fields = ['display_name', 'bio', 'avatar_url', 'location', 'website']
-        const filledFields = fields.filter(field => profile[field] && profile[field].trim())
-        stats.profileCompleteness = Math.round((filledFields.length / fields.length) * 100)
-      } else {
-        stats.profileCompleteness = 0
-      }
-
     } catch (friendsErr) {
-      // Table friendships n'existe pas encore, ignorer
       logInfo('Friendships table not available yet', { requestId })
-      stats.friendsCount = 0
       stats.pendingFriendRequests = 0
-      stats.profileCompleteness = 0
     }
 
-    logInfo('User stats retrieved', { 
+    logInfo('User stats retrieved with trophies', { 
       requestId, 
       user_id: user_id.substring(0, 8) + '...',
-      stats 
+      stats: {
+        ...stats,
+        latestTrophy: stats.latestTrophy ? stats.latestTrophy.id : null
+      }
     })
 
     return res.status(200).json(stats)
