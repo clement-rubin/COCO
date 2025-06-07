@@ -659,4 +659,26 @@ export async function sendFriendRequestWithTrophySync(fromUserId, toUserId) {
   try {
     const result = await sendFriendRequestCorrected(fromUserId, toUserId)
     
-    if
+    if (result.success) {
+      // Synchroniser les trophées après l'envoi de la demande d'amitié
+      const newTrophies = await syncTrophiesAfterAction(fromUserId, 'friend_request_sent', { toUserId })
+      
+      logInfo('Friend request sent with trophy sync', {
+        fromUser: fromUserId.substring(0, 8) + '...',
+        toUser: toUserId.substring(0, 8) + '...',
+        newTrophiesCount: newTrophies.length
+      })
+
+      return {
+        ...result,
+        newTrophies
+      }
+    }
+
+    return result
+
+  } catch (error) {
+    logError('Error in sendFriendRequestWithTrophySync', error)
+    return { success: false, error: 'Server error' }
+  }
+}
