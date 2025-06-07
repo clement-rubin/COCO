@@ -253,26 +253,73 @@ async function unlockTrophy(userId, trophyId) {
  */
 async function getUserStatsForTrophies(userId) {
   try {
-    // Récupérer les statistiques de base
-    const statsResponse = await fetch(`/api/user-stats?user_id=${userId}`)
-    const stats = statsResponse.ok ? await statsResponse.json() : {
-      recipesCount: 0,
-      friendsCount: 0,
-      profileCompleteness: 0
-    }
-
-    // Calculer les jours depuis l'inscription
-    const { data: authUser } = await supabase.auth.admin.getUserById(userId)
-    const registrationDate = authUser?.user?.created_at ? new Date(authUser.user.created_at) : new Date()
-    const daysSinceRegistration = Math.floor((Date.now() - registrationDate.getTime()) / (1000 * 60 * 60 * 24))
-
-    return {
-      ...stats,
-      daysSinceRegistration
+    // Utiliser l'API optimisée
+    const response = await fetch(`/api/user-stats?user_id=${userId}`)
+    
+    if (response.ok) {
+      const stats = await response.json()
+      return {
+        recipesCount: stats.recipesCount || 0,
+        friendsCount: stats.friendsCount || 0,
+        profileCompleteness: stats.profileCompleteness || 0,
+        daysSinceRegistration: stats.daysSinceRegistration || 0
+      }
+    } else {
+      // Fallback vers la méthode directe
+      return await getUserStatsForTrophiesFallback(userId)
     }
 
   } catch (error) {
     logError('Error getting user stats for trophies', error)
+    return await getUserStatsForTrophiesFallback(userId)
+  }
+}
+
+async function getUserStatsForTrophiesFallback(userId) {
+  try {
+    // Version fallback optimisée avec Promise.allSettled
+    const [recipesResult, profileResult] = await Promise.allSettled([
+      supabase
+        .from('recipes')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId),
+      
+      supabase
+        .from('profiles')
+        .select('display_name, bio, avatar_url, location, website')
+        .eq('user_id', userId)
+        .single()
+    ])
+
+    const stats = {
+      recipesCount: 0,
+      friendsCount: 0,
+      profileCompleteness: 0,
+      daysSinceRegistration: 0
+    }
+
+    // Traiter les recettes
+    if (recipesResult.status === 'fulfilled' && !recipesResult.value.error) {
+      stats.recipesCount = recipesResult.value.count || 0
+    }
+
+    // Traiter le profil
+    if (profileResult.status === 'fulfilled' && !profileResult.value.error) {
+      const profile = profileResult.value.data
+      if (profile) {
+        const fields = ['display_name', 'bio', 'avatar_url', 'location', 'website']
+        const filledFields = fields.filter(field => profile[field]?.trim())
+        stats.profileCompleteness = Math.round((filledFields.length / fields.length) * 100)
+      }
+    }
+
+    // Calculer les jours (estimation simple)
+    stats.daysSinceRegistration = 1
+
+    return stats
+
+  } catch (error) {
+    logError('Error in fallback stats', error)
     return {
       recipesCount: 0,
       friendsCount: 0,

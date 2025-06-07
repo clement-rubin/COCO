@@ -214,69 +214,69 @@ export async function getUserStats(userId) {
   }
 
   try {
-    // Compter les recettes
-    const { count: recipesCount } = await supabase
-      .from('recipes')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId)
-
-    // Utiliser la fonction SQL corrigée pour obtenir les statistiques d'amitié
-    const { data: friendshipStats, error: friendshipError } = await supabase
-      .rpc('get_friendship_stats', { target_user_id: userId })
-
-    let totalFriendsCount = 0
-    let pendingSent = 0
-    let pendingReceived = 0
-    
-    if (!friendshipError && friendshipStats && friendshipStats.length > 0) {
-      totalFriendsCount = friendshipStats[0].friends_count || 0
-      pendingSent = friendshipStats[0].pending_sent || 0
-      pendingReceived = friendshipStats[0].pending_received || 0
-    } else if (friendshipError) {
-      logWarning('Error getting friendship stats, using fallback', friendshipError)
-      // Fallback direct query
+    // Essayer d'utiliser l'API optimisée si disponible
+    if (typeof window !== 'undefined') {
       try {
-        const { count: friendsCount } = await supabase
-          .from('friendships')
-          .select('*', { count: 'exact', head: true })
-          .or(`and(user_id.eq.${userId},status.eq.accepted),and(friend_id.eq.${userId},status.eq.accepted)`)
-        totalFriendsCount = friendsCount || 0
-        
-        // Also get pending sent and received counts for fallback
-        const { count: pendingSentCount } = await supabase
-          .from('friendships')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', userId)
-          .eq('status', 'pending')
-        pendingSent = pendingSentCount || 0
-        
-        const { count: pendingReceivedCount } = await supabase
-          .from('friendships')
-          .select('*', { count: 'exact', head: true })
-          .eq('friend_id', userId)
-          .eq('status', 'pending')
-        pendingReceived = pendingReceivedCount || 0
-      } catch (fallbackError) {
-        logError('Fallback friends count failed', fallbackError)
+        const response = await fetch(`/api/user-stats?user_id=${userId}`)
+        if (response.ok) {
+          const stats = await response.json()
+          return {
+            recipesCount: stats.recipesCount || 0,
+            friendsCount: stats.friendsCount || 0,
+            profileCompleteness: stats.profileCompleteness || 0,
+            pendingSent: stats.pendingSent || 0,
+            pendingReceived: stats.pendingReceived || 0
+          }
+        }
+      } catch (apiError) {
+        logWarning('API user-stats not available, using direct queries', apiError)
       }
     }
 
-    // Obtenir le profil pour calculer la complétude
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('display_name, bio, avatar_url, location, website')
-      .eq('user_id', userId)
-      .single()
+    // Fallback vers les requêtes directes optimisées
+    const [recipesResult, friendshipResult, profileResult] = await Promise.allSettled([
+      supabase
+        .from('recipes')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId),
+      
+      supabase
+        .rpc('get_friendship_stats', { target_user_id: userId }),
+      
+      supabase
+        .from('profiles')
+        .select('display_name, bio, avatar_url, location, website')
+        .eq('user_id', userId)
+        .single()
+    ])
 
-    let profileCompleteness = 0
-    if (profile) {
-      const fields = ['display_name', 'bio', 'avatar_url', 'location', 'website']
-      const filledFields = fields.filter(field => profile[field] && profile[field].trim())
-      profileCompleteness = Math.round((filledFields.length / fields.length) * 100)
+    const stats = {
+      recipesCount: 0,
+      friendsCount: 0,
+      profileCompleteness: 0,
+      pendingSent: 0,
+      pendingReceived: 0
     }
 
-    return {
-      recipesCount: recipesCount || 0,
+    // Traiter les résultats
+    if (recipesResult.status === 'fulfilled' && !recipesResult.value.error) {
+      stats.recipesCount = recipesResult.value.count || 0
+    }
+
+    if (friendshipResult.status === 'fulfilled' && !friendshipResult.value.error) {
+      const friendshipData = friendshipResult.value.data
+      if (friendshipData && friendshipData.length > 0) {
+        stats.friendsCount = friendshipData[0].friends_count || 0
+        stats.pendingSent = friendshipData[0].pending_sent || 0
+        stats.pendingReceived = friendshipData[0].pending_received || 0
+      }
+    }
+
+    if (profileResult.status === 'fulfilled' && !profileResult.value.error) {
+      const profile = profileResult.value.data
+      if (profile) {
+        const fields = ['display_name', 'bio', 'avatar_url', 'location', 'website']
+        const filledFields
       friendsCount: totalFriendsCount,
       profileCompleteness,
       pendingSent,

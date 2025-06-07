@@ -1,86 +1,155 @@
 import { supabase } from '../../lib/supabase'
-import { logInfo, logError } from '../../utils/logger'
-import { getUserStatsComplete, getUserStatsCorrected } from '../../utils/profileUtils'
-import { getTrophyStats } from '../../utils/trophyUtils'
+import { logError, logInfo, logApiCall } from '../../utils/logger'
+import { getUserStats } from '../../utils/profileUtils'
 
 export default async function handler(req, res) {
-  // En-têtes CORS
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-
-  if (req.method === 'OPTIONS') {
-    return res.status(204).end()
-  }
-
-  if (req.method !== 'GET') {
-    return res.status(405).json({ 
-      error: 'Méthode non autorisée',
-      message: 'Seule la méthode GET est supportée'
-    })
-  }
-
-  const { user_id } = req.query
-  const requestId = `stats-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`
-
-  if (!user_id) {
-    return res.status(400).json({ 
-      error: 'user_id est requis',
-      message: 'Veuillez fournir un user_id valide'
-    })
-  }
-
+  const startTime = Date.now()
+  const requestId = Math.random().toString(36).substring(2, 15)
+  
   try {
-    logInfo('Getting user stats', { requestId, user_id: user_id.substring(0, 8) + '...' })
-
-    // Utiliser la fonction complète pour les statistiques incluant les trophées
-    const statsData = await getUserStatsComplete(user_id)
+    logApiCall(req.method, '/api/user-stats', req.query, null)
     
-    const stats = {
-      recipesCount: statsData.recipesCount || 0,
-      likesReceived: statsData.likesReceived || 0,
-      friendsCount: statsData.friendsCount || 0,
-      viewsTotal: 0,    // À implémenter avec une table views
-      commentsReceived: 0, // À implémenter avec une table comments
-      profileCompleteness: statsData.profileCompleteness || 0,
-      pendingFriendRequests: 0, // Sera calculé séparément
-      trophyPoints: statsData.trophyPoints || 0,
-      trophiesUnlocked: statsData.trophiesUnlocked || 0,
-      latestTrophy: statsData.latestTrophy
+    if (req.method !== 'GET') {
+      res.setHeader('Allow', ['GET'])
+      return res.status(405).json({ error: 'Method not allowed' })
     }
 
-    // Récupérer les demandes d'amitié en attente
-    try {
-      const { count: pendingRequestsCount, error: pendingError } = await supabase
-        .from('friendships')
-        .select('*', { count: 'exact', head: true })
-        .eq('friend_id', user_id)
-        .eq('status', 'pending')
-
-      if (!pendingError) {
-        stats.pendingFriendRequests = pendingRequestsCount || 0
-      }
-    } catch (friendsErr) {
-      logInfo('Friendships table not available yet', { requestId })
-      stats.pendingFriendRequests = 0
+    const { user_id } = req.query
+    
+    if (!user_id) {
+      return res.status(400).json({ error: 'user_id is required' })
     }
 
-    logInfo('User stats retrieved with trophies', { 
-      requestId, 
-      user_id: user_id.substring(0, 8) + '...',
-      stats: {
-        ...stats,
-        latestTrophy: stats.latestTrophy ? stats.latestTrophy.id : null
-      }
+    // Utiliser la fonction optimisée
+    const stats = await getUserStatsOptimized(user_id)
+    
+    const responseTime = Date.now() - startTime
+    
+    logInfo('User stats retrieved successfully', {
+      requestId,
+      userId: user_id.substring(0, 8) + '...',
+      responseTime,
+      statsKeys: Object.keys(stats)
     })
 
     return res.status(200).json(stats)
 
   } catch (error) {
-    logError('Unexpected error in user-stats API', error, { requestId, user_id })
-    return res.status(500).json({
-      error: 'Erreur lors de la récupération des statistiques',
-      message: 'Veuillez réessayer plus tard'
+    const responseTime = Date.now() - startTime
+    
+    logError('Error in user-stats API', error, {
+      requestId,
+      responseTime,
+      query: req.query
     })
+    
+    return res.status(500).json({
+      error: 'Internal server error',
+      reference: `user-stats-${requestId}`,
+      timestamp: new Date().toISOString()
+    })
+  }
+}
+
+async function getUserStatsOptimized(userId) {
+  try {
+    // Exécuter toutes les requêtes en parallèle pour optimiser les performances
+    const [
+      recipesResult,
+      friendshipResult,
+      profileResult,
+      userAuthResult
+    ] = await Promise.allSettled([
+      // Compter les recettes
+      supabase
+        .from('recipes')
+        .select('id, created_at', { count: 'exact', head: true })
+        .eq('user_id', userId),
+      
+      // Statistiques d'amitié optimisées
+      supabase
+        .rpc('get_friendship_stats', { target_user_id: userId }),
+      
+      // Profil pour complétude
+      supabase
+        .from('profiles')
+        .select('display_name, bio, avatar_url, location, website, created_at')
+        .eq('user_id', userId)
+        .single(),
+      
+      // Informations utilisateur pour calcul des jours
+      supabase.auth.admin.getUserById(userId)
+    ])
+
+    // Traiter les résultats avec gestion d'erreur
+    const stats = {
+      recipesCount: 0,
+      friendsCount: 0,
+      pendingSent: 0,
+      pendingReceived: 0,
+      profileCompleteness: 0,
+      daysSinceRegistration: 0,
+      memberSince: null,
+      hasProfile: false
+    }
+
+    // Recettes
+    if (recipesResult.status === 'fulfilled' && !recipesResult.value.error) {
+      stats.recipesCount = recipesResult.value.count || 0
+    }
+
+    // Amitié
+    if (friendshipResult.status === 'fulfilled' && !friendshipResult.value.error) {
+      const friendshipData = friendshipResult.value.data
+      if (friendshipData && friendshipData.length > 0) {
+        stats.friendsCount = friendshipData[0].friends_count || 0
+        stats.pendingSent = friendshipData[0].pending_sent || 0
+        stats.pendingReceived = friendshipData[0].pending_received || 0
+      }
+    }
+
+    // Profil
+    if (profileResult.status === 'fulfilled' && !profileResult.value.error) {
+      const profile = profileResult.value.data
+      if (profile) {
+        stats.hasProfile = true
+        stats.memberSince = profile.created_at
+        
+        // Calculer complétude
+        const fields = ['display_name', 'bio', 'avatar_url', 'location', 'website']
+        const filledFields = fields.filter(field => 
+          profile[field] && 
+          typeof profile[field] === 'string' && 
+          profile[field].trim().length > 0
+        )
+        stats.profileCompleteness = Math.round((filledFields.length / fields.length) * 100)
+      }
+    }
+
+    // Jours depuis inscription
+    if (userAuthResult.status === 'fulfilled' && userAuthResult.value.data?.user) {
+      const registrationDate = new Date(userAuthResult.value.data.user.created_at)
+      stats.daysSinceRegistration = Math.floor(
+        (Date.now() - registrationDate.getTime()) / (1000 * 60 * 60 * 24)
+      )
+      if (!stats.memberSince) {
+        stats.memberSince = userAuthResult.value.data.user.created_at
+      }
+    }
+
+    return stats
+
+  } catch (error) {
+    logError('Error in getUserStatsOptimized', error, { userId })
+    return {
+      recipesCount: 0,
+      friendsCount: 0,
+      pendingSent: 0,
+      pendingReceived: 0,
+      profileCompleteness: 0,
+      daysSinceRegistration: 0,
+      memberSince: null,
+      hasProfile: false
+    }
   }
 }

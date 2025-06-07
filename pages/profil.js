@@ -19,7 +19,10 @@ export default function Profil() {
     likesReceived: 0,
     friendsCount: 0,
     trophyPoints: 0,
-    trophiesUnlocked: 0
+    trophiesUnlocked: 0,
+    profileCompleteness: 0,
+    daysSinceRegistration: 0,
+    memberSince: null
   })
   const [isEditing, setIsEditing] = useState(false)
   const [editForm, setEditForm] = useState({
@@ -176,6 +179,54 @@ export default function Profil() {
       setError('Impossible de sauvegarder le profil. Veuillez réessayer.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Fonction optimisée pour charger les statistiques
+  const loadUserStatsOptimized = async (userId) => {
+    try {
+      // Utiliser l'API optimisée
+      const response = await fetch(`/api/user-stats?user_id=${userId}`)
+      
+      if (response.ok) {
+        const apiStats = await response.json()
+        
+        // Charger les trophées en parallèle
+        const trophyStats = await getTrophyStats(userId)
+        
+        setUserStats({
+          recipesCount: apiStats.recipesCount || 0,
+          likesReceived: 0,
+          friendsCount: apiStats.friendsCount || 0,
+          profileCompleteness: apiStats.profileCompleteness || 0,
+          trophyPoints: trophyStats.totalPoints || 0,
+          trophiesUnlocked: trophyStats.trophiesUnlocked || 0,
+          daysSinceRegistration: apiStats.daysSinceRegistration || 0,
+          memberSince: apiStats.memberSince
+        })
+        
+        // Vérifier les nouveaux trophées
+        const newTrophies = await checkAndUnlockTrophies(userId)
+        if (newTrophies.length > 0) {
+          setNewTrophies(newTrophies)
+          setShowTrophyNotification(true)
+        }
+        
+      } else {
+        // Fallback vers l'ancienne méthode
+        const stats = await getUserStatsComplete(userId)
+        setUserStats(stats)
+      }
+      
+    } catch (error) {
+      logError('Error loading optimized user stats', error)
+      // Fallback vers l'ancienne méthode
+      try {
+        const stats = await getUserStatsComplete(userId)
+        setUserStats(stats)
+      } catch (fallbackError) {
+        logError('Error in fallback stats loading', fallbackError)
+      }
     }
   }
 
