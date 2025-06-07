@@ -685,38 +685,71 @@ export default function Amis() {
                     
                     {/* Section Gestion des amitiés améliorée */}
                     <div className={styles.friendActions}>
-                      <strong>Actions</strong>
-                      <div className={styles.actionButtons}>
+                      <div className={styles.actionButtonsContainer}>
                         <button
-                          onClick={() => handleRemoveFriend(friendship.friend_id, friendship.profiles?.display_name)}
-                          disabled={friendshipActions[friendship.friend_id]?.loading}
-                          className={styles.removeButton}
-                          title="Retirer de mes amis"
+                          onClick={() => router.push(`/profile/${friendship.friend_id}`)}
+                          className={styles.viewProfileButton}
+                          title="Voir le profil"
                         >
-                          {friendshipActions[friendship.friend_id]?.loading ? '...' : '🗑️ Supprimer'}
+                          <span className={styles.buttonIcon}>👤</span>
+                          <span className={styles.buttonText}>Profil</span>
                         </button>
-                        <button
-                          onClick={() => handleBlockUser(friendship.friend_id, friendship.profiles?.display_name)}
-                          disabled={friendshipActions[friendship.friend_id]?.loading}
-                          className={styles.blockButton}
-                          title="Bloquer cet utilisateur"
-                        >
-                          {friendshipActions[friendship.friend_id]?.loading ? '...' : '🚫 Bloquer'}
-                        </button>
+                        
                         <button
                           onClick={() => fetchFriendshipStatus(friendship.friend_id)}
                           className={styles.statusButton}
-                          title="Vérifier le statut"
+                          disabled={friendshipStatuses[friendship.friend_id]?.loading}
+                          title="Vérifier le statut de l'amitié"
                         >
-                          ℹ️ Statut
+                          <span className={styles.buttonIcon}>
+                            {friendshipStatuses[friendship.friend_id]?.loading ? '⏳' : 'ℹ️'}
+                          </span>
+                          <span className={styles.buttonText}>Statut</span>
                         </button>
+                        
+                        <div className={styles.dangerActions}>
+                          <button
+                            onClick={() => handleRemoveFriend(friendship.friend_id, friendship.profiles?.display_name)}
+                            disabled={friendshipActions[friendship.friend_id]?.loading}
+                            className={styles.removeButton}
+                            title="Retirer de mes amis"
+                          >
+                            <span className={styles.buttonIcon}>
+                              {friendshipActions[friendship.friend_id]?.loading ? '⏳' : '🗑️'}
+                            </span>
+                            <span className={styles.buttonText}>Supprimer</span>
+                          </button>
+                          
+                          <button
+                            onClick={() => handleBlockUser(friendship.friend_id, friendship.profiles?.display_name)}
+                            disabled={friendshipActions[friendship.friend_id]?.loading}
+                            className={styles.blockButton}
+                            title="Bloquer cet utilisateur"
+                          >
+                            <span className={styles.buttonIcon}>
+                              {friendshipActions[friendship.friend_id]?.loading ? '⏳' : '🚫'}
+                            </span>
+                            <span className={styles.buttonText}>Bloquer</span>
+                          </button>
+                        </div>
                       </div>
-                      {/* Affichage du statut d'amitié */}
-                      {friendshipStatuses[friendship.friend_id] && (
+                      
+                      {/* Affichage du statut d'amitié amélioré */}
+                      {friendshipStatuses[friendship.friend_id] && !friendshipStatuses[friendship.friend_id].loading && (
                         <div className={styles.statusInfo}>
-                          Statut: <strong>{friendshipStatuses[friendship.friend_id].status}</strong>
+                          <div className={styles.statusBadge}>
+                            <span className={styles.statusLabel}>Statut:</span>
+                            <span className={`${styles.statusValue} ${styles[friendshipStatuses[friendship.friend_id].status]}`}>
+                              {friendshipStatuses[friendship.friend_id].status === 'accepted' && '✅ Amis'}
+                              {friendshipStatuses[friendship.friend_id].status === 'pending' && '⏳ En attente'}
+                              {friendshipStatuses[friendship.friend_id].status === 'blocked' && '🚫 Bloqué'}
+                              {friendshipStatuses[friendship.friend_id].status === 'none' && '❌ Aucune relation'}
+                            </span>
+                          </div>
                           {friendshipStatuses[friendship.friend_id].canSendRequest && (
-                            <span className={styles.statusHint}> (peut renvoyer une demande)</span>
+                            <div className={styles.statusHint}>
+                              💡 Vous pouvez renvoyer une demande d'amitié
+                            </div>
                           )}
                         </div>
                       )}
@@ -926,35 +959,60 @@ export default function Amis() {
         )}
       </main>
 
-      {/* Modal de confirmation */}
+      {/* Modal de confirmation amélioré */}
       {showConfirmDialog && (
         <div className={styles.modalOverlay} onClick={() => setShowConfirmDialog(null)}>
           <div className={styles.confirmDialog} onClick={e => e.stopPropagation()}>
-            <h3>
-              {showConfirmDialog.action === 'remove' ? 'Supprimer cet ami ?' : 'Bloquer cet utilisateur ?'}
-            </h3>
-            <p>
-              {showConfirmDialog.action === 'remove' 
-                ? `Êtes-vous sûr de vouloir retirer ${showConfirmDialog.friendName} de vos amis ? Cette action est réversible.`
-                : `Êtes-vous sûr de vouloir bloquer ${showConfirmDialog.friendName} ? Cette personne ne pourra plus vous envoyer de demandes d'amitié.`
-              }
-            </p>
+            <div className={styles.confirmHeader}>
+              <div className={styles.confirmIcon}>
+                {showConfirmDialog.action === 'remove' ? '🗑️' : '🚫'}
+              </div>
+              <h3 className={styles.confirmTitle}>
+                {showConfirmDialog.action === 'remove' ? 'Supprimer cet ami ?' : 'Bloquer cet utilisateur ?'}
+              </h3>
+            </div>
+            
+            <div className={styles.confirmContent}>
+              <p className={styles.confirmMessage}>
+                {showConfirmDialog.action === 'remove' 
+                  ? `Êtes-vous sûr de vouloir retirer ${showConfirmDialog.friendName} de vos amis ?`
+                  : `Êtes-vous sûr de vouloir bloquer ${showConfirmDialog.friendName} ?`
+                }
+              </p>
+              <div className={styles.confirmDetails}>
+                {showConfirmDialog.action === 'remove' 
+                  ? '⚠️ Cette action est réversible - vous pourrez renvoyer une demande d\'amitié plus tard.'
+                  : '⚠️ Cette personne ne pourra plus vous envoyer de demandes d\'amitié ni voir vos recettes privées.'
+                }
+              </div>
+            </div>
+            
             <div className={styles.confirmActions}>
               <button
                 onClick={() => setShowConfirmDialog(null)}
                 className={styles.cancelButton}
+                disabled={friendshipActions[showConfirmDialog.friendId]?.loading}
               >
-                Annuler
+                <span className={styles.buttonIcon}>❌</span>
+                <span className={styles.buttonText}>Annuler</span>
               </button>
               <button
                 onClick={showConfirmDialog.action === 'remove' ? confirmRemoveFriend : confirmBlockUser}
-                className={showConfirmDialog.action === 'remove' ? styles.removeButton : styles.blockButton}
+                className={showConfirmDialog.action === 'remove' ? styles.confirmRemoveButton : styles.confirmBlockButton}
                 disabled={friendshipActions[showConfirmDialog.friendId]?.loading}
               >
-                {friendshipActions[showConfirmDialog.friendId]?.loading 
-                  ? '...' 
-                  : showConfirmDialog.action === 'remove' ? 'Supprimer' : 'Bloquer'
-                }
+                <span className={styles.buttonIcon}>
+                  {friendshipActions[showConfirmDialog.friendId]?.loading 
+                    ? '⏳' 
+                    : showConfirmDialog.action === 'remove' ? '🗑️' : '🚫'
+                  }
+                </span>
+                <span className={styles.buttonText}>
+                  {friendshipActions[showConfirmDialog.friendId]?.loading 
+                    ? 'Traitement...' 
+                    : showConfirmDialog.action === 'remove' ? 'Supprimer' : 'Bloquer'
+                  }
+                </span>
               </button>
             </div>
           </div>
