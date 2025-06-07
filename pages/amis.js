@@ -632,25 +632,35 @@ export default function Amis() {
           className={activeTab === 'friends' ? styles.activeTab : ''}
           onClick={() => setActiveTab('friends')}
         >
-          👥 Amis ({friends.length})
+          <span className={styles.tabIcon}>👥</span>
+          <span className={styles.tabText}>Amis ({friends.length})</span>
         </button>
         <button
           className={activeTab === 'requests' ? styles.activeTab : ''}
           onClick={() => setActiveTab('requests')}
+          style={{ position: 'relative' }}
         >
-          📩 Demandes ({friendRequests.length})
+          <span className={styles.tabIcon}>📩</span>
+          <span className={styles.tabText}>Demandes ({friendRequests.length})</span>
+          {friendRequests.length > 0 && (
+            <div className={`${styles.tabBadge} ${friendRequests.length > 3 ? styles.urgent : ''}`}>
+              {friendRequests.length}
+            </div>
+          )}
         </button>
         <button
           className={activeTab === 'suggestions' ? styles.activeTab : ''}
           onClick={() => setActiveTab('suggestions')}
         >
-          💡 Suggestions
+          <span className={styles.tabIcon}>💡</span>
+          <span className={styles.tabText}>Suggestions</span>
         </button>
         <button
           className={activeTab === 'friendsRecipes' ? styles.activeTab : ''}
           onClick={() => setActiveTab('friendsRecipes')}
         >
-          🍽️ Recettes des amis
+          <span className={styles.tabIcon}>🍽️</span>
+          <span className={styles.tabText}>Recettes des amis</span>
         </button>
       </nav>
 
