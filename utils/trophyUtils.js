@@ -897,9 +897,9 @@ export async function manuallyUnlockTrophy(userId, trophyId) {
       .select('id')
       .eq('user_id', userId)
       .eq('trophy_id', trophyId)
-      .single()
+      .maybeSingle() // Use maybeSingle() instead of single() to handle no results gracefully
 
-    if (checkError && checkError.code !== 'PGRST116') {
+    if (checkError) {
       logError('Error checking existing trophy', checkError)
       return { success: false, error: 'Erreur lors de la vérification du trophée' }
     }
@@ -962,7 +962,7 @@ export async function canManuallyUnlockTrophy(userId, trophyId) {
       .select('id')
       .eq('user_id', userId)
       .eq('trophy_id', trophyId)
-      .single()
+      .maybeSingle() // Use maybeSingle() instead of single()
 
     if (existingTrophy) {
       return { canUnlock: false, progress: 100, reason: 'Déjà débloqué' }

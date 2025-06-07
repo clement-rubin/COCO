@@ -583,34 +583,84 @@
   }
 }
 
-/* Animation de confettis pour les trophées débloqués */
-.confetti {
-  position: fixed;
-  width: 10px;
-  height: 10px;
-  background: #f59e0b;
-  animation: confettiFall 3s linear infinite;
-  z-index: 9999;
+/* Animation keyframes - Add missing animations */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
-.confetti:nth-child(odd) {
-  background: #10b981;
-  animation-duration: 2.5s;
+@keyframes bounce {
+  0%, 100% { 
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+  }
+  50% { 
+    transform: translateY(-25%);
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+  }
 }
 
-.confetti:nth-child(3n) {
-  background: #3b82f6;
-  animation-duration: 3.5s;
-}
-
-@keyframes confettiFall {
+@keyframes trophySlideIn {
   0% {
-    transform: translateY(-100vh) rotate(0deg);
-    opacity: 1;
+    transform: translateX(100%) scale(0.8);
+    opacity: 0;
+  }
+  60% {
+    transform: translateX(-10px) scale(1.05);
+    opacity: 0.9;
   }
   100% {
-    transform: translateY(100vh) rotate(360deg);
+    transform: translateX(0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes notificationShine {
+  0%, 100% { 
+    transform: translateX(-100%) rotate(45deg);
     opacity: 0;
+  }
+  50% { 
+    transform: translateX(100%) rotate(45deg);
+    opacity: 1;
+  }
+}
+
+@keyframes shine {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes progressPulse {
+  0%, 100% { 
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  50% { 
+    transform: translateX(0);
+    opacity: 0.6;
+  }
+}
+
+@keyframes readyPulse {
+  0%, 100% { 
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+    opacity: 1;
+  }
+  50% { 
+    box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+    opacity: 0.8;
+  }
+}
+
+@keyframes sparkle {
+  0%, 100% { 
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  50% { 
+    transform: scale(1.2) rotate(180deg);
+    opacity: 0.8;
   }
 }
 
