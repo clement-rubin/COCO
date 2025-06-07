@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from './AuthContext'
-import { getUserTrophies, getTrophyProgress, TROPHY_RARITIES } from '../utils/trophyUtils'
+import { getUserTrophies, getTrophyProgress, TROPHY_RARITIES, syncAllTrophies, getTrophyProgressRealtime } from '../utils/trophyUtils'
 import { logInfo, logError } from '../utils/logger'
 import styles from '../styles/Trophy.module.css'
 
@@ -10,12 +10,31 @@ export default function TrophySection({ userId }) {
   const [progress, setProgress] = useState([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('unlocked')
+  const [realTimeProgress, setRealTimeProgress] = useState({})
+  const [lastSyncTime, setLastSyncTime] = useState(null)
 
   useEffect(() => {
     if (userId) {
       loadTrophyData()
+      setupRealTimeUpdates()
+    }
+
+    return () => {
+      // Cleanup event listeners
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('trophyUnlocked', handleTrophyUnlocked)
+        window.removeEventListener('userActionCompleted', handleUserAction)
+      }
     }
   }, [userId])
+
+  // Écouter les événements de trophées débloqués
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.addEventListener('trophyUnlocked', handleTrophyUnlocked)
+      window.addEventListener('userActionCompleted', handleUserAction)
+    }
+  }, [])
 
   const loadTrophyData = async () => {
     try {
@@ -40,6 +59,91 @@ export default function TrophySection({ userId }) {
     } finally {
       setLoading(false)
     }
+  }
+
+  const setupRealTimeUpdates = () => {
+    // Synchroniser automatiquement toutes les 30 secondes
+    const interval = setInterval(async () => {
+      if (userId) {
+        await syncTrophyProgress()
+      }
+    }, 30000)
+
+    return () => clearInterval(interval)
+  }
+
+  const handleTrophyUnlocked = async (event) => {
+    const { userId: eventUserId, trophies } = event.detail
+    
+    if (eventUserId === userId) {
+      // Recharger les données des trophées
+      await loadTrophyData()
+      
+      // Afficher une notification
+      showTrophyNotification(trophies)
+    }
+  }
+
+  const handleUserAction = async (event) => {
+    const { userId: eventUserId, actionType } = event.detail
+    
+    if (eventUserId === userId) {
+      // Synchroniser la progression en temps réel
+      await syncTrophyProgress()
+    }
+  }
+
+  const syncTrophyProgress = async () => {
+    try {
+      const { newTrophies, updatedProgress } = await syncAllTrophies(userId)
+      
+      if (newTrophies.length > 0) {
+        await loadTrophyData()
+        showTrophyNotification(newTrophies)
+      } else {
+        // Mettre à jour seulement la progression
+        setProgress(updatedProgress)
+      }
+      
+      setLastSyncTime(new Date())
+
+    } catch (error) {
+      logError('Error syncing trophy progress', error)
+    }
+  }
+
+  const showTrophyNotification = (trophies) => {
+    if (trophies.length === 0) return
+
+    // Créer une notification temporaire
+    const notification = document.createElement('div')
+    notification.className = `${styles.trophyNotification} ${trophies.length > 1 ? styles.multiple : ''}`
+    
+    const trophy = trophies[0]
+    notification.innerHTML = `
+      <div class="${styles.notificationHeader}">
+        <div class="${styles.notificationIcon}">${trophy.icon}</div>
+        <div class="${styles.notificationTitle}">
+          ${trophies.length === 1 ? 'Nouveau trophée !' : `${trophies.length} nouveaux trophées !`}
+        </div>
+      </div>
+      <div class="${styles.notificationDesc}">
+        ${trophies.length === 1 ? trophy.name : 'Consultez votre collection'}
+      </div>
+    `
+
+    document.body.appendChild(notification)
+
+    // Supprimer la notification après 5 secondes
+    setTimeout(() => {
+      notification.remove()
+    }, 5000)
+  }
+
+  const refreshTrophies = async () => {
+    setLoading(true)
+    await syncTrophyProgress()
+    setLoading(false)
   }
 
   const formatDate = (dateString) => {
@@ -78,9 +182,40 @@ export default function TrophySection({ userId }) {
 
   return (
     <div className={styles.trophyContainer}>
-      {/* Header avec statistiques */}
+      {/* Header avec statistiques et bouton de refresh */}
       <div className={styles.trophyHeader}>
-        <h2 className={styles.trophyTitle}>🏆 Collection de Trophées</h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <h2 className={styles.trophyTitle}>🏆 Collection de Trophées</h2>
+          <button
+            onClick={refreshTrophies}
+            disabled={loading}
+            style={{
+              background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '12px',
+              padding: '8px 16px',
+              fontSize: '0.875rem',
+              fontWeight: '600',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              opacity: loading ? 0.7 : 1,
+              transition: 'all 0.3s ease'
+            }}
+          >
+            {loading ? '🔄' : '🔄'} Actualiser
+          </button>
+        </div>
+        
+        {lastSyncTime && (
+          <div style={{ 
+            fontSize: '0.75rem', 
+            color: '#6b7280', 
+            textAlign: 'center',
+            marginBottom: '1rem'
+          }}>
+            Dernière synchronisation : {lastSyncTime.toLocaleTimeString('fr-FR')}
+          </div>
+        )}
         
         <div className={styles.trophyStats}>
           <div className={styles.statItem}>
@@ -224,7 +359,7 @@ export default function TrophySection({ userId }) {
                   <div style={{ 
                     fontSize: '1.25rem', 
                     fontWeight: '700',
-                    color: '#3b82f6' 
+                    color: trophy.progressPercent >= 100 ? '#10b981' : '#3b82f6'
                   }}>
                     {trophy.progressPercent}%
                   </div>
@@ -232,11 +367,21 @@ export default function TrophySection({ userId }) {
                 <div className={styles.progressBar}>
                   <div 
                     className={styles.progressFill}
-                    style={{ width: `${trophy.progressPercent}%` }}
+                    style={{ 
+                      width: `${trophy.progressPercent}%`,
+                      background: trophy.progressPercent >= 100 
+                        ? 'linear-gradient(90deg, #10b981, #059669)'
+                        : 'linear-gradient(90deg, #3b82f6, #1d4ed8)'
+                    }}
                   />
                 </div>
                 <div className={styles.progressText}>
                   {trophy.currentValue} / {trophy.targetValue}
+                  {trophy.progressPercent >= 100 && (
+                    <span style={{ marginLeft: '8px', color: '#10b981', fontWeight: '600' }}>
+                      ✅ Prêt à débloquer !
+                    </span>
+                  )}
                 </div>
               </div>
             ))

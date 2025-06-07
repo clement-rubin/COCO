@@ -498,3 +498,329 @@ export async function getTrophyStats(userId) {
     return { totalPoints: 0, trophiesUnlocked: 0, latestTrophy: null }
   }
 }
+
+/**
+ * Synchronise automatiquement les trophées après une action spécifique
+ * @param {string} userId - ID de l'utilisateur
+ * @param {string} actionType - Type d'action effectuée
+ * @param {Object} actionData - Données additionnelles de l'action
+ * @returns {Promise<Array>} Nouveaux trophées débloqués
+ */
+export async function syncTrophiesAfterAction(userId, actionType, actionData = {}) {
+  try {
+    logInfo('Syncing trophies after action', { 
+      userId: userId?.substring(0, 8) + '...',
+      actionType,
+      actionData
+    })
+
+    let newTrophies = []
+
+    switch (actionType) {
+      case 'recipe_created':
+        newTrophies = await checkRecipeTrophies(userId)
+        break
+      case 'friend_added':
+        newTrophies = await checkSocialTrophies(userId)
+        break
+      case 'profile_updated':
+        newTrophies = await checkEngagementTrophies(userId)
+        break
+      case 'account_created':
+        newTrophies = await checkWelcomeTrophies(userId)
+        break
+      default:
+        newTrophies = await checkAndUnlockTrophies(userId)
+        break
+    }
+
+    if (newTrophies.length > 0) {
+      logInfo('Trophies synchronized', {
+        userId: userId?.substring(0, 8) + '...',
+        actionType,
+        newTrophiesCount: newTrophies.length,
+        trophyIds: newTrophies.map(t => t.id)
+      })
+
+      // Déclencher une notification en temps réel si possible
+      await notifyTrophyUnlocked(userId, newTrophies)
+    }
+
+    return newTrophies
+
+  } catch (error) {
+    logError('Error syncing trophies after action', error)
+    return []
+  }
+}
+
+/**
+ * Vérifie spécifiquement les trophées liés aux recettes
+ * @param {string} userId - ID de l'utilisateur
+ * @returns {Promise<Array>} Nouveaux trophées débloqués
+ */
+async function checkRecipeTrophies(userId) {
+  try {
+    const userStats = await getUserStatsForTrophies(userId)
+    const { data: unlockedTrophies } = await supabase
+      .from('user_trophies')
+      .select('trophy_id')
+      .eq('user_id', userId)
+
+    const unlockedIds = new Set(unlockedTrophies?.map(t => t.trophy_id) || [])
+    const newlyUnlocked = []
+
+    // Vérifier les trophées de recettes
+    const recipeTrophies = ['first_recipe', 'recipe_collector', 'master_chef']
+    
+    for (const trophyId of recipeTrophies) {
+      if (unlockedIds.has(trophyId)) continue
+      
+      const trophy = TROPHY_DEFINITIONS[trophyId]
+      if (trophy && checkTrophyCondition(trophy.condition, userStats)) {
+        const success = await unlockTrophy(userId, trophyId)
+        if (success) {
+          newlyUnlocked.push({
+            ...trophy,
+            unlockedAt: new Date().toISOString()
+          })
+        }
+      }
+    }
+
+    return newlyUnlocked
+  } catch (error) {
+    logError('Error checking recipe trophies', error)
+    return []
+  }
+}
+
+/**
+ * Vérifie spécifiquement les trophées sociaux
+ * @param {string} userId - ID de l'utilisateur
+ * @returns {Promise<Array>} Nouveaux trophées débloqués
+ */
+async function checkSocialTrophies(userId) {
+  try {
+    const userStats = await getUserStatsForTrophies(userId)
+    const { data: unlockedTrophies } = await supabase
+      .from('user_trophies')
+      .select('trophy_id')
+      .eq('user_id', userId)
+
+    const unlockedIds = new Set(unlockedTrophies?.map(t => t.trophy_id) || [])
+    const newlyUnlocked = []
+
+    // Vérifier les trophées sociaux
+    const socialTrophies = ['first_friend', 'social_butterfly']
+    
+    for (const trophyId of socialTrophies) {
+      if (unlockedIds.has(trophyId)) continue
+      
+      const trophy = TROPHY_DEFINITIONS[trophyId]
+      if (trophy && checkTrophyCondition(trophy.condition, userStats)) {
+        const success = await unlockTrophy(userId, trophyId)
+        if (success) {
+          newlyUnlocked.push({
+            ...trophy,
+            unlockedAt: new Date().toISOString()
+          })
+        }
+      }
+    }
+
+    return newlyUnlocked
+  } catch (error) {
+    logError('Error checking social trophies', error)
+    return []
+  }
+}
+
+/**
+ * Vérifie spécifiquement les trophées d'engagement
+ * @param {string} userId - ID de l'utilisateur
+ * @returns {Promise<Array>} Nouveaux trophées débloqués
+ */
+async function checkEngagementTrophies(userId) {
+  try {
+    const userStats = await getUserStatsForTrophies(userId)
+    const { data: unlockedTrophies } = await supabase
+      .from('user_trophies')
+      .select('trophy_id')
+      .eq('user_id', userId)
+
+    const unlockedIds = new Set(unlockedTrophies?.map(t => t.trophy_id) || [])
+    const newlyUnlocked = []
+
+    // Vérifier les trophées d'engagement
+    const engagementTrophies = ['profile_complete', 'early_adopter']
+    
+    for (const trophyId of engagementTrophies) {
+      if (unlockedIds.has(trophyId)) continue
+      
+      const trophy = TROPHY_DEFINITIONS[trophyId]
+      if (trophy && checkTrophyCondition(trophy.condition, userStats)) {
+        const success = await unlockTrophy(userId, trophyId)
+        if (success) {
+          newlyUnlocked.push({
+            ...trophy,
+            unlockedAt: new Date().toISOString()
+          })
+        }
+      }
+    }
+
+    return newlyUnlocked
+  } catch (error) {
+    logError('Error checking engagement trophies', error)
+    return []
+  }
+}
+
+/**
+ * Vérifie les trophées de bienvenue
+ * @param {string} userId - ID de l'utilisateur
+ * @returns {Promise<Array>} Nouveaux trophées débloqués
+ */
+async function checkWelcomeTrophies(userId) {
+  try {
+    const { data: unlockedTrophies } = await supabase
+      .from('user_trophies')
+      .select('trophy_id')
+      .eq('user_id', userId)
+
+    const unlockedIds = new Set(unlockedTrophies?.map(t => t.trophy_id) || [])
+    const newlyUnlocked = []
+
+    // Débloquer automatiquement le trophée de bienvenue
+    if (!unlockedIds.has('welcome_aboard')) {
+      const success = await unlockTrophy(userId, 'welcome_aboard')
+      if (success) {
+        newlyUnlocked.push({
+          ...TROPHY_DEFINITIONS['welcome_aboard'],
+          unlockedAt: new Date().toISOString()
+        })
+      }
+    }
+
+    return newlyUnlocked
+  } catch (error) {
+    logError('Error checking welcome trophies', error)
+    return []
+  }
+}
+
+/**
+ * Notifie l'utilisateur des nouveaux trophées débloqués
+ * @param {string} userId - ID de l'utilisateur
+ * @param {Array} newTrophies - Nouveaux trophées débloqués
+ * @returns {Promise<void>}
+ */
+async function notifyTrophyUnlocked(userId, newTrophies) {
+  try {
+    if (typeof window !== 'undefined' && window.dispatchEvent) {
+      // Déclencher un événement personnalisé pour la notification
+      const event = new CustomEvent('trophyUnlocked', {
+        detail: { userId, trophies: newTrophies }
+      })
+      window.dispatchEvent(event)
+    }
+
+    logInfo('Trophy notification sent', {
+      userId: userId?.substring(0, 8) + '...',
+      trophiesCount: newTrophies.length
+    })
+
+  } catch (error) {
+    logError('Error sending trophy notification', error)
+  }
+}
+
+/**
+ * Obtient la progression en temps réel d'un trophée spécifique
+ * @param {string} userId - ID de l'utilisateur
+ * @param {string} trophyId - ID du trophée
+ * @returns {Promise<Object>} Progression du trophée
+ */
+export async function getTrophyProgressRealtime(userId, trophyId) {
+  try {
+    const trophy = TROPHY_DEFINITIONS[trophyId]
+    if (!trophy) return null
+
+    const userStats = await getUserStatsForTrophies(userId)
+    
+    let currentValue = 0
+    let progressPercent = 0
+
+    switch (trophy.condition.type) {
+      case 'recipes_count':
+        currentValue = userStats.recipesCount
+        progressPercent = Math.min((currentValue / trophy.condition.value) * 100, 100)
+        break
+      case 'friends_count':
+        currentValue = userStats.friendsCount
+        progressPercent = Math.min((currentValue / trophy.condition.value) * 100, 100)
+        break
+      case 'profile_completeness':
+        currentValue = userStats.profileCompleteness
+        progressPercent = Math.min((currentValue / trophy.condition.value) * 100, 100)
+        break
+      case 'days_since_registration':
+        currentValue = userStats.daysSinceRegistration
+        progressPercent = Math.min((currentValue / trophy.condition.value) * 100, 100)
+        break
+      case 'account_created':
+        progressPercent = 100
+        break
+    }
+
+    return {
+      ...trophy,
+      currentValue,
+      targetValue: trophy.condition.value,
+      progressPercent: Math.round(progressPercent),
+      isCompleted: progressPercent >= 100
+    }
+
+  } catch (error) {
+    logError('Error getting realtime trophy progress', error)
+    return null
+  }
+}
+
+/**
+ * Synchronise tous les trophées d'un utilisateur
+ * @param {string} userId - ID de l'utilisateur
+ * @returns {Promise<{newTrophies: Array, updatedProgress: Array}>}
+ */
+export async function syncAllTrophies(userId) {
+  try {
+    logInfo('Starting full trophy sync', { 
+      userId: userId?.substring(0, 8) + '...' 
+    })
+
+    // Vérifier tous les nouveaux trophées
+    const newTrophies = await checkAndUnlockTrophies(userId)
+    
+    // Obtenir la progression mise à jour
+    const updatedProgress = await getTrophyProgress(userId)
+
+    logInfo('Full trophy sync completed', {
+      userId: userId?.substring(0, 8) + '...',
+      newTrophiesCount: newTrophies.length,
+      progressItemsCount: updatedProgress.length
+    })
+
+    return {
+      newTrophies,
+      updatedProgress
+    }
+
+  } catch (error) {
+    logError('Error in full trophy sync', error)
+    return {
+      newTrophies: [],
+      updatedProgress: []
+    }
+  }
+}

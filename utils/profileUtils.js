@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabase'
 import { logInfo, logWarning, logError } from './logger'
-import { checkAndUnlockTrophies, triggerTrophyCheck, checkTrophiesAfterProfileUpdate, getTrophyStats } from './trophyUtils'
+import { checkAndUnlockTrophies, triggerTrophyCheck, checkTrophiesAfterProfileUpdate, getTrophyStats, syncTrophiesAfterAction } from './trophyUtils'
 
 /**
  * Récupère le nom d'affichage d'un utilisateur depuis son profil
@@ -596,12 +596,12 @@ export async function getUserStatsComplete(userId) {
 }
 
 /**
- * Met à jour le profil et vérifie les nouveaux trophées
+ * Met à jour le profil et synchronise les trophées
  * @param {string} userId - ID de l'utilisateur
  * @param {Object} profileData - Données du profil à mettre à jour
  * @returns {Promise<{success: boolean, profile?: Object, newTrophies?: Array, error?: string}>}
  */
-export async function updateProfileWithTrophyCheck(userId, profileData) {
+export async function updateProfileWithTrophySync(userId, profileData) {
   if (!userId || !profileData) {
     return { success: false, error: 'Invalid parameters' }
   }
@@ -623,10 +623,10 @@ export async function updateProfileWithTrophyCheck(userId, profileData) {
       return { success: false, error: updateError.message }
     }
 
-    // Vérifier les nouveaux trophées après mise à jour du profil
-    const newTrophies = await checkTrophiesAfterProfileUpdate(userId)
+    // Synchroniser les trophées après mise à jour du profil
+    const newTrophies = await syncTrophiesAfterAction(userId, 'profile_updated', profileData)
 
-    logInfo('Profile updated with trophy check', {
+    logInfo('Profile updated with trophy sync', {
       userId: userId.substring(0, 8) + '...',
       newTrophiesCount: newTrophies.length
     })
@@ -638,7 +638,73 @@ export async function updateProfileWithTrophyCheck(userId, profileData) {
     }
 
   } catch (error) {
-    logError('Error in updateProfileWithTrophyCheck', error)
+    logError('Error in updateProfileWithTrophySync', error)
+    return { success: false, error: 'Server error' }
+  }
+}
+
+/**
+ * Envoie une demande d'amitié avec synchronisation des trophées
+ * @param {string} fromUserId - ID de l'utilisateur qui envoie
+ * @param {string} toUserId - ID de l'utilisateur qui reçoit
+ * @returns {Promise<Object>} Résultat de l'opération
+ */
+export async function sendFriendRequestWithTrophySync(fromUserId, toUserId) {
+  try {
+    const result = await sendFriendRequestCorrected(fromUserId, toUserId)
+    
+    if (result.success) {
+      // Synchroniser les trophées pour l'expéditeur
+      await syncTrophiesAfterAction(fromUserId, 'friend_request_sent', { targetUserId: toUserId })
+    }
+
+    return result
+  } catch (error) {
+    logError('Error in sendFriendRequestWithTrophySync', error)
+    return { success: false, error: 'Server error' }
+  }
+}
+
+/**
+ * Accepte une demande d'amitié avec synchronisation des trophées
+ * @param {string} userId - ID de l'utilisateur qui accepte
+ * @param {string} friendshipId - ID de la demande d'amitié
+ * @returns {Promise<Object>} Résultat de l'opération
+ */
+export async function acceptFriendRequestWithTrophySync(userId, friendshipId) {
+  try {
+    // Accepter la demande d'amitié
+    const { data: friendship, error } = await supabase
+      .from('friendships')
+      .update({ 
+        status: 'accepted',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', friendshipId)
+      .eq('friend_id', userId)
+      .select('user_id, friend_id')
+      .single()
+
+    if (error) {
+      logError('Error accepting friend request', error)
+      return { success: false, error: error.message }
+    }
+
+    // Synchroniser les trophées pour les deux utilisateurs
+    await Promise.all([
+      syncTrophiesAfterAction(userId, 'friend_added', { friendId: friendship.user_id }),
+      syncTrophiesAfterAction(friendship.user_id, 'friend_added', { friendId: userId })
+    ])
+
+    logInfo('Friend request accepted with trophy sync', {
+      accepter: userId.substring(0, 8) + '...',
+      requester: friendship.user_id.substring(0, 8) + '...'
+    })
+
+    return { success: true, friendship }
+
+  } catch (error) {
+    logError('Error in acceptFriendRequestWithTrophySync', error)
     return { success: false, error: 'Server error' }
   }
 }
