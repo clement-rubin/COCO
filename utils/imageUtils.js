@@ -218,75 +218,139 @@ function isBase64String(str) {
  * @returns {Promise<Object>} Processed image data
  */
 export async function processImageToUrl(file, options = {}) {
-  const {
-    maxWidth = 1200,
-    maxHeight = 800,
-    quality = 0.85,
-    maxSizeKB = 500
-  } = options
-
+  const defaults = {
+    maxWidth: 800,
+    maxHeight: 600,
+    quality: 0.8,
+    maxSizeKB: 300,
+    format: 'jpeg', // Forcer JPEG pour compatibilité Android
+    preserveExif: false // Supprimer EXIF pour réduire la taille
+  }
+  
+  const settings = { ...defaults, ...options }
+  
   return new Promise((resolve, reject) => {
-    try {
-      const canvas = document.createElement('canvas')
-      const ctx = canvas.getContext('2d')
+    // Détection de l'environnement mobile
+    const userAgent = navigator.userAgent || ''
+    const isAndroid = /android/i.test(userAgent)
+    const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent.toLowerCase())
+    
+    const reader = new FileReader()
+    
+    reader.onload = (event) => {
       const img = new Image()
       
       img.onload = () => {
         try {
-          // Calculer les nouvelles dimensions
-          let { width, height } = img
+          const canvas = document.createElement('canvas')
+          const ctx = canvas.getContext('2d')
           
-          if (width > maxWidth || height > maxHeight) {
-            const ratio = Math.min(maxWidth / width, maxHeight / height)
-            width *= ratio
-            height *= ratio
+          // Calcul des dimensions optimisées pour mobile
+          let { width, height } = img
+          const aspectRatio = width / height
+          
+          // Ajustement des dimensions selon l'appareil
+          if (isMobile) {
+            // Sur mobile, on peut être plus généreux avec la taille
+            if (width > settings.maxWidth || height > settings.maxHeight) {
+              if (aspectRatio > 1) {
+                width = Math.min(width, settings.maxWidth)
+                height = width / aspectRatio
+              } else {
+                height = Math.min(height, settings.maxHeight)
+                width = height * aspectRatio
+              }
+            }
+          } else {
+            // Sur desktop, on garde les limites classiques
+            if (width > settings.maxWidth) {
+              width = settings.maxWidth
+              height = width / aspectRatio
+            }
+            if (height > settings.maxHeight) {
+              height = settings.maxHeight
+              width = height * aspectRatio
+            }
           }
           
           canvas.width = width
           canvas.height = height
           
+          // Configuration du contexte pour une meilleure qualité sur Android
+          if (isAndroid) {
+            ctx.imageSmoothingEnabled = true
+            ctx.imageSmoothingQuality = 'high'
+          }
+          
           // Dessiner l'image redimensionnée
           ctx.drawImage(img, 0, 0, width, height)
           
-          // Convertir en data URL avec compression
-          let dataUrl = canvas.toDataURL('image/jpeg', quality)
+          // Fonction pour obtenir la data URL avec compression adaptive
+          const getOptimizedDataUrl = (quality) => {
+            return canvas.toDataURL(`image/${settings.format}`, quality)
+          }
           
-          // Vérifier la taille et réduire la qualité si nécessaire
-          let currentQuality = quality
-          while (dataUrl.length > maxSizeKB * 1024 * 1.37 && currentQuality > 0.1) { // 1.37 = facteur base64
-            currentQuality -= 0.1
-            dataUrl = canvas.toDataURL('image/jpeg', currentQuality)
+          // Compression adaptative pour respecter la taille limite
+          let quality = settings.quality
+          let dataUrl = getOptimizedDataUrl(quality)
+          let currentSizeKB = Math.round((dataUrl.length * 3) / 4 / 1024)
+          
+          // Réduction progressive de la qualité si nécessaire
+          while (currentSizeKB > settings.maxSizeKB && quality > 0.1) {
+            quality -= 0.1
+            dataUrl = getOptimizedDataUrl(quality)
+            currentSizeKB = Math.round((dataUrl.length * 3) / 4 / 1024)
+          }
+          
+          // Si encore trop lourd, réduire les dimensions
+          if (currentSizeKB > settings.maxSizeKB) {
+            const scaleFactor = Math.sqrt(settings.maxSizeKB / currentSizeKB)
+            canvas.width = Math.floor(width * scaleFactor)
+            canvas.height = Math.floor(height * scaleFactor)
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height)
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+            
+            dataUrl = getOptimizedDataUrl(Math.max(quality, 0.6))
+            currentSizeKB = Math.round((dataUrl.length * 3) / 4 / 1024)
           }
           
           const result = {
             url: dataUrl,
-            mimeType: 'image/jpeg',
             originalSize: file.size,
-            compressedSize: Math.round(dataUrl.length / 1.37), // Estimation taille réelle
-            compressionRatio: Math.round((1 - (dataUrl.length / 1.37) / file.size) * 100),
-            width,
-            height,
-            quality: currentQuality
+            compressedSize: currentSizeKB * 1024,
+            compressionRatio: ((file.size - (currentSizeKB * 1024)) / file.size * 100).toFixed(1),
+            dimensions: {
+              width: canvas.width,
+              height: canvas.height,
+              originalWidth: img.width,
+              originalHeight: img.height
+            },
+            quality: quality,
+            mimeType: `image/${settings.format}`,
+            isMobile,
+            isAndroid,
+            processingTime: Date.now()
           }
           
-          logDebug('Image processed successfully', result)
           resolve(result)
-        } catch (canvasError) {
-          logError('Canvas processing error', canvasError)
-          reject(canvasError)
+        } catch (error) {
+          reject(new Error(`Erreur lors du traitement de l'image: ${error.message}`))
         }
       }
       
-      img.onerror = (error) => {
-        logError('Image load error', error)
-        reject(new Error('Failed to load image'))
+      img.onerror = () => {
+        reject(new Error('Erreur lors du chargement de l\'image'))
       }
       
-      img.src = URL.createObjectURL(file)
-    } catch (error) {
-      logError('Image processing setup error', error)
-      reject(error)
+      img.src = event.target.result
     }
+    
+    reader.onerror = () => {
+      reject(new Error('Erreur lors de la lecture du fichier'))
+    }
+    
+    reader.readAsDataURL(file)
   })
 }
 
@@ -694,4 +758,50 @@ export async function uploadImageToSupabaseAndGetUrl(fileOrDataUrl, filename = n
   });
   
   return await processImageForDirectStorage(fileOrDataUrl, filename);
+}
+
+/**
+ * Specific function to detect and process HEIC/HEIF formats on Android
+ * @param {File} file - Image file
+ * @returns {Promise<string>} - URL to the processed image
+ */
+export async function processHeicImage(file) {
+  try {
+    // Vérifier si le format HEIC est supporté
+    if (!isHEICSupported()) {
+      throw new Error('HEIC format not supported on this device')
+    }
+    
+    // Convertir HEIC en JPEG pour compatibilité
+    const processed = await processImageToUrl(file, {
+      maxWidth: 1200,
+      maxHeight: 800,
+      quality: 0.9,
+      maxSizeKB: 500,
+      format: 'jpeg'
+    })
+    
+    return processed.url
+  } catch (error) {
+    logError('Error processing HEIC image', error)
+    throw error
+  }
+}
+
+/**
+ * Check if HEIC format is supported
+ * @returns {boolean} - True if HEIC is supported
+ */
+export function isHEICSupported() {
+  const canvas = document.createElement('canvas')
+  const ctx = canvas.getContext('2d')
+  
+  // Test basique de support
+  try {
+    const testImg = new Image()
+    testImg.src = 'data:image/heic;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGBobHB0eH/xAAUAQEAAAAAAAAAAAAAAAAAAAAA/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8A0XqFoOaOqmOjw7QUlNnbMY9IiHkfR3X/2Q=='
+    return false
+  } catch {
+    return false
+  }
 }

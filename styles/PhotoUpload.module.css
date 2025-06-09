@@ -378,3 +378,257 @@
     height: 120px;
   }
 }
+
+/* Optimisations spécifiques pour mobile/Android */
+.mobileOptimized {
+  padding: 0;
+  margin: 0;
+}
+
+.mobileUploadZone {
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  border-radius: 1rem;
+  padding: 2rem 1.5rem;
+  text-align: center;
+  border: 2px solid transparent;
+  position: relative;
+  overflow: hidden;
+}
+
+.mobileUploadZone::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, 
+    rgba(59, 130, 246, 0.1) 0%, 
+    rgba(16, 185, 129, 0.1) 50%, 
+    rgba(245, 158, 11, 0.1) 100%);
+  z-index: 0;
+}
+
+.mobileActions {
+  position: relative;
+  z-index: 1;
+}
+
+.mobileHeader {
+  margin-bottom: 2rem;
+}
+
+.mobileHeader h3 {
+  color: #1e293b;
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0.5rem 0;
+}
+
+.mobileHeader p {
+  color: #64748b;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.mobileButtons {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin: 2rem 0;
+}
+
+.mobileBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  border: none;
+  border-radius: 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-height: 60px;
+  position: relative;
+  overflow: hidden;
+}
+
+.mobileBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.cameraBtn {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+}
+
+.cameraBtn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 35px rgba(59, 130, 246, 0.5);
+}
+
+.galleryBtn {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+}
+
+.galleryBtn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 35px rgba(16, 185, 129, 0.5);
+}
+
+.btnIcon {
+  font-size: 1.25rem;
+}
+
+.btnText {
+  font-weight: 600;
+}
+
+.mobileTips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.mobileTips span {
+  background: rgba(255, 255, 255, 0.9);
+  color: #475569;
+  padding: 0.5rem 0.875rem;
+  border-radius: 1rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+/* Grille photos adaptée mobile */
+.mobileGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.mobilePhotoItem {
+  position: relative;
+  border-radius: 1rem;
+  overflow: hidden;
+  background: white;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.mobilePhotoItem .photo {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+}
+
+.mobileRemoveBtn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(239, 68, 68, 0.9);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+}
+
+.mobileBadge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: rgba(59, 130, 246, 0.9);
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  backdrop-filter: blur(4px);
+}
+
+/* Améliorations tactiles pour mobile */
+@media (max-width: 768px) {
+  .mobileBtn {
+    padding: 1.25rem 1.5rem;
+    min-height: 70px;
+    font-size: 1.1rem;
+  }
+  
+  .mobileUploadZone {
+    padding: 1.5rem 1rem;
+  }
+  
+  .mobileButtons {
+    gap: 1.25rem;
+  }
+  
+  .mobileGrid {
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 0.75rem;
+  }
+  
+  .mobilePhotoItem .photo {
+    height: 120px;
+  }
+  
+  /* Amélioration de la zone tactile sur très petits écrans */
+  .mobileRemoveBtn {
+    width: 36px;
+    height: 36px;
+    font-size: 1.1rem;
+  }
+}
+
+/* Support pour les très petits écrans (smartphones en mode portrait) */
+@media (max-width: 480px) {
+  .mobileButtons {
+    gap: 1rem;
+  }
+  
+  .mobileBtn {
+    padding: 1rem;
+    min-height: 60px;
+    font-size: 1rem;
+  }
+  
+  .mobileTips {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .mobileGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Animation pour les interactions tactiles */
+.mobileBtn:active {
+  transform: scale(0.98);
+}
+
+.mobilePhotoItem:active {
+  transform: scale(0.98);
+}
+
+/* Support pour les appareils avec encoche */
+@supports (padding: max(0px)) {
+  .mobileUploadZone {
+    padding-left: max(1.5rem, env(safe-area-inset-left));
+    padding-right: max(1.5rem, env(safe-area-inset-right));
+  }
+}
