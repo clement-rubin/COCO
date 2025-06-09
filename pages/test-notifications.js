@@ -57,6 +57,10 @@ export default function TestNotifications() {
   const testBasicNotification = async (forceFallback = false) => {
     setIsLoading(true)
     try {
+      // Log de diagnostic avant le test
+      const status = notificationManager.getPermissionStatus()
+      addToLog('diagnostic', `État avant test: ${JSON.stringify(status)}`, { success: true })
+      
       const result = await notificationManager.show(
         NOTIFICATION_TYPES.SYSTEM,
         'Test de notification basique',
@@ -165,6 +169,31 @@ export default function TestNotifications() {
     setNotificationLog([])
   }
 
+  const testPermissionDiagnostic = async () => {
+    setIsLoading(true)
+    try {
+      const status = notificationManager.getPermissionStatus()
+      addToLog('diagnostic', 'État détaillé des permissions', status)
+      
+      // Test de création directe d'une notification
+      if (status.isGranted && typeof window !== 'undefined') {
+        try {
+          const testNotif = new Notification('Test direct', {
+            body: 'Test de création directe',
+            icon: '/icons/coco-icon-96.png'
+          })
+          testNotif.close()
+          addToLog('diagnostic', 'Création directe réussie', { success: true })
+        } catch (error) {
+          addToLog('diagnostic', 'Échec création directe', { success: false, error: error.message })
+        }
+      }
+    } catch (error) {
+      addToLog('diagnostic', 'Erreur diagnostic', { success: false, error: error.message })
+    }
+    setIsLoading(false)
+  }
+
   const getPermissionStatusColor = () => {
     switch (permissionStatus.permission) {
       case 'granted': return 'text-green-600'
@@ -176,9 +205,9 @@ export default function TestNotifications() {
   const getPermissionStatusText = () => {
     if (!permissionStatus.supported) return 'Non supporté'
     switch (permissionStatus.permission) {
-      case 'granted': return 'Accordé'
-      case 'denied': return 'Refusé'
-      default: return 'En attente'
+      case 'granted': return 'Accordé ✅'
+      case 'denied': return 'Refusé ❌'
+      default: return 'En attente ⏳'
     }
   }
 
@@ -199,7 +228,7 @@ export default function TestNotifications() {
           {/* Status Card */}
           <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
             <h2 className="text-xl font-semibold mb-4">📊 Statut des Notifications</h2>
-            <div className="grid md:grid-cols-3 gap-4">
+            <div className="grid md:grid-cols-4 gap-4">
               <div className="text-center">
                 <div className="text-2xl mb-2">
                   {permissionStatus.supported ? '✅' : '❌'}
@@ -223,6 +252,17 @@ export default function TestNotifications() {
                   {typeof window !== 'undefined' ? 'Client' : 'Serveur'}
                 </div>
               </div>
+              <div className="text-center">
+                <div className="text-2xl mb-2">🔍</div>
+                <div className="font-medium">Diagnostic</div>
+                <button
+                  onClick={testPermissionDiagnostic}
+                  disabled={isLoading}
+                  className="text-sm bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded transition-colors disabled:opacity-50"
+                >
+                  Tester
+                </button>
+              </div>
             </div>
             
             {permissionStatus.canRequest && (
@@ -236,6 +276,14 @@ export default function TestNotifications() {
                 </button>
               </div>
             )}
+
+            {/* Détails de debugging */}
+            <div className="mt-4 p-3 bg-gray-50 rounded text-xs">
+              <strong>Debug Info:</strong>
+              <div>Navigator: {typeof navigator !== 'undefined' ? navigator.userAgent.substring(0, 80) + '...' : 'N/A'}</div>
+              <div>Notification API: {typeof window !== 'undefined' && 'Notification' in window ? 'Disponible' : 'Non disponible'}</div>
+              <div>Permission actuelle: {typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'N/A'}</div>
+            </div>
           </div>
 
           <div className="grid lg:grid-cols-2 gap-8">

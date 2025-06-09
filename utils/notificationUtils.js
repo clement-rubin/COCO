@@ -62,6 +62,7 @@ class NotificationManager {
     this.permission = 'default'
     this.activeNotifications = new Map()
     this.fallbackContainer = null
+    this.isInitialized = false
     
     // Only initialize in browser environment
     if (typeof window !== 'undefined') {
@@ -78,15 +79,19 @@ class NotificationManager {
     // Vérifier le support des notifications
     if (!('Notification' in window)) {
       logInfo('Notifications not supported in this browser')
+      this.isInitialized = true
       return
     }
 
+    // Mettre à jour la permission actuelle
     this.permission = Notification.permission
     this.createFallbackContainer()
+    this.isInitialized = true
     
     logInfo('NotificationManager initialized', {
       permission: this.permission,
-      supported: true
+      supported: true,
+      userAgent: navigator.userAgent.substring(0, 100)
     })
   }
 
@@ -111,24 +116,32 @@ class NotificationManager {
 
   async requestPermission() {
     if (typeof window === 'undefined' || !('Notification' in window)) {
+      logInfo('Cannot request permission: not in browser or unsupported')
       return 'denied'
     }
 
     if (this.permission === 'granted') {
+      logInfo('Permission already granted')
       return 'granted'
     }
 
     try {
-      this.permission = await Notification.requestPermission()
+      logInfo('Requesting notification permission...')
+      
+      // Forcer la demande même si la permission est 'default'
+      const result = await Notification.requestPermission()
+      this.permission = result
       
       logInfo('Notification permission requested', {
         result: this.permission,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        wasDefault: Notification.permission === 'default'
       })
 
       return this.permission
     } catch (error) {
       logError('Error requesting notification permission', error)
+      this.permission = 'denied'
       return 'denied'
     }
   }
@@ -138,6 +151,10 @@ class NotificationManager {
     if (typeof window === 'undefined') {
       logInfo('Notification attempted in non-browser environment', { type, title })
       return { success: false, id: null, type: 'skipped' }
+    }
+
+    if (!this.isInitialized) {
+      await this.init()
     }
 
     const config = NOTIFICATION_CONFIG[type] || NOTIFICATION_CONFIG[NOTIFICATION_TYPES.SYSTEM]
@@ -153,22 +170,45 @@ class NotificationManager {
       ...options
     }
 
+    logInfo('Attempting to show notification', {
+      type,
+      title,
+      requiresPermission: config.requirePermission,
+      currentPermission: this.permission,
+      forceFallback: options.forceFallback,
+      notificationSupported: 'Notification' in window
+    })
+
     // Vérifier si les permissions sont requises
-    if (config.requirePermission && this.permission !== 'granted') {
-      const permission = await this.requestPermission()
-      if (permission !== 'granted') {
-        return this.showFallback(notificationData)
+    if (config.requirePermission) {
+      if (this.permission !== 'granted') {
+        logInfo('Permission required but not granted, requesting...')
+        const permission = await this.requestPermission()
+        if (permission !== 'granted') {
+          logInfo('Permission denied, using fallback', { permission })
+          return this.showFallback(notificationData)
+        }
       }
     }
 
-    // Essayer d'afficher une notification native
-    if (this.permission === 'granted' && !options.forceFallback) {
+    // Essayer d'afficher une notification native si les conditions sont réunies
+    if (this.permission === 'granted' && !options.forceFallback && 'Notification' in window) {
       try {
+        logInfo('Attempting native notification', {
+          permission: this.permission,
+          title: notificationData.title
+        })
         return await this.showNative(notificationData, config)
       } catch (error) {
         logError('Failed to show native notification, falling back', error)
         return this.showFallback(notificationData)
       }
+    } else {
+      logInfo('Using fallback notification', {
+        permission: this.permission,
+        forceFallback: options.forceFallback,
+        notificationSupported: 'Notification' in window
+      })
     }
 
     // Utiliser le fallback
@@ -177,36 +217,88 @@ class NotificationManager {
 
   async showNative(notificationData, config) {
     try {
-      const notification = new Notification(notificationData.title, {
+      logInfo('Creating native notification', {
+        title: notificationData.title,
+        body: notificationData.body,
+        permission: this.permission
+      })
+
+      // Vérifier une dernière fois la permission
+      if (Notification.permission !== 'granted') {
+        throw new Error(`Permission not granted: ${Notification.permission}`)
+      }
+
+      const notificationOptions = {
         body: notificationData.body,
         icon: notificationData.image || '/icons/coco-icon-96.png',
         badge: '/icons/coco-badge.png',
-        tag: notificationData.type,
+        tag: `coco-${notificationData.type}-${Date.now()}`, // Tag unique pour éviter le remplacement
         requireInteraction: config.persistent,
         silent: !config.sound,
-        data: notificationData.data
-      })
+        data: notificationData.data,
+        // Ajouter d'autres options pour améliorer la compatibilité
+        dir: 'auto',
+        lang: 'fr',
+        vibrate: config.sound ? [200, 100, 200] : undefined
+      }
+
+      logInfo('Native notification options', notificationOptions)
+
+      const notification = new Notification(notificationData.title, notificationOptions)
+
+      // Log des événements de la notification
+      notification.onshow = () => {
+        logInfo('Native notification shown successfully', {
+          id: notificationData.id,
+          type: notificationData.type
+        })
+      }
+
+      notification.onerror = (error) => {
+        logError('Native notification error', error, {
+          id: notificationData.id,
+          type: notificationData.type
+        })
+      }
+
+      notification.onclose = () => {
+        logInfo('Native notification closed', {
+          id: notificationData.id,
+          type: notificationData.type
+        })
+        this.activeNotifications.delete(notificationData.id)
+      }
 
       // Gérer les clics
-      notification.onclick = () => {
+      notification.onclick = (event) => {
+        logInfo('Native notification clicked', {
+          id: notificationData.id,
+          type: notificationData.type
+        })
         window.focus()
         this.handleNotificationClick(notificationData)
         notification.close()
       }
 
-      // Auto-fermeture
+      // Auto-fermeture pour les notifications non persistantes
       if (!config.persistent) {
         setTimeout(() => {
-          notification.close()
+          if (notification) {
+            logInfo('Auto-closing native notification', {
+              id: notificationData.id
+            })
+            notification.close()
+          }
         }, 5000)
       }
 
       this.activeNotifications.set(notificationData.id, notification)
       
-      logInfo('Native notification shown', {
+      logInfo('Native notification created and stored', {
         id: notificationData.id,
         type: notificationData.type,
-        title: notificationData.title
+        title: notificationData.title,
+        activeCount: this.activeNotifications.size
       })
 
       return {
@@ -215,7 +307,11 @@ class NotificationManager {
         type: 'native'
       }
     } catch (error) {
-      logError('Error showing native notification', error)
+      logError('Error creating native notification', error, {
+        title: notificationData.title,
+        permission: Notification.permission,
+        supported: 'Notification' in window
+      })
       throw error
     }
   }
@@ -371,10 +467,15 @@ class NotificationManager {
   }
 
   getPermissionStatus() {
+    const supported = typeof window !== 'undefined' && 'Notification' in window
+    const permission = typeof window !== 'undefined' ? Notification.permission : 'default'
+    
     return {
-      supported: typeof window !== 'undefined' && 'Notification' in window,
-      permission: typeof window !== 'undefined' ? this.permission : 'default',
-      canRequest: typeof window !== 'undefined' && this.permission === 'default'
+      supported,
+      permission,
+      canRequest: supported && permission === 'default',
+      isGranted: supported && permission === 'granted',
+      isDenied: supported && permission === 'denied'
     }
   }
 }
