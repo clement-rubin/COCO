@@ -244,6 +244,7 @@ export default function RecipeDetail() {
     setLoadingComments(true)
     try {
       const response = await fetch(`/api/comments?recipe_id=${id}`)
+      
       if (response.ok) {
         const commentsData = await response.json()
         setComments(Array.isArray(commentsData) ? commentsData : [])
@@ -253,10 +254,17 @@ export default function RecipeDetail() {
           commentsCount: commentsData.length
         })
       } else {
-        logError('Failed to load comments', new Error(`HTTP ${response.status}`), { recipeId: id })
+        // Log the error but don't show it to user
+        const errorText = await response.text()
+        logError('Failed to load comments', new Error(`HTTP ${response.status}: ${errorText}`), { recipeId: id })
+        
+        // Set empty comments array instead of showing error
+        setComments([])
       }
     } catch (error) {
       logError('Error loading comments', error, { recipeId: id })
+      // Set empty comments array for graceful degradation
+      setComments([])
     } finally {
       setLoadingComments(false)
     }
@@ -290,12 +298,18 @@ export default function RecipeDetail() {
           commentLength: commentText.length
         })
       } else {
-        const errorData = await response.json()
+        const errorData = await response.json().catch(() => ({ message: 'Erreur de connexion' }))
         throw new Error(errorData.message || 'Erreur lors de l\'ajout du commentaire')
       }
     } catch (error) {
       logError('Error submitting comment', error, { recipeId: id })
-      alert('Erreur lors de l\'ajout du commentaire. Veuillez réessayer.')
+      
+      // Show user-friendly error message
+      const errorMessage = error.message.includes('Table comments') 
+        ? 'La fonctionnalité de commentaires n\'est pas encore disponible.'
+        : 'Impossible d\'ajouter le commentaire. Veuillez réessayer.'
+      
+      alert(errorMessage)
     } finally {
       setIsSubmittingComment(false)
     }

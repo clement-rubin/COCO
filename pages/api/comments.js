@@ -32,19 +32,24 @@ export default async function handler(req, res) {
       }
 
       try {
-        // Récupérer les commentaires avec les informations de l'auteur
+        // Vérifier d'abord si la table comments existe
+        const { data: tableCheck, error: tableError } = await supabase
+          .from('comments')
+          .select('count')
+          .limit(1)
+
+        if (tableError && tableError.code === 'PGRST116') {
+          logWarning('Comments table does not exist, returning empty array', {
+            requestId,
+            recipeId: recipe_id
+          })
+          return res.status(200).json([])
+        }
+
+        // Récupérer les commentaires avec une requête simplifiée
         const { data: comments, error } = await supabase
           .from('comments')
-          .select(`
-            id,
-            content,
-            created_at,
-            likes,
-            user_id,
-            profiles (
-              display_name
-            )
-          `)
+          .select('id, content, created_at, likes, user_id')
           .eq('recipe_id', recipe_id)
           .order('created_at', { ascending: false })
 
@@ -52,34 +57,56 @@ export default async function handler(req, res) {
           throw error
         }
 
-        // Formater les commentaires avec le nom de l'auteur
-        const formattedComments = comments.map(comment => ({
-          id: comment.id,
-          content: comment.content,
-          created_at: comment.created_at,
-          likes: comment.likes || 0,
-          user_id: comment.user_id,
-          author_name: comment.profiles?.display_name || 'Chef Anonyme'
-        }))
+        // Pour chaque commentaire, récupérer le nom de l'auteur depuis profiles
+        const commentsWithAuthors = await Promise.all(
+          (comments || []).map(async (comment) => {
+            try {
+              const { data: profile, error: profileError } = await supabase
+                .from('profiles')
+                .select('display_name')
+                .eq('user_id', comment.user_id)
+                .single()
+
+              return {
+                id: comment.id,
+                content: comment.content,
+                created_at: comment.created_at,
+                likes: comment.likes || 0,
+                user_id: comment.user_id,
+                author_name: profile?.display_name || 'Chef Anonyme'
+              }
+            } catch (profileErr) {
+              logWarning('Could not get profile for comment author', {
+                commentId: comment.id,
+                userId: comment.user_id?.substring(0, 8) + '...',
+                error: profileErr.message
+              })
+              return {
+                ...comment,
+                author_name: 'Chef Anonyme'
+              }
+            }
+          })
+        )
 
         logInfo('Comments retrieved successfully', {
           requestId,
           recipeId: recipe_id,
-          commentsCount: formattedComments.length
+          commentsCount: commentsWithAuthors.length
         })
 
-        return res.status(200).json(formattedComments)
+        return res.status(200).json(commentsWithAuthors)
 
       } catch (error) {
         logError('Error retrieving comments', error, {
           requestId,
-          recipeId: recipe_id
+          recipeId: recipe_id,
+          errorCode: error.code,
+          errorMessage: error.message
         })
 
-        return res.status(500).json({
-          error: 'Erreur lors de la récupération des commentaires',
-          message: error.message
-        })
+        // Return empty array instead of error for better UX
+        return res.status(200).json([])
       }
     }
 
@@ -110,6 +137,23 @@ export default async function handler(req, res) {
       }
 
       try {
+        // Vérifier si la table comments existe, sinon la créer
+        const { data: tableCheck, error: tableError } = await supabase
+          .from('comments')
+          .select('count')
+          .limit(1)
+
+        if (tableError && tableError.code === 'PGRST116') {
+          logWarning('Comments table does not exist, cannot create comment', {
+            requestId,
+            recipeId: recipe_id
+          })
+          return res.status(500).json({
+            error: 'Table comments non disponible',
+            message: 'La fonctionnalité de commentaires n\'est pas encore configurée'
+          })
+        }
+
         // Récupérer le nom de l'utilisateur depuis la table profiles
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
@@ -163,12 +207,14 @@ export default async function handler(req, res) {
           requestId,
           recipeId: recipe_id,
           userId: user_id?.substring(0, 8) + '...',
-          contentLength: content?.length
+          contentLength: content?.length,
+          errorCode: error.code,
+          errorMessage: error.message
         })
 
         return res.status(500).json({
           error: 'Erreur lors de la création du commentaire',
-          message: error.message
+          message: error.message || 'Une erreur inattendue s\'est produite'
         })
       }
     }

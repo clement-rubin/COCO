@@ -288,6 +288,23 @@ Puis rafraîchissez cette page.
     logInfo('🗨️ Test du système de commentaires...', { component: 'test-recipes' })
     
     try {
+      // Vérifier d'abord si la table comments existe
+      const tableCheckResponse = await fetch('/api/comments?recipe_id=test-check')
+      
+      if (tableCheckResponse.status === 500) {
+        logWarning('Table comments n\'existe probablement pas')
+        setTestResults(prev => ({ ...prev, comments: 'TABLE_MISSING' }))
+        
+        console.log(`
+=== TABLE COMMENTS MANQUANTE ===
+
+La table comments n'existe pas. Exécutez ce SQL dans votre dashboard Supabase :
+
+-- Voir le fichier ensure-comments-table.sql pour le script complet
+        `)
+        return
+      }
+
       // Test de création d'un commentaire de test
       const testComment = {
         recipe_id: recipes[0]?.id, // Utilise la première recette disponible
@@ -309,7 +326,7 @@ Puis rafraîchissez cette page.
       })
 
       if (!createResponse.ok) {
-        const error = await createResponse.json()
+        const error = await createResponse.json().catch(() => ({ message: 'Erreur de réponse' }))
         throw new Error(`Création commentaire échouée: ${error.message}`)
       }
 
