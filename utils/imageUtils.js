@@ -839,31 +839,3 @@ export function validateImageUrl(url) {
   
   return false
 }
-
-/**
- * Enhanced image data processor with better validation
- * @param {any} imageData - Raw image data from database
- * @param {string} fallbackUrl - Fallback URL if processing fails
- * @returns {string} Processed image URL
- */
-export function processImageData(imageData, fallbackUrl = '/placeholder-recipe.jpg') {
-  try {
-    let processedUrl = fallbackUrl
-    
-    if (typeof imageData === 'string') {
-      if (validateImageUrl(imageData)) {
-        processedUrl = imageData
-      }
-    } else if (Array.isArray(imageData) && imageData.length > 0) {
-      const firstImage = imageData[0]
-      if (typeof firstImage === 'string' && validateImageUrl(firstImage)) {
-        processedUrl = firstImage
-      }
-    }
-    
-    return processedUrl
-  } catch (error) {
-    console.error('Error in processImageData:', error)
-    return fallbackUrl
-  }
-}
