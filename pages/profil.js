@@ -2,10 +2,12 @@ import Head from 'next/head'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { useAuth } from '../components/AuthContext'
+import Layout from '../components/Layout'
 import TrophySection from '../components/TrophySection'
 import { logUserInteraction, logError, logInfo } from '../utils/logger'
 import { getUserStatsComplete, updateProfileWithTrophySync } from '../utils/profileUtils'
 import { checkTrophiesAfterProfileUpdate } from '../utils/trophyUtils'
+import styles from '../styles/Profile.module.css'
 
 export default function Profil() {
   const router = useRouter()
@@ -204,6 +206,10 @@ export default function Profil() {
     return Math.round((completedFields.length / fields.length) * 100)
   }
 
+  const handleViewAllRecipes = () => {
+    router.push('/mes-recettes')
+  }
+
   // Redirect to login if not authenticated
   if (authLoading) {
     return null
@@ -216,1729 +222,470 @@ export default function Profil() {
 
   if (loading) {
     return (
-      <div style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #bae6fd 100%)'
-      }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{
-            width: '80px',
-            height: '80px',
-            border: '4px solid rgba(59, 130, 246, 0.2)',
-            borderTop: '4px solid #3b82f6',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite',
-            margin: '0 auto 24px'
-          }} />
-          <p style={{ 
-            color: '#1e40af', 
-            fontSize: '1.1rem', 
-            fontWeight: '600',
-            margin: 0
-          }}>
-            Chargement de votre profil...
-          </p>
+      <Layout>
+        <div className={styles.loadingContainer}>
+          <div className={styles.loadingIcon}>🍳</div>
+          <div className={styles.loadingText}>Chargement de votre profil...</div>
         </div>
-      </div>
+      </Layout>
     )
   }
 
   if (error) {
     return (
-      <div style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 50%, #fecaca 100%)'
-      }}>
-        <div style={{ 
-          textAlign: 'center',
-          background: 'white',
-          padding: '3rem 2rem',
-          borderRadius: '20px',
-          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
-          maxWidth: '400px',
-          margin: '0 20px'
-        }}>
-          <div style={{ 
-            fontSize: '4rem', 
-            marginBottom: '1.5rem',
-            filter: 'grayscale(0.3)'
-          }}>😓</div>
-          <h2 style={{
-            color: '#dc2626',
-            fontSize: '1.3rem',
-            fontWeight: '700',
-            margin: '0 0 1rem 0'
-          }}>
-            Oups ! Une erreur s'est produite
-          </h2>
-          <p style={{
-            color: '#7f1d1d',
-            margin: '0 0 2rem 0',
-            lineHeight: '1.5'
-          }}>
-            {error}
-          </p>
+      <Layout>
+        <div className={styles.errorContainer}>
+          <div className={styles.errorIcon}>😓</div>
+          <h2 className={styles.errorTitle}>Oups ! Une erreur s'est produite</h2>
+          <p className={styles.errorMessage}>{error}</p>
           <button 
             onClick={loadUserProfile}
-            style={{
-              background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-              color: 'white',
-              border: 'none',
-              padding: '12px 24px',
-              borderRadius: '12px',
-              cursor: 'pointer',
-              fontSize: '1rem',
-              fontWeight: '600',
-              transition: 'all 0.3s ease',
-              boxShadow: '0 4px 15px rgba(239, 68, 68, 0.3)'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.transform = 'translateY(-2px)'
-              e.target.style.boxShadow = '0 8px 25px rgba(239, 68, 68, 0.4)'
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.transform = 'translateY(0)'
-              e.target.style.boxShadow = '0 4px 15px rgba(239, 68, 68, 0.3)'
-            }}
+            className={`btn btn-primary ${styles.retryBtn}`}
           >
             🔄 Réessayer
           </button>
         </div>
-      </div>
-    )
-  }
-
-  // Enhanced form with validation feedback
-  const renderEditForm = () => (
-    <div style={{
-      background: 'linear-gradient(135deg, #f8fafc, #f1f5f9)',
-      border: '2px solid #e2e8f0',
-      borderRadius: '20px',
-      padding: '2rem',
-      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
-      position: 'relative'
-    }}>
-      {/* Profile Completeness Indicator */}
-      <div style={{
-        marginBottom: '2rem',
-        padding: '1rem',
-        background: 'white',
-        borderRadius: '12px',
-        border: '2px solid #e2e8f0'
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-          <span style={{ fontWeight: '600', color: '#374151' }}>Complétude du profil</span>
-          <span style={{ fontWeight: '700', color: '#667eea' }}>
-            {calculateProfileCompleteness(editForm)}%
-          </span>
-        </div>
-        <div style={{
-          width: '100%',
-          height: '8px',
-          background: '#e5e7eb',
-          borderRadius: '4px',
-          overflow: 'hidden'
-        }}>
-          <div style={{
-            width: `${calculateProfileCompleteness(editForm)}%`,
-            height: '100%',
-            background: 'linear-gradient(90deg, #667eea, #764ba2)',
-            transition: 'width 0.3s ease',
-            borderRadius: '4px'
-          }} />
-        </div>
-      </div>
-
-      {/* Success Message */}
-      {saveSuccess && (
-        <div style={{
-          background: 'linear-gradient(135deg, #d1fae5, #a7f3d0)',
-          border: '2px solid #10b981',
-          borderRadius: '12px',
-          padding: '1rem',
-          marginBottom: '1.5rem',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          animation: 'slideIn 0.3s ease'
-        }}>
-          <span style={{ fontSize: '1.2rem' }}>✅</span>
-          <span style={{ color: '#065f46', fontWeight: '600' }}>
-            Profil mis à jour avec succès !
-          </span>
-        </div>
-      )}
-
-      {/* Form fields with enhanced validation */}
-      {[{
-        key: 'display_name',
-        label: 'Nom d\'affichage',
-        type: 'text',
-        icon: '👤',
-        required: true,
-        maxLength: 30
-      },
-      {
-        key: 'bio',
-        label: 'Biographie',
-        type: 'textarea',
-        icon: '📝',
-        maxLength: 500
-      },
-      {
-        key: 'location',
-        label: 'Localisation',
-        type: 'text',
-        icon: '📍'
-      },
-      {
-        key: 'website',
-        label: 'Site web',
-        type: 'url',
-        icon: '🌐'
-      },
-      {
-        key: 'date_of_birth',
-        label: 'Date de naissance',
-        type: 'date',
-        icon: '🎂'
-      },
-      {
-        key: 'phone',
-        label: 'Téléphone',
-        type: 'tel',
-        icon: '📞'
-      }].map((field) => (
-        <div key={field.key} style={{ marginBottom: '1.5rem' }}>
-          <label style={{ 
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            marginBottom: '8px', 
-            fontWeight: '600',
-            color: '#374151'
-          }}>
-            <span>{field.icon}</span>
-            {field.label}
-            {field.required && <span style={{ color: '#ef4444' }}>*</span>}
-            {field.maxLength && (
-              <span style={{ 
-                fontSize: '0.8rem', 
-                color: '#6b7280',
-                marginLeft: 'auto' 
-              }}>
-                {editForm[field.key]?.length || 0}/{field.maxLength}
-              </span>
-            )}
-          </label>
-          {field.type === 'textarea' ? (
-            <textarea
-              value={editForm[field.key]}
-              onChange={(e) => {
-                setEditForm(prev => ({ ...prev, [field.key]: e.target.value }))
-                if (validationErrors[field.key]) {
-                  setValidationErrors(prev => ({ ...prev, [field.key]: undefined }))
-                }
-              }}
-              maxLength={field.maxLength}
-              style={{
-                width: '100%',
-                padding: '12px 16px',
-                border: `2px solid ${validationErrors[field.key] ? '#ef4444' : '#e5e7eb'}`,
-                borderRadius: '12px',
-                fontSize: '1rem',
-                minHeight: '100px',
-                resize: 'vertical',
-                fontFamily: 'inherit',
-                transition: 'border-color 0.3s ease',
-                background: 'white'
-              }}
-              onFocus={(e) => e.target.style.borderColor = validationErrors[field.key] ? '#ef4444' : '#3b82f6'}
-              onBlur={(e) => e.target.style.borderColor = validationErrors[field.key] ? '#ef4444' : '#e5e7eb'}
-              placeholder={`Votre ${field.label.toLowerCase()}...`}
-            />
-          ) : (
-            <input
-              type={field.type}
-              value={editForm[field.key]}
-              onChange={(e) => {
-                setEditForm(prev => ({ ...prev, [field.key]: e.target.value }))
-                if (validationErrors[field.key]) {
-                  setValidationErrors(prev => ({ ...prev, [field.key]: undefined }))
-                }
-              }}
-              maxLength={field.maxLength}
-              style={{
-                width: '100%',
-                padding: '12px 16px',
-                border: `2px solid ${validationErrors[field.key] ? '#ef4444' : '#e5e7eb'}`,
-                borderRadius: '12px',
-                fontSize: '1rem',
-                transition: 'border-color 0.3s ease',
-                background: 'white'
-              }}
-              onFocus={(e) => e.target.style.borderColor = validationErrors[field.key] ? '#ef4444' : '#3b82f6'}
-              onBlur={(e) => e.target.style.borderColor = validationErrors[field.key] ? '#ef4444' : '#e5e7eb'}
-              placeholder={`Votre ${field.label.toLowerCase()}...`}
-            />
-          )}
-          {validationErrors[field.key] && (
-            <div style={{
-              color: '#ef4444',
-              fontSize: '0.8rem',
-              marginTop: '4px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px'
-            }}>
-              <span>⚠️</span>
-              {validationErrors[field.key]}
-            </div>
-          )}
-        </div>
-      ))}
-
-      {/* Enhanced privacy toggle */}
-      <div style={{ marginBottom: '2rem' }}>
-        <label style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: '12px',
-          fontWeight: '600',
-          color: '#374151',
-          cursor: 'pointer',
-          padding: '16px',
-          background: 'white',
-          borderRadius: '12px',
-          border: '2px solid #e5e7eb',
-          transition: 'all 0.3s ease'
-        }}
-        onMouseEnter={(e) => e.target.style.borderColor = '#3b82f6'}
-        onMouseLeave={(e) => e.target.style.borderColor = '#e5e7eb'}
-        >
-          <input
-            type="checkbox"
-            checked={editForm.is_private}
-            onChange={(e) => setEditForm(prev => ({ ...prev, is_private: e.target.checked }))}
-            style={{ 
-              transform: 'scale(1.5)',
-              accentColor: '#3b82f6'
-            }}
-          />
-          <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span>🔒</span>
-              Profil privé
-              {editForm.is_private && (
-                <span style={{
-                  background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                  color: 'white',
-                  padding: '2px 8px',
-                  borderRadius: '8px',
-                  fontSize: '0.7rem',
-                  fontWeight: '600'
-                }}>
-                  PRIVÉ
-                </span>
-              )}
-            </div>
-            <div style={{ 
-              fontSize: '0.85rem', 
-              color: '#6b7280',
-              marginTop: '4px',
-              lineHeight: '1.4'
-            }}>
-              {editForm.is_private 
-                ? 'Seuls vos amis peuvent voir votre profil complet' 
-                : 'Votre profil est visible par tous les utilisateurs'
-              }
-            </div>
-          </div>
-        </label>
-      </div>
-
-      {/* Enhanced save button */}
-      <button
-        onClick={handleSaveProfile}
-        disabled={loading}
-        style={{
-          background: loading 
-            ? 'linear-gradient(135deg, #94a3b8, #64748b)' 
-            : 'linear-gradient(135deg, #10b981, #059669)',
-          color: 'white',
-          border: 'none',
-          padding: '16px 32px',
-          borderRadius: '16px',
-          cursor: loading ? 'not-allowed' : 'pointer',
-          fontSize: '1.1rem',
-          fontWeight: '700',
-          width: '100%',
-          boxShadow: loading 
-            ? 'none' 
-            : '0 4px 20px rgba(16, 185, 129, 0.3)',
-          transition: 'all 0.3s ease',
-          position: 'relative',
-          overflow: 'hidden'
-        }}
-        onMouseEnter={(e) => {
-          if (!loading) {
-            e.target.style.transform = 'translateY(-2px)'
-            e.target.style.boxShadow = '0 8px 30px rgba(16, 185, 129, 0.4)'
-          }
-        }}
-        onMouseLeave={(e) => {
-          if (!loading) {
-            e.target.style.transform = 'translateY(0)'
-            e.target.style.boxShadow = '0 4px 20px rgba(16, 185, 129, 0.3)'
-          }
-        }}
-      >
-        {loading ? (
-          <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-            <div style={{
-              width: '16px',
-              height: '16px',
-              border: '2px solid rgba(255, 255, 255, 0.3)',
-              borderTop: '2px solid white',
-              borderRadius: '50%',
-              animation: 'spin 1s linear infinite'
-            }} />
-            Sauvegarde en cours...
-          </span>
-        ) : (
-          '💾 Sauvegarder les modifications'
-        )}
-      </button>
-    </div>
-  )
-
-  // Replace the existing form rendering with the enhanced version
-  if (activeTab === 'info' && isEditing) {
-    return (
-      <div style={{ 
-        maxWidth: '500px', 
-        margin: '0 auto',
-        opacity: 1,
-        animation: 'fadeIn 0.5s ease'
-      }}>
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '1.5rem'
-        }}>
-          <h2 style={{ 
-            margin: 0, 
-            color: '#1f2937',
-            fontSize: '1.5rem',
-            fontWeight: '700'
-          }}>
-            Modifier mon profil
-          </h2>
-          <button
-            onClick={() => {
-              setIsEditing(false)
-              setValidationErrors({})
-              setSaveSuccess(false)
-            }}
-            style={{
-              background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-              color: 'white',
-              border: 'none',
-              padding: '10px 20px',
-              borderRadius: '12px',
-              cursor: 'pointer',
-              fontSize: '0.9rem',
-              fontWeight: '600',
-              transition: 'all 0.3s ease',
-              boxShadow: '0 4px 15px rgba(239, 68, 68, 0.3)'
-            }}
-          >
-            ❌ Annuler
-          </button>
-        </div>
-        {renderEditForm()}
-      </div>
+      </Layout>
     )
   }
 
   return (
-    <div style={{ 
-      minHeight: '100vh', 
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
-      position: 'relative',
-      overflow: 'hidden'
-    }}>
-      <Head>
-        <title>Mon Profil - COCO</title>
-        <meta name="description" content="Gérez votre profil sur COCO" />
-      </Head>
+    <Layout>
+      <div className={styles.container}>
+        <Head>
+          <title>Mon Profil - COCO</title>
+          <meta name="description" content="Gérez votre profil sur COCO" />
+        </Head>
 
-      {/* Enhanced Decorative Background Elements */}
-      <div style={{
-        position: 'fixed',
-        top: '10%',
-        left: '-15%',
-        width: '400px',
-        height: '400px',
-        background: 'radial-gradient(circle, rgba(240, 147, 251, 0.2) 0%, rgba(102, 126, 234, 0.1) 50%, transparent 70%)',
-        borderRadius: '50%',
-        pointerEvents: 'none',
-        zIndex: 0,
-        animation: 'float 8s ease-in-out infinite'
-      }} />
-      <div style={{
-        position: 'fixed',
-        bottom: '5%',
-        right: '-10%',
-        width: '350px',
-        height: '350px',
-        background: 'radial-gradient(circle, rgba(118, 75, 162, 0.15) 0%, rgba(16, 185, 129, 0.08) 50%, transparent 70%)',
-        borderRadius: '50%',
-        pointerEvents: 'none',
-        zIndex: 0,
-        animation: 'float 10s ease-in-out infinite reverse'
-      }} />
-      
-      {/* Geometric decorative elements */}
-      <div style={{
-        position: 'fixed',
-        top: '30%',
-        right: '5%',
-        width: '0',
-        height: '0',
-        borderLeft: '40px solid transparent',
-        borderRight: '40px solid transparent',
-        borderBottom: '60px solid rgba(255, 255, 255, 0.1)',
-        pointerEvents: 'none',
-        zIndex: 0,
-        animation: 'rotate 15s linear infinite'
-      }} />
-      <div style={{
-        position: 'fixed',
-        bottom: '20%',
-        left: '8%',
-        width: '60px',
-        height: '60px',
-        background: 'rgba(255, 255, 255, 0.08)',
-        transform: 'rotate(45deg)',
-        pointerEvents: 'none',
-        zIndex: 0,
-        animation: 'pulse 4s ease-in-out infinite'
-      }} />
-
-      {/* Ultra Enhanced Header */}
-      <section style={{
-        background: 'rgba(255, 255, 255, 0.98)',
-        backdropFilter: 'blur(30px)',
-        padding: '4rem 1rem 3rem',
-        textAlign: 'center',
-        border: '1px solid rgba(255, 255, 255, 0.4)',
-        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.8) inset',
-        position: 'relative',
-        zIndex: 1,
-        borderRadius: '0 0 3rem 3rem',
-        margin: '0 1rem'
-      }}>
-        {/* Animated top border */}
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: '6px',
-          background: 'linear-gradient(90deg, #667eea, #f093fb, #764ba2, #667eea)',
-          backgroundSize: '300% 100%',
-          animation: 'gradientShift 4s ease-in-out infinite',
-          borderRadius: '0 0 3rem 3rem'
-        }} />
-
-        {/* Avatar with revolutionary styling */}
-        <div style={{
-          position: 'relative',
-          display: 'inline-block',
-          marginBottom: '2rem'
-        }}>
-          {/* Outer glow rings */}
-          <div style={{
-            position: 'absolute',
-            inset: '-30px',
-            borderRadius: '50%',
-            background: 'conic-gradient(from 0deg, #667eea, #f093fb, #764ba2, #667eea)',
-            opacity: 0.3,
-            animation: 'rotate 8s linear infinite',
-            filter: 'blur(20px)'
-          }} />
-          <div style={{
-            position: 'absolute',
-            inset: '-20px',
-            borderRadius: '50%',
-            background: 'conic-gradient(from 180deg, #764ba2, #667eea, #f093fb, #764ba2)',
-            opacity: 0.4,
-            animation: 'rotate 6s linear infinite reverse',
-            filter: 'blur(15px)'
-          }} />
-          
-          <div style={{
-            width: '160px',
-            height: '160px',
-            borderRadius: '50%',
-            background: 'linear-gradient(135deg, #667eea 0%, #f093fb 50%, #764ba2 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto',
-            color: 'white',
-            fontSize: '4.5rem',
-            fontWeight: 'bold',
-            boxShadow: '0 25px 50px rgba(102, 126, 234, 0.4), 0 0 0 8px rgba(255, 255, 255, 1)',
-            border: '4px solid rgba(255, 255, 255, 0.9)',
-            position: 'relative',
-            overflow: 'hidden',
-            cursor: 'pointer',
-            transition: 'all 0.6s cubic-bezier(0.16, 1, 0.3, 1)'
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.transform = 'scale(1.1) rotateY(15deg)'
-            e.target.style.boxShadow = '0 35px 70px rgba(102, 126, 234, 0.6), 0 0 0 12px rgba(255, 255, 255, 1)'
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.transform = 'scale(1) rotateY(0deg)'
-            e.target.style.boxShadow = '0 25px 50px rgba(102, 126, 234, 0.4), 0 0 0 8px rgba(255, 255, 255, 1)'
-          }}
-          >
-            {profile?.display_name?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || '👤'}
+        {/* Hero Section avec design COCO */}
+        <section className={styles.heroSection}>
+          <div className={styles.profileCard}>
+            {/* Avatar avec design cohérent */}
+            <div className={styles.avatar}>
+              {profile?.display_name?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || '👤'}
+            </div>
             
-            {/* Inner shine effect */}
-            <div style={{
-              position: 'absolute',
-              inset: 0,
-              background: 'linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.3) 50%, transparent 70%)',
-              borderRadius: '50%',
-              animation: 'shine 3s ease-in-out infinite'
-            }} />
-          </div>
-          
-          {/* Enhanced status indicators */}
-          <div style={{
-            position: 'absolute',
-            bottom: '5px',
-            right: '5px',
-            width: '32px',
-            height: '32px',
-            background: 'linear-gradient(135deg, #10b981, #059669)',
-            borderRadius: '50%',
-            border: '4px solid white',
-            boxShadow: '0 4px 15px rgba(16, 185, 129, 0.4)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '0.8rem',
-            animation: 'pulse 2s ease-in-out infinite'
-          }}>
-            ✓
-          </div>
-        </div>
-        
-        <h1 style={{ 
-          fontSize: '2.8rem', 
-          margin: '0 0 0.5rem 0',
-          background: 'linear-gradient(135deg, #1f2937 0%, #667eea 50%, #764ba2 100%)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          fontWeight: '900',
-          letterSpacing: '-0.02em',
-          textShadow: '0 4px 20px rgba(102, 126, 234, 0.3)',
-          position: 'relative'
-        }}>
-          {profile?.display_name || user?.email || 'Utilisateur'}
-          
-          {/* Text decoration */}
-          <div style={{
-            position: 'absolute',
-            bottom: '-8px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            width: '120px',
-            height: '4px',
-            background: 'linear-gradient(90deg, #667eea, #f093fb, #764ba2)',
-            borderRadius: '2px',
-            animation: 'expand 2s ease-out'
-          }} />
-        </h1>
-        
-        <p style={{ 
-          color: '#64748b', 
-          fontSize: '1.2rem',
-          margin: '0 0 2.5rem 0',
-          fontStyle: 'italic',
-          maxWidth: '400px',
-          margin: '0 auto 2.5rem',
-          padding: '1rem 2rem',
-          background: 'rgba(100, 116, 139, 0.08)',
-          borderRadius: '2rem',
-          border: '2px solid rgba(100, 116, 139, 0.15)',
-          backdropFilter: 'blur(10px)',
-          position: 'relative'
-        }}>
-          {profile?.bio || 'Passionné de cuisine et de partage 🍳'}
-          
-          {/* Quote marks decoration */}
-          <div style={{
-            position: 'absolute',
-            top: '-10px',
-            left: '20px',
-            fontSize: '2rem',
-            color: '#667eea',
-            opacity: 0.6
-          }}>"</div>
-          <div style={{
-            position: 'absolute',
-            bottom: '-10px',
-            right: '20px',
-            fontSize: '2rem',
-            color: '#667eea',
-            opacity: 0.6,
-            transform: 'rotate(180deg)'
-          }}>"</div>
-        </p>
+            <h1 className={styles.profileName}>
+              {profile?.display_name || user?.email || 'Utilisateur'}
+            </h1>
+            
+            <p className={styles.profileEmail}>
+              {profile?.bio || 'Passionné de cuisine et de partage 🍳'}
+            </p>
 
-        {/* Revolutionary Stats with enhanced design including trophies */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-          gap: '2rem',
-          maxWidth: '700px',
-          margin: '0 auto',
-          perspective: '1000px'
-        }}>
-          {[{
-            icon: '📝',
-            value: userStats.recipesCount,
-            label: 'Recette',
-            gradient: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
-            shadow: 'rgba(59, 130, 246, 0.4)'
-          },
-          {
-            icon: '❤️',
-            value: userStats.likesReceived,
-            label: 'Like',
-            gradient: 'linear-gradient(135deg, #ef4444, #dc2626)',
-            shadow: 'rgba(239, 68, 68, 0.4)'
-          },
-          {
-            icon: '👥',
-            value: userStats.friendsCount,
-            label: 'Ami',
-            gradient: 'linear-gradient(135deg, #10b981, #059669)',
-            shadow: 'rgba(16, 185, 129, 0.4)'
-          },
-          {
-            icon: '🏆',
-            value: userStats.trophiesUnlocked,
-            label: 'Trophée',
-            gradient: 'linear-gradient(135deg, #f59e0b, #d97706)',
-            shadow: 'rgba(245, 158, 11, 0.4)'
-          },
-          {
-            icon: '⭐',
-            value: userStats.trophyPoints,
-            label: 'Point',
-            gradient: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
-            shadow: 'rgba(139, 92, 246, 0.4)'
-          }].map((stat, index) => (
-            <div key={index} style={{
-              background: 'rgba(255, 255, 255, 0.95)',
-              padding: '2rem 1.5rem',
-              borderRadius: '2rem',
-              boxShadow: `0 8px 30px ${stat.shadow}, 0 0 0 1px rgba(255, 255, 255, 0.9) inset`,
-              border: '2px solid rgba(255, 255, 255, 0.6)',
-              transition: 'all 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
-              cursor: 'pointer',
-              position: 'relative',
-              overflow: 'hidden',
-              transformStyle: 'preserve-3d'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.transform = 'translateY(-10px) rotateX(10deg) rotateY(5deg) scale(1.05)'
-              e.target.style.boxShadow = `0 20px 50px ${stat.shadow}, 0 0 0 2px rgba(255, 255, 255, 1) inset`
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.transform = 'translateY(0) rotateX(0deg) rotateY(0deg) scale(1)'
-              e.target.style.boxShadow = `0 8px 30px ${stat.shadow}, 0 0 0 1px rgba(255, 255, 255, 0.9) inset`
-            }}
-            >
-              {/* Background pattern */}
-              <div style={{
-                position: 'absolute',
-                inset: 0,
-                background: `${stat.gradient}`,
-                opacity: 0.05,
-                borderRadius: '2rem'
-              }} />
-              
-              <div style={{ 
-                fontSize: '2.5rem', 
-                marginBottom: '1rem',
-                filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))',
-                transform: 'scale(1)',
-                transition: 'transform 0.3s ease'
-              }}>
-                {stat.icon}
-              </div>
-              <div style={{ 
-                fontSize: '2.2rem', 
-                fontWeight: '900',
-                background: stat.gradient,
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                marginBottom: '0.5rem',
-                letterSpacing: '-0.02em'
-              }}>
-                {stat.value}
-              </div>
-              <div style={{ 
-                fontSize: '1rem',
-                color: '#64748b',
-                fontWeight: '700',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em'
-              }}>
-                {stat.label}{stat.value > 1 ? 's' : ''}
-              </div>
-              
-              {/* Hover shine effect */}
-              <div style={{
-                position: 'absolute',
-                top: '-50%',
-                left: '-50%',
-                width: '200%',
-                height: '200%',
-                background: 'linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.2), transparent)',
-                transform: 'rotate(45deg)',
-                transition: 'transform 0.6s ease',
-                pointerEvents: 'none'
-              }} />
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Enhanced Content */}
-      <section style={{
-        background: 'white',
-        minHeight: 'calc(100vh - 300px)',
-        borderRadius: '30px 30px 0 0',
-        marginTop: '-20px',
-        padding: '2rem 1rem',
-        position: 'relative',
-        zIndex: 1,
-        boxShadow: '0 -8px 32px rgba(0, 0, 0, 0.1)'
-      }}>
-        {/* Tab Navigation */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center',
-          marginBottom: '2rem',
-          background: '#f8fafc',
-          borderRadius: '16px',
-          padding: '6px',
-          maxWidth: '400px',
-          margin: '0 auto 2rem'
-        }}>
-          {[{
-            id: 'info',
-            label: '👤 Profil',
-            icon: '👤'
-          },
-          {
-            id: 'recipes',
-            label: '📝 Recettes',
-            icon: '📝'
-          },
-          {
-            id: 'trophies',
-            label: '🏆 Trophées',
-            icon: '🏆'
-          },
-          {
-            id: 'settings',
-            label: '⚙️ Paramètres',
-            icon: '⚙️'
-          }].map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              style={{
-                flex: 1,
-                background: activeTab === tab.id 
-                  ? 'white' 
-                  : 'transparent',
-                color: activeTab === tab.id ? '#1f2937' : '#6b7280',
-                border: 'none',
-                padding: '12px 8px',
-                borderRadius: '12px',
-                fontSize: '0.75rem',
-                fontWeight: '600',
-                cursor: 'pointer',
-                transition: 'all 0.3s ease',
-                boxShadow: activeTab === tab.id 
-                  ? '0 2px 8px rgba(0, 0, 0, 0.1)' 
-                  : 'none'
-              }}
-            >
-              <span style={{ marginRight: '4px' }}>{tab.icon}</span>
-              {tab.label.split(' ')[1]}
-            </button>
-          ))}
-        </div>
-
-        {/* Tab Content with new Trophies section */}
-        {activeTab === 'trophies' && (
-          <div style={{ 
-            opacity: 1,
-            animation: 'fadeIn 0.5s ease'
-          }}>
-            <TrophySection userId={user?.id} />
-          </div>
-        )}
-
-        {activeTab === 'info' && (
-          <div style={{ 
-            maxWidth: '500px', 
-            margin: '0 auto',
-            opacity: 1,
-            animation: 'fadeIn 0.5s ease'
-          }}>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '1.5rem'
-            }}>
-              <h2 style={{ 
-                margin: 0, 
-                color: '#1f2937',
-                fontSize: '1.5rem',
-                fontWeight: '700'
-              }}>
-                Informations personnelles
-              </h2>
-              <button
-                onClick={() => setIsEditing(!isEditing)}
-                style={{
-                  background: isEditing 
-                    ? 'linear-gradient(135deg, #ef4444, #dc2626)' 
-                    : 'linear-gradient(135deg, #3b82f6, #2563eb)',
-                  color: 'white',
-                  border: 'none',
-                  padding: '10px 20px',
-                  borderRadius: '12px',
-                  cursor: 'pointer',
-                  fontSize: '0.9rem',
-                  fontWeight: '600',
-                  transition: 'all 0.3s ease',
-                  boxShadow: isEditing 
-                    ? '0 4px 15px rgba(239, 68, 68, 0.3)'
-                    : '0 4px 15px rgba(59, 130, 246, 0.3)'
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.transform = 'translateY(-2px)'
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.transform = 'translateY(0)'
-                }}
-              >
-                {isEditing ? '❌ Annuler' : '✏️ Modifier'}
-              </button>
-            </div>
-
-            {isEditing ? (
-              <div style={{
-                background: 'linear-gradient(135deg, #f8fafc, #f1f5f9)',
-                border: '2px solid #e2e8f0',
-                borderRadius: '20px',
-                padding: '2rem',
-                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)'
-              }}>
-                {/* Profile Completeness Indicator */}
-                <div style={{
-                  marginBottom: '2rem',
-                  padding: '1rem',
-                  background: 'white',
-                  borderRadius: '12px',
-                  border: '2px solid #e2e8f0'
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                    <span style={{ fontWeight: '600', color: '#374151' }}>Complétude du profil</span>
-                    <span style={{ fontWeight: '700', color: '#667eea' }}>
-                      {calculateProfileCompleteness(editForm)}%
-                    </span>
-                  </div>
-                  <div style={{
-                    width: '100%',
-                    height: '8px',
-                    background: '#e5e7eb',
-                    borderRadius: '4px',
-                    overflow: 'hidden'
-                  }}>
-                    <div style={{
-                      width: `${calculateProfileCompleteness(editForm)}%`,
-                      height: '100%',
-                      background: 'linear-gradient(90deg, #667eea, #764ba2)',
-                      transition: 'width 0.3s ease',
-                      borderRadius: '4px'
-                    }} />
+            {/* Stats avec design COCO */}
+            <div className={styles.statsGrid}>
+              {[{
+                icon: '📝',
+                value: userStats.recipesCount,
+                label: 'Recette'
+              },
+              {
+                icon: '❤️',
+                value: userStats.likesReceived,
+                label: 'Like'
+              },
+              {
+                icon: '👥',
+                value: userStats.friendsCount,
+                label: 'Ami'
+              },
+              {
+                icon: '🏆',
+                value: userStats.trophiesUnlocked,
+                label: 'Trophée'
+              },
+              {
+                icon: '⭐',
+                value: userStats.trophyPoints,
+                label: 'Point'
+              }].map((stat, index) => (
+                <div key={index} className={styles.statItem}>
+                  <div className={styles.statIcon}>{stat.icon}</div>
+                  <div className={styles.statNumber}>{stat.value}</div>
+                  <div className={styles.statLabel}>
+                    {stat.label}{stat.value > 1 ? 's' : ''}
                   </div>
                 </div>
+              ))}
+            </div>
+          </div>
+        </section>
 
-                {/* Success Message */}
-                {saveSuccess && (
-                  <div style={{
-                    background: 'linear-gradient(135deg, #d1fae5, #a7f3d0)',
-                    border: '2px solid #10b981',
-                    borderRadius: '12px',
-                    padding: '1rem',
-                    marginBottom: '1.5rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    animation: 'slideIn 0.3s ease'
-                  }}>
-                    <span style={{ fontSize: '1.2rem' }}>✅</span>
-                    <span style={{ color: '#065f46', fontWeight: '600' }}>
-                      Profil mis à jour avec succès !
-                    </span>
+        {/* Content avec design cohérent */}
+        <section className={styles.contentSection}>
+          {/* Tab Navigation avec style COCO */}
+          <div className={styles.tabNavigation}>
+            {[{
+              id: 'info',
+              label: 'Profil',
+              icon: '👤'
+            },
+            {
+              id: 'recipes',
+              label: 'Recettes',
+              icon: '📝'
+            },
+            {
+              id: 'trophies',
+              label: 'Trophées',
+              icon: '🏆'
+            },
+            {
+              id: 'settings',
+              label: 'Paramètres',
+              icon: '⚙️'
+            }].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`${styles.tabButton} ${activeTab === tab.id ? styles.active : ''}`}
+              >
+                <span className={styles.tabIcon}>{tab.icon}</span>
+                <span className={styles.tabLabel}>{tab.label}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Tab Content */}
+          <div className={styles.tabContent}>
+            {activeTab === 'info' && (
+              <div className={styles.infoSection}>
+                <div className={styles.sectionHeader}>
+                  <h2 className={styles.sectionTitle}>Informations personnelles</h2>
+                  <button
+                    onClick={() => setIsEditing(!isEditing)}
+                    className={`btn ${isEditing ? 'btn-secondary' : 'btn-primary'}`}
+                  >
+                    {isEditing ? '❌ Annuler' : '✏️ Modifier'}
+                  </button>
+                </div>
+
+                {isEditing ? (
+                  <div className={styles.editForm}>
+                    {/* Profile Completeness */}
+                    <div className={styles.completenessCard}>
+                      <div className={styles.completenessHeader}>
+                        <span>Complétude du profil</span>
+                        <span className={styles.completenessPercent}>
+                          {calculateProfileCompleteness(editForm)}%
+                        </span>
+                      </div>
+                      <div className={styles.progressBar}>
+                        <div 
+                          className={styles.progressFill}
+                          style={{width: `${calculateProfileCompleteness(editForm)}%`}}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Success Message */}
+                    {saveSuccess && (
+                      <div className={styles.successMessage}>
+                        <span>✅</span>
+                        <span>Profil mis à jour avec succès !</span>
+                      </div>
+                    )}
+
+                    {/* Form fields */}
+                    {[{
+                      key: 'display_name',
+                      label: 'Nom d\'affichage',
+                      type: 'text',
+                      icon: '👤',
+                      required: true,
+                      maxLength: 30
+                    },
+                    {
+                      key: 'bio',
+                      label: 'Biographie',
+                      type: 'textarea',
+                      icon: '📝',
+                      maxLength: 500
+                    },
+                    {
+                      key: 'location',
+                      label: 'Localisation',
+                      type: 'text',
+                      icon: '📍'
+                    },
+                    {
+                      key: 'website',
+                      label: 'Site web',
+                      type: 'url',
+                      icon: '🌐'
+                    },
+                    {
+                      key: 'date_of_birth',
+                      label: 'Date de naissance',
+                      type: 'date',
+                      icon: '🎂'
+                    },
+                    {
+                      key: 'phone',
+                      label: 'Téléphone',
+                      type: 'tel',
+                      icon: '📞'
+                    }].map((field) => (
+                      <div key={field.key} className={styles.formField}>
+                        <label className={styles.fieldLabel}>
+                          <span className={styles.fieldIcon}>{field.icon}</span>
+                          {field.label}
+                          {field.required && <span className={styles.required}>*</span>}
+                          {field.maxLength && (
+                            <span className={styles.charCount}>
+                              {editForm[field.key]?.length || 0}/{field.maxLength}
+                            </span>
+                          )}
+                        </label>
+                        {field.type === 'textarea' ? (
+                          <textarea
+                            value={editForm[field.key]}
+                            onChange={(e) => {
+                              setEditForm(prev => ({ ...prev, [field.key]: e.target.value }))
+                              if (validationErrors[field.key]) {
+                                setValidationErrors(prev => ({ ...prev, [field.key]: undefined }))
+                              }
+                            }}
+                            maxLength={field.maxLength}
+                            className={`${styles.formInput} ${validationErrors[field.key] ? styles.error : ''}`}
+                            placeholder={`Votre ${field.label.toLowerCase()}...`}
+                          />
+                        ) : (
+                          <input
+                            type={field.type}
+                            value={editForm[field.key]}
+                            onChange={(e) => {
+                              setEditForm(prev => ({ ...prev, [field.key]: e.target.value }))
+                              if (validationErrors[field.key]) {
+                                setValidationErrors(prev => ({ ...prev, [field.key]: undefined }))
+                              }
+                            }}
+                            maxLength={field.maxLength}
+                            className={`${styles.formInput} ${validationErrors[field.key] ? styles.error : ''}`}
+                            placeholder={`Votre ${field.label.toLowerCase()}...`}
+                          />
+                        )}
+                        {validationErrors[field.key] && (
+                          <div className={styles.errorMessage}>
+                            <span>⚠️</span>
+                            {validationErrors[field.key]}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+
+                    {/* Privacy toggle */}
+                    <div className={styles.privacyToggle}>
+                      <label className={styles.toggleLabel}>
+                        <input
+                          type="checkbox"
+                          checked={editForm.is_private}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, is_private: e.target.checked }))}
+                          className={styles.toggleInput}
+                        />
+                        <div className={styles.toggleContent}>
+                          <div className={styles.toggleTitle}>
+                            <span>🔒</span>
+                            Profil privé
+                            {editForm.is_private && (
+                              <span className={styles.privateBadge}>PRIVÉ</span>
+                            )}
+                          </div>
+                          <div className={styles.toggleDescription}>
+                            {editForm.is_private 
+                              ? 'Seuls vos amis peuvent voir votre profil complet' 
+                              : 'Votre profil est visible par tous les utilisateurs'
+                            }
+                          </div>
+                        </div>
+                      </label>
+                    </div>
+
+                    {/* Save button */}
+                    <button
+                      onClick={handleSaveProfile}
+                      disabled={loading}
+                      className={`btn btn-primary ${styles.saveBtn} ${loading ? styles.loading : ''}`}
+                    >
+                      {loading ? (
+                        <>
+                          <div className={styles.spinner} />
+                          Sauvegarde en cours...
+                        </>
+                      ) : (
+                        <>💾 Sauvegarder les modifications</>
+                      )}
+                    </button>
+                  </div>
+                ) : (
+                  <div className={styles.profileInfo}>
+                    {[{
+                      label: 'Email',
+                      value: user?.email,
+                      icon: '✉️'
+                    },
+                    {
+                      label: 'Nom',
+                      value: profile?.display_name || 'Non défini',
+                      icon: '👤'
+                    },
+                    {
+                      label: 'Biographie',
+                      value: profile?.bio || 'Aucune biographie',
+                      icon: '📝'
+                    },
+                    {
+                      label: 'Localisation',
+                      value: profile?.location || 'Non définie',
+                      icon: '📍'
+                    },
+                    {
+                      label: 'Site web',
+                      value: profile?.website,
+                      icon: '🌐',
+                      isLink: true
+                    },
+                    {
+                      label: 'Date de naissance',
+                      value: profile?.date_of_birth ? new Date(profile.date_of_birth).toLocaleDateString('fr-FR') : 'Non définie',
+                      icon: '🎂'
+                    },
+                    {
+                      label: 'Téléphone',
+                      value: profile?.phone || 'Non défini',
+                      icon: '📞'
+                    },
+                    {
+                      label: 'Profil',
+                      value: profile?.is_private ? 'Privé 🔒' : 'Public 🌍',
+                      icon: '⚙️'
+                    },
+                    {
+                      label: 'Membre depuis',
+                      value: user?.created_at ? new Date(user.created_at).toLocaleDateString('fr-FR') : 'N/A',
+                      icon: '📅'
+                    }].map((item, index) => (
+                      <div key={index} className={styles.infoItem}>
+                        <span className={styles.infoIcon}>{item.icon}</span>
+                        <div className={styles.infoContent}>
+                          <div className={styles.infoLabel}>{item.label}</div>
+                          <div className={styles.infoValue}>
+                            {item.isLink && item.value ? (
+                              <a 
+                                href={item.value} 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                className={styles.infoLink}
+                              >
+                                {item.value} 🔗
+                              </a>
+                            ) : (
+                              item.value
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
+              </div>
+            )}
 
-                {/* Form fields with enhanced validation */}
-                {[{
-                  key: 'display_name',
-                  label: 'Nom d\'affichage',
-                  type: 'text',
-                  icon: '👤',
-                  required: true,
-                  maxLength: 30
-                },
-                {
-                  key: 'bio',
-                  label: 'Biographie',
-                  type: 'textarea',
-                  icon: '📝',
-                  maxLength: 500
-                },
-                {
-                  key: 'location',
-                  label: 'Localisation',
-                  type: 'text',
-                  icon: '📍'
-                },
-                {
-                  key: 'website',
-                  label: 'Site web',
-                  type: 'url',
-                  icon: '🌐'
-                },
-                {
-                  key: 'date_of_birth',
-                  label: 'Date de naissance',
-                  type: 'date',
-                  icon: '🎂'
-                },
-                {
-                  key: 'phone',
-                  label: 'Téléphone',
-                  type: 'tel',
-                  icon: '📞'
-                }].map((field) => (
-                  <div key={field.key} style={{ marginBottom: '1.5rem' }}>
-                    <label style={{ 
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      marginBottom: '8px', 
-                      fontWeight: '600',
-                      color: '#374151'
-                    }}>
-                      <span>{field.icon}</span>
-                      {field.label}
-                      {field.required && <span style={{ color: '#ef4444' }}>*</span>}
-                      {field.maxLength && (
-                        <span style={{ 
-                          fontSize: '0.8rem', 
-                          color: '#6b7280',
-                          marginLeft: 'auto' 
-                        }}>
-                          {editForm[field.key]?.length || 0}/{field.maxLength}
-                        </span>
-                      )}
-                    </label>
-                    {field.type === 'textarea' ? (
-                      <textarea
-                        value={editForm[field.key]}
-                        onChange={(e) => {
-                          setEditForm(prev => ({ ...prev, [field.key]: e.target.value }))
-                          if (validationErrors[field.key]) {
-                            setValidationErrors(prev => ({ ...prev, [field.key]: undefined }))
-                          }
-                        }}
-                        maxLength={field.maxLength}
-                        style={{
-                          width: '100%',
-                          padding: '12px 16px',
-                          border: `2px solid ${validationErrors[field.key] ? '#ef4444' : '#e5e7eb'}`,
-                          borderRadius: '12px',
-                          fontSize: '1rem',
-                          minHeight: '100px',
-                          resize: 'vertical',
-                          fontFamily: 'inherit',
-                          transition: 'border-color 0.3s ease',
-                          background: 'white'
-                        }}
-                        onFocus={(e) => e.target.style.borderColor = validationErrors[field.key] ? '#ef4444' : '#3b82f6'}
-                        onBlur={(e) => e.target.style.borderColor = validationErrors[field.key] ? '#ef4444' : '#e5e7eb'}
-                        placeholder={`Votre ${field.label.toLowerCase()}...`}
-                      />
-                    ) : (
-                      <input
-                        type={field.type}
-                        value={editForm[field.key]}
-                        onChange={(e) => {
-                          setEditForm(prev => ({ ...prev, [field.key]: e.target.value }))
-                          if (validationErrors[field.key]) {
-                            setValidationErrors(prev => ({ ...prev, [field.key]: undefined }))
-                          }
-                        }}
-                        maxLength={field.maxLength}
-                        style={{
-                          width: '100%',
-                          padding: '12px 16px',
-                          border: `2px solid ${validationErrors[field.key] ? '#ef4444' : '#e5e7eb'}`,
-                          borderRadius: '12px',
-                          fontSize: '1rem',
-                          transition: 'border-color 0.3s ease',
-                          background: 'white'
-                        }}
-                        onFocus={(e) => e.target.style.borderColor = validationErrors[field.key] ? '#ef4444' : '#3b82f6'}
-                        onBlur={(e) => e.target.style.borderColor = validationErrors[field.key] ? '#ef4444' : '#e5e7eb'}
-                        placeholder={`Votre ${field.label.toLowerCase()}...`}
-                      />
-                    )}
-                    {validationErrors[field.key] && (
-                      <div style={{
-                        color: '#ef4444',
-                        fontSize: '0.8rem',
-                        marginTop: '4px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px'
-                      }}>
-                        <span>⚠️</span>
-                        {validationErrors[field.key]}
-                      </div>
-                    )}
-                  </div>
-                ))}
-
-                {/* Enhanced privacy toggle */}
-                <div style={{ marginBottom: '2rem' }}>
-                  <label style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '12px',
-                    fontWeight: '600',
-                    color: '#374151',
-                    cursor: 'pointer',
-                    padding: '16px',
-                    background: 'white',
-                    borderRadius: '12px',
-                    border: '2px solid #e5e7eb',
-                    transition: 'all 0.3s ease'
-                  }}
-                  onMouseEnter={(e) => e.target.style.borderColor = '#3b82f6'}
-                  onMouseLeave={(e) => e.target.style.borderColor = '#e5e7eb'}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={editForm.is_private}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, is_private: e.target.checked }))}
-                      style={{ 
-                        transform: 'scale(1.5)',
-                        accentColor: '#3b82f6'
-                      }}
-                    />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span>🔒</span>
-                        Profil privé
-                        {editForm.is_private && (
-                          <span style={{
-                            background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                            color: 'white',
-                            padding: '2px 8px',
-                            borderRadius: '8px',
-                            fontSize: '0.7rem',
-                            fontWeight: '600'
-                          }}>
-                            PRIVÉ
-                          </span>
-                        )}
-                      </div>
-                      <div style={{ 
-                        fontSize: '0.85rem', 
-                        color: '#6b7280',
-                        marginTop: '4px',
-                        lineHeight: '1.4'
-                      }}>
-                        {editForm.is_private 
-                          ? 'Seuls vos amis peuvent voir votre profil complet' 
-                          : 'Votre profil est visible par tous les utilisateurs'
-                        }
-                      </div>
-                    </div>
-                  </label>
-                </div>
-
-                {/* Enhanced save button */}
-                <button
-                  onClick={handleSaveProfile}
-                  disabled={loading}
-                  style={{
-                    background: loading 
-                      ? 'linear-gradient(135deg, #94a3b8, #64748b)' 
-                      : 'linear-gradient(135deg, #10b981, #059669)',
-                    color: 'white',
-                    border: 'none',
-                    padding: '16px 32px',
-                    borderRadius: '16px',
-                    cursor: loading ? 'not-allowed' : 'pointer',
-                    fontSize: '1.1rem',
-                    fontWeight: '700',
-                    width: '100%',
-                    boxShadow: loading 
-                      ? 'none' 
-                      : '0 4px 20px rgba(16, 185, 129, 0.3)',
-                    transition: 'all 0.3s ease',
-                    position: 'relative',
-                    overflow: 'hidden'
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!loading) {
-                      e.target.style.transform = 'translateY(-2px)'
-                      e.target.style.boxShadow = '0 8px 30px rgba(16, 185, 129, 0.4)'
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!loading) {
-                      e.target.style.transform = 'translateY(0)'
-                      e.target.style.boxShadow = '0 4px 20px rgba(16, 185, 129, 0.3)'
-                    }
-                  }}
-                >
-                  {loading ? (
-                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                      <div style={{
-                        width: '16px',
-                        height: '16px',
-                        border: '2px solid rgba(255, 255, 255, 0.3)',
-                        borderTop: '2px solid white',
-                        borderRadius: '50%',
-                        animation: 'spin 1s linear infinite'
-                      }} />
-                      Sauvegarde en cours...
-                    </span>
-                  ) : (
-                    '💾 Sauvegarder les modifications'
+            {activeTab === 'recipes' && (
+              <div className={styles.recipesSection}>
+                <div className={styles.sectionHeader}>
+                  <h2 className={styles.sectionTitle}>
+                    🍳 Mes créations ({userRecipes.length})
+                  </h2>
+                  {userRecipes.length > 0 && (
+                    <button
+                      onClick={handleViewAllRecipes}
+                      className="btn btn-secondary"
+                    >
+                      📋 Voir toutes →
+                    </button>
                   )}
-                </button>
-              </div>
-            ) : (
-              <div style={{
-                background: 'linear-gradient(135deg, #f8fafc, #f1f5f9)',
-                border: '2px solid #e2e8f0',
-                borderRadius: '20px',
-                padding: '2rem',
-                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)'
-              }}>
-                {[{
-                  label: 'Email',
-                  value: user?.email,
-                  icon: '✉️'
-                },
-                {
-                  label: 'Nom',
-                  value: profile?.display_name || 'Non défini',
-                  icon: '👤'
-                },
-                {
-                  label: 'Biographie',
-                  value: profile?.bio || 'Aucune biographie',
-                  icon: '📝'
-                },
-                {
-                  label: 'Localisation',
-                  value: profile?.location || 'Non définie',
-                  icon: '📍'
-                },
-                {
-                  label: 'Site web',
-                  value: profile?.website,
-                  icon: '🌐',
-                  isLink: true
-                },
-                {
-                  label: 'Date de naissance',
-                  value: profile?.date_of_birth ? new Date(profile.date_of_birth).toLocaleDateString('fr-FR') : 'Non définie',
-                  icon: '🎂'
-                },
-                {
-                  label: 'Téléphone',
-                  value: profile?.phone || 'Non défini',
-                  icon: '📞'
-                },
-                {
-                  label: 'Profil',
-                  value: profile?.is_private ? 'Privé 🔒' : 'Public 🌍',
-                  icon: '⚙️'
-                },
-                {
-                  label: 'Membre depuis',
-                  value: user?.created_at ? new Date(user.created_at).toLocaleDateString('fr-FR') : 'N/A',
-                  icon: '📅'
-                }].map((item, index) => (
-                  <div key={index} style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    padding: '16px',
-                    background: 'white',
-                    borderRadius: '12px',
-                    marginBottom: '12px',
-                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
-                    transition: 'all 0.3s ease'
-                  }}
-                  onMouseEnter={(e) => e.target.style.transform = 'translateX(4px)'}
-                  onMouseLeave={(e) => e.target.style.transform = 'translateX(0)'}
-                  >
-                    <span style={{ fontSize: '1.2rem' }}>{item.icon}</span>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ 
-                        fontWeight: '600', 
-                        color: '#374151',
-                        marginBottom: '4px'
-                      }}>
-                        {item.label}
-                      </div>
-                      <div style={{ 
-                        color: '#6b7280',
-                        fontSize: '0.95rem'
-                      }}>
-                        {item.isLink && item.value ? (
-                          <a 
-                            href={item.value} 
-                            target="_blank" 
-                            rel="noopener noreferrer" 
-                            style={{ 
-                              color: '#3b82f6',
-                              textDecoration: 'none',
-                              fontWeight: '500'
-                            }}
-                            onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
-                            onMouseLeave={(e) => e.target.style.textDecoration = 'none'}
-                          >
-                            {item.value} 🔗
-                          </a>
-                        ) : (
-                          item.value
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {activeTab === 'recipes' && (
-          <div style={{ 
-            maxWidth: '600px', 
-            margin: '0 auto',
-            opacity: 1,
-            animation: 'fadeIn 0.5s ease'
-          }}>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '2rem'
-            }}>
-              <h2 style={{ 
-                margin: 0, 
-                color: '#1f2937',
-                fontSize: '1.5rem',
-                fontWeight: '700'
-              }}>
-                🍳 Mes créations ({userRecipes.length})
-              </h2>
-              {userRecipes.length > 0 && (
-                <button
-                  onClick={handleViewAllRecipes}
-                  style={{
-                    background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
-                    color: 'white',
-                    border: 'none',
-                    padding: '10px 20px',
-                    borderRadius: '12px',
-                    cursor: 'pointer',
-                    fontSize: '0.9rem',
-                    fontWeight: '600',
-                    transition: 'all 0.3s ease',
-                    boxShadow: '0 4px 15px rgba(139, 92, 246, 0.3)'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.transform = 'translateY(-2px)'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.transform = 'translateY(0)'
-                  }}
-                >
-                  📋 Voir toutes →
-                </button>
-              )}
-            </div>
-
-            {userRecipes.length === 0 ? (
-              <div style={{ 
-                textAlign: 'center', 
-                padding: '4rem 2rem',
-                background: 'linear-gradient(135deg, #fef3c7, #fde68a)',
-                borderRadius: '24px',
-                border: '3px dashed #f59e0b'
-              }}>
-                <div style={{ 
-                  fontSize: '5rem', 
-                  marginBottom: '1.5rem',
-                  filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))'
-                }}>
-                  👨‍🍳
                 </div>
-                <h3 style={{
-                  fontSize: '1.4rem',
-                  fontWeight: '700',
-                  color: '#92400e',
-                  margin: '0 0 1rem 0'
-                }}>
-                  Votre aventure culinaire commence ici !
-                </h3>
-                <p style={{
-                  color: '#b45309',
-                  fontSize: '1rem',
-                  lineHeight: '1.6',
-                  margin: '0 0 2rem 0',
-                  maxWidth: '300px',
-                  margin: '0 auto 2rem'
-                }}>
-                  Partagez vos créations, inspirez la communauté et devenez une star de la cuisine !
-                </p>
-                <button
-                  onClick={() => router.push('/share-photo')}
-                  style={{
-                    background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                    color: 'white',
-                    border: 'none',
-                    padding: '16px 32px',
-                    borderRadius: '16px',
-                    cursor: 'pointer',
-                    fontSize: '1.1rem',
-                    fontWeight: '700',
-                    boxShadow: '0 8px 25px rgba(245, 158, 11, 0.4)',
-                    transition: 'all 0.3s ease'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.transform = 'translateY(-4px) scale(1.05)'
-                    e.target.style.boxShadow = '0 12px 35px rgba(245, 158, 11, 0.5)'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.transform = 'translateY(0) scale(1)'
-                    e.target.style.boxShadow = '0 8px 25px rgba(245, 158, 11, 0.4)'
-                  }}
-                >
-                  📸 Créer ma première recette
-                </button>
-              </div>
-            ) : (
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-                gap: '1.5rem'
-              }}>
-                {userRecipes.map((recipe) => (
-                  <div 
-                    key={recipe.id} 
-                    style={{
-                      background: 'white',
-                      border: '2px solid #f1f5f9',
-                      borderRadius: '20px',
-                      overflow: 'hidden',
-                      cursor: 'pointer',
-                      transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
-                      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-                      position: 'relative'
-                    }}
-                    onClick={() => router.push(`/recipe/${recipe.id}`)}
-                    onMouseEnter={(e) => {
-                      e.target.style.transform = 'translateY(-8px) scale(1.02)'
-                      e.target.style.boxShadow = '0 20px 40px rgba(0, 0, 0, 0.15)'
-                      e.target.style.borderColor = '#3b82f6'
-                    }}
-                    onMouseLeave={(e) => {
-                      e.target.style.transform = 'translateY(0) scale(1)'
-                      e.target.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.08)'
-                      e.target.style.borderColor = '#f1f5f9'
-                    }}
-                  >
-                    {/* Recipe Image/Icon */}
-                    <div style={{
-                      height: '160px',
-                      background: recipe.category === 'Photo partagée' 
-                        ? 'linear-gradient(135deg, #ec4899, #be185d)'
-                        : 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '3rem',
-                      position: 'relative',
-                      overflow: 'hidden'
-                    }}>
-                      {recipe.category === 'Photo partagée' ? '📸' : '🍽️'}
-                      
-                      {/* Animated background pattern */}
-                      <div style={{
-                        position: 'absolute',
-                        inset: 0,
-                        opacity: 0.1,
-                        background: 'radial-gradient(circle at 20% 80%, white 1px, transparent 1px), radial-gradient(circle at 80% 20%, white 1px, transparent 1px)',
-                        backgroundSize: '20px 20px',
-                        animation: 'float 6s ease-in-out infinite'
-                      }} />
-                    </div>
-                    
-                    {/* Recipe Info */}
-                    <div style={{ padding: '1.5rem' }}>
-                      <h3 style={{ 
-                        margin: '0 0 0.75rem 0', 
-                        fontSize: '1.2rem',
-                        fontWeight: '700',
-                        color: '#1f2937',
-                        lineHeight: '1.3'
-                      }}>
-                        {recipe.title}
-                      </h3>
-                      <p style={{ 
-                        margin: 0, 
-                        color: '#6b7280', 
-                        fontSize: '0.95rem',
-                        lineHeight: '1.4',
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden'
-                      }}>
-                        {recipe.description || recipe.category}
-                      </p>
-                      
-                      {/* Category badge */}
-                      <div style={{
-                        position: 'absolute',
-                        top: '12px',
-                        right: '12px',
-                        background: 'rgba(255, 255, 255, 0.9)',
-                        padding: '6px 12px',
-                        borderRadius: '20px',
-                        fontSize: '0.75rem',
-                        fontWeight: '600',
-                        color: '#374151',
-                        backdropFilter: 'blur(10px)'
-                      }}>
-                        {recipe.category}
-                      </div>
-                    </div>
+
+                {userRecipes.length === 0 ? (
+                  <div className={styles.emptyState}>
+                    <div className={styles.emptyIcon}>👨‍🍳</div>
+                    <h3 className={styles.emptyTitle}>
+                      Votre aventure culinaire commence ici !
+                    </h3>
+                    <p className={styles.emptyDescription}>
+                      Partagez vos créations, inspirez la communauté et devenez une star de la cuisine !
+                    </p>
+                    <button
+                      onClick={() => router.push('/share-photo')}
+                      className="btn btn-primary"
+                    >
+                      📸 Créer ma première recette
+                    </button>
                   </div>
-                ))}
+                ) : (
+                  <div className={styles.recipesGrid}>
+                    {userRecipes.map((recipe) => (
+                      <div 
+                        key={recipe.id} 
+                        className={styles.recipeCard}
+                        onClick={() => router.push(`/recipe/${recipe.id}`)}
+                      >
+                        <div className={styles.recipeImage}>
+                          {recipe.category === 'Photo partagée' ? '📸' : '🍽️'}
+                          <div className={styles.categoryBadge}>
+                            {recipe.category}
+                          </div>
+                        </div>
+                        
+                        <div className={styles.recipeContent}>
+                          <h3 className={styles.recipeTitle}>{recipe.title}</h3>
+                          <p className={styles.recipeDescription}>
+                            {recipe.description || recipe.category}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'trophies' && (
+              <TrophySection userId={user?.id} />
+            )}
+
+            {activeTab === 'settings' && (
+              <div className={styles.settingsSection}>
+                <h2 className={styles.sectionTitle}>⚙️ Paramètres du compte</h2>
+                
+                <div className={styles.constructionNotice}>
+                  <div className={styles.constructionIcon}>🚧</div>
+                  <h3 className={styles.constructionTitle}>Section en construction</h3>
+                  <p className={styles.constructionText}>
+                    Les paramètres avancés arrivent bientôt ! En attendant, vous pouvez modifier vos informations dans l'onglet Profil.
+                  </p>
+                </div>
               </div>
             )}
           </div>
-        )}
+        </section>
 
-        {activeTab === 'settings' && (
-          <div style={{ 
-            maxWidth: '500px', 
-            margin: '0 auto',
-            opacity: 1,
-            animation: 'fadeIn 0.5s ease'
-          }}>
-            <h2 style={{ 
-              margin: '0 0 2rem 0', 
-              color: '#1f2937',
-              fontSize: '1.5rem',
-              fontWeight: '700',
-              textAlign: 'center'
-            }}>
-              ⚙️ Paramètres du compte
-            </h2>
-            
-            <div style={{
-              background: 'linear-gradient(135deg, #fef2f2, #fee2e2)',
-              border: '2px solid #fca5a5',
-              borderRadius: '20px',
-              padding: '2rem',
-              textAlign: 'center'
-            }}>
-              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🚧</div>
-              <h3 style={{ 
-                color: '#dc2626', 
-                margin: '0 0 1rem 0',
-                fontSize: '1.2rem',
-                fontWeight: '700'
-              }}>
-                Section en construction
-              </h3>
-              <p style={{ 
-                color: '#991b1b', 
-                margin: 0,
-                lineHeight: '1.5'
-              }}>
-                Les paramètres avancés arrivent bientôt ! En attendant, vous pouvez modifier vos informations dans l'onglet Profil.
-              </p>
+        {/* Trophy Notification */}
+        {showTrophyNotification && newTrophies.length > 0 && (
+          <div className={styles.trophyNotification}>
+            <div className={styles.notificationTitle}>
+              🏆 Nouveau trophée débloqué !
             </div>
+            {newTrophies.map(trophy => (
+              <div key={trophy.id} className={styles.notificationTrophy}>
+                {trophy.icon} {trophy.name}
+              </div>
+            ))}
           </div>
         )}
-      </section>
-
-      {/* Trophy Notification */}
-      {showTrophyNotification && newTrophies.length > 0 && (
-        <div style={{
-          position: 'fixed',
-          top: '20px',
-          right: '20px',
-          background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-          color: 'white',
-          padding: '1rem 1.5rem',
-          borderRadius: '16px',
-          boxShadow: '0 8px 30px rgba(245, 158, 11, 0.4)',
-          zIndex: 1000,
-          animation: 'slideInRight 0.5s ease',
-          maxWidth: '300px'
-        }}>
-          <div style={{ fontWeight: '700', marginBottom: '0.5rem' }}>
-            🏆 Nouveau trophée débloqué !
-          </div>
-          {newTrophies.map(trophy => (
-            <div key={trophy.id} style={{ fontSize: '0.9rem' }}>
-              {trophy.icon} {trophy.name}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Enhanced Animations */}
-      <style jsx>{`
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        
-        @keyframes rotate {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        
-        @keyframes gradientShift {
-          0%, 100% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-        }
-        
-        @keyframes shine {
-          0%, 100% { transform: translateX(-100%) rotateZ(0deg); }
-          50% { transform: translateX(100%) rotateZ(180deg); }
-        }
-        
-        @keyframes expand {
-          0% { width: 0; }
-          100% { width: 120px; }
-        }
-        
-        @keyframes float {
-          0%, 100% { transform: translateY(0px) translateX(0px) rotate(0deg); }
-          33% { transform: translateY(-20px) translateX(10px) rotate(120deg); }
-          66% { transform: translateY(10px) translateX(-10px) rotate(240deg); }
-        }
-        
-        @keyframes pulse {
-          0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; }
-          50% { transform: scale(1.1) rotate(180deg); opacity: 0.8; }
-        }
-        
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(30px) scale(0.95); }
-          to { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        
-        @keyframes slideInRight {
-          from { transform: translateX(100%); opacity: 0; }
-          to { transform: translateX(0); opacity: 1; }
-        }
-        
-        /* Responsive Design */
-        @media (max-width: 768px) {
-          .profile-header {
-            padding: 2rem 1rem 1.5rem !important;
-          }
-          
-          .profile-avatar {
-            width: 120px !important;
-            height: 120px !important;
-            fontSize: 3rem !important;
-          }
-          
-          .profile-title {
-            fontSize: 1.8rem !important;
-          }
-          
-          .stats-grid {
-            gap: 1rem !important;
-          }
-          
-          .recipe-grid {
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)) !important;
-            gap: 1rem !important;
-          }
-        }
-        
-        @media (max-width: 480px) {
-          .stats-grid {
-            grid-template-columns: 1fr !important;
-            max-width: 200px !important;
-          }
-          
-          .tab-navigation {
-            flex-direction: column !important;
-            gap: 8px !important;
-          }
-          
-          .recipe-grid {
-            grid-template-columns: 1fr !important;
-          }
-        }
-      `}</style>
-    </div>
+      </div>
+    </Layout>
   )
 }
