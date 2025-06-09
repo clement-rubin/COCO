@@ -283,6 +283,58 @@ Puis rafraîchissez cette page.
     }
   }
 
+  const testComments = async () => {
+    setIsLoading(true)
+    logInfo('🗨️ Test du système de commentaires...', { component: 'test-recipes' })
+    
+    try {
+      // Test de création d'un commentaire de test
+      const testComment = {
+        recipe_id: recipes[0]?.id, // Utilise la première recette disponible
+        user_id: 'test-user-id',
+        content: 'Commentaire de test automatique - Délicieuse recette !'
+      }
+
+      if (!testComment.recipe_id) {
+        logWarning('Aucune recette disponible pour tester les commentaires')
+        setTestResults(prev => ({ ...prev, comments: 'NO_RECIPE' }))
+        return
+      }
+
+      // Test POST - Créer un commentaire
+      const createResponse = await fetch('/api/comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(testComment)
+      })
+
+      if (!createResponse.ok) {
+        const error = await createResponse.json()
+        throw new Error(`Création commentaire échouée: ${error.message}`)
+      }
+
+      const createdComment = await createResponse.json()
+      logInfo('✅ Commentaire créé avec succès', { commentId: createdComment.id })
+
+      // Test GET - Récupérer les commentaires
+      const getResponse = await fetch(`/api/comments?recipe_id=${testComment.recipe_id}`)
+      
+      if (!getResponse.ok) {
+        throw new Error(`Récupération commentaires échouée: ${getResponse.status}`)
+      }
+
+      const comments = await getResponse.json()
+      logInfo('✅ Commentaires récupérés avec succès', { commentsCount: comments.length })
+
+      setTestResults(prev => ({ ...prev, comments: 'OK' }))
+    } catch (error) {
+      logError('❌ Erreur lors du test des commentaires', error)
+      setTestResults(prev => ({ ...prev, comments: 'ERREUR' }))
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const runAllTests = async () => {
     logInfo('🚀 Début des tests automatiques...', { component: 'test-recipes' })
     await testTableCreation()
@@ -290,6 +342,7 @@ Puis rafraîchissez cette page.
     await testSupabaseConnection()
     await loadRecipes()
     await createTestRecipe()
+    await testComments() // Nouveau test
     logInfo('✅ Tests automatiques terminés', { component: 'test-recipes' })
   }
 
@@ -297,11 +350,7 @@ Puis rafraîchissez cette page.
     logInfo('📋 Affichage des instructions SQL pour la création de table')
     
     const sqlInstructions = `
-=== SQL POUR CRÉER LA TABLE RECIPES ET LE SYSTÈME D'AMIS ===
-
-1. Allez dans votre dashboard Supabase
-2. Cliquez sur "SQL Editor" 
-3. Exécutez ce code SQL :
+=== SQL POUR CRÉER LES TABLES RECIPES, PROFILES, FRIENDSHIPS ET COMMENTS ===
 
 -- Table des recettes
 CREATE TABLE IF NOT EXISTS recipes (
@@ -358,16 +407,30 @@ CREATE TABLE IF NOT EXISTS friendships (
   CONSTRAINT no_self_friendship CHECK (user_id != friend_id)
 );
 
--- Index pour les performances
-CREATE INDEX IF NOT EXISTS idx_recipes_created_at ON recipes(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_recipes_category ON recipes(category);
-CREATE INDEX IF NOT EXISTS idx_recipes_user_id ON recipes(user_id);
-CREATE INDEX IF NOT EXISTS idx_profiles_user_id ON profiles(user_id);
-CREATE INDEX IF NOT EXISTS idx_profiles_display_name ON profiles(display_name);
-CREATE INDEX IF NOT EXISTS idx_friendships_user_id ON friendships(user_id);
-CREATE INDEX IF NOT EXISTS idx_friendships_friend_id ON friendships(friend_id);
-CREATE INDEX IF NOT EXISTS idx_friendships_status ON friendships(status);
-CREATE INDEX IF NOT EXISTS idx_friendships_user_status ON friendships(user_id, status);
+-- Table des commentaires (NOUVELLE)
+CREATE TABLE IF NOT EXISTS comments (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  recipe_id UUID NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  content TEXT NOT NULL CHECK (length(content) > 0 AND length(content) <= 500),
+  likes INTEGER DEFAULT 0 CHECK (likes >= 0),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Index pour les commentaires
+CREATE INDEX IF NOT EXISTS idx_comments_recipe_id ON comments(recipe_id);
+CREATE INDEX IF NOT EXISTS idx_comments_user_id ON comments(user_id);
+CREATE INDEX IF NOT EXISTS idx_comments_created_at ON comments(created_at DESC);
+
+-- Row Level Security pour comments
+ALTER TABLE comments ENABLE ROW LEVEL SECURITY;
+
+-- Politiques pour comments
+CREATE POLICY "Permettre lecture publique commentaires" ON comments FOR SELECT USING (true);
+CREATE POLICY "Permettre insertion commentaire utilisateur" ON comments FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Permettre mise à jour commentaire utilisateur" ON comments FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Permettre suppression commentaire utilisateur" ON comments FOR DELETE USING (auth.uid() = user_id);
 
 -- Extension pour recherche floue
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
@@ -536,6 +599,9 @@ $$ LANGUAGE plpgsql;
               </button>
               <button onClick={() => router.push('/share-photo')}>
                 📝 Formulaire
+              </button>
+              <button onClick={testComments} disabled={isLoading}>
+                🗨️ Test Commentaires
               </button>
             </div>
           </div>

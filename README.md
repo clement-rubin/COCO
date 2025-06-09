@@ -373,6 +373,62 @@ CREATE TRIGGER on_auth_user_created
   FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
 ```
 
+## 👥 Gestion des amitiés
+
+Le système d'amis de COCO permet aux utilisateurs de rechercher, ajouter, accepter, refuser, bloquer et débloquer des amis, ainsi que de gérer des groupes d'amis et de recevoir des notifications.
+
+### Fonctionnalités principales
+
+- **Recherche d'utilisateurs** : via le nom d'affichage, avec recherche floue (`search_users_simple`)
+- **Suggestions d'amis** : basées sur les amis mutuels
+- **Profils utilisateur** complets avec statistiques
+- **Gestion des demandes d'amitié** (envoi, acceptation, refus)
+- **Paramètres de confidentialité** pour les profils
+- **Noms d'utilisateur personnalisés** avec validation
+
+### Endpoints API
+
+- `GET /api/friends?user_id=...` : Récupère la liste des amis et demandes en attente
+- `GET /api/friends?query=...` : Recherche d'utilisateurs par nom
+- `POST /api/friends` : Actions (`send_request`, `accept_request`, `reject_request`, `block_user`, `unblock_user`, `create_group`, etc.)
+
+### Fonctions utilitaires principales
+
+- `getUserFriends(userId)` : Récupère amis et demandes en attente
+- `sendFriendRequestCorrected(fromUserId, toUserId)` : Envoie une demande d'amitié
+- `blockUser(fromUserId, toUserId)` / `unblockUser(fromUserId, toUserId)` : Bloque/débloque un utilisateur
+- `getIntelligentFriendSuggestions(userId, limit)` : Suggestions avancées d'amis
+- `getUnreadNotifications(userId)` : Notifications non lues
+- `updateLastSeen(userId)` / `isUserOnline(userId)` : Statut en ligne
+
+### Tables et fonctions SQL
+
+- Table `friendships` : stocke les relations d'amitié (voir scripts SQL)
+- Table `profiles` : profils utilisateurs
+- Fonctions : `get_user_friends_simple`, `get_pending_friend_requests`, `check_friendship_status`, `get_friend_suggestions`, etc.
+
+### Exemples d'utilisation
+
+```js
+// Envoyer une demande d'amitié
+await sendFriendRequestCorrected(currentUserId, targetUserId);
+
+// Accepter une demande
+await supabase.from('friendships').update({ status: 'accepted' }).eq('id', requestId);
+
+// Bloquer un utilisateur
+await blockUser(currentUserId, targetUserId);
+
+// Suggestions d'amis
+const suggestions = await getIntelligentFriendSuggestions(currentUserId, 5);
+```
+
+Pour plus de détails, consultez les fichiers :
+- `/utils/profileUtils.js`
+- `/pages/api/friends.js`
+- `/pages/amis.js`
+- `/pages/test-friends.js`
+
 **COCO** - *Où chaque recette raconte une histoire* 🍴✨
 
 ## 🌟 Fonctionnalités Principales
@@ -559,62 +615,31 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
+-- Table des commentaires (NOUVELLE)
+CREATE TABLE IF NOT EXISTS comments (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  recipe_id UUID NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  content TEXT NOT NULL CHECK (length(content) > 0 AND length(content) <= 500),
+  likes INTEGER DEFAULT 0 CHECK (likes >= 0),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Index pour les commentaires
+CREATE INDEX IF NOT EXISTS idx_comments_recipe_id ON comments(recipe_id);
+CREATE INDEX IF NOT EXISTS idx_comments_user_id ON comments(user_id);
+CREATE INDEX IF NOT EXISTS idx_comments_created_at ON comments(created_at DESC);
+
+-- Row Level Security pour comments
+ALTER TABLE comments ENABLE ROW LEVEL SECURITY;
+
+-- Politiques pour comments
+CREATE POLICY "Permettre lecture publique commentaires" ON comments FOR SELECT USING (true);
+CREATE POLICY "Permettre insertion commentaire utilisateur" ON comments FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Permettre mise à jour commentaire utilisateur" ON comments FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Permettre suppression commentaire utilisateur" ON comments FOR DELETE USING (auth.uid() = user_id);
 ```
-
-## 👥 Gestion des amitiés
-
-Le système d'amis de COCO permet aux utilisateurs de rechercher, ajouter, accepter, refuser, bloquer et débloquer des amis, ainsi que de gérer des groupes d'amis et de recevoir des notifications.
-
-### Fonctionnalités principales
-
-- **Recherche d'utilisateurs** : via le nom d'affichage, avec recherche floue (`search_users_simple`)
-- **Suggestions d'amis** : basées sur les amis mutuels
-- **Profils utilisateur** complets avec statistiques
-- **Gestion des demandes d'amitié** (envoi, acceptation, refus)
-- **Paramètres de confidentialité** pour les profils
-- **Noms d'utilisateur personnalisés** avec validation
-
-### Endpoints API
-
-- `GET /api/friends?user_id=...` : Récupère la liste des amis et demandes en attente
-- `GET /api/friends?query=...` : Recherche d'utilisateurs par nom
-- `POST /api/friends` : Actions (`send_request`, `accept_request`, `reject_request`, `block_user`, `unblock_user`, `create_group`, etc.)
-
-### Fonctions utilitaires principales
-
-- `getUserFriends(userId)` : Récupère amis et demandes en attente
-- `sendFriendRequestCorrected(fromUserId, toUserId)` : Envoie une demande d'amitié
-- `blockUser(fromUserId, toUserId)` / `unblockUser(fromUserId, toUserId)` : Bloque/débloque un utilisateur
-- `getIntelligentFriendSuggestions(userId, limit)` : Suggestions avancées d'amis
-- `getUnreadNotifications(userId)` : Notifications non lues
-- `updateLastSeen(userId)` / `isUserOnline(userId)` : Statut en ligne
-
-### Tables et fonctions SQL
-
-- Table `friendships` : stocke les relations d'amitié (voir scripts SQL)
-- Table `profiles` : profils utilisateurs
-- Fonctions : `get_user_friends_simple`, `get_pending_friend_requests`, `check_friendship_status`, `get_friend_suggestions`, etc.
-
-### Exemples d'utilisation
-
-```js
-// Envoyer une demande d'amitié
-await sendFriendRequestCorrected(currentUserId, targetUserId);
-
-// Accepter une demande
-await supabase.from('friendships').update({ status: 'accepted' }).eq('id', requestId);
-
-// Bloquer un utilisateur
-await blockUser(currentUserId, targetUserId);
-
-// Suggestions d'amis
-const suggestions = await getIntelligentFriendSuggestions(currentUserId, 5);
-```
-
-Pour plus de détails, consultez les fichiers :
-- `/utils/profileUtils.js`
-- `/pages/api/friends.js`
-- `/pages/amis.js`
-- `/pages/test-friends.js`
 
 **COCO** - *Où chaque recette raconte une histoire* 🍴✨

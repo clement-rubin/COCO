@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { useAuth } from '../../components/AuthContext'
 import { logUserInteraction, logError, logInfo, logRecipeAction } from '../../utils/logger'
 import styles from '../../styles/RecipeDetail.module.css'
+import commentsStyles from '../../styles/SubmitRecipe.module.css'
 
 export default function RecipeDetail() {
   const router = useRouter()
@@ -17,11 +18,19 @@ export default function RecipeDetail() {
   const [isLiked, setIsLiked] = useState(false)
   const [servings, setServings] = useState(4)
   const [activeTab, setActiveTab] = useState('ingredients')
+  
+  // États pour les commentaires
+  const [comments, setComments] = useState([])
+  const [commentText, setCommentText] = useState('')
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false)
+  const [loadingComments, setLoadingComments] = useState(false)
+  const [commentLikes, setCommentLikes] = useState(new Set())
 
   useEffect(() => {
     if (id) {
       loadRecipe()
       loadUserPreferences()
+      loadComments()
     }
   }, [id])
 
@@ -226,6 +235,119 @@ export default function RecipeDetail() {
       case 'Difficile': return '#ef4444'
       default: return '#6b7280'
     }
+  }
+
+  // Charger les commentaires
+  const loadComments = async () => {
+    if (!id) return
+    
+    setLoadingComments(true)
+    try {
+      const response = await fetch(`/api/comments?recipe_id=${id}`)
+      if (response.ok) {
+        const commentsData = await response.json()
+        setComments(Array.isArray(commentsData) ? commentsData : [])
+        
+        logInfo('Comments loaded successfully', {
+          recipeId: id,
+          commentsCount: commentsData.length
+        })
+      } else {
+        logError('Failed to load comments', new Error(`HTTP ${response.status}`), { recipeId: id })
+      }
+    } catch (error) {
+      logError('Error loading comments', error, { recipeId: id })
+    } finally {
+      setLoadingComments(false)
+    }
+  }
+
+  // Soumettre un commentaire
+  const submitComment = async () => {
+    if (!commentText.trim() || !user || !id) return
+    
+    setIsSubmittingComment(true)
+    try {
+      const response = await fetch('/api/comments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          recipe_id: id,
+          user_id: user.id,
+          content: commentText.trim()
+        })
+      })
+      
+      if (response.ok) {
+        const newComment = await response.json()
+        setComments(prev => [newComment, ...prev])
+        setCommentText('')
+        
+        logUserInteraction('COMMENT_ADDED', 'recipe-detail', {
+          recipeId: id,
+          commentLength: commentText.length
+        })
+      } else {
+        const errorData = await response.json()
+        throw new Error(errorData.message || 'Erreur lors de l\'ajout du commentaire')
+      }
+    } catch (error) {
+      logError('Error submitting comment', error, { recipeId: id })
+      alert('Erreur lors de l\'ajout du commentaire. Veuillez réessayer.')
+    } finally {
+      setIsSubmittingComment(false)
+    }
+  }
+
+  // Liker un commentaire
+  const toggleCommentLike = (commentId) => {
+    setCommentLikes(prev => {
+      const newLikes = new Set(prev)
+      if (newLikes.has(commentId)) {
+        newLikes.delete(commentId)
+      } else {
+        newLikes.add(commentId)
+      }
+      return newLikes
+    })
+    
+    logUserInteraction('COMMENT_LIKE_TOGGLE', 'recipe-detail', {
+      commentId,
+      recipeId: id
+    })
+  }
+
+  // Formater la date
+  const formatDate = (dateString) => {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffMs = now - date
+    const diffMins = Math.floor(diffMs / (1000 * 60))
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+    
+    if (diffMins < 1) return 'À l\'instant'
+    if (diffMins < 60) return `${diffMins}min`
+    if (diffHours < 24) return `${diffHours}h`
+    if (diffDays < 7) return `${diffDays}j`
+    
+    return date.toLocaleDateString('fr-FR', {
+      day: 'numeric',
+      month: 'short',
+      year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+    })
+  }
+
+  // Obtenir les initiales pour l'avatar
+  const getInitials = (name) => {
+    return name
+      .split(' ')
+      .map(word => word.charAt(0))
+      .join('')
+      .toUpperCase()
+      .substring(0, 2)
   }
 
   if (loading) {
@@ -478,6 +600,126 @@ export default function RecipeDetail() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Section Commentaires */}
+      <div className={commentsStyles.commentsSection}>
+        <div className={commentsStyles.commentsHeader}>
+          <h2 className={commentsStyles.commentsTitle}>
+            💬 Commentaires
+            <span className={commentsStyles.commentsCount}>
+              {comments.length}
+            </span>
+          </h2>
+        </div>
+
+        {/* Formulaire d'ajout de commentaire */}
+        {user ? (
+          <div className={commentsStyles.commentForm}>
+            <textarea
+              className={commentsStyles.commentTextarea}
+              placeholder="Partagez votre avis sur cette recette..."
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              maxLength={500}
+            />
+            <div className={commentsStyles.commentActions}>
+              <span className={commentsStyles.commentCharCount}>
+                {commentText.length}/500
+              </span>
+              <button
+                className={commentsStyles.commentSubmitBtn}
+                onClick={submitComment}
+                disabled={!commentText.trim() || isSubmittingComment}
+              >
+                {isSubmittingComment ? (
+                  <>
+                    <div className={commentsStyles.commentsSpinner}></div>
+                    Envoi...
+                  </>
+                ) : (
+                  <>
+                    💬 Commenter
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div style={{ 
+            padding: '20px', 
+            textAlign: 'center', 
+            background: 'rgba(248, 250, 252, 0.8)',
+            borderRadius: '12px',
+            marginBottom: '24px'
+          }}>
+            <p style={{ margin: '0 0 12px 0', color: '#64748b' }}>
+              Connectez-vous pour laisser un commentaire
+            </p>
+            <button
+              onClick={() => router.push(`/login?redirect=${encodeURIComponent(`/recipe/${id}`)}`)}
+              className={commentsStyles.commentSubmitBtn}
+            >
+              Se connecter
+            </button>
+          </div>
+        )}
+
+        {/* Liste des commentaires */}
+        {loadingComments ? (
+          <div className={commentsStyles.loadingComments}>
+            <div className={commentsStyles.commentsSpinner}></div>
+            Chargement des commentaires...
+          </div>
+        ) : comments.length === 0 ? (
+          <div className={commentsStyles.emptyComments}>
+            <div className={commentsStyles.emptyCommentsIcon}>🗨️</div>
+            <div className={commentsStyles.emptyCommentsText}>
+              Aucun commentaire pour le moment
+            </div>
+            <div className={commentsStyles.emptyCommentsSubtext}>
+              Soyez le premier à partager votre avis sur cette recette !
+            </div>
+          </div>
+        ) : (
+          <div className={commentsStyles.commentsList}>
+            {comments.map((comment) => (
+              <div key={comment.id} className={commentsStyles.commentItem}>
+                <div className={commentsStyles.commentHeader}>
+                  <div className={commentsStyles.commentAuthor}>
+                    <div className={commentsStyles.commentAuthorAvatar}>
+                      {getInitials(comment.author_name || 'Anonyme')}
+                    </div>
+                    <div>
+                      <div className={commentsStyles.commentAuthorName}>
+                        {comment.author_name || 'Chef Anonyme'}
+                      </div>
+                      <div className={commentsStyles.commentDate}>
+                        {formatDate(comment.created_at)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <p className={commentsStyles.commentText}>
+                  {comment.content}
+                </p>
+                
+                <div className={commentsStyles.commentActions}>
+                  <button
+                    className={`${commentsStyles.commentLikeBtn} ${
+                      commentLikes.has(comment.id) ? commentsStyles.liked : ''
+                    }`}
+                    onClick={() => toggleCommentLike(comment.id)}
+                  >
+                    {commentLikes.has(comment.id) ? '❤️' : '🤍'} 
+                    {(comment.likes || 0) + (commentLikes.has(comment.id) ? 1 : 0)}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <style jsx>{`
