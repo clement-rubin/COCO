@@ -780,3 +780,86 @@ export async function deleteUserRecipe(recipeId, userId) {
     return false
   }
 }
+
+/**
+ * Vérifie si un utilisateur peut modifier/supprimer un commentaire
+ * @param {string} commentUserId - L'ID du propriétaire du commentaire
+ * @param {string} currentUserId - L'ID de l'utilisateur actuel
+ * @returns {boolean} True si l'utilisateur peut modifier le commentaire
+ */
+export function canUserEditComment(commentUserId, currentUserId) {
+  if (!commentUserId || !currentUserId) {
+    logWarning('canUserEditComment called with missing parameters', { commentUserId, currentUserId })
+    return false
+  }
+
+  const canEdit = commentUserId === currentUserId
+  
+  logDebug('Comment edit permission check', {
+    commentUserId: commentUserId.substring(0, 8) + '...',
+    currentUserId: currentUserId.substring(0, 8) + '...',
+    canEdit
+  })
+
+  return canEdit
+}
+
+/**
+ * Supprime un commentaire de l'utilisateur
+ * @param {string} commentId - L'ID du commentaire
+ * @param {string} userId - L'ID de l'utilisateur
+ * @returns {Promise<boolean>} True si la suppression a réussi
+ */
+export async function deleteUserComment(commentId, userId) {
+  if (!commentId || !userId) {
+    logWarning('deleteUserComment called with missing parameters', { commentId, userId })
+    return false
+  }
+
+  try {
+    // Vérifier que le commentaire appartient bien à l'utilisateur
+    const { data: comment, error: fetchError } = await supabase
+      .from('comments')
+      .select('user_id, content')
+      .eq('id', commentId)
+      .single()
+
+    if (fetchError) {
+      logError('Error fetching comment for deletion', fetchError, { commentId, userId })
+      return false
+    }
+
+    if (!comment || comment.user_id !== userId) {
+      logWarning('User attempted to delete comment they do not own', {
+        commentId,
+        commentOwnerId: comment?.user_id,
+        requestingUserId: userId
+      })
+      return false
+    }
+
+    // Supprimer le commentaire
+    const { error: deleteError } = await supabase
+      .from('comments')
+      .delete()
+      .eq('id', commentId)
+      .eq('user_id', userId) // Double vérification
+
+    if (deleteError) {
+      logError('Error deleting comment', deleteError, { commentId, userId })
+      return false
+    }
+
+    logInfo('Comment deleted successfully', {
+      commentId,
+      userId: userId.substring(0, 8) + '...',
+      contentPreview: comment.content?.substring(0, 50) + '...'
+    })
+
+    return true
+
+  } catch (error) {
+    logError('Exception while deleting comment', error, { commentId, userId })
+    return false
+  }
+}

@@ -1,0 +1,178 @@
+/* Styles existants... */
+
+/* Actions du propriétaire du commentaire */
+.commentOwnerActions {
+  display: flex;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.commentItem:hover .commentOwnerActions {
+  opacity: 1;
+}
+
+.editCommentBtn,
+.deleteCommentBtn {
+  background: none;
+  border: none;
+  padding: 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.editCommentBtn:hover {
+  background: rgba(59, 130, 246, 0.1);
+  transform: scale(1.1);
+}
+
+.deleteCommentBtn:hover {
+  background: rgba(239, 68, 68, 0.1);
+  transform: scale(1.1);
+}
+
+.editCommentBtn:disabled,
+.deleteCommentBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Badge "modifié" */
+.editedBadge {
+  font-size: 11px;
+  color: #6b7280;
+  font-style: italic;
+  opacity: 0.8;
+}
+
+/* Formulaire d'édition */
+.editCommentForm {
+  margin: 12px 0;
+  padding: 16px;
+  background: rgba(249, 250, 251, 0.8);
+  border-radius: 12px;
+  border: 2px solid #e5e7eb;
+}
+
+.editCommentTextarea {
+  width: 100%;
+  min-height: 80px;
+  padding: 12px;
+  border: 2px solid #d1d5db;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  resize: vertical;
+  background: white;
+  transition: border-color 0.2s ease;
+}
+
+.editCommentTextarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.editCommentTextarea:disabled {
+  background: #f3f4f6;
+  cursor: not-allowed;
+}
+
+.editCommentActions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+}
+
+.editCommentCharCount {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.editCommentButtons {
+  display: flex;
+  gap: 8px;
+}
+
+.cancelEditBtn,
+.saveEditBtn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cancelEditBtn {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.cancelEditBtn:hover:not(:disabled) {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.saveEditBtn {
+  background: #3b82f6;
+  color: white;
+}
+
+.saveEditBtn:hover:not(:disabled) {
+  background: #2563eb;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.saveEditBtn:disabled,
+.cancelEditBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Animation pour les messages de succès */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .commentOwnerActions {
+    opacity: 1; /* Toujours visible sur mobile */
+  }
+  
+  .editCommentActions {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+  
+  .editCommentButtons {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .cancelEditBtn,
+  .saveEditBtn {
+    flex: 1;
+    padding: 12px;
+  }
+}

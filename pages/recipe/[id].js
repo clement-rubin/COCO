@@ -25,6 +25,9 @@ export default function RecipeDetail() {
   const [isSubmittingComment, setIsSubmittingComment] = useState(false)
   const [loadingComments, setLoadingComments] = useState(false)
   const [commentLikes, setCommentLikes] = useState(new Set())
+  const [editingComment, setEditingComment] = useState(null)
+  const [editCommentText, setEditCommentText] = useState('')
+  const [savingComment, setSavingComment] = useState(false)
 
   useEffect(() => {
     if (id) {
@@ -356,6 +359,119 @@ export default function RecipeDetail() {
       commentId,
       recipeId: id
     })
+  }
+
+  // Éditer un commentaire
+  const startEditComment = (comment) => {
+    setEditingComment(comment.id)
+    setEditCommentText(comment.content)
+  }
+
+  const cancelEditComment = () => {
+    setEditingComment(null)
+    setEditCommentText('')
+  }
+
+  const saveEditComment = async (commentId) => {
+    if (!editCommentText.trim() || editCommentText.trim().length > 500) {
+      alert('Le commentaire doit contenir entre 1 et 500 caractères.')
+      return
+    }
+
+    setSavingComment(true)
+    try {
+      const response = await fetch('/api/comments', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: commentId,
+          user_id: user.id,
+          content: editCommentText.trim()
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || 'Erreur lors de la modification')
+      }
+
+      const updatedComment = await response.json()
+
+      // Mettre à jour le commentaire dans la liste
+      setComments(prev => prev.map(comment => 
+        comment.id === commentId ? updatedComment : comment
+      ))
+
+      setEditingComment(null)
+      setEditCommentText('')
+      
+      // Afficher un message de succès temporaire
+      const successMessage = document.createElement('div')
+      successMessage.textContent = 'Commentaire modifié avec succès ✓'
+      successMessage.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #10b981;
+        color: white;
+        padding: 12px 16px;
+        border-radius: 8px;
+        z-index: 10000;
+        font-weight: 500;
+      `
+      document.body.appendChild(successMessage)
+      setTimeout(() => successMessage.remove(), 3000)
+
+    } catch (error) {
+      console.error('Erreur lors de la modification du commentaire:', error)
+      alert('Erreur lors de la modification du commentaire: ' + error.message)
+    } finally {
+      setSavingComment(false)
+    }
+  }
+
+  // Supprimer un commentaire
+  const deleteComment = async (commentId) => {
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce commentaire ?')) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/comments?id=${commentId}&user_id=${user.id}`, {
+        method: 'DELETE'
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || 'Erreur lors de la suppression')
+      }
+
+      // Retirer le commentaire de la liste
+      setComments(prev => prev.filter(comment => comment.id !== commentId))
+      
+      // Afficher un message de succès temporaire
+      const successMessage = document.createElement('div')
+      successMessage.textContent = 'Commentaire supprimé avec succès ✓'
+      successMessage.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #ef4444;
+        color: white;
+        padding: 12px 16px;
+        border-radius: 8px;
+        z-index: 10000;
+        font-weight: 500;
+      `
+      document.body.appendChild(successMessage)
+      setTimeout(() => successMessage.remove(), 3000)
+
+    } catch (error) {
+      console.error('Erreur lors de la suppression du commentaire:', error)
+      alert('Erreur lors de la suppression du commentaire: ' + error.message)
+    }
   }
 
   // Formater la date
@@ -735,14 +851,74 @@ export default function RecipeDetail() {
                       </div>
                       <div className={commentsStyles.commentDate}>
                         {formatDate(comment.created_at)}
+                        {comment.updated_at && comment.updated_at !== comment.created_at && (
+                          <span className={commentsStyles.editedBadge}> (modifié)</span>
+                        )}
                       </div>
                     </div>
                   </div>
+                  
+                  {/* Actions du propriétaire du commentaire */}
+                  {user && comment.user_id === user.id && (
+                    <div className={commentsStyles.commentOwnerActions}>
+                      <button
+                        onClick={() => startEditComment(comment)}
+                        className={commentsStyles.editCommentBtn}
+                        title="Modifier le commentaire"
+                        disabled={editingComment === comment.id}
+                      >
+                        ✏️
+                      </button>
+                      <button
+                        onClick={() => deleteComment(comment.id)}
+                        className={commentsStyles.deleteCommentBtn}
+                        title="Supprimer le commentaire"
+                        disabled={editingComment === comment.id}
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  )}
                 </div>
                 
-                <p className={commentsStyles.commentText}>
-                  {comment.content}
-                </p>
+                {/* Contenu du commentaire ou formulaire d'édition */}
+                {editingComment === comment.id ? (
+                  <div className={commentsStyles.editCommentForm}>
+                    <textarea
+                      value={editCommentText}
+                      onChange={(e) => setEditCommentText(e.target.value)}
+                      className={commentsStyles.editCommentTextarea}
+                      placeholder="Modifier votre commentaire..."
+                      maxLength={500}
+                      disabled={savingComment}
+                    />
+                    <div className={commentsStyles.editCommentActions}>
+                      <span className={commentsStyles.editCommentCharCount}>
+                        {editCommentText.length}/500
+                      </span>
+                      <div className={commentsStyles.editCommentButtons}>
+                        <button
+                          onClick={cancelEditComment}
+                          className={commentsStyles.cancelEditBtn}
+                          disabled={savingComment}
+                        >
+                          Annuler
+                        </button>
+                        <button
+                          onClick={() => saveEditComment(comment.id)}
+                          className={commentsStyles.saveEditBtn}
+                          disabled={!editCommentText.trim() || savingComment || editCommentText.length > 500}
+                        >
+                          {savingComment ? 'Sauvegarde...' : 'Sauvegarder'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <p className={commentsStyles.commentText}>
+                    {comment.content}
+                  </p>
+                )}
                 
                 <div className={commentsStyles.commentActions}>
                   <button
@@ -750,6 +926,7 @@ export default function RecipeDetail() {
                       commentLikes.has(comment.id) ? commentsStyles.liked : ''
                     }`}
                     onClick={() => toggleCommentLike(comment.id)}
+                    disabled={editingComment === comment.id}
                   >
                     {commentLikes.has(comment.id) ? '❤️' : '🤍'} 
                     {(comment.likes || 0) + (commentLikes.has(comment.id) ? 1 : 0)}

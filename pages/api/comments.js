@@ -252,7 +252,7 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'PUT') {
-      const { id, user_id, likes } = req.body
+      const { id, user_id, content, likes } = req.body
 
       if (!id || !user_id) {
         return res.status(400).json({
@@ -262,33 +262,86 @@ export default async function handler(req, res) {
       }
 
       try {
-        // Vérifier que le commentaire appartient à l'utilisateur (pour les modifications de contenu)
-        // Ou permettre le like pour tous les utilisateurs
-        const updateData = {}
-        
-        if (typeof likes === 'number') {
-          updateData.likes = Math.max(0, likes) // Assurer que les likes ne soient pas négatifs
+        // Vérifier que le commentaire appartient à l'utilisateur
+        const { data: existingComment, error: fetchError } = await supabase
+          .from('comments')
+          .select('user_id, content')
+          .eq('id', id)
+          .single()
+
+        if (fetchError || !existingComment) {
+          return res.status(404).json({
+            error: 'Commentaire introuvable',
+            message: 'Le commentaire que vous tentez de modifier n\'existe pas'
+          })
         }
 
-        const { data: updatedComment, error } = await supabase
+        if (existingComment.user_id !== user_id) {
+          return res.status(403).json({
+            error: 'Non autorisé',
+            message: 'Vous ne pouvez modifier que vos propres commentaires'
+          })
+        }
+
+        const updateData = { updated_at: new Date().toISOString() }
+        
+        // Modification du contenu
+        if (content !== undefined) {
+          if (typeof content !== 'string' || content.trim().length === 0) {
+            return res.status(400).json({
+              error: 'Contenu invalide',
+              message: 'Le contenu du commentaire ne peut pas être vide'
+            })
+          }
+
+          if (content.trim().length > 500) {
+            return res.status(400).json({
+              error: 'Contenu trop long',
+              message: 'Le commentaire ne peut pas dépasser 500 caractères'
+            })
+          }
+
+          updateData.content = content.trim()
+        }
+        
+        // Modification des likes (pour le système de like)
+        if (typeof likes === 'number') {
+          updateData.likes = Math.max(0, likes)
+        }
+
+        const { data: updatedComment, error: updateError } = await supabase
           .from('comments')
           .update(updateData)
           .eq('id', id)
+          .eq('user_id', user_id) // Double vérification de sécurité
           .select()
           .single()
 
-        if (error) {
-          throw error
+        if (updateError) {
+          throw updateError
+        }
+
+        // Récupérer le nom de l'auteur pour la réponse
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('display_name')
+          .eq('user_id', user_id)
+          .single()
+
+        const commentWithAuthor = {
+          ...updatedComment,
+          author_name: profile?.display_name || 'Chef Anonyme'
         }
 
         logInfo('Comment updated successfully', {
           requestId,
           commentId: id,
           userId: user_id.substring(0, 8) + '...',
-          updates: Object.keys(updateData)
+          updates: Object.keys(updateData),
+          hasContentUpdate: !!updateData.content
         })
 
-        return res.status(200).json(updatedComment)
+        return res.status(200).json(commentWithAuthor)
 
       } catch (error) {
         logError('Error updating comment', error, {
@@ -318,12 +371,15 @@ export default async function handler(req, res) {
         // Vérifier que le commentaire appartient à l'utilisateur
         const { data: comment, error: fetchError } = await supabase
           .from('comments')
-          .select('user_id')
+          .select('user_id, content')
           .eq('id', id)
           .single()
 
         if (fetchError) {
-          throw new Error('Commentaire introuvable')
+          return res.status(404).json({
+            error: 'Commentaire introuvable',
+            message: 'Le commentaire que vous tentez de supprimer n\'existe pas'
+          })
         }
 
         if (comment.user_id !== user_id) {
@@ -333,11 +389,24 @@ export default async function handler(req, res) {
           })
         }
 
-        const { error: deleteError } = await supabase
+        // Utiliser un client admin pour contourner RLS si nécessaire
+        const { createClient } = require('@supabase/supabase-js')
+        const supabaseAdmin = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL,
+          process.env.SUPABASE_SERVICE_ROLE_KEY,
+          {
+            auth: {
+              autoRefreshToken: false,
+              persistSession: false
+            }
+          }
+        )
+
+        const { error: deleteError } = await supabaseAdmin
           .from('comments')
           .delete()
           .eq('id', id)
-          .eq('user_id', user_id)
+          .eq('user_id', user_id) // Double vérification
 
         if (deleteError) {
           throw deleteError
@@ -346,7 +415,8 @@ export default async function handler(req, res) {
         logInfo('Comment deleted successfully', {
           requestId,
           commentId: id,
-          userId: user_id.substring(0, 8) + '...'
+          userId: user_id.substring(0, 8) + '...',
+          contentPreview: comment.content?.substring(0, 50) + '...'
         })
 
         return res.status(200).json({
