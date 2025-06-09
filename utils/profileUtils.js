@@ -707,6 +707,21 @@ export function canUserEditRecipe(recipeUserId, currentUserId) {
 }
 
 /**
+ * Vérifie si un utilisateur peut commenter (actuellement tous les utilisateurs connectés)
+ * @param {string} userId - L'ID de l'utilisateur
+ * @returns {boolean} True si l'utilisateur peut commenter
+ */
+export function canUserComment(userId) {
+  if (!userId) {
+    logWarning('canUserComment called with missing userId')
+    return false
+  }
+  
+  // Tous les utilisateurs connectés peuvent commenter
+  return true
+}
+
+/**
  * Supprime une recette de l'utilisateur
  * @param {string} recipeId - L'ID de la recette
  * @param {string} userId - L'ID de l'utilisateur

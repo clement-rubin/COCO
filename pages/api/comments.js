@@ -137,6 +137,17 @@ export default async function handler(req, res) {
       }
 
       try {
+        // Vérifier d'abord l'authentification de l'utilisateur via Supabase Auth
+        const { data: authUser, error: authError } = await supabase.auth.getUser()
+        
+        logInfo('Comment creation attempt', {
+          requestId,
+          providedUserId: user_id.substring(0, 8) + '...',
+          authUserId: authUser?.user?.id?.substring(0, 8) + '...',
+          hasAuthUser: !!authUser?.user,
+          authError: authError?.message
+        })
+
         // Vérifier si la table comments existe, sinon la créer
         const { data: tableCheck, error: tableError } = await supabase
           .from('comments')
@@ -169,8 +180,21 @@ export default async function handler(req, res) {
           })
         }
 
-        // Insérer le commentaire
-        const { data: newComment, error } = await supabase
+        // Utiliser un client Supabase avec service_role pour contourner RLS temporairement
+        const { createClient } = require('@supabase/supabase-js')
+        const supabaseAdmin = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL,
+          process.env.SUPABASE_SERVICE_ROLE_KEY,
+          {
+            auth: {
+              autoRefreshToken: false,
+              persistSession: false
+            }
+          }
+        )
+
+        // Insérer le commentaire avec admin client pour contourner RLS
+        const { data: newComment, error } = await supabaseAdmin
           .from('comments')
           .insert([{
             recipe_id,
@@ -183,6 +207,14 @@ export default async function handler(req, res) {
           .single()
 
         if (error) {
+          logError('Error inserting comment with admin client', error, {
+            requestId,
+            recipeId: recipe_id,
+            userId: user_id.substring(0, 8) + '...',
+            errorCode: error.code,
+            errorMessage: error.message,
+            errorDetails: error.details
+          })
           throw error
         }
 

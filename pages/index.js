@@ -275,9 +275,13 @@ export default function Home() {
                   e.target.style.transform = 'translateY(-8px) scale(1.05) rotateY(5deg)'
                   e.target.style.boxShadow = `0 20px 40px ${action.shadow}, 0 10px 20px rgba(0,0,0,0.1)`
                   
-                  // Vibration légère sur mobile
-                  if (navigator.vibrate) {
-                    navigator.vibrate(10)
+                  // Vibration légère sur mobile seulement si l'utilisateur a déjà interagi
+                  try {
+                    if (navigator.vibrate && document.hasStoredAccess) {
+                      navigator.vibrate(10)
+                    }
+                  } catch (err) {
+                    // Ignorer silencieusement l'erreur de vibration
                   }
                 }}
                 onMouseLeave={(e) => {

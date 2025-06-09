@@ -276,6 +276,13 @@ export default function RecipeDetail() {
     
     setIsSubmittingComment(true)
     try {
+      logInfo('Attempting to submit comment', {
+        recipeId: id,
+        userId: user.id.substring(0, 8) + '...',
+        contentLength: commentText.trim().length,
+        userEmail: user.email
+      })
+
       const response = await fetch('/api/comments', {
         method: 'POST',
         headers: {
@@ -299,15 +306,33 @@ export default function RecipeDetail() {
         })
       } else {
         const errorData = await response.json().catch(() => ({ message: 'Erreur de connexion' }))
+        
+        logError('Comment submission failed', new Error(`HTTP ${response.status}`), {
+          recipeId: id,
+          userId: user.id.substring(0, 8) + '...',
+          status: response.status,
+          errorData
+        })
+        
         throw new Error(errorData.message || 'Erreur lors de l\'ajout du commentaire')
       }
     } catch (error) {
-      logError('Error submitting comment', error, { recipeId: id })
+      logError('Error submitting comment', error, { 
+        recipeId: id,
+        userId: user.id.substring(0, 8) + '...',
+        errorMessage: error.message
+      })
       
-      // Show user-friendly error message
-      const errorMessage = error.message.includes('Table comments') 
-        ? 'La fonctionnalité de commentaires n\'est pas encore disponible.'
-        : 'Impossible d\'ajouter le commentaire. Veuillez réessayer.'
+      // Afficher un message d'erreur plus informatif
+      let errorMessage = 'Impossible d\'ajouter le commentaire. '
+      
+      if (error.message.includes('row-level security')) {
+        errorMessage += 'Problème d\'autorisation. Veuillez vous reconnecter et réessayer.'
+      } else if (error.message.includes('Table comments')) {
+        errorMessage += 'La fonctionnalité de commentaires n\'est pas encore disponible.'
+      } else {
+        errorMessage += 'Veuillez réessayer dans quelques instants.'
+      }
       
       alert(errorMessage)
     } finally {
