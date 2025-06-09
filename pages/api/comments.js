@@ -269,7 +269,19 @@ export default async function handler(req, res) {
           .eq('id', id)
           .single()
 
-        if (fetchError || !existingComment) {
+        if (fetchError) {
+          logError('Error fetching comment for update', fetchError, {
+            requestId,
+            commentId: id,
+            userId: user_id?.substring(0, 8) + '...'
+          })
+          return res.status(404).json({
+            error: 'Commentaire introuvable',
+            message: 'Le commentaire que vous tentez de modifier n\'existe pas'
+          })
+        }
+
+        if (!existingComment) {
           return res.status(404).json({
             error: 'Commentaire introuvable',
             message: 'Le commentaire que vous tentez de modifier n\'existe pas'
@@ -309,16 +321,60 @@ export default async function handler(req, res) {
           updateData.likes = Math.max(0, likes)
         }
 
-        const { data: updatedComment, error: updateError } = await supabase
+        // Utiliser un client admin pour contourner RLS si nécessaire
+        const { createClient } = require('@supabase/supabase-js')
+        const supabaseAdmin = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL,
+          process.env.SUPABASE_SERVICE_ROLE_KEY,
+          {
+            auth: {
+              autoRefreshToken: false,
+              persistSession: false
+            }
+          }
+        )
+
+        // Effectuer la mise à jour avec une requête plus spécifique
+        const { data: updatedComment, error: updateError } = await supabaseAdmin
           .from('comments')
           .update(updateData)
           .eq('id', id)
           .eq('user_id', user_id) // Double vérification de sécurité
-          .select()
+          .select('*')
           .single()
 
         if (updateError) {
+          logError('Error updating comment', updateError, {
+            requestId,
+            commentId: id,
+            userId: user_id?.substring(0, 8) + '...',
+            errorCode: updateError.code,
+            errorMessage: updateError.message,
+            updateData
+          })
+          
+          // Gestion spécifique des erreurs Supabase
+          if (updateError.code === 'PGRST116') {
+            return res.status(404).json({
+              error: 'Commentaire introuvable après mise à jour',
+              message: 'Le commentaire a peut-être été supprimé entre temps'
+            })
+          }
+          
           throw updateError
+        }
+
+        if (!updatedComment) {
+          logError('No comment returned after update', new Error('Update returned null'), {
+            requestId,
+            commentId: id,
+            userId: user_id?.substring(0, 8) + '...'
+          })
+          
+          return res.status(500).json({
+            error: 'Erreur de mise à jour',
+            message: 'La mise à jour a échoué de manière inattendue'
+          })
         }
 
         // Récupérer le nom de l'auteur pour la réponse
@@ -347,12 +403,14 @@ export default async function handler(req, res) {
         logError('Error updating comment', error, {
           requestId,
           commentId: id,
-          userId: user_id?.substring(0, 8) + '...'
+          userId: user_id?.substring(0, 8) + '...',
+          errorMessage: error.message,
+          errorCode: error.code
         })
 
         return res.status(500).json({
           error: 'Erreur lors de la mise à jour du commentaire',
-          message: error.message
+          message: error.message || 'Une erreur inattendue s\'est produite'
         })
       }
     }

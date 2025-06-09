@@ -960,173 +960,219 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
 }
 
-.commentSubmitBtn:hover:not(:disabled) {
+.commentSubmitBtn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(255, 107, 53, 0.3);
+  box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4);
 }
 
 .commentSubmitBtn:disabled {
   background: #9ca3af;
   cursor: not-allowed;
   transform: none;
+  box-shadow: none;
 }
 
-.commentsList {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.commentItem {
+/* Styles pour l'édition de commentaires */
+.editCommentForm {
+  margin-top: 12px;
+  padding: 16px;
   background: rgba(248, 250, 252, 0.8);
-  border-radius: 16px;
-  padding: 20px;
-  border: 1px solid rgba(226, 232, 240, 0.6);
+  border-radius: 12px;
+  border: 2px solid #e5e7eb;
+}
+
+.editCommentTextarea {
+  width: 100%;
+  min-height: 80px;
+  padding: 12px;
+  border: 2px solid rgba(226, 232, 240, 0.8);
+  border-radius: 12px;
+  resize: vertical;
+  font-family: inherit;
+  font-size: 0.95rem;
+  line-height: 1.4;
   transition: all 0.3s ease;
-}
-
-.commentItem:hover {
   background: rgba(255, 255, 255, 0.9);
-  border-color: rgba(255, 107, 53, 0.2);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
 }
 
-.commentHeader {
+.editCommentTextarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  background: rgba(255, 255, 255, 1);
+}
+
+.editCommentActions {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
-}
-
-.commentAuthor {
-  display: flex;
   align-items: center;
-  gap: 12px;
+  margin-top: 12px;
 }
 
-.commentAuthorAvatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #ff6b35, #f97316);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-weight: 600;
-  font-size: 1.1rem;
-}
-
-.commentAuthorName {
-  font-weight: 600;
-  color: #1e293b;
-  font-size: 1rem;
-}
-
-.commentDate {
+.editCommentCharCount {
   font-size: 0.875rem;
   color: #64748b;
 }
 
-.commentText {
-  color: #374151;
-  line-height: 1.6;
-  margin: 0;
-  font-size: 1rem;
-}
-
-.commentActions {
+.editCommentButtons {
   display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid rgba(226, 232, 240, 0.4);
+  gap: 8px;
 }
 
-.commentLikeBtn {
+.cancelEditBtn {
+  background: #6b7280;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.cancelEditBtn:hover:not(:disabled) {
+  background: #4b5563;
+}
+
+.saveEditBtn {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.saveEditBtn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #059669, #047857);
+  transform: translateY(-1px);
+}
+
+.saveEditBtn:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Styles pour les actions de commentaire */
+.commentOwnerActions {
+  display: flex;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.commentItem:hover .commentOwnerActions {
+  opacity: 1;
+}
+
+.editCommentBtn,
+.deleteCommentBtn {
   background: none;
   border: none;
-  color: #64748b;
+  padding: 6px 8px;
+  border-radius: 6px;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: 8px;
-  transition: all 0.2s ease;
   font-size: 0.875rem;
+  transition: all 0.2s;
 }
 
-.commentLikeBtn:hover {
-  background: rgba(255, 107, 53, 0.1);
-  color: #ff6b35;
+.editCommentBtn {
+  color: #3b82f6;
 }
 
-.commentLikeBtn.liked {
-  color: #ff6b35;
-  background: rgba(255, 107, 53, 0.1);
+.editCommentBtn:hover {
+  background: rgba(59, 130, 246, 0.1);
 }
 
-.emptyComments {
-  text-align: center;
-  padding: 40px 20px;
-  color: #64748b;
+.deleteCommentBtn {
+  color: #ef4444;
 }
 
-.emptyCommentsIcon {
-  font-size: 3rem;
-  margin-bottom: 16px;
+.deleteCommentBtn:hover {
+  background: rgba(239, 68, 68, 0.1);
 }
 
-.emptyCommentsText {
-  font-size: 1.1rem;
-  margin-bottom: 8px;
+.editedBadge {
+  color: #6b7280;
+  font-size: 0.75rem;
+  font-style: italic;
 }
 
-.emptyCommentsSubtext {
-  font-size: 0.9rem;
-  opacity: 0.8;
+/* Amélioration de l'état de chargement des commentaires */
+.commentsSpinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #f3f4f6;
+  border-top: 2px solid #ff6b35;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  display: inline-block;
+  margin-right: 8px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .loadingComments {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 40px;
-  gap: 12px;
-  color: #64748b;
+  padding: 24px;
+  color: #6b7280;
+  font-size: 0.95rem;
 }
 
-.commentsSpinner {
-  width: 20px;
-  height: 20px;
-  border: 2px solid #e2e8f0;
-  border-top: 2px solid #ff6b35;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
+.emptyComments {
+  text-align: center;
+  padding: 40px 20px;
+  color: #6b7280;
 }
 
+.emptyCommentsIcon {
+  font-size: 3rem;
+  margin-bottom: 16px;
+  opacity: 0.6;
+}
+
+.emptyCommentsText {
+  font-size: 1.1rem;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.emptyCommentsSubtext {
+  font-size: 0.95rem;
+  opacity: 0.8;
+}
+
+/* Responsive adjustments */
 @media (max-width: 768px) {
-  .commentsSection {
-    padding: 16px;
-    margin-top: 24px;
-  }
-  
-  .commentActions {
+  .editCommentActions {
     flex-direction: column;
     align-items: stretch;
     gap: 12px;
   }
   
-  .commentSubmitBtn {
-    align-self: stretch;
-    justify-content: center;
+  .editCommentButtons {
+    justify-content: stretch;
+  }
+  
+  .cancelEditBtn,
+  .saveEditBtn {
+    flex: 1;
+  }
+  
+  .commentOwnerActions {
+    opacity: 1; /* Always visible on mobile */
   }
 }
