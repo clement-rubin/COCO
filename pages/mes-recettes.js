@@ -4,6 +4,7 @@ import { useRouter } from 'next/router'
 import { useAuth } from '../components/AuthContext'
 import RecipeCard from '../components/RecipeCard'
 import { logUserInteraction, logError, logInfo } from '../utils/logger'
+import { canUserEditRecipe, deleteUserRecipe } from '../utils/profileUtils'
 import styles from '../styles/UserRecipes.module.css'
 
 export default function MesRecettes() {
@@ -51,6 +52,23 @@ export default function MesRecettes() {
     } finally {
       setLoading(false)
     }
+  }
+
+  // Handler pour suppression d'une recette
+  const handleDeleteRecipe = async (recipeId) => {
+    if (!user) return
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer cette recette ?')) return
+    const success = await deleteUserRecipe(recipeId, user.id)
+    if (success) {
+      setRecipes(recipes => recipes.filter(r => r.id !== recipeId))
+    } else {
+      alert('Erreur lors de la suppression de la recette.')
+    }
+  }
+
+  // Handler pour édition d'une recette
+  const handleEditRecipe = (recipeId) => {
+    router.push(`/edit-recipe/${recipeId}`)
   }
 
   if (authLoading || loading) {
@@ -111,8 +129,10 @@ export default function MesRecettes() {
               <RecipeCard 
                 key={recipe.id} 
                 recipe={recipe} 
-                isUserRecipe={true}
                 isPhotoOnly={recipe.category === 'Photo partagée'}
+                onEdit={() => handleEditRecipe(recipe.id)}
+                onDelete={() => handleDeleteRecipe(recipe.id)}
+                canEdit={canUserEditRecipe(recipe.user_id, user.id)}
               />
             ))}
           </div>

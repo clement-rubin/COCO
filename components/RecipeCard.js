@@ -9,7 +9,7 @@ import { logDebug, logInfo, logError } from '../utils/logger'
 import { canUserEditRecipe, deleteUserRecipe } from '../utils/profileUtils'
 import styles from '../styles/RecipeCard.module.css'
 
-export default function RecipeCard({ recipe, isUserRecipe = true, isPhotoOnly = false, onRecipeDeleted }) {
+export default function RecipeCard({ recipe, isUserRecipe = true, isPhotoOnly = false, onRecipeDeleted, onEdit, onDelete, canEdit }) {
   const router = useRouter()
   const { user } = useAuth()
   const [isFavorite, setIsFavorite] = useState(false)
@@ -113,45 +113,6 @@ export default function RecipeCard({ recipe, isUserRecipe = true, isPhotoOnly = 
   // Vérifier si l'utilisateur peut modifier cette recette
   const canEdit = user && recipe.user_id && canUserEditRecipe(recipe.user_id, user.id)
 
-  const handleEdit = (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    router.push(`/edit-recipe/${recipe.id}`)
-  }
-
-  const handleDelete = async (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-
-    if (!window.confirm(`Êtes-vous sûr de vouloir supprimer "${safeRecipe.title}" ? Cette action est irréversible.`)) {
-      return
-    }
-
-    setIsDeleting(true)
-    try {
-      const success = await deleteUserRecipe(recipe.id, user.id)
-      
-      if (success) {
-        // Notifier le composant parent de la suppression
-        if (onRecipeDeleted) {
-          onRecipeDeleted(recipe.id)
-        }
-        
-        // Optionnel : rediriger ou actualiser
-        if (router.pathname === '/mes-recettes') {
-          window.location.reload()
-        }
-      } else {
-        alert('Erreur lors de la suppression de la recette. Veuillez réessayer.')
-      }
-    } catch (error) {
-      logError('Failed to delete recipe from component', error, { recipeId: recipe.id })
-      alert('Erreur lors de la suppression de la recette. Veuillez réessayer.')
-    } finally {
-      setIsDeleting(false)
-    }
-  }
-
   return (
     <div 
       className={`${styles.card} ${isQuickShare ? styles.photoOnly : ''} ${imageLoading ? styles.loading : ''}`} 
@@ -201,24 +162,23 @@ export default function RecipeCard({ recipe, isUserRecipe = true, isPhotoOnly = 
           </button>
 
           {/* Actions du propriétaire */}
-          {canEdit && (showActions || window.innerWidth <= 768) && (
+          {canEdit && (
             <div className={styles.ownerActions}>
               <button 
                 className={styles.editBtn}
-                onClick={handleEdit}
+                onClick={e => { e.preventDefault(); e.stopPropagation(); onEdit && onEdit(recipe.id); }}
                 title="Modifier la recette"
                 aria-label="Modifier cette recette"
               >
                 ✏️
               </button>
               <button 
-                className={`${styles.deleteBtn} ${isDeleting ? styles.deleting : ''}`}
-                onClick={handleDelete}
-                disabled={isDeleting}
+                className={styles.deleteBtn}
+                onClick={e => { e.preventDefault(); e.stopPropagation(); onDelete && onDelete(recipe.id); }}
                 title="Supprimer la recette"
                 aria-label="Supprimer cette recette"
               >
-                {isDeleting ? '⏳' : '🗑️'}
+                🗑️
               </button>
             </div>
           )}
