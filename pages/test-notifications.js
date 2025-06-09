@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../components/AuthContext'
-import { 
-  notificationManager, 
-  NOTIFICATION_TYPES,
-  showTrophyNotification,
-  showFriendRequestNotification,
-  showFriendAcceptedNotification,
-  showRecipeSharedNotification,
-  showRecipeLikedNotification,
-  showCookingReminderNotification
-} from '../utils/notificationUtils'
+
+// Import notification utilities dynamically to avoid SSR issues
+let notificationManager = null
+let NOTIFICATION_TYPES = null
+let showTrophyNotification = null
+let showFriendRequestNotification = null
+let showFriendAcceptedNotification = null
+let showRecipeSharedNotification = null
+let showRecipeLikedNotification = null
+let showCookingReminderNotification = null
 
 export default function TestNotifications() {
   const { user } = useAuth()
@@ -17,9 +17,32 @@ export default function TestNotifications() {
   const [logs, setLogs] = useState([])
   const [testing, setTesting] = useState(false)
   const [activeSection, setActiveSection] = useState(null)
+  const [isLoaded, setIsLoaded] = useState(false)
 
   useEffect(() => {
-    updatePermissionStatus()
+    // Load notification utilities only on client side
+    const loadNotificationUtils = async () => {
+      if (typeof window !== 'undefined') {
+        try {
+          const notificationUtils = await import('../utils/notificationUtils')
+          notificationManager = notificationUtils.notificationManager
+          NOTIFICATION_TYPES = notificationUtils.NOTIFICATION_TYPES
+          showTrophyNotification = notificationUtils.showTrophyNotification
+          showFriendRequestNotification = notificationUtils.showFriendRequestNotification
+          showFriendAcceptedNotification = notificationUtils.showFriendAcceptedNotification
+          showRecipeSharedNotification = notificationUtils.showRecipeSharedNotification
+          showRecipeLikedNotification = notificationUtils.showRecipeLikedNotification
+          showCookingReminderNotification = notificationUtils.showCookingReminderNotification
+          
+          setIsLoaded(true)
+          updatePermissionStatus()
+        } catch (error) {
+          addLog('error', `Erreur de chargement des notifications: ${error.message}`)
+        }
+      }
+    }
+
+    loadNotificationUtils()
     
     // Écouter les événements de notifications
     const handleTrophyUnlocked = (event) => {
@@ -33,6 +56,11 @@ export default function TestNotifications() {
   }, [])
 
   const updatePermissionStatus = () => {
+    if (!notificationManager) {
+      setPermissionStatus({ supported: false, permission: 'default', canRequest: false })
+      return
+    }
+    
     const status = notificationManager.getPermissionStatus()
     setPermissionStatus(status)
     addLog('info', `Statut permissions: ${status.permission} (Supporté: ${status.supported})`)
@@ -44,6 +72,11 @@ export default function TestNotifications() {
   }
 
   const requestPermission = async () => {
+    if (!notificationManager) {
+      addLog('error', 'Gestionnaire de notifications non disponible')
+      return
+    }
+    
     setTesting(true)
     try {
       const result = await notificationManager.requestPermission()
@@ -57,6 +90,11 @@ export default function TestNotifications() {
   }
 
   const testTrophyNotification = async () => {
+    if (!showTrophyNotification) {
+      addLog('error', 'Fonction de notification de trophée non disponible')
+      return
+    }
+    
     setActiveSection('trophy')
     setTesting(true)
     try {
@@ -79,6 +117,11 @@ export default function TestNotifications() {
   }
 
   const testFriendRequestNotification = async () => {
+    if (!showFriendRequestNotification) {
+      addLog('error', 'Fonction de notification de demande d\'ami non disponible')
+      return
+    }
+    
     setActiveSection('friend')
     setTesting(true)
     try {
@@ -99,6 +142,11 @@ export default function TestNotifications() {
   }
 
   const testFriendAcceptedNotification = async () => {
+    if (!showFriendAcceptedNotification) {
+      addLog('error', 'Fonction de notification d\'acceptation d\'ami non disponible')
+      return
+    }
+    
     setActiveSection('friend')
     setTesting(true)
     try {
@@ -118,6 +166,11 @@ export default function TestNotifications() {
   }
 
   const testRecipeNotifications = async () => {
+    if (!showRecipeSharedNotification || !showRecipeLikedNotification) {
+      addLog('error', 'Fonctions de notification de recette non disponibles')
+      return
+    }
+    
     setActiveSection('recipe')
     setTesting(true)
     try {
@@ -151,6 +204,11 @@ export default function TestNotifications() {
   }
 
   const testCookingReminder = async () => {
+    if (!showCookingReminderNotification) {
+      addLog('error', 'Fonction de notification de rappel de cuisson non disponible')
+      return
+    }
+    
     setActiveSection('cooking')
     setTesting(true)
     try {
@@ -240,6 +298,18 @@ export default function TestNotifications() {
       case 'denied': return '❌ Refusées'
       default: return '⏳ Non demandées'
     }
+  }
+
+  // Show loading state if notifications are not yet loaded
+  if (!isLoaded) {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--bg-gradient)', padding: '20px' }}>
+        <div style={{ textAlign: 'center', marginTop: '50px' }}>
+          <h1 style={{ color: 'var(--primary-orange)' }}>🔔 Test des Notifications</h1>
+          <p style={{ color: 'var(--text-medium)' }}>Chargement des outils de notification...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -408,7 +478,7 @@ export default function TestNotifications() {
                   )}
                 </div>
               ))
-            )}
+            }
           </div>
         </div>
       </div>

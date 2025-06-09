@@ -62,10 +62,19 @@ class NotificationManager {
     this.permission = 'default'
     this.activeNotifications = new Map()
     this.fallbackContainer = null
-    this.init()
+    
+    // Only initialize in browser environment
+    if (typeof window !== 'undefined') {
+      this.init()
+    }
   }
 
   async init() {
+    // Ensure we're in a browser environment
+    if (typeof window === 'undefined') {
+      return
+    }
+
     // Vérifier le support des notifications
     if (!('Notification' in window)) {
       logInfo('Notifications not supported in this browser')
@@ -82,7 +91,10 @@ class NotificationManager {
   }
 
   createFallbackContainer() {
-    if (typeof window === 'undefined') return
+    // Only create in browser environment
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+      return
+    }
 
     this.fallbackContainer = document.createElement('div')
     this.fallbackContainer.id = 'coco-notifications'
@@ -98,7 +110,7 @@ class NotificationManager {
   }
 
   async requestPermission() {
-    if (!('Notification' in window)) {
+    if (typeof window === 'undefined' || !('Notification' in window)) {
       return 'denied'
     }
 
@@ -122,6 +134,12 @@ class NotificationManager {
   }
 
   async show(type, title, options = {}) {
+    // Check browser environment first
+    if (typeof window === 'undefined') {
+      logInfo('Notification attempted in non-browser environment', { type, title })
+      return { success: false, id: null, type: 'skipped' }
+    }
+
     const config = NOTIFICATION_CONFIG[type] || NOTIFICATION_CONFIG[NOTIFICATION_TYPES.SYSTEM]
     
     const notificationData = {
@@ -203,6 +221,12 @@ class NotificationManager {
   }
 
   showFallback(notificationData) {
+    // Ensure browser environment
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+      logInfo('Fallback notification skipped in non-browser environment')
+      return { success: false, id: notificationData.id, type: 'skipped' }
+    }
+
     if (!this.fallbackContainer) {
       this.createFallbackContainer()
     }
@@ -348,15 +372,30 @@ class NotificationManager {
 
   getPermissionStatus() {
     return {
-      supported: 'Notification' in window,
-      permission: this.permission,
-      canRequest: this.permission === 'default'
+      supported: typeof window !== 'undefined' && 'Notification' in window,
+      permission: typeof window !== 'undefined' ? this.permission : 'default',
+      canRequest: typeof window !== 'undefined' && this.permission === 'default'
     }
   }
 }
 
+// Create instance with SSR safety
+let notificationManagerInstance = null
+
+if (typeof window !== 'undefined') {
+  notificationManagerInstance = new NotificationManager()
+} else {
+  // Mock instance for SSR
+  notificationManagerInstance = {
+    show: () => Promise.resolve({ success: false, id: null, type: 'ssr' }),
+    requestPermission: () => Promise.resolve('denied'),
+    clearAll: () => {},
+    getPermissionStatus: () => ({ supported: false, permission: 'default', canRequest: false })
+  }
+}
+
 // Instance globale
-export const notificationManager = new NotificationManager()
+export const notificationManager = notificationManagerInstance
 
 // Fonctions utilitaires
 export const showTrophyNotification = (trophy) => {

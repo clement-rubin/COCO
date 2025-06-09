@@ -582,12 +582,18 @@ export async function syncTrophiesAfterAction(userId, actionType, actionData = {
     }
 
     if (newTrophies.length > 0) {
-      // Déclencher une notification en temps réel
-      const { showTrophyNotification } = await import('./notificationUtils')
-      
-      // Afficher une notification pour chaque nouveau trophée
-      for (const trophy of newTrophies) {
-        await showTrophyNotification(trophy)
+      // Déclencher une notification en temps réel (uniquement côté client)
+      if (typeof window !== 'undefined') {
+        try {
+          const { showTrophyNotification } = await import('./notificationUtils')
+          
+          // Afficher une notification pour chaque nouveau trophée
+          for (const trophy of newTrophies) {
+            await showTrophyNotification(trophy)
+          }
+        } catch (error) {
+          logError('Failed to show trophy notification', error)
+        }
       }
       
       // Événement personnalisé pour les composants
