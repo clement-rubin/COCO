@@ -829,139 +829,130 @@
 
 .statusButton:hover {
   background: linear-gradient(135deg, #1976D2, #1565C0);
-  transform: translateY(-1px);
+  transform: translateY(-1px) scale(1.02);
   box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
 }
 
 .statusButton:disabled {
-  background: #ccc;
+  background: linear-gradient(135deg, #ccc, #999);
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
+  opacity: 0.6;
 }
 
-/* Danger Actions */
-.dangerActions {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
-  padding-top: 12px;
-  border-top: 1px solid #e0e0e0;
+.statusButton.loading {
+  background: linear-gradient(135deg, #64748b, #475569);
+  position: relative;
+  pointer-events: none;
 }
 
-.removeButton {
-  background: linear-gradient(135deg, #FF9800, #F57C00);
-  color: white;
-  box-shadow: 0 2px 8px rgba(255, 152, 0, 0.2);
-  flex: 1;
+.statusButton.loading::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
-.removeButton:hover {
-  background: linear-gradient(135deg, #F57C00, #E65100);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);
+.statusButton.success {
+  background: linear-gradient(135deg, #10b981, #059669);
+  animation: success-pulse 0.6s ease;
 }
 
+.statusButton.error {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  animation: error-shake 0.5s ease;
+}
+
+/* Enhanced button animations */
+@keyframes success-pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); box-shadow: 0 0 20px rgba(16, 185, 129, 0.5); }
+  100% { transform: scale(1); }
+}
+
+@keyframes error-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-3px); }
+  75% { transform: translateX(3px); }
+}
+
+@keyframes spin {
+  from { transform: translateY(-50%) rotate(0deg); }
+  to { transform: translateY(-50%) rotate(360deg); }
+}
+
+/* Enhanced interaction states */
+.viewProfileButton,
+.statusButton,
+.removeButton,
 .blockButton {
-  background: linear-gradient(135deg, #f44336, #d32f2f);
-  color: white;
-  box-shadow: 0 2px 8px rgba(244, 67, 54, 0.2);
-  flex: 1;
+  position: relative;
+  overflow: hidden;
 }
 
-.blockButton:hover {
-  background: linear-gradient(135deg, #d32f2f, #c62828);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3);
+.viewProfileButton::before,
+.statusButton::before,
+.removeButton::before,
+.blockButton::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s ease;
 }
 
-/* Disabled state for danger buttons */
-.removeButton:disabled,
-.blockButton:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
+.viewProfileButton:hover::before,
+.statusButton:hover::before,
+.removeButton:hover::before,
+.blockButton:hover::before {
+  left: 100%;
 }
 
-/* Button Icons and Text */
-.buttonIcon {
-  font-size: 16px;
-  transition: transform 0.2s ease;
-}
-
-.buttonText {
-  font-weight: 500;
-  letter-spacing: 0.3px;
-}
-
-/* Button hover animations */
-.viewProfileButton:hover .buttonIcon,
-.statusButton:hover .buttonIcon,
-.removeButton:hover .buttonIcon,
-.blockButton:hover .buttonIcon {
-  transform: scale(1.1);
-}
-
-/* Status Info */
-.statusInfo {
-  margin-top: 12px;
-  padding: 12px;
-  background: white;
-  border-radius: 8px;
-  border: 1px solid #e0e0e0;
-}
-
-.statusBadge {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.statusLabel {
-  font-size: 12px;
-  color: #666;
-  font-weight: 500;
+/* Badge enhancements */
+.userBadge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(4px);
 }
 
-.statusValue {
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
+.userBadge.vip {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+  animation: vip-glow 2s infinite alternate;
 }
 
-.statusValue.accepted {
-  background: #e8f5e8;
-  color: #2e7d32;
+.userBadge.friend {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
 }
 
-.statusValue.pending {
-  background: #fff3e0;
-  color: #f57c00;
+.userBadge.blocked {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: white;
 }
 
-.statusValue.blocked {
-  background: #ffebee;
-  color: #c62828;
-}
-
-.statusValue.none {
-  background: #f5f5f5;
-  color: #666;
-}
-
-.statusHint {
-  font-size: 12px;
-  color: #666;
-  font-style: italic;
-  padding: 8px 12px;
-  background: #f8f9fa;
-  border-radius: 6px;
-  border-left: 3px solid #2196F3;
+@keyframes vip-glow {
+  0% { box-shadow: 0 0 5px rgba(245, 158, 11, 0.5); }
+  100% { box-shadow: 0 0 15px rgba(245, 158, 11, 0.8); }
 }
 
 /* Modal Improvements */

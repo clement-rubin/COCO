@@ -602,85 +602,210 @@ export async function getUserStatsComplete(userId) {
 }
 
 /**
- * Met à jour le profil et synchronise les trophées
+ * Met à jour le profil et vérifie les nouveaux trophées
  * @param {string} userId - ID de l'utilisateur
  * @param {Object} profileData - Données du profil à mettre à jour
  * @returns {Promise<{success: boolean, profile?: Object, newTrophies?: Array, error?: string}>}
  */
 export async function updateProfileWithTrophySync(userId, profileData) {
-  if (!userId || !profileData) {
-    return { success: false, error: 'Invalid parameters' }
-  }
-
   try {
-    // Mettre à jour le profil
-    const { data: updatedProfile, error: updateError } = await supabase
-      .from('profiles')
-      .update({
-        ...profileData,
-        updated_at: new Date().toISOString()
+    // Mettre à jour le profil via l'API
+    const response = await fetch('/api/profile', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        ...profileData
       })
-      .eq('user_id', userId)
-      .select()
-      .single()
+    })
 
-    if (updateError) {
-      logError('Error updating profile', updateError)
-      return { success: false, error: updateError.message }
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.message || 'Failed to update profile')
     }
 
-    // Synchroniser les trophées après mise à jour du profil
-    const newTrophies = await syncTrophiesAfterAction(userId, 'profile_updated', profileData)
+    const updatedProfile = await response.json()
 
-    logInfo('Profile updated with trophy sync', {
-      userId: userId.substring(0, 8) + '...',
-      newTrophiesCount: newTrophies.length
-    })
+    // Vérifier les nouveaux trophées après la mise à jour
+    let newTrophies = []
+    try {
+      const { checkAndUnlockTrophies } = await import('./trophyUtils')
+      newTrophies = await checkAndUnlockTrophies(userId)
+    } catch (trophyError) {
+      console.warn('Could not check trophies after profile update:', trophyError)
+    }
 
     return {
       success: true,
       profile: updatedProfile,
-      newTrophies
+      newTrophies: newTrophies || []
     }
-
   } catch (error) {
-    logError('Error in updateProfileWithTrophySync', error)
-    return { success: false, error: 'Server error' }
+    console.error('Error updating profile with trophy sync:', error)
+    return {
+      success: false,
+      error: error.message || 'Failed to update profile'
+    }
   }
 }
 
 /**
- * Envoie une demande d'amitié avec synchronisation des trophées
- * @param {string} fromUserId - ID de l'utilisateur qui envoie
- * @param {string} toUserId - ID de l'utilisateur qui reçoit
- * @returns {Promise<Object>} Résultat de l'opération
+ * Met à jour le profil avec validation avancée
+ * @param {string} userId - ID de l'utilisateur
+ * @param {Object} profileData - Données du profil à mettre à jour
+ * @returns {Promise<{success: boolean, profile?: Object, validation?: Object, error?: string}>}
  */
-export async function sendFriendRequestWithTrophySync(fromUserId, toUserId) {
+export async function updateProfileWithValidation(userId, profileData) {
   try {
-    const result = await sendFriendRequestCorrected(fromUserId, toUserId)
+    // Validation côté client
+    const validation = validateProfileData(profileData)
     
-    if (result.success) {
-      // Synchroniser les trophées après l'envoi de la demande d'amitié
-      const newTrophies = await syncTrophiesAfterAction(fromUserId, 'friend_request_sent', { toUserId })
-      
-      logInfo('Friend request sent with trophy sync', {
-        fromUser: fromUserId.substring(0, 8) + '...',
-        toUser: toUserId.substring(0, 8) + '...',
-        newTrophiesCount: newTrophies.length
-      })
-
+    if (!validation.isValid) {
       return {
-        ...result,
-        newTrophies
+        success: false,
+        validation,
+        error: 'Données du profil invalides'
       }
     }
 
-    return result
+    // Nettoyer et formater les données
+    const cleanedData = cleanProfileData(profileData)
 
+    // Mettre à jour le profil
+    const result = await updateProfileWithTrophySync(userId, cleanedData)
+    
+    return {
+      ...result,
+      validation
+    }
   } catch (error) {
-    logError('Error in sendFriendRequestWithTrophySync', error)
-    return { success: false, error: 'Server error' }
+    console.error('Error in updateProfileWithValidation:', error)
+    return {
+      success: false,
+      error: error.message || 'Failed to update profile'
+    }
   }
+}
+
+/**
+ * Valide les données du profil
+ * @param {Object} profileData - Données du profil
+ * @returns {Object} Résultat de la validation
+ */
+function validateProfileData(profileData) {
+  const errors = {}
+  const warnings = []
+
+  // Validation du nom d'affichage
+  if (profileData.display_name) {
+    const name = profileData.display_name.trim()
+    if (name.length < 2) {
+      errors.display_name = 'Le nom doit contenir au moins 2 caractères'
+    } else if (name.length > 30) {
+      errors.display_name = 'Le nom ne peut pas dépasser 30 caractères'
+    } else if (!/^[a-zA-ZÀ-ÿ0-9_\-\s]+$/.test(name)) {
+      errors.display_name = 'Le nom contient des caractères non autorisés'
+    }
+  }
+
+  // Validation de la bio
+  if (profileData.bio && profileData.bio.trim().length > 500) {
+    errors.bio = 'La biographie ne peut pas dépasser 500 caractères'
+  }
+
+  // Validation du site web
+  if (profileData.website) {
+    const website = profileData.website.trim()
+    if (website && !isValidUrl(website)) {
+      errors.website = 'L\'URL du site web n\'est pas valide'
+    }
+  }
+
+  // Validation du téléphone
+  if (profileData.phone) {
+    const phone = profileData.phone.trim()
+    if (phone && !isValidPhone(phone)) {
+      warnings.push('Le numéro de téléphone semble invalide')
+    }
+  }
+
+  // Validation de la date de naissance
+  if (profileData.date_of_birth) {
+    const birthDate = new Date(profileData.date_of_birth)
+    const now = new Date()
+    const age = now.getFullYear() - birthDate.getFullYear()
+    
+    if (age < 13) {
+      errors.date_of_birth = 'Vous devez avoir au moins 13 ans'
+    } else if (age > 120) {
+      errors.date_of_birth = 'Date de naissance invalide'
+    }
+  }
+
+  return {
+    isValid: Object.keys(errors).length === 0,
+    errors,
+    warnings
+  }
+}
+
+/**
+ * Nettoie et formate les données du profil
+ * @param {Object} profileData - Données du profil
+ * @returns {Object} Données nettoyées
+ */
+function cleanProfileData(profileData) {
+  const cleaned = {}
+
+  // Nettoyer les chaînes de caractères
+  const stringFields = ['display_name', 'bio', 'location', 'website', 'phone']
+  stringFields.forEach(field => {
+    if (profileData[field] !== undefined) {
+      const value = typeof profileData[field] === 'string' 
+        ? profileData[field].trim() 
+        : profileData[field]
+      cleaned[field] = value || null
+    }
+  })
+
+  // Gérer les booléens
+  if (profileData.is_private !== undefined) {
+    cleaned.is_private = Boolean(profileData.is_private)
+  }
+
+  // Gérer la date de naissance
+  if (profileData.date_of_birth) {
+    cleaned.date_of_birth = profileData.date_of_birth
+  }
+
+  return cleaned
+}
+
+/**
+ * Vérifie si une URL est valide
+ * @param {string} url - URL à vérifier
+ * @returns {boolean} True si l'URL est valide
+ */
+function isValidUrl(url) {
+  try {
+    new URL(url)
+    return true
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Vérifie si un numéro de téléphone est valide
+ * @param {string} phone - Numéro de téléphone à vérifier
+ * @returns {boolean} True si le numéro semble valide
+ */
+function isValidPhone(phone) {
+  // Regex simple pour les numéros de téléphone internationaux
+  const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/
+  return phoneRegex.test(phone.replace(/[\s\-\(\)]/g, ''))
 }
 
 /**

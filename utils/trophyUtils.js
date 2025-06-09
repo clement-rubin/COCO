@@ -277,56 +277,90 @@ async function getUserStatsForTrophies(userId) {
 
 async function getUserStatsForTrophiesFallback(userId) {
   try {
-    // Version fallback optimisée avec Promise.allSettled
-    const [recipesResult, profileResult] = await Promise.allSettled([
-      supabase
-        .from('recipes')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', userId),
-      
-      supabase
-        .from('profiles')
-        .select('display_name, bio, avatar_url, location, website')
-        .eq('user_id', userId)
-        .single()
-    ])
-
-    const stats = {
-      recipesCount: 0,
-      friendsCount: 0,
-      profileCompleteness: 0,
-      daysSinceRegistration: 0
-    }
-
-    // Traiter les recettes
-    if (recipesResult.status === 'fulfilled' && !recipesResult.value.error) {
-      stats.recipesCount = recipesResult.value.count || 0
-    }
-
-    // Traiter le profil
+    // Récupération des données du profil utilisateur
+    const profileResult = await fetch(`/api/profile?user_id=${userId}`)
+    
     if (profileResult.status === 'fulfilled' && !profileResult.value.error) {
       const profile = profileResult.value.data
-      if (profile) {
-        const fields = ['display_name', 'bio', 'avatar_url', 'location', 'website']
-        const filledFields = fields.filter(field => profile[field]?.trim())
-        stats.profileCompleteness = Math.round((filledFields.length / fields.length) * 100)
+      
+      // Calculer les statistiques pour les trophées
+      const stats = {
+        profileCompleteness: calculateProfileCompleteness(profile),
+        daysSinceRegistration: profile.created_at ? 
+          Math.floor((Date.now() - new Date(profile.created_at).getTime()) / (1000 * 60 * 60 * 24)) : 0,
+        hasAvatar: !!profile.avatar_url,
+        hasBio: !!profile.bio && profile.bio.trim().length > 0,
+        hasLocation: !!profile.location && profile.location.trim().length > 0,
+        hasWebsite: !!profile.website && profile.website.trim().length > 0,
+        hasPhone: !!profile.phone && profile.phone.trim().length > 0,
+        hasDateOfBirth: !!profile.date_of_birth
+      }
+      
+      return {
+        success: true,
+        stats,
+        profile
+      }
+    }
+    
+    return {
+      success: false,
+      error: 'Could not fetch profile data',
+      stats: {
+        profileCompleteness: 0,
+        daysSinceRegistration: 0,
+        hasAvatar: false,
+        hasBio: false,
+        hasLocation: false,
+        hasWebsite: false,
+        hasPhone: false,
+        hasDateOfBirth: false
       }
     }
 
-    // Calculer les jours (estimation simple)
-    stats.daysSinceRegistration = 1
-
-    return stats
-
   } catch (error) {
-    logError('Error in fallback stats', error)
+    console.error('Error in getUserStatsForTrophiesFallback:', error)
     return {
-      recipesCount: 0,
-      friendsCount: 0,
-      profileCompleteness: 0,
-      daysSinceRegistration: 0
+      success: false,
+      error: error.message,
+      stats: {
+        profileCompleteness: 0,
+        daysSinceRegistration: 0,
+        hasAvatar: false,
+        hasBio: false,
+        hasLocation: false,
+        hasWebsite: false,
+        hasPhone: false,
+        hasDateOfBirth: false
+      }
     }
   }
+}
+
+/**
+ * Calcule le pourcentage de complétude du profil
+ * @param {Object} profile - Les données du profil
+ * @returns {number} Pourcentage de complétude (0-100)
+ */
+function calculateProfileCompleteness(profile) {
+  if (!profile) return 0
+  
+  const fields = [
+    'display_name',
+    'bio',
+    'avatar_url',
+    'location',
+    'website',
+    'phone',
+    'date_of_birth'
+  ]
+  
+  const completedFields = fields.filter(field => {
+    const value = profile[field]
+    return value && value.toString().trim().length > 0
+  })
+  
+  return Math.round((completedFields.length / fields.length) * 100)
 }
 
 /**

@@ -4,7 +4,7 @@ import { useRouter } from 'next/router'
 import { useAuth } from '../components/AuthContext'
 import TrophySection from '../components/TrophySection'
 import { logUserInteraction, logError, logInfo } from '../utils/logger'
-import { getUserStatsComplete, updateProfileWithTrophyCheck } from '../utils/profileUtils'
+import { getUserStatsComplete, updateProfileWithTrophySync } from '../utils/profileUtils'
 import { checkTrophiesAfterProfileUpdate } from '../utils/trophyUtils'
 
 export default function Profil() {
@@ -37,6 +37,8 @@ export default function Profil() {
   const [activeTab, setActiveTab] = useState('info')
   const [newTrophies, setNewTrophies] = useState([])
   const [showTrophyNotification, setShowTrophyNotification] = useState(false)
+  const [validationErrors, setValidationErrors] = useState({})
+  const [saveSuccess, setSaveSuccess] = useState(false)
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -149,6 +151,8 @@ export default function Profil() {
   const handleSaveProfile = async () => {
     try {
       setLoading(true)
+      setValidationErrors({})
+      setSaveSuccess(false)
       
       // Utiliser la fonction améliorée qui vérifie les trophées
       const result = await updateProfileWithTrophySync(user.id, editForm)
@@ -156,6 +160,7 @@ export default function Profil() {
       if (result.success) {
         setProfile(result.profile)
         setIsEditing(false)
+        setSaveSuccess(true)
         
         // Afficher les nouveaux trophées s'il y en a
         if (result.newTrophies && result.newTrophies.length > 0) {
@@ -167,11 +172,18 @@ export default function Profil() {
         // Recharger les stats pour inclure les nouveaux trophées
         await loadUserStats()
         
+        // Auto-hide success message
+        setTimeout(() => setSaveSuccess(false), 3000)
+        
         logUserInteraction('UPDATE_PROFILE', 'profil-form', {
           userId: user.id,
-          newTrophiesCount: result.newTrophies?.length || 0
+          newTrophiesCount: result.newTrophies?.length || 0,
+          hasValidationErrors: Object.keys(result.validation?.errors || {}).length > 0
         })
       } else {
+        if (result.validation?.errors) {
+          setValidationErrors(result.validation.errors)
+        }
         throw new Error(result.error || 'Failed to update profile')
       }
     } catch (error) {
@@ -182,74 +194,27 @@ export default function Profil() {
     }
   }
 
-  // Fonction optimisée pour charger les statistiques
-  const loadUserStatsOptimized = async (userId) => {
-    try {
-      // Utiliser l'API optimisée
-      const response = await fetch(`/api/user-stats?user_id=${userId}`)
-      
-      if (response.ok) {
-        const apiStats = await response.json()
-        
-        // Charger les trophées en parallèle
-        const trophyStats = await getTrophyStats(userId)
-        
-        setUserStats({
-          recipesCount: apiStats.recipesCount || 0,
-          likesReceived: 0,
-          friendsCount: apiStats.friendsCount || 0,
-          profileCompleteness: apiStats.profileCompleteness || 0,
-          trophyPoints: trophyStats.totalPoints || 0,
-          trophiesUnlocked: trophyStats.trophiesUnlocked || 0,
-          daysSinceRegistration: apiStats.daysSinceRegistration || 0,
-          memberSince: apiStats.memberSince
-        })
-        
-        // Vérifier les nouveaux trophées
-        const newTrophies = await checkAndUnlockTrophies(userId)
-        if (newTrophies.length > 0) {
-          setNewTrophies(newTrophies)
-          setShowTrophyNotification(true)
-        }
-        
-      } else {
-        // Fallback vers l'ancienne méthode
-        const stats = await getUserStatsComplete(userId)
-        setUserStats(stats)
-      }
-      
-    } catch (error) {
-      logError('Error loading optimized user stats', error)
-      // Fallback vers l'ancienne méthode
-      try {
-        const stats = await getUserStatsComplete(userId)
-        setUserStats(stats)
-      } catch (fallbackError) {
-        logError('Error in fallback stats loading', fallbackError)
-      }
-    }
+  // Fonction pour calculer la complétude du profil en temps réel
+  const calculateProfileCompleteness = (formData) => {
+    const fields = ['display_name', 'bio', 'location', 'website', 'phone', 'date_of_birth']
+    const completedFields = fields.filter(field => {
+      const value = formData[field]
+      return value && value.toString().trim().length > 0
+    })
+    return Math.round((completedFields.length / fields.length) * 100)
   }
 
-  const loadUserStats = async () => {
-    try {
-      const statsData = await getUserStatsComplete(user.id)
-      setUserStats({
-        recipesCount: statsData.recipesCount || 0,
-        likesReceived: statsData.likesReceived || 0,
-        friendsCount: statsData.friendsCount || 0,
-        trophyPoints: statsData.trophyPoints || 0,
-        trophiesUnlocked: statsData.trophiesUnlocked || 0
-      })
-    } catch (statsError) {
-      logError('Failed to load user stats', statsError)
-    }
+  // Redirect to login if not authenticated
+  if (authLoading) {
+    return null
   }
 
-  const handleViewAllRecipes = () => {
-    router.push('/mes-recettes')
+  if (!user) {
+    router.push('/login?redirect=' + encodeURIComponent('/profil'))
+    return null
   }
 
-  if (authLoading || loading) {
+  if (loading) {
     return (
       <div style={{
         minHeight: '100vh',
@@ -345,6 +310,360 @@ export default function Profil() {
             🔄 Réessayer
           </button>
         </div>
+      </div>
+    )
+  }
+
+  // Enhanced form with validation feedback
+  const renderEditForm = () => (
+    <div style={{
+      background: 'linear-gradient(135deg, #f8fafc, #f1f5f9)',
+      border: '2px solid #e2e8f0',
+      borderRadius: '20px',
+      padding: '2rem',
+      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
+      position: 'relative'
+    }}>
+      {/* Profile Completeness Indicator */}
+      <div style={{
+        marginBottom: '2rem',
+        padding: '1rem',
+        background: 'white',
+        borderRadius: '12px',
+        border: '2px solid #e2e8f0'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+          <span style={{ fontWeight: '600', color: '#374151' }}>Complétude du profil</span>
+          <span style={{ fontWeight: '700', color: '#667eea' }}>
+            {calculateProfileCompleteness(editForm)}%
+          </span>
+        </div>
+        <div style={{
+          width: '100%',
+          height: '8px',
+          background: '#e5e7eb',
+          borderRadius: '4px',
+          overflow: 'hidden'
+        }}>
+          <div style={{
+            width: `${calculateProfileCompleteness(editForm)}%`,
+            height: '100%',
+            background: 'linear-gradient(90deg, #667eea, #764ba2)',
+            transition: 'width 0.3s ease',
+            borderRadius: '4px'
+          }} />
+        </div>
+      </div>
+
+      {/* Success Message */}
+      {saveSuccess && (
+        <div style={{
+          background: 'linear-gradient(135deg, #d1fae5, #a7f3d0)',
+          border: '2px solid #10b981',
+          borderRadius: '12px',
+          padding: '1rem',
+          marginBottom: '1.5rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          animation: 'slideIn 0.3s ease'
+        }}>
+          <span style={{ fontSize: '1.2rem' }}>✅</span>
+          <span style={{ color: '#065f46', fontWeight: '600' }}>
+            Profil mis à jour avec succès !
+          </span>
+        </div>
+      )}
+
+      {/* Form fields with enhanced validation */}
+      {[{
+        key: 'display_name',
+        label: 'Nom d\'affichage',
+        type: 'text',
+        icon: '👤',
+        required: true,
+        maxLength: 30
+      },
+      {
+        key: 'bio',
+        label: 'Biographie',
+        type: 'textarea',
+        icon: '📝',
+        maxLength: 500
+      },
+      {
+        key: 'location',
+        label: 'Localisation',
+        type: 'text',
+        icon: '📍'
+      },
+      {
+        key: 'website',
+        label: 'Site web',
+        type: 'url',
+        icon: '🌐'
+      },
+      {
+        key: 'date_of_birth',
+        label: 'Date de naissance',
+        type: 'date',
+        icon: '🎂'
+      },
+      {
+        key: 'phone',
+        label: 'Téléphone',
+        type: 'tel',
+        icon: '📞'
+      }].map((field) => (
+        <div key={field.key} style={{ marginBottom: '1.5rem' }}>
+          <label style={{ 
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            marginBottom: '8px', 
+            fontWeight: '600',
+            color: '#374151'
+          }}>
+            <span>{field.icon}</span>
+            {field.label}
+            {field.required && <span style={{ color: '#ef4444' }}>*</span>}
+            {field.maxLength && (
+              <span style={{ 
+                fontSize: '0.8rem', 
+                color: '#6b7280',
+                marginLeft: 'auto' 
+              }}>
+                {editForm[field.key]?.length || 0}/{field.maxLength}
+              </span>
+            )}
+          </label>
+          {field.type === 'textarea' ? (
+            <textarea
+              value={editForm[field.key]}
+              onChange={(e) => {
+                setEditForm(prev => ({ ...prev, [field.key]: e.target.value }))
+                if (validationErrors[field.key]) {
+                  setValidationErrors(prev => ({ ...prev, [field.key]: undefined }))
+                }
+              }}
+              maxLength={field.maxLength}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                border: `2px solid ${validationErrors[field.key] ? '#ef4444' : '#e5e7eb'}`,
+                borderRadius: '12px',
+                fontSize: '1rem',
+                minHeight: '100px',
+                resize: 'vertical',
+                fontFamily: 'inherit',
+                transition: 'border-color 0.3s ease',
+                background: 'white'
+              }}
+              onFocus={(e) => e.target.style.borderColor = validationErrors[field.key] ? '#ef4444' : '#3b82f6'}
+              onBlur={(e) => e.target.style.borderColor = validationErrors[field.key] ? '#ef4444' : '#e5e7eb'}
+              placeholder={`Votre ${field.label.toLowerCase()}...`}
+            />
+          ) : (
+            <input
+              type={field.type}
+              value={editForm[field.key]}
+              onChange={(e) => {
+                setEditForm(prev => ({ ...prev, [field.key]: e.target.value }))
+                if (validationErrors[field.key]) {
+                  setValidationErrors(prev => ({ ...prev, [field.key]: undefined }))
+                }
+              }}
+              maxLength={field.maxLength}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                border: `2px solid ${validationErrors[field.key] ? '#ef4444' : '#e5e7eb'}`,
+                borderRadius: '12px',
+                fontSize: '1rem',
+                transition: 'border-color 0.3s ease',
+                background: 'white'
+              }}
+              onFocus={(e) => e.target.style.borderColor = validationErrors[field.key] ? '#ef4444' : '#3b82f6'}
+              onBlur={(e) => e.target.style.borderColor = validationErrors[field.key] ? '#ef4444' : '#e5e7eb'}
+              placeholder={`Votre ${field.label.toLowerCase()}...`}
+            />
+          )}
+          {validationErrors[field.key] && (
+            <div style={{
+              color: '#ef4444',
+              fontSize: '0.8rem',
+              marginTop: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}>
+              <span>⚠️</span>
+              {validationErrors[field.key]}
+            </div>
+          )}
+        </div>
+      ))}
+
+      {/* Enhanced privacy toggle */}
+      <div style={{ marginBottom: '2rem' }}>
+        <label style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '12px',
+          fontWeight: '600',
+          color: '#374151',
+          cursor: 'pointer',
+          padding: '16px',
+          background: 'white',
+          borderRadius: '12px',
+          border: '2px solid #e5e7eb',
+          transition: 'all 0.3s ease'
+        }}
+        onMouseEnter={(e) => e.target.style.borderColor = '#3b82f6'}
+        onMouseLeave={(e) => e.target.style.borderColor = '#e5e7eb'}
+        >
+          <input
+            type="checkbox"
+            checked={editForm.is_private}
+            onChange={(e) => setEditForm(prev => ({ ...prev, is_private: e.target.checked }))}
+            style={{ 
+              transform: 'scale(1.5)',
+              accentColor: '#3b82f6'
+            }}
+          />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>🔒</span>
+              Profil privé
+              {editForm.is_private && (
+                <span style={{
+                  background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                  color: 'white',
+                  padding: '2px 8px',
+                  borderRadius: '8px',
+                  fontSize: '0.7rem',
+                  fontWeight: '600'
+                }}>
+                  PRIVÉ
+                </span>
+              )}
+            </div>
+            <div style={{ 
+              fontSize: '0.85rem', 
+              color: '#6b7280',
+              marginTop: '4px',
+              lineHeight: '1.4'
+            }}>
+              {editForm.is_private 
+                ? 'Seuls vos amis peuvent voir votre profil complet' 
+                : 'Votre profil est visible par tous les utilisateurs'
+              }
+            </div>
+          </div>
+        </label>
+      </div>
+
+      {/* Enhanced save button */}
+      <button
+        onClick={handleSaveProfile}
+        disabled={loading}
+        style={{
+          background: loading 
+            ? 'linear-gradient(135deg, #94a3b8, #64748b)' 
+            : 'linear-gradient(135deg, #10b981, #059669)',
+          color: 'white',
+          border: 'none',
+          padding: '16px 32px',
+          borderRadius: '16px',
+          cursor: loading ? 'not-allowed' : 'pointer',
+          fontSize: '1.1rem',
+          fontWeight: '700',
+          width: '100%',
+          boxShadow: loading 
+            ? 'none' 
+            : '0 4px 20px rgba(16, 185, 129, 0.3)',
+          transition: 'all 0.3s ease',
+          position: 'relative',
+          overflow: 'hidden'
+        }}
+        onMouseEnter={(e) => {
+          if (!loading) {
+            e.target.style.transform = 'translateY(-2px)'
+            e.target.style.boxShadow = '0 8px 30px rgba(16, 185, 129, 0.4)'
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (!loading) {
+            e.target.style.transform = 'translateY(0)'
+            e.target.style.boxShadow = '0 4px 20px rgba(16, 185, 129, 0.3)'
+          }
+        }}
+      >
+        {loading ? (
+          <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+            <div style={{
+              width: '16px',
+              height: '16px',
+              border: '2px solid rgba(255, 255, 255, 0.3)',
+              borderTop: '2px solid white',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite'
+            }} />
+            Sauvegarde en cours...
+          </span>
+        ) : (
+          '💾 Sauvegarder les modifications'
+        )}
+      </button>
+    </div>
+  )
+
+  // Replace the existing form rendering with the enhanced version
+  if (activeTab === 'info' && isEditing) {
+    return (
+      <div style={{ 
+        maxWidth: '500px', 
+        margin: '0 auto',
+        opacity: 1,
+        animation: 'fadeIn 0.5s ease'
+      }}>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '1.5rem'
+        }}>
+          <h2 style={{ 
+            margin: 0, 
+            color: '#1f2937',
+            fontSize: '1.5rem',
+            fontWeight: '700'
+          }}>
+            Modifier mon profil
+          </h2>
+          <button
+            onClick={() => {
+              setIsEditing(false)
+              setValidationErrors({})
+              setSaveSuccess(false)
+            }}
+            style={{
+              background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+              color: 'white',
+              border: 'none',
+              padding: '10px 20px',
+              borderRadius: '12px',
+              cursor: 'pointer',
+              fontSize: '0.9rem',
+              fontWeight: '600',
+              transition: 'all 0.3s ease',
+              boxShadow: '0 4px 15px rgba(239, 68, 68, 0.3)'
+            }}
+          >
+            ❌ Annuler
+          </button>
+        </div>
+        {renderEditForm()}
       </div>
     )
   }
@@ -848,18 +1167,72 @@ export default function Profil() {
                 padding: '2rem',
                 boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)'
               }}>
-                {/* Form fields with enhanced styling */}
+                {/* Profile Completeness Indicator */}
+                <div style={{
+                  marginBottom: '2rem',
+                  padding: '1rem',
+                  background: 'white',
+                  borderRadius: '12px',
+                  border: '2px solid #e2e8f0'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                    <span style={{ fontWeight: '600', color: '#374151' }}>Complétude du profil</span>
+                    <span style={{ fontWeight: '700', color: '#667eea' }}>
+                      {calculateProfileCompleteness(editForm)}%
+                    </span>
+                  </div>
+                  <div style={{
+                    width: '100%',
+                    height: '8px',
+                    background: '#e5e7eb',
+                    borderRadius: '4px',
+                    overflow: 'hidden'
+                  }}>
+                    <div style={{
+                      width: `${calculateProfileCompleteness(editForm)}%`,
+                      height: '100%',
+                      background: 'linear-gradient(90deg, #667eea, #764ba2)',
+                      transition: 'width 0.3s ease',
+                      borderRadius: '4px'
+                    }} />
+                  </div>
+                </div>
+
+                {/* Success Message */}
+                {saveSuccess && (
+                  <div style={{
+                    background: 'linear-gradient(135deg, #d1fae5, #a7f3d0)',
+                    border: '2px solid #10b981',
+                    borderRadius: '12px',
+                    padding: '1rem',
+                    marginBottom: '1.5rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    animation: 'slideIn 0.3s ease'
+                  }}>
+                    <span style={{ fontSize: '1.2rem' }}>✅</span>
+                    <span style={{ color: '#065f46', fontWeight: '600' }}>
+                      Profil mis à jour avec succès !
+                    </span>
+                  </div>
+                )}
+
+                {/* Form fields with enhanced validation */}
                 {[{
                   key: 'display_name',
                   label: 'Nom d\'affichage',
                   type: 'text',
-                  icon: '👤'
+                  icon: '👤',
+                  required: true,
+                  maxLength: 30
                 },
                 {
                   key: 'bio',
                   label: 'Biographie',
                   type: 'textarea',
-                  icon: '📝'
+                  icon: '📝',
+                  maxLength: 500
                 },
                 {
                   key: 'location',
@@ -896,15 +1269,31 @@ export default function Profil() {
                     }}>
                       <span>{field.icon}</span>
                       {field.label}
+                      {field.required && <span style={{ color: '#ef4444' }}>*</span>}
+                      {field.maxLength && (
+                        <span style={{ 
+                          fontSize: '0.8rem', 
+                          color: '#6b7280',
+                          marginLeft: 'auto' 
+                        }}>
+                          {editForm[field.key]?.length || 0}/{field.maxLength}
+                        </span>
+                      )}
                     </label>
                     {field.type === 'textarea' ? (
                       <textarea
                         value={editForm[field.key]}
-                        onChange={(e) => setEditForm(prev => ({ ...prev, [field.key]: e.target.value }))}
+                        onChange={(e) => {
+                          setEditForm(prev => ({ ...prev, [field.key]: e.target.value }))
+                          if (validationErrors[field.key]) {
+                            setValidationErrors(prev => ({ ...prev, [field.key]: undefined }))
+                          }
+                        }}
+                        maxLength={field.maxLength}
                         style={{
                           width: '100%',
                           padding: '12px 16px',
-                          border: '2px solid #e5e7eb',
+                          border: `2px solid ${validationErrors[field.key] ? '#ef4444' : '#e5e7eb'}`,
                           borderRadius: '12px',
                           fontSize: '1rem',
                           minHeight: '100px',
@@ -913,32 +1302,52 @@ export default function Profil() {
                           transition: 'border-color 0.3s ease',
                           background: 'white'
                         }}
-                        onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
-                        onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                        onFocus={(e) => e.target.style.borderColor = validationErrors[field.key] ? '#ef4444' : '#3b82f6'}
+                        onBlur={(e) => e.target.style.borderColor = validationErrors[field.key] ? '#ef4444' : '#e5e7eb'}
                         placeholder={`Votre ${field.label.toLowerCase()}...`}
                       />
                     ) : (
                       <input
                         type={field.type}
                         value={editForm[field.key]}
-                        onChange={(e) => setEditForm(prev => ({ ...prev, [field.key]: e.target.value }))}
+                        onChange={(e) => {
+                          setEditForm(prev => ({ ...prev, [field.key]: e.target.value }))
+                          if (validationErrors[field.key]) {
+                            setValidationErrors(prev => ({ ...prev, [field.key]: undefined }))
+                          }
+                        }}
+                        maxLength={field.maxLength}
                         style={{
                           width: '100%',
                           padding: '12px 16px',
-                          border: '2px solid #e5e7eb',
+                          border: `2px solid ${validationErrors[field.key] ? '#ef4444' : '#e5e7eb'}`,
                           borderRadius: '12px',
                           fontSize: '1rem',
                           transition: 'border-color 0.3s ease',
                           background: 'white'
                         }}
-                        onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
-                        onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                        onFocus={(e) => e.target.style.borderColor = validationErrors[field.key] ? '#ef4444' : '#3b82f6'}
+                        onBlur={(e) => e.target.style.borderColor = validationErrors[field.key] ? '#ef4444' : '#e5e7eb'}
                         placeholder={`Votre ${field.label.toLowerCase()}...`}
                       />
+                    )}
+                    {validationErrors[field.key] && (
+                      <div style={{
+                        color: '#ef4444',
+                        fontSize: '0.8rem',
+                        marginTop: '4px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}>
+                        <span>⚠️</span>
+                        {validationErrors[field.key]}
+                      </div>
                     )}
                   </div>
                 ))}
 
+                {/* Enhanced privacy toggle */}
                 <div style={{ marginBottom: '2rem' }}>
                   <label style={{ 
                     display: 'flex', 
@@ -947,7 +1356,7 @@ export default function Profil() {
                     fontWeight: '600',
                     color: '#374151',
                     cursor: 'pointer',
-                    padding: '12px',
+                    padding: '16px',
                     background: 'white',
                     borderRadius: '12px',
                     border: '2px solid #e5e7eb',
@@ -961,48 +1370,93 @@ export default function Profil() {
                       checked={editForm.is_private}
                       onChange={(e) => setEditForm(prev => ({ ...prev, is_private: e.target.checked }))}
                       style={{ 
-                        transform: 'scale(1.3)',
+                        transform: 'scale(1.5)',
                         accentColor: '#3b82f6'
                       }}
                     />
-                    <div>
-                      <div style={{ fontWeight: '600' }}>🔒 Profil privé</div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span>🔒</span>
+                        Profil privé
+                        {editForm.is_private && (
+                          <span style={{
+                            background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                            color: 'white',
+                            padding: '2px 8px',
+                            borderRadius: '8px',
+                            fontSize: '0.7rem',
+                            fontWeight: '600'
+                          }}>
+                            PRIVÉ
+                          </span>
+                        )}
+                      </div>
                       <div style={{ 
                         fontSize: '0.85rem', 
                         color: '#6b7280',
-                        marginTop: '4px'
+                        marginTop: '4px',
+                        lineHeight: '1.4'
                       }}>
-                        Seuls vos amis pourront voir votre profil complet
+                        {editForm.is_private 
+                          ? 'Seuls vos amis peuvent voir votre profil complet' 
+                          : 'Votre profil est visible par tous les utilisateurs'
+                        }
                       </div>
                     </div>
                   </label>
                 </div>
 
+                {/* Enhanced save button */}
                 <button
                   onClick={handleSaveProfile}
+                  disabled={loading}
                   style={{
-                    background: 'linear-gradient(135deg, #10b981, #059669)',
+                    background: loading 
+                      ? 'linear-gradient(135deg, #94a3b8, #64748b)' 
+                      : 'linear-gradient(135deg, #10b981, #059669)',
                     color: 'white',
                     border: 'none',
                     padding: '16px 32px',
                     borderRadius: '16px',
-                    cursor: 'pointer',
+                    cursor: loading ? 'not-allowed' : 'pointer',
                     fontSize: '1.1rem',
                     fontWeight: '700',
                     width: '100%',
-                    boxShadow: '0 4px 20px rgba(16, 185, 129, 0.3)',
-                    transition: 'all 0.3s ease'
+                    boxShadow: loading 
+                      ? 'none' 
+                      : '0 4px 20px rgba(16, 185, 129, 0.3)',
+                    transition: 'all 0.3s ease',
+                    position: 'relative',
+                    overflow: 'hidden'
                   }}
                   onMouseEnter={(e) => {
-                    e.target.style.transform = 'translateY(-2px)'
-                    e.target.style.boxShadow = '0 8px 30px rgba(16, 185, 129, 0.4)'
+                    if (!loading) {
+                      e.target.style.transform = 'translateY(-2px)'
+                      e.target.style.boxShadow = '0 8px 30px rgba(16, 185, 129, 0.4)'
+                    }
                   }}
                   onMouseLeave={(e) => {
-                    e.target.style.transform = 'translateY(0)'
-                    e.target.style.boxShadow = '0 4px 20px rgba(16, 185, 129, 0.3)'
+                    if (!loading) {
+                      e.target.style.transform = 'translateY(0)'
+                      e.target.style.boxShadow = '0 4px 20px rgba(16, 185, 129, 0.3)'
+                    }
                   }}
                 >
-                  💾 Sauvegarder les modifications
+                  {loading ? (
+                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                      <div style={{
+                        width: '16px',
+                        height: '16px',
+                        border: '2px solid rgba(255, 255, 255, 0.3)',
+                        borderTop: '2px solid white',
+                        borderRadius: '50%',
+                        animation: 'spin 1s linear infinite'
+                      }} />
+                      Sauvegarde en cours...
+                    </span>
+                  ) : (
+                    '💾 Sauvegarder les modifications'
+                  )}
                 </button>
               </div>
             ) : (
