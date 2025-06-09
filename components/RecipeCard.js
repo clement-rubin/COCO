@@ -9,7 +9,7 @@ import { logDebug, logInfo, logError } from '../utils/logger'
 import { canUserEditRecipe, deleteUserRecipe } from '../utils/profileUtils'
 import styles from '../styles/RecipeCard.module.css'
 
-export default function RecipeCard({ recipe, isUserRecipe = true, isPhotoOnly = false, onRecipeDeleted, onEdit, onDelete, canEdit }) {
+export default function RecipeCard({ recipe, isUserRecipe = true, isPhotoOnly = false, onRecipeDeleted, onEdit, onDelete }) {
   const router = useRouter()
   const { user } = useAuth()
   const [isFavorite, setIsFavorite] = useState(false)

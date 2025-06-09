@@ -132,7 +132,6 @@ export default function MesRecettes() {
                 isPhotoOnly={recipe.category === 'Photo partagée'}
                 onEdit={() => handleEditRecipe(recipe.id)}
                 onDelete={() => handleDeleteRecipe(recipe.id)}
-                canEdit={canUserEditRecipe(recipe.user_id, user.id)}
               />
             ))}
           </div>
