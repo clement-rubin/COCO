@@ -9,7 +9,7 @@ export const Header: React.FC = () => {
           <span className="logo-text">COCO</span>
         </div>
         <div className="status-bar">
-          <div className="notification-dot"></div>
+          <div className="notification-dot notification-pulse"></div>
         </div>
       </div>
     </header>

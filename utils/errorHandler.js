@@ -174,13 +174,19 @@ const USER_FRIENDLY_MESSAGES = {
   'Online status update failed': 'Échec de la mise à jour du statut en ligne.',
   'Interaction history full': 'Historique des interactions plein.',
   'Invalid interaction type': 'Type d\'interaction invalide.',
-  'Statistics unavailable': 'Statistiques temporairement indisponibles.',
-  'Cache refresh required': 'Actualisation du cache requise.',
-  'Real-time sync failed': 'Échec de la synchronisation en temps réel.',
-  'Notification delivery failed': 'Échec de l\'envoi de la notification.',
-  'Group creation limit reached': 'Limite de création de groupes atteinte.',
-  'Feature temporarily disabled': 'Fonctionnalité temporairement désactivée.',
-
+  'Notification permission denied': 'Permission de notification refusée.',
+  'Notification not supported': 'Notifications non supportées par ce navigateur.',
+  'Notification send failed': 'Échec de l\'envoi de la notification.',
+  'Notification service unavailable': 'Service de notifications temporairement indisponible.',
+  'Push notification failed': 'Échec de la notification push.',
+  'Notification display error': 'Erreur d\'affichage de la notification.',
+  'Notification sound failed': 'Impossible de jouer le son de notification.',
+  'Notification icon failed': 'Impossible de charger l\'icône de notification.',
+  'Notification timeout': 'Délai d\'attente de la notification dépassé.',
+  'Notification queue full': 'File d\'attente des notifications pleine.',
+  'Notification format invalid': 'Format de notification invalide.',
+  'Notification permission required': 'Permission de notification requise.',
+  'Browser notification blocked': 'Notifications bloquées par le navigateur.',
 }
 
 /**

@@ -582,15 +582,20 @@ export async function syncTrophiesAfterAction(userId, actionType, actionData = {
     }
 
     if (newTrophies.length > 0) {
-      logInfo('Trophies synchronized', {
-        userId: userId?.substring(0, 8) + '...',
-        actionType,
-        newTrophiesCount: newTrophies.length,
-        trophyIds: newTrophies.map(t => t.id)
-      })
-
-      // Déclencher une notification en temps réel si possible
-      await notifyTrophyUnlocked(userId, newTrophies)
+      // Déclencher une notification en temps réel
+      const { showTrophyNotification } = await import('./notificationUtils')
+      
+      // Afficher une notification pour chaque nouveau trophée
+      for (const trophy of newTrophies) {
+        await showTrophyNotification(trophy)
+      }
+      
+      // Événement personnalisé pour les composants
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('trophiesUnlocked', {
+          detail: { userId, trophies: newTrophies, actionType }
+        }))
+      }
     }
 
     return newTrophies

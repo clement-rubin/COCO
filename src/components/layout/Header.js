@@ -9,7 +9,7 @@ export const Header = () => {
           <span className="logo-text">COCO</span>
         </div>
         <div className="status-bar">
-          <div className="notification-dot"></div>
+          <div className="notification-dot notification-active"></div>
         </div>
       </div>
     </header>
