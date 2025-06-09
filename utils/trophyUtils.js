@@ -278,10 +278,11 @@ async function getUserStatsForTrophies(userId) {
 async function getUserStatsForTrophiesFallback(userId) {
   try {
     // Récupération des données du profil utilisateur
-    const profileResult = await fetch(`/api/profile?user_id=${userId}`)
+    const profileResponse = await fetch(`/api/profile?user_id=${userId}`)
     
-    if (profileResult.status === 'fulfilled' && !profileResult.value.error) {
-      const profile = profileResult.value.data
+    if (profileResponse.ok) {
+      const profileData = await profileResponse.json()
+      const profile = profileData.data || profileData
       
       // Calculer les statistiques pour les trophées
       const stats = {
@@ -293,46 +294,41 @@ async function getUserStatsForTrophiesFallback(userId) {
         hasLocation: !!profile.location && profile.location.trim().length > 0,
         hasWebsite: !!profile.website && profile.website.trim().length > 0,
         hasPhone: !!profile.phone && profile.phone.trim().length > 0,
-        hasDateOfBirth: !!profile.date_of_birth
+        hasDateOfBirth: !!profile.date_of_birth,
+        recipesCount: 0, // Will be fetched separately if needed
+        friendsCount: 0  // Will be fetched separately if needed
       }
       
-      return {
-        success: true,
-        stats,
-        profile
-      }
+      return stats
     }
     
+    // Fallback values if API call fails
     return {
-      success: false,
-      error: 'Could not fetch profile data',
-      stats: {
-        profileCompleteness: 0,
-        daysSinceRegistration: 0,
-        hasAvatar: false,
-        hasBio: false,
-        hasLocation: false,
-        hasWebsite: false,
-        hasPhone: false,
-        hasDateOfBirth: false
-      }
+      profileCompleteness: 0,
+      daysSinceRegistration: 0,
+      hasAvatar: false,
+      hasBio: false,
+      hasLocation: false,
+      hasWebsite: false,
+      hasPhone: false,
+      hasDateOfBirth: false,
+      recipesCount: 0,
+      friendsCount: 0
     }
 
   } catch (error) {
     console.error('Error in getUserStatsForTrophiesFallback:', error)
     return {
-      success: false,
-      error: error.message,
-      stats: {
-        profileCompleteness: 0,
-        daysSinceRegistration: 0,
-        hasAvatar: false,
-        hasBio: false,
-        hasLocation: false,
-        hasWebsite: false,
-        hasPhone: false,
-        hasDateOfBirth: false
-      }
+      profileCompleteness: 0,
+      daysSinceRegistration: 0,
+      hasAvatar: false,
+      hasBio: false,
+      hasLocation: false,
+      hasWebsite: false,
+      hasPhone: false,
+      hasDateOfBirth: false,
+      recipesCount: 0,
+      friendsCount: 0
     }
   }
 }
