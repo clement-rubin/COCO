@@ -2,16 +2,21 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useState } from 'react'
 import { useRouter } from 'next/router'
+import { useAuth } from './AuthContext'
 import ShareButton from './ShareButton'
 import { processImageData } from '../utils/imageUtils'
 import { logDebug, logInfo, logError } from '../utils/logger'
+import { canUserEditRecipe, deleteUserRecipe } from '../utils/profileUtils'
 import styles from '../styles/RecipeCard.module.css'
 
-export default function RecipeCard({ recipe, isUserRecipe = true, isPhotoOnly = false }) {
+export default function RecipeCard({ recipe, isUserRecipe = true, isPhotoOnly = false, onRecipeDeleted }) {
   const router = useRouter()
+  const { user } = useAuth()
   const [isFavorite, setIsFavorite] = useState(false)
   const [imageError, setImageError] = useState(false)
   const [imageLoading, setImageLoading] = useState(true)
+  const [showActions, setShowActions] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   // Defensive programming: ensure recipe exists and has required properties
   if (!recipe) {
@@ -105,10 +110,54 @@ export default function RecipeCard({ recipe, isUserRecipe = true, isPhotoOnly = 
                        Array.isArray(recipe.instructions) && recipe.instructions.length === 0) ||
                       isPhotoOnly
 
+  // Vérifier si l'utilisateur peut modifier cette recette
+  const canEdit = user && recipe.user_id && canUserEditRecipe(recipe.user_id, user.id)
+
+  const handleEdit = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    router.push(`/edit-recipe/${recipe.id}`)
+  }
+
+  const handleDelete = async (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    if (!window.confirm(`Êtes-vous sûr de vouloir supprimer "${safeRecipe.title}" ? Cette action est irréversible.`)) {
+      return
+    }
+
+    setIsDeleting(true)
+    try {
+      const success = await deleteUserRecipe(recipe.id, user.id)
+      
+      if (success) {
+        // Notifier le composant parent de la suppression
+        if (onRecipeDeleted) {
+          onRecipeDeleted(recipe.id)
+        }
+        
+        // Optionnel : rediriger ou actualiser
+        if (router.pathname === '/mes-recettes') {
+          window.location.reload()
+        }
+      } else {
+        alert('Erreur lors de la suppression de la recette. Veuillez réessayer.')
+      }
+    } catch (error) {
+      logError('Failed to delete recipe from component', error, { recipeId: recipe.id })
+      alert('Erreur lors de la suppression de la recette. Veuillez réessayer.')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   return (
     <div 
       className={`${styles.card} ${isQuickShare ? styles.photoOnly : ''} ${imageLoading ? styles.loading : ''}`} 
       onClick={navigateToRecipe}
+      onMouseEnter={() => setShowActions(true)}
+      onMouseLeave={() => setShowActions(false)}
     >
       <div className={styles.imageContainer}>
         <Image
@@ -150,6 +199,29 @@ export default function RecipeCard({ recipe, isUserRecipe = true, isPhotoOnly = 
           >
             {isFavorite ? '❤️' : '🤍'}
           </button>
+
+          {/* Actions du propriétaire */}
+          {canEdit && (showActions || window.innerWidth <= 768) && (
+            <div className={styles.ownerActions}>
+              <button 
+                className={styles.editBtn}
+                onClick={handleEdit}
+                title="Modifier la recette"
+                aria-label="Modifier cette recette"
+              >
+                ✏️
+              </button>
+              <button 
+                className={`${styles.deleteBtn} ${isDeleting ? styles.deleting : ''}`}
+                onClick={handleDelete}
+                disabled={isDeleting}
+                title="Supprimer la recette"
+                aria-label="Supprimer cette recette"
+              >
+                {isDeleting ? '⏳' : '🗑️'}
+              </button>
+            </div>
+          )}
         </div>
       </div>
       

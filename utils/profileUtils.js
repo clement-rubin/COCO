@@ -682,3 +682,86 @@ export async function sendFriendRequestWithTrophySync(fromUserId, toUserId) {
     return { success: false, error: 'Server error' }
   }
 }
+
+/**
+ * Vérifie si un utilisateur peut modifier/supprimer une recette
+ * @param {string} recipeUserId - L'ID du propriétaire de la recette
+ * @param {string} currentUserId - L'ID de l'utilisateur actuel
+ * @returns {boolean} True si l'utilisateur peut modifier la recette
+ */
+export function canUserEditRecipe(recipeUserId, currentUserId) {
+  if (!recipeUserId || !currentUserId) {
+    logWarning('canUserEditRecipe called with missing parameters', { recipeUserId, currentUserId })
+    return false
+  }
+
+  const canEdit = recipeUserId === currentUserId
+  
+  logDebug('Recipe edit permission check', {
+    recipeUserId: recipeUserId.substring(0, 8) + '...',
+    currentUserId: currentUserId.substring(0, 8) + '...',
+    canEdit
+  })
+
+  return canEdit
+}
+
+/**
+ * Supprime une recette de l'utilisateur
+ * @param {string} recipeId - L'ID de la recette
+ * @param {string} userId - L'ID de l'utilisateur
+ * @returns {Promise<boolean>} True si la suppression a réussi
+ */
+export async function deleteUserRecipe(recipeId, userId) {
+  if (!recipeId || !userId) {
+    logWarning('deleteUserRecipe called with missing parameters', { recipeId, userId })
+    return false
+  }
+
+  try {
+    // Vérifier que la recette appartient bien à l'utilisateur
+    const { data: recipe, error: fetchError } = await supabase
+      .from('recipes')
+      .select('user_id, title')
+      .eq('id', recipeId)
+      .single()
+
+    if (fetchError) {
+      logError('Error fetching recipe for deletion', fetchError, { recipeId, userId })
+      return false
+    }
+
+    if (!recipe || recipe.user_id !== userId) {
+      logWarning('User attempted to delete recipe they do not own', {
+        recipeId,
+        recipeOwnerId: recipe?.user_id,
+        requestingUserId: userId
+      })
+      return false
+    }
+
+    // Supprimer la recette
+    const { error: deleteError } = await supabase
+      .from('recipes')
+      .delete()
+      .eq('id', recipeId)
+      .eq('user_id', userId) // Double vérification
+
+    if (deleteError) {
+      logError('Error deleting recipe', deleteError, { recipeId, userId })
+      return false
+    }
+
+    logInfo('Recipe deleted successfully', {
+      recipeId,
+      userId: userId.substring(0, 8) + '...',
+      recipeTitle: recipe.title
+    })
+
+    return true
+
+  } catch (error) {
+    logError('Exception while deleting recipe', error, { recipeId, userId })
+    return false
+  }
+}

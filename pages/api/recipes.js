@@ -609,6 +609,213 @@ export default async function handler(req, res) {
       }
     }
     
+    if (req.method === 'PUT') {
+      try {
+        const data = req.body
+        
+        if (!data || typeof data !== 'object') {
+          return safeResponse(res, 400, {
+            error: 'Données de mise à jour manquantes',
+            message: 'Le corps de la requête doit contenir les données de la recette'
+          })
+        }
+
+        const { id, user_id, ...updateFields } = data
+
+        if (!id) {
+          return safeResponse(res, 400, {
+            error: 'ID de recette manquant',
+            message: 'L\'ID de la recette est requis pour la mise à jour'
+          })
+        }
+
+        if (!user_id) {
+          return safeResponse(res, 400, {
+            error: 'ID utilisateur manquant',
+            message: 'L\'ID de l\'utilisateur est requis pour la mise à jour'
+          })
+        }
+
+        logInfo('Updating recipe', {
+          reference: requestReference,
+          recipeId: id,
+          userId: user_id.substring(0, 8) + '...',
+          fieldsToUpdate: Object.keys(updateFields)
+        })
+
+        // Vérifier que la recette existe et appartient à l'utilisateur
+        const { data: existingRecipe, error: fetchError } = await supabase
+          .from('recipes')
+          .select('user_id, title')
+          .eq('id', id)
+          .single()
+
+        if (fetchError) {
+          logError('Recipe not found for update', fetchError, { recipeId: id, userId: user_id })
+          return safeResponse(res, 404, {
+            error: 'Recette introuvable',
+            message: 'La recette que vous tentez de modifier n\'existe pas'
+          })
+        }
+
+        if (existingRecipe.user_id !== user_id) {
+          logWarning('User attempted to update recipe they do not own', {
+            recipeId: id,
+            recipeOwnerId: existingRecipe.user_id,
+            requestingUserId: user_id
+          })
+          return safeResponse(res, 403, {
+            error: 'Non autorisé',
+            message: 'Vous ne pouvez modifier que vos propres recettes'
+          })
+        }
+
+        // Préparer les données de mise à jour
+        const updateData = {
+          ...updateFields,
+          updated_at: new Date().toISOString()
+        }
+
+        // Nettoyer les champs vides
+        Object.keys(updateData).forEach(key => {
+          if (updateData[key] === null || updateData[key] === undefined || updateData[key] === '') {
+            delete updateData[key]
+          }
+        })
+
+        // Effectuer la mise à jour
+        const { data: updatedRecipe, error: updateError } = await supabase
+          .from('recipes')
+          .update(updateData)
+          .eq('id', id)
+          .eq('user_id', user_id) // Double vérification de sécurité
+          .select()
+          .single()
+
+        if (updateError) {
+          logError('Error updating recipe', updateError, { recipeId: id, userId: user_id })
+          return safeResponse(res, 500, {
+            error: 'Erreur lors de la mise à jour',
+            message: updateError.message
+          })
+        }
+
+        logInfo('Recipe updated successfully', {
+          reference: requestReference,
+          recipeId: id,
+          userId: user_id.substring(0, 8) + '...',
+          updatedFields: Object.keys(updateData)
+        })
+
+        return safeResponse(res, 200, updatedRecipe)
+
+      } catch (error) {
+        const errorDetails = logApiError('UPDATE_RECIPE', error, {
+          reference: requestReference,
+          hasBody: !!req.body,
+          bodyKeys: req.body ? Object.keys(req.body) : []
+        })
+        
+        return safeResponse(res, 500, {
+          error: 'Erreur lors de la mise à jour de la recette',
+          message: error.message || 'Erreur inconnue',
+          reference: requestReference
+        })
+      }
+    }
+
+    if (req.method === 'DELETE') {
+      try {
+        const { id, user_id } = req.query
+
+        if (!id) {
+          return safeResponse(res, 400, {
+            error: 'ID de recette manquant',
+            message: 'L\'ID de la recette est requis pour la suppression'
+          })
+        }
+
+        if (!user_id) {
+          return safeResponse(res, 400, {
+            error: 'ID utilisateur manquant',
+            message: 'L\'ID de l\'utilisateur est requis pour la suppression'
+          })
+        }
+
+        logInfo('Deleting recipe', {
+          reference: requestReference,
+          recipeId: id,
+          userId: user_id.substring(0, 8) + '...'
+        })
+
+        // Vérifier que la recette existe et appartient à l'utilisateur
+        const { data: existingRecipe, error: fetchError } = await supabase
+          .from('recipes')
+          .select('user_id, title')
+          .eq('id', id)
+          .single()
+
+        if (fetchError) {
+          logError('Recipe not found for deletion', fetchError, { recipeId: id, userId: user_id })
+          return safeResponse(res, 404, {
+            error: 'Recette introuvable',
+            message: 'La recette que vous tentez de supprimer n\'existe pas'
+          })
+        }
+
+        if (existingRecipe.user_id !== user_id) {
+          logWarning('User attempted to delete recipe they do not own', {
+            recipeId: id,
+            recipeOwnerId: existingRecipe.user_id,
+            requestingUserId: user_id
+          })
+          return safeResponse(res, 403, {
+            error: 'Non autorisé',
+            message: 'Vous ne pouvez supprimer que vos propres recettes'
+          })
+        }
+
+        // Effectuer la suppression
+        const { error: deleteError } = await supabase
+          .from('recipes')
+          .delete()
+          .eq('id', id)
+          .eq('user_id', user_id) // Double vérification de sécurité
+
+        if (deleteError) {
+          logError('Error deleting recipe', deleteError, { recipeId: id, userId: user_id })
+          return safeResponse(res, 500, {
+            error: 'Erreur lors de la suppression',
+            message: deleteError.message
+          })
+        }
+
+        logInfo('Recipe deleted successfully', {
+          reference: requestReference,
+          recipeId: id,
+          userId: user_id.substring(0, 8) + '...',
+          recipeTitle: existingRecipe.title
+        })
+
+        return safeResponse(res, 200, {
+          message: 'Recette supprimée avec succès',
+          id
+        })
+
+      } catch (error) {
+        const errorDetails = logApiError('DELETE_RECIPE', error, {
+          reference: requestReference,
+          query: req.query
+        })
+        
+        return safeResponse(res, 500, {
+          error: 'Erreur lors de la suppression de la recette',
+          message: error.message || 'Erreur inconnue',
+          reference: requestReference
+        })
+      }
+    }
+
     // Méthode non supportée
     logWarning('Unsupported method', {
       reference: requestReference,
