@@ -808,7 +808,18 @@
 
 /* Animation pour l'accessibilité */
 @media (prefers-reduced-motion: reduce) {
-  * {
+  .container,
+  .container *,
+  .heroSection,
+  .heroSection *,
+  .contentSection,
+  .contentSection *,
+  .loadingIcon,
+  .avatar,
+  .statItem,
+  .recipeCard,
+  .saveBtn,
+  .trophyNotification {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
