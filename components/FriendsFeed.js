@@ -83,7 +83,13 @@ export default function FriendsFeed({ feedType = 'featured' }) {
       if (recipe.image) {
         try {
           const { processImageData } = require('../utils/imageUtils')
-          imageUrl = processImageData(recipe.image, '/placeholder-recipe.jpg')
+          const processedUrl = processImageData(recipe.image, '/placeholder-recipe.jpg')
+          
+          // Validate the processed URL
+          if (processedUrl && processedUrl !== '/placeholder-recipe.jpg' && 
+              (processedUrl.startsWith('data:image/') || processedUrl.startsWith('http'))) {
+            imageUrl = processedUrl
+          }
           
           console.log('FriendsFeed: Image processed', {
             recipeId: recipe.id,
@@ -98,6 +104,7 @@ export default function FriendsFeed({ feedType = 'featured' }) {
             recipeId: recipe.id,
             imageType: typeof recipe.image
           })
+          imageUrl = '/placeholder-recipe.jpg'
         }
       }
       
@@ -303,7 +310,12 @@ export default function FriendsFeed({ feedType = 'featured' }) {
                   fill
                   sizes="(max-width: 768px) 180px, 220px"
                   className={styles.storyImage}
+                  unoptimized={recipe.image.startsWith('data:')}
                   onError={(e) => {
+                    console.error('FriendsFeed: Image load failed', {
+                      recipeId: recipe.id,
+                      src: e.target?.src?.substring(0, 50) + '...'
+                    })
                     e.target.src = '/placeholder-recipe.jpg'
                   }}
                 />

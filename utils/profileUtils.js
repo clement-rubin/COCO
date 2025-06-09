@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase'
-import { logInfo, logWarning, logError } from './logger'
+import { logInfo, logWarning, logError, logDebug } from './logger'
 import { checkAndUnlockTrophies, triggerTrophyCheck, checkTrophiesAfterProfileUpdate, getTrophyStats, syncTrophiesAfterAction } from './trophyUtils'
 
 /**

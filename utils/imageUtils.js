@@ -805,3 +805,65 @@ export function isHEICSupported() {
     return false
   }
 }
+
+/**
+ * Validates if an image URL is safe to use
+ * @param {string} url - The URL to validate
+ * @returns {boolean} True if the URL is valid and safe
+ */
+export function validateImageUrl(url) {
+  if (!url || typeof url !== 'string') {
+    return false
+  }
+  
+  // Allow data URLs for base64 images
+  if (url.startsWith('data:image/')) {
+    // Basic validation for data URLs
+    return url.includes(',') && url.length > 50
+  }
+  
+  // Allow HTTP/HTTPS URLs
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    try {
+      new URL(url)
+      return true
+    } catch {
+      return false
+    }
+  }
+  
+  // Allow relative paths for local images
+  if (url.startsWith('/')) {
+    return true
+  }
+  
+  return false
+}
+
+/**
+ * Enhanced image data processor with better validation
+ * @param {any} imageData - Raw image data from database
+ * @param {string} fallbackUrl - Fallback URL if processing fails
+ * @returns {string} Processed image URL
+ */
+export function processImageData(imageData, fallbackUrl = '/placeholder-recipe.jpg') {
+  try {
+    let processedUrl = fallbackUrl
+    
+    if (typeof imageData === 'string') {
+      if (validateImageUrl(imageData)) {
+        processedUrl = imageData
+      }
+    } else if (Array.isArray(imageData) && imageData.length > 0) {
+      const firstImage = imageData[0]
+      if (typeof firstImage === 'string' && validateImageUrl(firstImage)) {
+        processedUrl = firstImage
+      }
+    }
+    
+    return processedUrl
+  } catch (error) {
+    console.error('Error in processImageData:', error)
+    return fallbackUrl
+  }
+}

@@ -119,7 +119,13 @@ export default function AddictiveFeed() {
     if (apiRecipe.image) {
       try {
         const { processImageData } = require('../utils/imageUtils')
-        imageUrl = processImageData(apiRecipe.image, '/placeholder-recipe.jpg')
+        const processedUrl = processImageData(apiRecipe.image, '/placeholder-recipe.jpg')
+        
+        // Validate the processed URL
+        if (processedUrl && processedUrl !== '/placeholder-recipe.jpg' && 
+            (processedUrl.startsWith('data:image/') || processedUrl.startsWith('http'))) {
+          imageUrl = processedUrl
+        }
         
         logDebug('AddictiveFeed: Image processed', {
           recipeId: apiRecipe.id,
@@ -137,6 +143,7 @@ export default function AddictiveFeed() {
           isArray: Array.isArray(apiRecipe.image),
           hasImageData: !!apiRecipe.image
         })
+        imageUrl = '/placeholder-recipe.jpg'
       }
     }
 
@@ -413,6 +420,7 @@ export default function AddictiveFeed() {
                 fill
                 className={styles.recipeImage}
                 sizes="(max-width: 768px) 100vw, 50vw"
+                unoptimized={post.recipe.image.startsWith('data:')}
                 onLoad={() => {
                   logDebug('AddictiveFeed: Image loaded successfully', {
                     recipeId: post.recipe.id,
@@ -422,7 +430,8 @@ export default function AddictiveFeed() {
                 onError={(e) => {
                   logError('AddictiveFeed: Image load error', new Error('Image failed to load'), {
                     recipeId: post.recipe.id,
-                    imageUrl: post.recipe.image?.substring(0, 50) + '...'
+                    imageUrl: post.recipe.image?.substring(0, 50) + '...',
+                    errorSrc: e.target?.src?.substring(0, 50) + '...'
                   })
                   e.target.src = '/placeholder-recipe.jpg'
                 }}

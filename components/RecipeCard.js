@@ -36,15 +36,26 @@ export default function RecipeCard({ recipe, isUserRecipe = true, isPhotoOnly = 
 
       const processedUrl = processImageData(imageData, '/placeholder-recipe.jpg');
       
-      logDebug('RecipeCard: Image processed successfully', {
-        recipeId: recipe?.id,
-        originalDataType: typeof imageData,
-        processedUrl: processedUrl?.substring(0, 100) + (processedUrl?.length > 100 ? '...' : ''),
-        isDataUrl: processedUrl?.startsWith('data:'),
-        isPlaceholder: processedUrl === '/placeholder-recipe.jpg'
-      });
+      // Validate the processed URL
+      if (processedUrl && processedUrl !== '/placeholder-recipe.jpg' && 
+          (processedUrl.startsWith('data:image/') || processedUrl.startsWith('http'))) {
+        
+        logDebug('RecipeCard: Image processed successfully', {
+          recipeId: recipe?.id,
+          originalDataType: typeof imageData,
+          processedUrl: processedUrl?.substring(0, 100) + (processedUrl?.length > 100 ? '...' : ''),
+          isDataUrl: processedUrl?.startsWith('data:'),
+          isPlaceholder: false
+        });
 
-      return processedUrl;
+        return processedUrl;
+      } else {
+        logDebug('RecipeCard: Using fallback image', {
+          recipeId: recipe?.id,
+          reason: 'Invalid processed URL'
+        });
+        return '/placeholder-recipe.jpg';
+      }
     } catch (error) {
       logError('RecipeCard: Error processing image', error, {
         recipeId: recipe?.id,
@@ -128,6 +139,7 @@ export default function RecipeCard({ recipe, isUserRecipe = true, isPhotoOnly = 
           sizes="(max-width: 768px) 100vw, 300px"
           priority={false}
           className={styles.image}
+          unoptimized={safeRecipe.image.startsWith('data:')}
           onLoad={() => {
             setImageLoading(false)
             logInfo('RecipeCard: Image chargée avec succès', {
