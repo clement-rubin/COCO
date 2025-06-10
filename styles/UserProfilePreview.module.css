@@ -44,13 +44,29 @@
   border: 2px solid #f3f3f3;
   border-top: 2px solid var(--primary-orange);
   border-radius: 50%;
-  animation: spin 1s linear infinite;
+  animation: spin-smooth 1s ease-in-out infinite;
   margin: 0 auto 1rem;
 }
 
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+@keyframes spin-smooth {
+  0% { 
+    transform: rotate(0deg);
+    border-top-color: var(--primary-orange);
+  }
+  25% {
+    border-top-color: #f97316;
+  }
+  50% {
+    transform: rotate(180deg);
+    border-top-color: #ff8c42;
+  }
+  75% {
+    border-top-color: #f97316;
+  }
+  100% { 
+    transform: rotate(360deg);
+    border-top-color: var(--primary-orange);
+  }
 }
 
 .header {

@@ -278,21 +278,46 @@
   to { transform: rotate(360deg); }
 }
 
-/* Responsive enhancements */
-@media (max-width: 480px) {
-  .userAvatar {
-    width: 35px;
-    height: 35px;
-    font-size: 1rem;
+@keyframes spin-bounce {
+  0% { 
+    transform: rotate(0deg) scale(1);
   }
-  
-  .userName {
-    font-size: 0.9rem;
+  25% {
+    transform: rotate(90deg) scale(1.1);
   }
-  
-  .userStatus {
-    font-size: 0.75rem;
+  50% {
+    transform: rotate(180deg) scale(1.2);
   }
+  75% {
+    transform: rotate(270deg) scale(1.1);
+  }
+  100% { 
+    transform: rotate(360deg) scale(1);
+  }
+}
+
+@keyframes loading-pulse {
+  0%, 100% { 
+    opacity: 0.6; 
+    transform: scale(1);
+  }
+  50% { 
+    opacity: 1; 
+    transform: scale(1.05);
+  }
+}
+
+/* Classes d'animation pour les éléments de chargement */
+.loading-spinner {
+  animation: spin-bounce 1.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+}
+
+.loading-pulse {
+  animation: loading-pulse 2s ease-in-out infinite;
+}
+
+.rotate-smooth {
+  animation: rotate 2s linear infinite;
 }
 
 .messageContainer {

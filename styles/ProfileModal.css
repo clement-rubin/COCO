@@ -66,18 +66,30 @@
 }
 
 .spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid #f3f3f3;
-  border-top: 3px solid #ff6b35;
   border-radius: 50%;
-  animation: spin 1s linear infinite;
+  animation: spin-rainbow 1s linear infinite;
   margin: 0 auto 20px;
 }
 
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+@keyframes spin-rainbow {
+  0% { 
+    transform: rotate(0deg);
+    border-top-color: #ff6b35;
+  }
+  25% {
+    border-top-color: #f97316;
+  }
+  50% { 
+    transform: rotate(180deg);
+    border-top-color: #3b82f6;
+  }
+  75% {
+    border-top-color: #10b981;
+  }
+  100% { 
+    transform: rotate(360deg);
+    border-top-color: #ff6b35;
+  }
 }
 
 .profile-content {
@@ -113,6 +125,18 @@
   background: #22c55e;
   border: 3px solid white;
   border-radius: 50%;
+  animation: pulse-online 2s infinite;
+}
+
+@keyframes pulse-online {
+  0%, 100% { 
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+  }
+  50% { 
+    transform: scale(1.1);
+    box-shadow: 0 0 0 10px rgba(34, 197, 94, 0);
+  }
 }
 
 .profile-info h2 {

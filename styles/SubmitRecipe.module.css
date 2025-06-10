@@ -213,8 +213,46 @@
   border: 3px solid #e2e8f0;
   border-top: 3px solid #ff6b35;
   border-radius: 50%;
-  animation: spin 1s linear infinite;
+  animation: spin-glow 1s ease-in-out infinite;
   margin: 24px auto 0;
+}
+
+@keyframes spin-glow {
+  0% { 
+    transform: rotate(0deg);
+    box-shadow: 0 0 5px rgba(255, 107, 53, 0.3);
+    border-top-color: #ff6b35;
+  }
+  25% {
+    border-top-color: #f97316;
+    box-shadow: 0 0 10px rgba(255, 107, 53, 0.5);
+  }
+  50% {
+    transform: rotate(180deg);
+    box-shadow: 0 0 15px rgba(255, 107, 53, 0.7);
+    border-top-color: #ff8c42;
+  }
+  75% {
+    border-top-color: #f97316;
+    box-shadow: 0 0 10px rgba(255, 107, 53, 0.5);
+  }
+  100% { 
+    transform: rotate(360deg);
+    box-shadow: 0 0 5px rgba(255, 107, 53, 0.3);
+    border-top-color: #ff6b35;
+  }
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-10px);
+  }
+  60% {
+    transform: translateY(-5px);
+  }
 }
 
 /* Logs Display */

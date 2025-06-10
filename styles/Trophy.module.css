@@ -245,14 +245,14 @@
   background: #f3f4f6;
   border-radius: 6px;
   overflow: hidden;
-  margin-bottom: 0.5rem;
+  position: relative;
 }
 
 .progressFill {
   height: 100%;
   background: linear-gradient(90deg, #3b82f6, #1d4ed8);
   border-radius: 6px;
-  transition: width 0.6s ease;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
 }
 
@@ -264,14 +264,36 @@
   right: 0;
   bottom: 0;
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-  animation: shine 2s ease-in-out infinite;
+  animation: shimmer 2s infinite;
 }
 
-.progressText {
-  text-align: center;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #6b7280;
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.syncIcon {
+  animation: spin-elastic 1.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+  display: inline-block;
+  margin-right: 8px;
+}
+
+@keyframes spin-elastic {
+  0% { 
+    transform: rotate(0deg) scale(1);
+  }
+  25% {
+    transform: rotate(90deg) scale(1.1);
+  }
+  50% {
+    transform: rotate(180deg) scale(1.2);
+  }
+  75% {
+    transform: rotate(270deg) scale(1.1);
+  }
+  100% { 
+    transform: rotate(360deg) scale(1);
+  }
 }
 
 /* Notification de nouveau trophée améliorée */
@@ -743,4 +765,539 @@
   --trophy-gradient: linear-gradient(135deg, #f59e0b, #d97706);
   --trophy-glow: rgba(245, 158, 11, 0.5);
   --trophy-bg: rgba(245, 158, 11, 0.05);
+}
+
+/* Carte de niveau utilisateur */
+.levelCard {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 20px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  color: white;
+  box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+  overflow: hidden;
+  position: relative;
+}
+
+.levelCard::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+  animation: levelGlow 4s ease-in-out infinite;
+}
+
+.levelInfo {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+  position: relative;
+  z-index: 1;
+}
+
+.levelIcon {
+  font-size: 3rem;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+  animation: levelIconPulse 2s ease-in-out infinite;
+}
+
+.levelDetails {
+  flex: 1;
+}
+
+.levelTitle {
+  font-size: 1.5rem;
+  font-weight: 800;
+  margin: 0 0 0.5rem 0;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.levelDescription {
+  margin: 0;
+  opacity: 0.9;
+  font-size: 1rem;
+}
+
+.levelPoints {
+  font-size: 1.25rem;
+  font-weight: 700;
+  background: rgba(255,255,255,0.2);
+  padding: 0.5rem 1rem;
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+}
+
+.levelProgress {
+  position: relative;
+  z-index: 1;
+}
+
+.progressBarLevel {
+  width: 100%;
+  height: 8px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.progressFillLevel {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.8s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.progressFillLevel::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  animation: levelProgressShine 2s ease-in-out infinite;
+}
+
+/* Section Vue d'ensemble */
+.overviewSection {
+  space-y: 2rem;
+}
+
+.recentUnlocksSection {
+  margin-bottom: 2rem;
+}
+
+.sectionTitle {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 1rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.recentUnlocksGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.recentUnlockCard {
+  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+  border: 2px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 1.5rem;
+  text-align: center;
+  transition: all 0.3s ease;
+  animation: recentUnlockFloat 3s ease-in-out infinite;
+}
+
+.recentUnlockCard:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+  border-color: #3b82f6;
+}
+
+.recentUnlockIcon {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  display: block;
+  animation: recentIconBounce 2s ease-in-out infinite;
+}
+
+.recentUnlockName {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 0.5rem 0;
+}
+
+.recentUnlockTime {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+/* Section Prochains objectifs */
+.nextGoalsSection {
+  margin-bottom: 2rem;
+}
+
+.nextGoalsGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+.nextGoalCard {
+  background: white;
+  border: 2px solid #f3f4f6;
+  border-radius: 16px;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: all 0.3s ease;
+}
+
+.nextGoalCard:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.1);
+}
+
+.goalIcon {
+  font-size: 2rem;
+  flex-shrink: 0;
+}
+
+.goalInfo {
+  flex: 1;
+}
+
+.goalName {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 0.5rem 0;
+}
+
+.goalProgress {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.goalProgressBar {
+  flex: 1;
+  height: 6px;
+  background: #f3f4f6;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.goalProgressFill {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+  border-radius: 3px;
+  transition: width 0.6s ease;
+}
+
+.goalProgressText {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #3b82f6;
+  min-width: 40px;
+  text-align: right;
+}
+
+/* Section Défis quotidiens */
+.challengesSection {
+  margin-bottom: 2rem;
+}
+
+.challengesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.challengeCard {
+  background: white;
+  border: 2px solid #f1f5f9;
+  border-radius: 20px;
+  padding: 2rem;
+  transition: all 0.4s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.challengeCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #f59e0b, #d97706);
+  border-radius: 20px 20px 0 0;
+}
+
+.challengeCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+  border-color: #f59e0b;
+}
+
+.challengeCompleted {
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+  border-color: #10b981;
+}
+
+.challengeCompleted::before {
+  background: linear-gradient(90deg, #10b981, #059669);
+}
+
+.challengeIcon {
+  font-size: 2.5rem;
+  text-align: center;
+  margin-bottom: 1rem;
+  animation: challengeIconPulse 2s ease-in-out infinite;
+}
+
+.challengeInfo {
+  text-align: center;
+}
+
+.challengeName {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 0.5rem 0;
+}
+
+.challengeDescription {
+  color: #6b7280;
+  font-size: 0.9rem;
+  margin: 0 0 1rem 0;
+  line-height: 1.5;
+}
+
+.challengeProgress {
+  margin-bottom: 1rem;
+}
+
+.challengeProgressBar {
+  width: 100%;
+  height: 8px;
+  background: #f3f4f6;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.challengeProgressFill {
+  height: 100%;
+  background: linear-gradient(90deg, #f59e0b, #d97706);
+  border-radius: 4px;
+  transition: width 0.6s ease;
+  position: relative;
+}
+
+.challengeCompleted .challengeProgressFill {
+  background: linear-gradient(90deg, #10b981, #059669);
+}
+
+.challengeProgressFill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  animation: challengeProgressShine 2s ease-in-out infinite;
+}
+
+.challengeProgressText {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-align: center;
+}
+
+.challengeReward {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: rgba(245, 158, 11, 0.1);
+  padding: 0.5rem 1rem;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+}
+
+.challengeCompleted .challengeReward {
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.rewardIcon {
+  font-size: 1rem;
+}
+
+.rewardText {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #f59e0b;
+}
+
+.challengeCompleted .rewardText {
+  color: #10b981;
+}
+
+.challengeCompletedBadge {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: #10b981;
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  animation: completedBadgePulse 2s ease-in-out infinite;
+}
+
+.noChallenges {
+  text-align: center;
+  padding: 3rem;
+  color: #6b7280;
+}
+
+.noChallengesIcon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.6;
+}
+
+/* Bouton de rafraîchissement amélioré */
+.refreshButton {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 8px 16px;
+  fontSize: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.refreshButton:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+}
+
+.refreshButton::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.refreshButton:hover::before {
+  left: 100%;
+}
+
+/* Spinner de chargement amélioré */
+.loadingSpinner {
+  width: 60px;
+  height: 60px;
+  border: 4px solid rgba(59, 130, 246, 0.2);
+  border-top: 4px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 1rem;
+  position: relative;
+}
+
+.loadingSpinner::after {
+  content: '🍳';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 1.5rem;
+}
+
+/* Animations pour l'immersion */
+@keyframes levelGlow {
+  0%, 100% { transform: rotate(0deg) scale(1); opacity: 0.5; }
+  50% { transform: rotate(180deg) scale(1.1); opacity: 0.8; }
+}
+
+@keyframes levelIconPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+@keyframes levelProgressShine {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+@keyframes recentUnlockFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+@keyframes recentIconBounce {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  25% { transform: translateY(-10px) rotate(5deg); }
+  75% { transform: translateY(-5px) rotate(-5deg); }
+}
+
+@keyframes challengeIconPulse {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  50% { transform: scale(1.1) rotate(5deg); }
+}
+
+@keyframes challengeProgressShine {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+@keyframes completedBadgePulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+  50% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+}
+
+@keyframes challengeComplete {
+  0% {
+    transform: translate(-50%, -50%) scale(0) rotate(-180deg);
+    opacity: 0;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.2) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+/* Responsive amélioré */
+@media (max-width: 768px) {
+  .levelCard {
+    padding: 1.5rem;
+  }
+  
+  .levelIcon {
+    font-size: 2.5rem;
+  }
+  
+  .levelTitle {
+    font-size: 1.25rem;
+  }
+  
+  .challengesGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .recentUnlocksGrid {
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  }
 }
