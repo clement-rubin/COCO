@@ -24,6 +24,7 @@ export default function Explorer() {
   const [recipesData, setRecipesData] = useState([])
   const [trendingRecipes, setTrendingRecipes] = useState([])
   const [userInteractions, setUserInteractions] = useState({})
+  const [showFilters, setShowFilters] = useState(false)
   
   const searchInputRef = useRef(null)
   const suggestionsRef = useRef(null)
@@ -240,9 +241,11 @@ export default function Explorer() {
 
   if (loading) {
     return (
-      <div className={styles.loadingContainer}>
-        <div className={styles.loadingSpinner}></div>
-        <p>Découverte des meilleures recettes...</p>
+      <div className={styles.container}>
+        <div className={styles.loadingContainer}>
+          <div className={styles.loadingSpinner}></div>
+          <p>Découverte des meilleures recettes...</p>
+        </div>
       </div>
     )
   }
@@ -254,24 +257,26 @@ export default function Explorer() {
         <meta name="description" content="Explorez et découvrez les meilleures recettes de COCO" />
       </Head>
 
-      {/* Header mobile moderne */}
+      {/* Header mobile moderne avec nouveau design */}
       <header className={styles.mobileHeader}>
         <button 
           className={styles.mobileBackBtn}
           onClick={() => router.back()}
         >
-          ←
+          <span>←</span>
         </button>
+        
         <div className={styles.mobileTitle}>
-          <h1>Explorer</h1>
+          <h1>🔍 Explorer</h1>
           <p className={styles.subtitle}>Découvrez de nouvelles saveurs</p>
         </div>
+        
         <div className={styles.headerActions}>
           <button 
-            className={`${styles.filterToggle} ${showAdvancedFilters ? styles.active : ''}`}
-            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+            className={`${styles.filterToggle} ${showFilters ? styles.active : ''}`}
+            onClick={() => setShowFilters(!showFilters)}
           >
-            🔧
+            🎛️
           </button>
           <button 
             className={`${styles.viewToggle} ${viewMode === 'list' ? styles.active : ''}`}
@@ -282,45 +287,37 @@ export default function Explorer() {
         </div>
       </header>
 
-      {/* Contenu principal */}
+      {/* Contenu principal avec nouveau layout */}
       <main className={styles.mobileContent}>
-        {/* Trending Section */}
-        {trendingRecipes.length > 0 && !searchTerm && activeFilter === 'Tous' && (
-          <section className={styles.trendingSection}>
-            <h2 className={styles.sectionTitle}>
-              <span className={styles.trendingIcon}>🔥</span>
-              Tendances du moment
-            </h2>
-            <div className={styles.trendingContainer}>
-              {trendingRecipes.map(recipe => (
-                <div 
-                  key={`trending-${recipe.id}`}
-                  className={styles.trendingCard}
-                  onClick={() => handleRecipeClick(recipe.id)}
-                >
-                  <div className={styles.trendingEmoji}>{recipe.emoji}</div>
-                  <div className={styles.trendingInfo}>
-                    <h4>{recipe.name}</h4>
-                    <span>par {recipe.chef}</span>
-                  </div>
-                  <div className={styles.trendingStats}>
-                    <span>⭐ {recipe.rating}</span>
-                    <span>❤️ {recipe.likes}</span>
-                  </div>
-                </div>
-              ))}
+        {/* Hero Section avec statistiques */}
+        <section className={styles.heroSection}>
+          <div className={styles.statsBar}>
+            <div className={styles.stat}>
+              <span className={styles.statIcon}>🍽️</span>
+              <span className={styles.statNumber}>{recipesData.length}</span>
+              <span className={styles.statLabel}>Recettes</span>
             </div>
-          </section>
-        )}
+            <div className={styles.stat}>
+              <span className={styles.statIcon}>👨‍🍳</span>
+              <span className={styles.statNumber}>50+</span>
+              <span className={styles.statLabel}>Chefs</span>
+            </div>
+            <div className={styles.stat}>
+              <span className={styles.statIcon}>🔥</span>
+              <span className={styles.statNumber}>{trendingRecipes.length}</span>
+              <span className={styles.statLabel}>Tendances</span>
+            </div>
+          </div>
+        </section>
 
-        {/* Section de recherche */}
+        {/* Section de recherche repensée */}
         <section className={styles.searchSection}>
-          <form onSubmit={handleSearchSubmit} className={styles.searchForm}>
-            <div className={styles.searchContainer} ref={searchInputRef}>
-              <div className={styles.searchIcon}>🔍</div>
+          <div className={styles.searchContainer} ref={searchInputRef}>
+            <div className={styles.searchInputWrapper}>
+              <span className={styles.searchIcon}>🔍</span>
               <input
                 type="text"
-                placeholder="Rechercher une recette, un chef..."
+                placeholder="Rechercher des recettes délicieuses..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className={styles.searchInput}
@@ -335,33 +332,68 @@ export default function Explorer() {
                   ✕
                 </button>
               )}
-              
-              {/* Search Suggestions */}
-              {showSuggestions && searchSuggestions.length > 0 && (
-                <div className={styles.searchSuggestions} ref={suggestionsRef}>
-                  {searchSuggestions.map((suggestion, index) => (
-                    <div 
-                      key={index}
-                      className={styles.suggestionItem}
-                      onClick={() => handleSuggestionClick(suggestion)}
-                    >
-                      <span className={styles.suggestionIcon}>🔍</span>
-                      <div className={styles.suggestionContent}>
-                        <span className={styles.suggestionText}>{suggestion.value}</span>
-                        <span className={styles.suggestionSubtitle}>{suggestion.subtitle}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
-          </form>
+            
+            {/* Actions rapides de recherche */}
+            <div className={styles.quickSearchActions}>
+              <button 
+                className={styles.quickSearchBtn}
+                onClick={() => setSearchTerm('pasta')}
+              >
+                🍝 Pâtes
+              </button>
+              <button 
+                className={styles.quickSearchBtn}
+                onClick={() => setSearchTerm('dessert')}
+              >
+                🍰 Desserts
+              </button>
+              <button 
+                className={styles.quickSearchBtn}
+                onClick={() => setSearchTerm('rapide')}
+              >
+                ⚡ Rapide
+              </button>
+            </div>
+
+            {/* Search Suggestions redesignées */}
+            {showSuggestions && searchSuggestions.length > 0 && (
+              <div className={styles.searchSuggestions} ref={suggestionsRef}>
+                {searchSuggestions.map((suggestion, index) => (
+                  <div 
+                    key={index}
+                    className={styles.suggestionItem}
+                    onClick={() => handleSuggestionClick(suggestion)}
+                  >
+                    <span className={styles.suggestionIcon}>🔍</span>
+                    <div className={styles.suggestionContent}>
+                      <span className={styles.suggestionText}>{suggestion.value}</span>
+                      <span className={styles.suggestionSubtitle}>{suggestion.subtitle}</span>
+                    </div>
+                    <span className={styles.suggestionArrow}>→</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </section>
 
-        {/* Filtres horizontaux */}
-        <section className={styles.filtersSection}>
-          <div className={styles.filtersContainer}>
-            {filters.map(filter => (
+        {/* Filtres avec nouveau design */}
+        <section className={`${styles.filtersSection} ${showFilters ? styles.expanded : ''}`}>
+          <div className={styles.filtersHeader}>
+            <h3>🎯 Filtres & Tri</h3>
+            <button 
+              className={styles.resetFiltersBtn}
+              onClick={resetFilters}
+              style={{ display: activeFilter !== 'Tous' || searchTerm ? 'block' : 'none' }}
+            >
+              🔄 Reset
+            </button>
+          </div>
+          
+          {/* Filtres principaux horizontaux */}
+          <div className={styles.mainFilters}>
+            {filters.slice(0, 6).map(filter => (
               <button
                 key={filter}
                 onClick={() => setActiveFilter(filter)}
@@ -370,110 +402,181 @@ export default function Explorer() {
                 {filter}
               </button>
             ))}
+            <button 
+              className={styles.moreFiltersBtn}
+              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+            >
+              {showAdvancedFilters ? '▼ Moins' : '▶ Plus'}
+            </button>
           </div>
-        </section>
 
-        {/* Advanced Filters */}
-        {showAdvancedFilters && (
-          <section className={styles.advancedFilters}>
-            <div className={styles.advancedFiltersContent}>
+          {/* Filtres avancés */}
+          {showAdvancedFilters && (
+            <div className={styles.advancedFiltersGrid}>
               <div className={styles.filterGroup}>
-                <label>Trier par:</label>
-                <select 
-                  value={sortBy} 
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className={styles.sortSelect}
-                >
-                  <option value="trending">Tendances</option>
-                  <option value="newest">Plus récent</option>
-                  <option value="rating">Mieux notés</option>
-                  <option value="time">Temps de cuisson</option>
-                </select>
-              </div>
-              
-              <div className={styles.filterGroup}>
-                <label>Difficulté:</label>
-                <div className={styles.filterButtonsGroup}>
+                <label className={styles.filterLabel}>
+                  <span className={styles.labelIcon}>⚡</span>
+                  Difficulté
+                </label>
+                <div className={styles.filterOptions}>
                   {difficultyFilters.map(difficulty => (
                     <button
                       key={difficulty}
                       onClick={() => setDifficultyFilter(difficulty)}
-                      className={`${styles.filterMiniBtn} ${difficultyFilter === difficulty ? styles.active : ''}`}
+                      className={`${styles.filterOption} ${difficultyFilter === difficulty ? styles.active : ''}`}
                     >
                       {difficulty}
                     </button>
                   ))}
                 </div>
               </div>
-              
+
               <div className={styles.filterGroup}>
-                <label>Temps:</label>
-                <div className={styles.filterButtonsGroup}>
+                <label className={styles.filterLabel}>
+                  <span className={styles.labelIcon}>⏱️</span>
+                  Temps
+                </label>
+                <div className={styles.filterOptions}>
                   {timeFilters.map(time => (
                     <button
                       key={time}
                       onClick={() => setTimeFilter(time)}
-                      className={`${styles.filterMiniBtn} ${timeFilter === time ? styles.active : ''}`}
+                      className={`${styles.filterOption} ${timeFilter === time ? styles.active : ''}`}
                     >
                       {time}
                     </button>
                   ))}
                 </div>
               </div>
+
+              <div className={styles.filterGroup}>
+                <label className={styles.filterLabel}>
+                  <span className={styles.labelIcon}>📊</span>
+                  Trier par
+                </label>
+                <select 
+                  value={sortBy} 
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className={styles.sortSelect}
+                >
+                  <option value="trending">🔥 Tendances</option>
+                  <option value="newest">🆕 Plus récent</option>
+                  <option value="rating">⭐ Mieux notés</option>
+                  <option value="time">⏱️ Temps de cuisson</option>
+                </select>
+              </div>
+            </div>
+          )}
+        </section>
+
+        {/* Section Trending avec nouveau design */}
+        {trendingRecipes.length > 0 && !searchTerm && activeFilter === 'Tous' && (
+          <section className={styles.trendingSection}>
+            <div className={styles.sectionHeader}>
+              <h2 className={styles.sectionTitle}>
+                <span className={styles.trendingIcon}>🔥</span>
+                Tendances du moment
+              </h2>
+              <span className={styles.trendingBadge}>HOT</span>
+            </div>
+            
+            <div className={styles.trendingContainer}>
+              {trendingRecipes.map(recipe => (
+                <div 
+                  key={`trending-${recipe.id}`}
+                  className={styles.trendingCard}
+                  onClick={() => handleRecipeClick(recipe.id)}
+                >
+                  <div className={styles.trendingCardHeader}>
+                    <div className={styles.trendingEmoji}>{recipe.emoji}</div>
+                    <div className={styles.trendingBadgeSmall}>🔥</div>
+                  </div>
+                  
+                  <div className={styles.trendingInfo}>
+                    <h4>{recipe.name}</h4>
+                    <span className={styles.trendingChef}>par {recipe.chef}</span>
+                  </div>
+                  
+                  <div className={styles.trendingStats}>
+                    <div className={styles.trendingStat}>
+                      <span>⭐ {recipe.rating}</span>
+                    </div>
+                    <div className={styles.trendingStat}>
+                      <span>❤️ {recipe.likes}</span>
+                    </div>
+                  </div>
+                  
+                  <div className={styles.trendingFooter}>
+                    <span className={styles.trendingTime}>{recipe.time}</span>
+                    <span className={styles.trendingDifficulty}>{recipe.difficulty}</span>
+                  </div>
+                </div>
+              ))}
             </div>
           </section>
         )}
 
-        {/* Statistiques des résultats */}
+        {/* Résultats avec design amélioré */}
         <section className={styles.resultsSection}>
           <div className={styles.resultsHeader}>
-            <div className={styles.resultsCount}>
-              <span className={styles.countNumber}>{filteredRecipes.length}</span>
-              <span className={styles.countLabel}>
-                recette{filteredRecipes.length > 1 ? 's' : ''} trouvée{filteredRecipes.length > 1 ? 's' : ''}
-              </span>
-            </div>
-            <div className={styles.resultsActions}>
+            <div className={styles.resultsInfo}>
+              <div className={styles.resultsCount}>
+                <span className={styles.countNumber}>{filteredRecipes.length}</span>
+                <span className={styles.countLabel}>
+                  recette{filteredRecipes.length > 1 ? 's' : ''} trouvée{filteredRecipes.length > 1 ? 's' : ''}
+                </span>
+              </div>
+              
               {(activeFilter !== 'Tous' || difficultyFilter !== 'Tous' || timeFilter !== 'Tous' || searchTerm) && (
-                <button className={styles.resetFiltersBtn} onClick={resetFilters}>
-                  Réinitialiser
-                </button>
+                <div className={styles.activeFiltersDisplay}>
+                  {activeFilter !== 'Tous' && (
+                    <span className={styles.activeFilterChip}>
+                      📂 {activeFilter}
+                      <button onClick={() => setActiveFilter('Tous')}>✕</button>
+                    </span>
+                  )}
+                  {difficultyFilter !== 'Tous' && (
+                    <span className={styles.activeFilterChip}>
+                      ⚡ {difficultyFilter}
+                      <button onClick={() => setDifficultyFilter('Tous')}>✕</button>
+                    </span>
+                  )}
+                  {timeFilter !== 'Tous' && (
+                    <span className={styles.activeFilterChip}>
+                      ⏱️ {timeFilter}
+                      <button onClick={() => setTimeFilter('Tous')}>✕</button>
+                    </span>
+                  )}
+                </div>
               )}
             </div>
+            
+            <div className={styles.viewModeToggle}>
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`${styles.viewModeBtn} ${viewMode === 'grid' ? styles.active : ''}`}
+              >
+                ⊞
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`${styles.viewModeBtn} ${viewMode === 'list' ? styles.active : ''}`}
+              >
+                ☰
+              </button>
+            </div>
           </div>
-          
-          {/* Active filters badges */}
-          <div className={styles.activeFilters}>
-            {activeFilter !== 'Tous' && (
-              <div className={styles.activeFilterBadge}>
-                <span>{activeFilter}</span>
-                <button onClick={() => setActiveFilter('Tous')}>✕</button>
-              </div>
-            )}
-            {difficultyFilter !== 'Tous' && (
-              <div className={styles.activeFilterBadge}>
-                <span>{difficultyFilter}</span>
-                <button onClick={() => setDifficultyFilter('Tous')}>✕</button>
-              </div>
-            )}
-            {timeFilter !== 'Tous' && (
-              <div className={styles.activeFilterBadge}>
-                <span>{timeFilter}</span>
-                <button onClick={() => setTimeFilter('Tous')}>✕</button>
-              </div>
-            )}
-          </div>
-        </section>
 
-        {/* Grille des recettes */}
-        <section className={styles.recipesSection}>
+          {/* Grille des recettes avec nouveau design */}
           {filteredRecipes.length === 0 ? (
             <div className={styles.emptyState}>
               <div className={styles.emptyIcon}>🔍</div>
-              <h3>Aucune recette trouvée</h3>
-              <p>Essayez de modifier vos critères de recherche ou explorez nos recettes tendances</p>
+              <h3 className={styles.emptyTitle}>Aucune recette trouvée</h3>
+              <p className={styles.emptyDescription}>
+                Essayez de modifier vos critères de recherche ou explorez nos recettes tendances
+              </p>
               <button className={styles.resetBtn} onClick={resetFilters}>
-                Réinitialiser les filtres
+                🔄 Réinitialiser les filtres
               </button>
             </div>
           ) : (
@@ -484,68 +587,91 @@ export default function Explorer() {
                   className={`${styles.recipeCard} ${recipe.isNew ? styles.newRecipe : ''} ${recipe.isTrending ? styles.trendingRecipe : ''}`}
                   onClick={() => handleRecipeClick(recipe.id)}
                 >
-                  {recipe.isNew && <div className={styles.newBadge}>Nouveau</div>}
-                  {recipe.isTrending && <div className={styles.trendingBadge}>🔥 Tendance</div>}
+                  {/* Badges modernisés */}
+                  <div className={styles.recipeBadges}>
+                    {recipe.isNew && <span className={styles.newBadge}>✨ Nouveau</span>}
+                    {recipe.isTrending && <span className={styles.trendingCardBadge}>🔥 Tendance</span>}
+                  </div>
                   
+                  {/* Image container avec nouveau design */}
                   <div className={styles.recipeImageContainer}>
                     <div className={styles.recipeEmoji}>{recipe.emoji}</div>
-                    <div className={styles.recipeActions}>
+                    
+                    {/* Actions rapides */}
+                    <div className={styles.recipeQuickActions}>
                       <button 
-                        className={`${styles.likeBtn} ${likedRecipes.has(recipe.id) ? styles.liked : ''}`}
+                        className={`${styles.quickActionBtn} ${likedRecipes.has(recipe.id) ? styles.liked : ''}`}
                         onClick={(e) => handleLike(recipe.id, e)}
                       >
                         {likedRecipes.has(recipe.id) ? '❤️' : '🤍'}
                       </button>
                       <button 
-                        className={`${styles.followBtn} ${followedChefs.has(recipe.chef) ? styles.following : ''}`}
+                        className={`${styles.quickActionBtn} ${followedChefs.has(recipe.chef) ? styles.following : ''}`}
                         onClick={(e) => handleFollowChef(recipe.chef, e)}
                       >
-                        {followedChefs.has(recipe.chef) ? '👤' : '👤+'}
+                        {followedChefs.has(recipe.chef) ? '✓' : '+'}
                       </button>
                     </div>
+                    
+                    {/* Overlay d'interaction */}
                     <div className={styles.recipeOverlay}>
-                      <span className={styles.viewText}>Voir la recette</span>
+                      <span className={styles.viewPrompt}>👆 Tap to view</span>
                     </div>
                   </div>
                   
+                  {/* Contenu de la carte redesigné */}
                   <div className={styles.recipeContent}>
                     <div className={styles.recipeHeader}>
                       <h3 className={styles.recipeName}>{recipe.name}</h3>
                       <p className={styles.recipeDescription}>{recipe.description}</p>
-                      <div className={styles.recipeChef}>
-                        <span className={styles.chefIcon}>👨‍🍳</span>
-                        <span>{recipe.chef}</span>
-                        {followedChefs.has(recipe.chef) && <span className={styles.followingIndicator}>✓</span>}
-                      </div>
                     </div>
                     
+                    {/* Chef info avec design amélioré */}
+                    <div className={styles.recipeChef}>
+                      <span className={styles.chefAvatar}>👨‍🍳</span>
+                      <span className={styles.chefName}>{recipe.chef}</span>
+                      {followedChefs.has(recipe.chef) && (
+                        <span className={styles.followingIndicator}>✓ Suivi</span>
+                      )}
+                    </div>
+                    
+                    {/* Stats redesignées */}
                     <div className={styles.recipeStats}>
-                      <div className={styles.statItem}>
-                        <span className={styles.statIcon}>⏱️</span>
-                        <span>{recipe.time}</span>
+                      <div className={styles.statGroup}>
+                        <span className={styles.statItem}>
+                          <span className={styles.statIcon}>⏱️</span>
+                          <span>{recipe.time}</span>
+                        </span>
+                        <span className={styles.statItem}>
+                          <span className={styles.statIcon}>⭐</span>
+                          <span>{recipe.rating}</span>
+                        </span>
                       </div>
-                      <div className={styles.statItem}>
-                        <span className={styles.statIcon}>⭐</span>
-                        <span>{recipe.rating}</span>
-                      </div>
-                      <div className={styles.statItem}>
-                        <span className={styles.statIcon}>❤️</span>
-                        <span>{recipe.likes}</span>
-                      </div>
-                      <div className={styles.statItem}>
-                        <span className={styles.statIcon}>👀</span>
-                        <span>{recipe.views}</span>
+                      <div className={styles.statGroup}>
+                        <span className={styles.statItem}>
+                          <span className={styles.statIcon}>❤️</span>
+                          <span>{recipe.likes}</span>
+                        </span>
+                        <span className={styles.statItem}>
+                          <span className={styles.statIcon}>👀</span>
+                          <span>{recipe.views}</span>
+                        </span>
                       </div>
                     </div>
                     
+                    {/* Tags avec meilleur design */}
                     {recipe.tags && (
                       <div className={styles.recipeTags}>
-                        {recipe.tags.slice(0, 3).map(tag => (
+                        {recipe.tags.slice(0, 2).map(tag => (
                           <span key={tag} className={styles.recipeTag}>#{tag}</span>
                         ))}
+                        {recipe.tags.length > 2 && (
+                          <span className={styles.recipeTag}>+{recipe.tags.length - 2}</span>
+                        )}
                       </div>
                     )}
                     
+                    {/* Footer avec badges */}
                     <div className={styles.recipeFooter}>
                       <span 
                         className={styles.difficultyBadge}
@@ -553,7 +679,7 @@ export default function Explorer() {
                       >
                         {recipe.difficulty}
                       </span>
-                      <span className={styles.categoryTag}>
+                      <span className={styles.categoryBadge}>
                         {recipe.category}
                       </span>
                     </div>
@@ -563,6 +689,28 @@ export default function Explorer() {
             </div>
           )}
         </section>
+
+        {/* Call to action si peu de résultats */}
+        {filteredRecipes.length > 0 && filteredRecipes.length < 3 && (
+          <section className={styles.ctaSection}>
+            <div className={styles.ctaCard}>
+              <div className={styles.ctaIcon}>💡</div>
+              <h3 className={styles.ctaTitle}>Pas assez de choix ?</h3>
+              <p className={styles.ctaDescription}>
+                Ajustez vos filtres ou découvrez toutes nos recettes
+              </p>
+              <button 
+                className={styles.ctaButton}
+                onClick={() => {
+                  resetFilters()
+                  setActiveFilter('Tous')
+                }}
+              >
+                🔍 Voir toutes les recettes
+              </button>
+            </div>
+          </section>
+        )}
       </main>
     </div>
   )

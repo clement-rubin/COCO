@@ -6,9 +6,9 @@ import styles from '../styles/Comments.module.css'
 
 export default function Comments({ 
   targetId, 
-  targetType = 'recipe', // 'recipe', 'post', 'photo'
+  targetType = 'recipe',
   className = '',
-  theme = 'default' // 'default', 'recipe', 'social'
+  theme = 'default'
 }) {
   const { user } = useAuth()
   const [comments, setComments] = useState([])
@@ -17,6 +17,8 @@ export default function Comments({
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
   const [showReplies, setShowReplies] = useState({})
+  const [userLikes, setUserLikes] = useState(new Set()) // Track user's likes
+  const [likeAnimations, setLikeAnimations] = useState(new Set()) // Track active animations
 
   const maxLength = 500
   const charCount = newComment.length
@@ -27,6 +29,29 @@ export default function Comments({
       loadComments()
     }
   }, [targetId])
+
+  // Load user's previous likes from localStorage
+  useEffect(() => {
+    try {
+      const savedLikes = localStorage.getItem(`commentLikes_${user?.id}`)
+      if (savedLikes) {
+        setUserLikes(new Set(JSON.parse(savedLikes)))
+      }
+    } catch (err) {
+      console.error('Error loading saved likes', err)
+    }
+  }, [user?.id])
+
+  // Save user likes to localStorage
+  const saveLikesToStorage = (likesSet) => {
+    if (user?.id) {
+      try {
+        localStorage.setItem(`commentLikes_${user.id}`, JSON.stringify([...likesSet]))
+      } catch (err) {
+        console.error('Error saving likes to localStorage', err)
+      }
+    }
+  }
 
   const loadComments = async () => {
     try {
@@ -42,6 +67,7 @@ export default function Comments({
           text: 'Cette recette a l\'air absolument délicieuse ! J\'ai hâte de l\'essayer ce weekend. Merci pour le partage ! 🤤',
           created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
           likes: 12,
+          userHasLiked: userLikes.has(1),
           replies: [
             {
               id: 101,
@@ -50,7 +76,8 @@ export default function Comments({
               user_avatar: '👨‍🍳',
               text: 'N\'hésitez pas si vous avez des questions !',
               created_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-              likes: 3
+              likes: 3,
+              userHasLiked: userLikes.has(101)
             }
           ]
         },
@@ -62,6 +89,18 @@ export default function Comments({
           text: 'J\'ai testé hier soir, un vrai régal ! Toute la famille a adoré. Je recommande vivement cette recette. 🌟',
           created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
           likes: 8,
+          userHasLiked: userLikes.has(2),
+          replies: []
+        },
+        {
+          id: 3,
+          user_id: 'user4',
+          user_name: 'Thomas Martin',
+          user_avatar: '👨‍🦱',
+          text: 'Parfait pour un dîner en famille ! Les enfants ont adoré aussi 👨‍👩‍👧‍👦',
+          created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+          likes: 5,
+          userHasLiked: userLikes.has(3),
           replies: []
         }
       ]
@@ -147,33 +186,129 @@ export default function Comments({
 
   const toggleLike = async (commentId) => {
     if (!user) {
-      alert('Connectez-vous pour aimer ce commentaire')
+      const shouldLogin = window.confirm('Connectez-vous pour aimer ce commentaire. Aller à la page de connexion ?')
+      if (shouldLogin) {
+        window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname)
+      }
       return
     }
 
-    // Simulation de like - remplacer par vraie logique
+    // Prevent spam clicking
+    if (likeAnimations.has(commentId)) return
+
+    const isCurrentlyLiked = userLikes.has(commentId)
+    const newLikesSet = new Set(userLikes)
+    
+    // Add animation state
+    setLikeAnimations(prev => new Set([...prev, commentId]))
+    
+    // Update UI optimistically
     setComments(prev => prev.map(comment => {
       if (comment.id === commentId) {
+        const newLikesCount = isCurrentlyLiked 
+          ? Math.max(0, comment.likes - 1) 
+          : comment.likes + 1
+        
         return {
           ...comment,
-          likes: comment.likes + (Math.random() > 0.5 ? 1 : -1)
+          likes: newLikesCount,
+          userHasLiked: !isCurrentlyLiked
         }
       }
       return comment
     }))
 
+    // Update user likes state
+    if (isCurrentlyLiked) {
+      newLikesSet.delete(commentId)
+    } else {
+      newLikesSet.add(commentId)
+      
+      // Create floating heart animation
+      createFloatingHeart(commentId)
+      
+      // Add haptic feedback on mobile
+      if (navigator.vibrate) {
+        navigator.vibrate(50)
+      }
+    }
+    
+    setUserLikes(newLikesSet)
+    saveLikesToStorage(newLikesSet)
+
+    // Remove animation state after delay
+    setTimeout(() => {
+      setLikeAnimations(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(commentId)
+        return newSet
+      })
+    }, 600)
+
     logUserInteraction('TOGGLE_COMMENT_LIKE', 'comment-like', {
       commentId,
       targetId,
-      targetType
+      targetType,
+      action: isCurrentlyLiked ? 'unlike' : 'like',
+      userId: user.id
     })
+
+    // Simulate API call delay (replace with real API)
+    try {
+      await new Promise(resolve => setTimeout(resolve, 200))
+      // Here you would make the actual API call
+      // const response = await fetch('/api/comments/like', { ... })
+    } catch (error) {
+      // Revert optimistic update on error
+      setComments(prev => prev.map(comment => {
+        if (comment.id === commentId) {
+          const revertedLikesCount = isCurrentlyLiked 
+            ? comment.likes + 1 
+            : Math.max(0, comment.likes - 1)
+          
+          return {
+            ...comment,
+            likes: revertedLikesCount,
+            userHasLiked: isCurrentlyLiked
+          }
+        }
+        return comment
+      }))
+      
+      // Revert user likes
+      const revertedLikesSet = new Set(userLikes)
+      if (!isCurrentlyLiked) {
+        revertedLikesSet.delete(commentId)
+      } else {
+        revertedLikesSet.add(commentId)
+      }
+      setUserLikes(revertedLikesSet)
+      saveLikesToStorage(revertedLikesSet)
+      
+      logError('Failed to toggle comment like', error, { commentId })
+    }
   }
 
-  const toggleReplies = (commentId) => {
-    setShowReplies(prev => ({
-      ...prev,
-      [commentId]: !prev[commentId]
-    }))
+  const createFloatingHeart = (commentId) => {
+    const button = document.querySelector(`[data-comment-id="${commentId}"] .${styles.likeButton}`)
+    if (!button) return
+
+    const rect = button.getBoundingClientRect()
+    const heart = document.createElement('div')
+    heart.innerHTML = '❤️'
+    heart.style.cssText = `
+      position: fixed;
+      left: ${rect.left + rect.width / 2}px;
+      top: ${rect.top + rect.height / 2}px;
+      font-size: 1.5rem;
+      pointer-events: none;
+      z-index: 10000;
+      animation: floatingHeart 1.2s ease-out forwards;
+      transform: translate(-50%, -50%);
+    `
+    
+    document.body.appendChild(heart)
+    setTimeout(() => heart.remove(), 1200)
   }
 
   const formatTimeAgo = (dateString) => {
@@ -296,6 +431,7 @@ export default function Comments({
             <div 
               key={comment.id} 
               className={`${styles.comment} ${comment.isNew ? styles.new : ''}`}
+              data-comment-id={comment.id}
             >
               {comment.isNew && (
                 <div className={styles.newCommentBadge}>
@@ -324,10 +460,13 @@ export default function Comments({
                 <div className={styles.commentActions}>
                   <button
                     onClick={() => toggleLike(comment.id)}
-                    className={`${styles.actionButton} ${styles.likeButton}`}
-                    title="J'aime ce commentaire"
+                    className={`${styles.actionButton} ${styles.likeButton} ${
+                      userLikes.has(comment.id) ? styles.liked : ''
+                    } ${likeAnimations.has(comment.id) ? styles.animating : ''}`}
+                    title={userLikes.has(comment.id) ? "Ne plus aimer" : "J'aime ce commentaire"}
+                    disabled={likeAnimations.has(comment.id)}
                   >
-                    ❤️
+                    {userLikes.has(comment.id) ? '❤️' : '🤍'}
                   </button>
                   <button
                     className={`${styles.actionButton} ${styles.replyButton}`}
@@ -342,36 +481,41 @@ export default function Comments({
                 <p className={styles.commentText}>{comment.text}</p>
               </div>
 
-              <div className={styles.commentFooter}>
-                <div className={styles.commentStats}>
-                  <span className={styles.statItem}>
-                    <span className={styles.statIcon}>❤️</span>
+              <div className={styles.commentStats}>
+                <span className={styles.statItem}>
+                  <span className={styles.statIcon}>❤️</span>
+                  <span className={`${styles.statNumber} ${userLikes.has(comment.id) ? styles.highlighted : ''}`}>
                     {comment.likes}
                   </span>
-                  {comment.replies.length > 0 && (
-                    <span className={styles.statItem}>
-                      <span className={styles.statIcon}>💬</span>
-                      {comment.replies.length} réponse{comment.replies.length > 1 ? 's' : ''}
+                  <span className={styles.statLabel}>
+                    {comment.likes === 1 ? 'like' : 'likes'}
+                  </span>
+                </span>
+                {comment.replies.length > 0 && (
+                  <span className={styles.statItem}>
+                    <span className={styles.statIcon}>💬</span>
+                    <span className={styles.statNumber}>{comment.replies.length}</span>
+                    <span className={styles.statLabel}>
+                      {comment.replies.length === 1 ? 'réponse' : 'réponses'}
                     </span>
-                  )}
-                </div>
-
+                  </span>
+                )}
+                
                 {comment.replies.length > 0 && (
                   <button
                     onClick={() => toggleReplies(comment.id)}
                     className={styles.showRepliesBtn}
                   >
-                    {showReplies[comment.id] ? '▼' : '▶'} 
-                    {showReplies[comment.id] ? 'Masquer' : 'Voir'} les réponses
+                    {showReplies[comment.id] ? '▼ Masquer' : '▶ Voir'} les réponses
                   </button>
                 )}
               </div>
 
-              {/* Réponses */}
+              {/* Réponses avec like system */}
               {showReplies[comment.id] && comment.replies.length > 0 && (
                 <div className={styles.replies}>
                   {comment.replies.map((reply) => (
-                    <div key={reply.id} className={styles.reply}>
+                    <div key={reply.id} className={styles.reply} data-comment-id={reply.id}>
                       <div className={styles.commentHeader}>
                         <div className={styles.commentUser}>
                           <div className={styles.userAvatar} style={{ width: '36px', height: '36px' }}>
@@ -387,9 +531,28 @@ export default function Comments({
                             </span>
                           </div>
                         </div>
+                        <div className={styles.commentActions}>
+                          <button
+                            onClick={() => toggleLike(reply.id)}
+                            className={`${styles.actionButton} ${styles.likeButton} ${
+                              userLikes.has(reply.id) ? styles.liked : ''
+                            }`}
+                            title={userLikes.has(reply.id) ? "Ne plus aimer" : "J'aime cette réponse"}
+                          >
+                            {userLikes.has(reply.id) ? '❤️' : '🤍'}
+                          </button>
+                        </div>
                       </div>
                       <div className={styles.commentContent}>
                         <p className={styles.commentText}>{reply.text}</p>
+                      </div>
+                      <div className={styles.commentStats}>
+                        <span className={styles.statItem}>
+                          <span className={styles.statIcon}>❤️</span>
+                          <span className={`${styles.statNumber} ${userLikes.has(reply.id) ? styles.highlighted : ''}`}>
+                            {reply.likes}
+                          </span>
+                        </span>
                       </div>
                     </div>
                   ))}
@@ -417,15 +580,26 @@ export default function Comments({
       )}
 
       <style jsx>{`
-        @keyframes slideInRight {
-          from {
-            opacity: 0;
-            transform: translateX(100px);
-          }
-          to {
+        @keyframes floatingHeart {
+          0% {
+            transform: translate(-50%, -50%) scale(1);
             opacity: 1;
-            transform: translateX(0);
           }
+          50% {
+            transform: translate(-50%, -80%) scale(1.2);
+            opacity: 0.8;
+          }
+          100% {
+            transform: translate(-50%, -120%) scale(0.8);
+            opacity: 0;
+          }
+        }
+        
+        @keyframes heartBeat {
+          0%, 100% { transform: scale(1); }
+          25% { transform: scale(1.1); }
+          50% { transform: scale(1.05); }
+          75% { transform: scale(1.15); }
         }
       `}</style>
     </div>

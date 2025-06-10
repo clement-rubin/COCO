@@ -734,13 +734,35 @@
   to { opacity: 1; transform: translateY(0);}
 }
 @keyframes badgePop {
-  0% { transform: scale(0.7); opacity: 0;}
-  80% { transform: scale(1.1);}
-  100% { transform: scale(1); opacity: 1;}
+  0% { 
+    transform: scale(0.8); 
+    opacity: 0; 
+  }
+  50% { 
+    transform: scale(1.1); 
+  }
+  100% { 
+    transform: scale(1); 
+    opacity: 1; 
+  }
 }
 @keyframes spin {
   0% { transform: rotate(0deg);}
   100% { transform: rotate(360deg);}
+}
+@keyframes heartBeat {
+  0%, 100% { 
+    transform: scale(1); 
+  }
+  25% { 
+    transform: scale(1.1); 
+  }
+  50% { 
+    transform: scale(1.05); 
+  }
+  75% { 
+    transform: scale(1.15); 
+  }
 }
 
 /*
@@ -875,9 +897,8 @@
 }
 .filterGroup {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 2px;
+  flex-direction: column;
+  gap: 8px;
 }
 .filterButtonsGroup {
   display: flex;
