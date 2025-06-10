@@ -8,6 +8,7 @@ import { useRouter } from 'next/router'
 import { AuthProvider, useAuth } from '../components/AuthContext'
 import { logFrontendError, logComponentEvent, logUserInteraction, logInfo, logDebug } from '../utils/logger'
 import NotificationCenter from '../components/NotificationCenter'
+import AnimatedEntry from '../components/AnimatedEntry'
 
 function AuthenticatedNav({ user, signOut }) {
   const [showUserMenu, setShowUserMenu] = useState(false)
@@ -20,231 +21,227 @@ function AuthenticatedNav({ user, signOut }) {
   }
 
   return (
-    <div style={{ position: 'relative' }}>
-      <button
-        onClick={() => setShowUserMenu(!showUserMenu)}
-        className="nav-item"
-        style={{
-          background: 'none',
-          border: 'none',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          cursor: 'pointer',
-          transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-          position: 'relative',
-          overflow: 'hidden'
-        }}
-        onMouseEnter={(e) => {
-          e.target.style.transform = 'scale(1.1) translateY(-2px)'
-        }}
-        onMouseLeave={(e) => {
-          e.target.style.transform = 'scale(1) translateY(0)'
-        }}
-      >
-        <span 
-          className="nav-icon"
+    <AnimatedEntry animation="bounceIn" delay={100}>
+      <div style={{ position: 'relative' }}>
+        <button
+          onClick={() => setShowUserMenu(!showUserMenu)}
+          className="nav-item btn-animated"
           style={{
-            background: user?.user_metadata?.display_name ? 
-              'linear-gradient(135deg, #FF6B35, #F7931E)' : 'transparent',
-            color: user?.user_metadata?.display_name ? 'white' : 'inherit',
-            width: user?.user_metadata?.display_name ? '28px' : 'auto',
-            height: user?.user_metadata?.display_name ? '28px' : 'auto',
-            borderRadius: user?.user_metadata?.display_name ? '50%' : '0',
+            background: 'none',
+            border: 'none',
             display: 'flex',
+            flexDirection: 'column',
             alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: user?.user_metadata?.display_name ? '0.9rem' : '1.4rem',
-            fontWeight: user?.user_metadata?.display_name ? '700' : 'normal',
-            transition: 'all 0.3s ease',
-            position: 'relative'
+            cursor: 'pointer',
+            position: 'relative',
+            overflow: 'hidden'
           }}
         >
-          {user?.user_metadata?.display_name ? 
-            user.user_metadata.display_name.charAt(0).toUpperCase() : 
-            '👤'}
-          {user?.user_metadata?.display_name && (
+          <span 
+            className="nav-icon"
+            style={{
+              background: user?.user_metadata?.display_name ? 
+                'linear-gradient(135deg, #FF6B35, #F7931E)' : 'transparent',
+              color: user?.user_metadata?.display_name ? 'white' : 'inherit',
+              width: user?.user_metadata?.display_name ? '28px' : 'auto',
+              height: user?.user_metadata?.display_name ? '28px' : 'auto',
+              borderRadius: user?.user_metadata?.display_name ? '50%' : '0',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: user?.user_metadata?.display_name ? '0.9rem' : '1.4rem',
+              fontWeight: user?.user_metadata?.display_name ? '700' : 'normal',
+              transition: 'all 0.3s ease',
+              position: 'relative'
+            }}
+          >
+            {user?.user_metadata?.display_name ? 
+              user.user_metadata.display_name.charAt(0).toUpperCase() : 
+              '👤'}
+            {user?.user_metadata?.display_name && (
+              <div style={{
+                position: 'absolute',
+                inset: '-2px',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #FF6B35, #F7931E)',
+                opacity: 0.3,
+                zIndex: -1,
+                animation: 'pulse 2s infinite'
+              }} />
+            )}
+          </span>
+          <span className="nav-label" style={{
+            transition: 'all 0.3s ease',
+            fontWeight: '500'
+          }}>
+            {user?.user_metadata?.display_name?.split(' ')[0] || 'Profil'}
+          </span>
+        </button>
+
+        {showUserMenu && (
+          <AnimatedEntry animation="scaleIn" delay={0}>
             <div style={{
               position: 'absolute',
-              inset: '-2px',
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, #FF6B35, #F7931E)',
-              opacity: 0.3,
-              zIndex: -1,
-              animation: 'pulse 2s infinite'
-            }} />
-          )}
-        </span>
-        <span className="nav-label" style={{
-          transition: 'all 0.3s ease',
-          fontWeight: '500'
-        }}>
-          {user?.user_metadata?.display_name?.split(' ')[0] || 'Profil'}
-        </span>
-      </button>
-
-      {showUserMenu && (
-        <div style={{
-          position: 'absolute',
-          bottom: '100%',
-          right: '0',
-          background: 'rgba(20, 20, 30, 0.95)',
-          backdropFilter: 'blur(20px)',
-          border: '1px solid rgba(255, 107, 53, 0.2)',
-          borderRadius: '16px',
-          padding: '12px',
-          minWidth: '220px',
-          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
-          zIndex: 1000,
-          animation: 'menuSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-          transformOrigin: 'bottom right'
-        }}>
-          <div style={{
-            padding: '12px',
-            borderBottom: '1px solid rgba(255, 107, 53, 0.15)',
-            marginBottom: '8px',
-            borderRadius: '8px',
-            background: 'rgba(255, 107, 53, 0.05)'
-          }}>
-            <p style={{ 
-              margin: 0, 
-              fontWeight: '700',
-              color: 'white',
-              fontSize: '1rem'
+              bottom: '100%',
+              right: '0',
+              background: 'rgba(20, 20, 30, 0.95)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255, 107, 53, 0.2)',
+              borderRadius: '16px',
+              padding: '12px',
+              minWidth: '220px',
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
+              zIndex: 1000,
+              transformOrigin: 'bottom right'
             }}>
-              {user?.user_metadata?.display_name || 'Utilisateur'}
-            </p>
-            <p style={{ 
-              margin: '4px 0 0 0', 
-              color: 'rgba(255, 255, 255, 0.7)',
-              fontSize: '0.85rem'
-            }}>
-              {user?.email}
-            </p>
-          </div>
+              <div style={{
+                padding: '12px',
+                borderBottom: '1px solid rgba(255, 107, 53, 0.15)',
+                marginBottom: '8px',
+                borderRadius: '8px',
+                background: 'rgba(255, 107, 53, 0.05)'
+              }}>
+                <p style={{ 
+                  margin: 0, 
+                  fontWeight: '700',
+                  color: 'white',
+                  fontSize: '1rem'
+                }}>
+                  {user?.user_metadata?.display_name || 'Utilisateur'}
+                </p>
+                <p style={{ 
+                  margin: '4px 0 0 0', 
+                  color: 'rgba(255, 255, 255, 0.7)',
+                  fontSize: '0.85rem'
+                }}>
+                  {user?.email}
+                </p>
+              </div>
 
-          <Link 
-            href="/mes-recettes" 
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              padding: '12px',
-              color: 'white',
-              textDecoration: 'none',
-              borderRadius: '10px',
-              fontSize: '0.95rem',
-              fontWeight: '500',
-              transition: 'all 0.3s ease',
-              marginBottom: '4px'
-            }}
-            onClick={() => setShowUserMenu(false)}
-            onMouseEnter={(e) => {
-              e.target.style.background = 'rgba(255, 107, 53, 0.1)'
-              e.target.style.transform = 'translateX(4px)'
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.background = 'transparent'
-              e.target.style.transform = 'translateX(0)'
-            }}
-          >
-            <span style={{ fontSize: '1.2rem' }}>📝</span>
-            Mes recettes
-          </Link>
+              <Link 
+                href="/mes-recettes" 
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  padding: '12px',
+                  color: 'white',
+                  textDecoration: 'none',
+                  borderRadius: '10px',
+                  fontSize: '0.95rem',
+                  fontWeight: '500',
+                  transition: 'all 0.3s ease',
+                  marginBottom: '4px'
+                }}
+                onClick={() => setShowUserMenu(false)}
+                onMouseEnter={(e) => {
+                  e.target.style.background = 'rgba(255, 107, 53, 0.1)'
+                  e.target.style.transform = 'translateX(4px)'
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'transparent'
+                  e.target.style.transform = 'translateX(0)'
+                }}
+              >
+                <span style={{ fontSize: '1.2rem' }}>📝</span>
+                Mes recettes
+              </Link>
 
-          <Link 
-            href="/amis" 
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              padding: '12px',
-              color: 'white',
-              textDecoration: 'none',
-              borderRadius: '10px',
-              fontSize: '0.95rem',
-              fontWeight: '500',
-              transition: 'all 0.3s ease',
-              marginBottom: '4px'
-            }}
-            onClick={() => setShowUserMenu(false)}
-            onMouseEnter={(e) => {
-              e.target.style.background = 'rgba(255, 107, 53, 0.1)'
-              e.target.style.transform = 'translateX(4px)'
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.background = 'transparent'
-              e.target.style.transform = 'translateX(0)'
-            }}
-          >
-            <span style={{ fontSize: '1.2rem' }}>👥</span>
-            Mes amis
-          </Link>
+              <Link 
+                href="/amis" 
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  padding: '12px',
+                  color: 'white',
+                  textDecoration: 'none',
+                  borderRadius: '10px',
+                  fontSize: '0.95rem',
+                  fontWeight: '500',
+                  transition: 'all 0.3s ease',
+                  marginBottom: '4px'
+                }}
+                onClick={() => setShowUserMenu(false)}
+                onMouseEnter={(e) => {
+                  e.target.style.background = 'rgba(255, 107, 53, 0.1)'
+                  e.target.style.transform = 'translateX(4px)'
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'transparent'
+                  e.target.style.transform = 'translateX(0)'
+                }}
+              >
+                <span style={{ fontSize: '1.2rem' }}>👥</span>
+                Mes amis
+              </Link>
 
-          <Link 
-            href="/profil" 
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              padding: '12px',
-              color: 'white',
-              textDecoration: 'none',
-              borderRadius: '10px',
-              fontSize: '0.95rem',
-              fontWeight: '500',
-              transition: 'all 0.3s ease',
-              marginBottom: '8px'
-            }}
-            onClick={() => setShowUserMenu(false)}
-            onMouseEnter={(e) => {
-              e.target.style.background = 'rgba(255, 107, 53, 0.1)'
-              e.target.style.transform = 'translateX(4px)'
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.background = 'transparent'
-              e.target.style.transform = 'translateX(0)'
-            }}
-          >
-            <span style={{ fontSize: '1.2rem' }}>👤</span>
-            Mon profil
-          </Link>
+              <Link 
+                href="/profil" 
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  padding: '12px',
+                  color: 'white',
+                  textDecoration: 'none',
+                  borderRadius: '10px',
+                  fontSize: '0.95rem',
+                  fontWeight: '500',
+                  transition: 'all 0.3s ease',
+                  marginBottom: '8px'
+                }}
+                onClick={() => setShowUserMenu(false)}
+                onMouseEnter={(e) => {
+                  e.target.style.background = 'rgba(255, 107, 53, 0.1)'
+                  e.target.style.transform = 'translateX(4px)'
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'transparent'
+                  e.target.style.transform = 'translateX(0)'
+                }}
+              >
+                <span style={{ fontSize: '1.2rem' }}>👤</span>
+                Mon profil
+              </Link>
 
-          <button
-            onClick={handleSignOut}
-            style={{
-              width: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              padding: '12px',
-              background: 'rgba(255, 87, 34, 0.1)',
-              border: '1px solid rgba(255, 87, 34, 0.2)',
-              color: '#FF5722',
-              textAlign: 'left',
-              cursor: 'pointer',
-              borderRadius: '10px',
-              fontSize: '0.95rem',
-              fontWeight: '600',
-              transition: 'all 0.3s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.background = 'rgba(255, 87, 34, 0.2)'
-              e.target.style.borderColor = 'rgba(255, 87, 34, 0.4)'
-              e.target.style.transform = 'scale(1.02)'
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.background = 'rgba(255, 87, 34, 0.1)'
-              e.target.style.borderColor = 'rgba(255, 87, 34, 0.2)'
-              e.target.style.transform = 'scale(1)'
-            }}
-          >
-            <span style={{ fontSize: '1.2rem' }}>🚪</span>
-            Se déconnecter
-          </button>
-        </div>
-      )}
-    </div>
+              <button
+                onClick={handleSignOut}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  padding: '12px',
+                  background: 'rgba(255, 87, 34, 0.1)',
+                  border: '1px solid rgba(255, 87, 34, 0.2)',
+                  color: '#FF5722',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  borderRadius: '10px',
+                  fontSize: '0.95rem',
+                  fontWeight: '600',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = 'rgba(255, 87, 34, 0.2)'
+                  e.target.style.borderColor = 'rgba(255, 87, 34, 0.4)'
+                  e.target.style.transform = 'scale(1.02)'
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'rgba(255, 87, 34, 0.1)'
+                  e.target.style.borderColor = 'rgba(255, 87, 34, 0.2)'
+                  e.target.style.transform = 'scale(1)'
+                }}
+              >
+                <span style={{ fontSize: '1.2rem' }}>🚪</span>
+                Se déconnecter
+              </button>
+            </div>
+          </AnimatedEntry>
+        )}
+      </div>
+    </AnimatedEntry>
   )
 }
 
@@ -409,178 +406,194 @@ function AppContent({ Component, pageProps }) {
         {/* Notification Center */}
         <NotificationCenter />
         
-        {/* Mobile Status Bar supprimée */}
-        
         <main className="app-content">
           {globalError && (
-            <div style={{ maxWidth: '1200px', margin: '1rem auto', padding: '0 1rem' }}>
-              <ErrorDisplay error={globalError} resetError={resetGlobalError} />
-            </div>
+            <AnimatedEntry animation="slideInRight" delay={0}>
+              <div style={{ maxWidth: '1200px', margin: '1rem auto', padding: '0 1rem' }}>
+                <ErrorDisplay error={globalError} resetError={resetGlobalError} />
+              </div>
+            </AnimatedEntry>
           )}
           <Component {...pageProps} />
         </main>
         
-        {/* Bottom Navigation */}
+        {/* Bottom Navigation avec animations */}
         <nav className="bottom-nav">
-          <Link href="/" className={getNavItemClass('/')}>
-            <span className="nav-icon">🏠</span>
-            <span className="nav-label">Accueil</span>
-          </Link>
-          <Link href="/explorer" className={getNavItemClass('/explorer')}>
-            <span className="nav-icon">🔍</span>
-            <span className="nav-label">Explorer</span>
-          </Link>
-          <button onClick={handleShare} className="nav-item add-button">
-            <span className="nav-icon">📤</span>
-          </button>
-          <Link href="/amis" className={getNavItemClass('/amis')}>
-            <span className="nav-icon">👥</span>
-            <span className="nav-label">Amis</span>
-          </Link>
-          
-          {user ? (
-            <AuthenticatedNav user={user} signOut={signOut} />
-          ) : (
-            <Link href="/login" className={getNavItemClass('/login')}>
-              <span className="nav-icon">👤</span>
-              <span className="nav-label">Connexion</span>
+          <AnimatedEntry animation="slideInLeft" delay={50}>
+            <Link href="/" className={getNavItemClass('/')}>
+              <span className="nav-icon">🏠</span>
+              <span className="nav-label">Accueil</span>
             </Link>
-          )}
+          </AnimatedEntry>
+          
+          <AnimatedEntry animation="slideInLeft" delay={100}>
+            <Link href="/explorer" className={getNavItemClass('/explorer')}>
+              <span className="nav-icon">🔍</span>
+              <span className="nav-label">Explorer</span>
+            </Link>
+          </AnimatedEntry>
+          
+          <AnimatedEntry animation="bounceIn" delay={150}>
+            <button onClick={handleShare} className="nav-item add-button btn-animated">
+              <span className="nav-icon">📤</span>
+            </button>
+          </AnimatedEntry>
+          
+          <AnimatedEntry animation="slideInRight" delay={100}>
+            <Link href="/amis" className={getNavItemClass('/amis')}>
+              <span className="nav-icon">👥</span>
+              <span className="nav-label">Amis</span>
+            </Link>
+          </AnimatedEntry>
+          
+          <AnimatedEntry animation="slideInRight" delay={50}>
+            {user ? (
+              <AuthenticatedNav user={user} signOut={signOut} />
+            ) : (
+              <Link href="/login" className={getNavItemClass('/login')}>
+                <span className="nav-icon">👤</span>
+                <span className="nav-label">Connexion</span>
+              </Link>
+            )}
+          </AnimatedEntry>
         </nav>
 
-        {/* Share Menu Overlay */}
+        {/* Share Menu Overlay avec animation */}
         {showShareMenu && (
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0, 0, 0, 0.6)',
-            display: 'flex',
-            alignItems: 'flex-end',
-            justifyContent: 'center',
-            zIndex: 1000,
-            maxWidth: '430px',
-            margin: '0 auto'
-          }}>
+          <AnimatedEntry animation="fadeIn" delay={0}>
             <div style={{
-              background: 'var(--bg-card)',
-              borderRadius: 'var(--radius-xl) var(--radius-xl) 0 0',
-              width: '100%',
-              padding: 'var(--spacing-lg)',
-              animation: 'slideUp 0.3s ease'
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(0, 0, 0, 0.6)',
+              display: 'flex',
+              alignItems: 'flex-end',
+              justifyContent: 'center',
+              zIndex: 1000,
+              maxWidth: '430px',
+              margin: '0 auto'
             }}>
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: 'var(--spacing-lg)'
-              }}>
-                <h3 style={{
-                  margin: 0,
-                  color: 'var(--primary-coral)',
-                  fontSize: '1.3rem',
-                  fontWeight: '600'
+              <AnimatedEntry animation="slideInLeft" delay={100}>
+                <div style={{
+                  background: 'var(--bg-card)',
+                  borderRadius: 'var(--radius-xl) var(--radius-xl) 0 0',
+                  width: '100%',
+                  padding: 'var(--spacing-lg)'
                 }}>
-                  Partager COCO
-                </h3>
-                <button
-                  onClick={() => setShowShareMenu(false)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    fontSize: '1.5rem',
-                    color: 'var(--text-secondary)',
-                    cursor: 'pointer',
-                    padding: 'var(--spacing-sm)',
-                    borderRadius: '50%'
-                  }}
-                >
-                  ✕
-                </button>
-              </div>
-
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
-                gap: 'var(--spacing-md)',
-                marginBottom: 'var(--spacing-lg)'
-              }}>
-                <button
-                  onClick={shareToWhatsApp}
-                  className="card"
-                  style={{
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: 'var(--spacing-md)',
+                  <div style={{
                     display: 'flex',
-                    flexDirection: 'column',
+                    justifyContent: 'space-between',
                     alignItems: 'center',
-                    gap: 'var(--spacing-sm)',
-                    background: 'var(--bg-card)',
-                    transition: 'all 0.3s ease'
-                  }}
-                >
-                  <span style={{ fontSize: '2rem' }}>💬</span>
-                  <span style={{ fontSize: '0.8rem', fontWeight: '500' }}>WhatsApp</span>
-                </button>
+                    marginBottom: 'var(--spacing-lg)'
+                  }}>
+                    <h3 style={{
+                      margin: 0,
+                      color: 'var(--primary-coral)',
+                      fontSize: '1.3rem',
+                      fontWeight: '600'
+                    }}>
+                      Partager COCO
+                    </h3>
+                    <button
+                      onClick={() => setShowShareMenu(false)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        fontSize: '1.5rem',
+                        color: 'var(--text-secondary)',
+                        cursor: 'pointer',
+                        padding: 'var(--spacing-sm)',
+                        borderRadius: '50%'
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
 
-                <button
-                  onClick={shareToFacebook}
-                  className="card"
-                  style={{
-                    border: 'none',
-                    cursor: 'pointer',
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(3, 1fr)',
+                    gap: 'var(--spacing-md)',
+                    marginBottom: 'var(--spacing-lg)'
+                  }}>
+                    <button
+                      onClick={shareToWhatsApp}
+                      className="card"
+                      style={{
+                        border: 'none',
+                        cursor: 'pointer',
+                        padding: 'var(--spacing-md)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: 'var(--spacing-sm)',
+                        background: 'var(--bg-card)',
+                        transition: 'all 0.3s ease'
+                      }}
+                    >
+                      <span style={{ fontSize: '2rem' }}>💬</span>
+                      <span style={{ fontSize: '0.8rem', fontWeight: '500' }}>WhatsApp</span>
+                    </button>
+
+                    <button
+                      onClick={shareToFacebook}
+                      className="card"
+                      style={{
+                        border: 'none',
+                        cursor: 'pointer',
+                        padding: 'var(--spacing-md)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: 'var(--spacing-sm)',
+                        background: 'var(--bg-card)',
+                        transition: 'all 0.3s ease'
+                      }}
+                    >
+                      <span style={{ fontSize: '2rem' }}>📘</span>
+                      <span style={{ fontSize: '0.8rem', fontWeight: '500' }}>Facebook</span>
+                    </button>
+
+                    <button
+                      onClick={copyToClipboard}
+                      className="card"
+                      style={{
+                        border: 'none',
+                        cursor: 'pointer',
+                        padding: 'var(--spacing-md)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: 'var(--spacing-sm)',
+                        background: 'var(--bg-card)',
+                        transition: 'all 0.3s ease'
+                      }}
+                    >
+                      <span style={{ fontSize: '2rem' }}>🔗</span>
+                      <span style={{ fontSize: '0.8rem', fontWeight: '500' }}>Copier</span>
+                    </button>
+                  </div>
+
+                  <div style={{
+                    background: 'var(--bg-gradient)',
+                    borderRadius: 'var(--radius-lg)',
                     padding: 'var(--spacing-md)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: 'var(--spacing-sm)',
-                    background: 'var(--bg-card)',
-                    transition: 'all 0.3s ease'
-                  }}
-                >
-                  <span style={{ fontSize: '2rem' }}>📘</span>
-                  <span style={{ fontSize: '0.8rem', fontWeight: '500' }}>Facebook</span>
-                </button>
-
-                <button
-                  onClick={copyToClipboard}
-                  className="card"
-                  style={{
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: 'var(--spacing-md)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: 'var(--spacing-sm)',
-                    background: 'var(--bg-card)',
-                    transition: 'all 0.3s ease'
-                  }}
-                >
-                  <span style={{ fontSize: '2rem' }}>🔗</span>
-                  <span style={{ fontSize: '0.8rem', fontWeight: '500' }}>Copier</span>
-                </button>
-              </div>
-
-              <div style={{
-                background: 'var(--bg-gradient)',
-                borderRadius: 'var(--radius-lg)',
-                padding: 'var(--spacing-md)',
-                textAlign: 'center'
-              }}>
-                <p style={{
-                  margin: 0,
-                  fontSize: '0.9rem',
-                  color: 'var(--text-secondary)'
-                }}>
-                  🍴 Partagez COCO avec vos amis et découvrez ensemble de délicieuses recettes !
-                </p>
-              </div>
+                    textAlign: 'center'
+                  }}>
+                    <p style={{
+                      margin: 0,
+                      fontSize: '0.9rem',
+                      color: 'var(--text-secondary)'
+                    }}>
+                      🍴 Partagez COCO avec vos amis et découvrez ensemble de délicieuses recettes !
+                    </p>
+                  </div>
+                </div>
+              </AnimatedEntry>
             </div>
-          </div>
+          </AnimatedEntry>
         )}
       </div>
 
@@ -622,6 +635,9 @@ function AppContent({ Component, pageProps }) {
         .nav-item {
           transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
           position: relative;
+          will-change: transform, box-shadow;
+          backface-visibility: hidden;
+          transform: translateZ(0);
         }
         
         .nav-item:hover {
@@ -658,6 +674,7 @@ function AppContent({ Component, pageProps }) {
           box-shadow: 0 8px 25px rgba(255, 107, 53, 0.4) !important;
           position: relative;
           overflow: hidden;
+          animation: pulseGlow 3s ease-in-out infinite;
         }
         
         .add-button::before {
@@ -683,6 +700,24 @@ function AppContent({ Component, pageProps }) {
         .add-button .nav-icon {
           font-size: 1.8rem !important;
           color: white !important;
+        }
+        
+        /* Améliorations pour les animations de navigation */
+        .nav-item.active::after {
+          animation: activeSlideIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+        
+        @keyframes activeSlideIn {
+          0% { 
+            width: 0; 
+            opacity: 0; 
+            transform: translateX(-50%) scale(0.5);
+          }
+          100% { 
+            width: 20px; 
+            opacity: 1; 
+            transform: translateX(-50%) scale(1);
+          }
         }
       `}</style>
     </>

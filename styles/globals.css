@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+@import './animations.css';
 
 * {
   margin: 0;
@@ -91,13 +92,18 @@ html {
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   line-height: 1.6;
   color: var(--text-primary);
   background-color: var(--bg-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
+  
+  /* Optimisations pour les animations */
+  will-change: auto;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 /* Typography moderne */
@@ -125,8 +131,48 @@ a {
   transition: var(--transition-fast);
 }
 
-a:hover {
-  color: var(--primary-hover);
+/* Amélioration des animations globales */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Animations pour les éléments interactifs */
+button, .btn {
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  will-change: transform, box-shadow, background-color;
+}
+
+button:hover, .btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+button:active, .btn:active {
+  transform: translateY(0);
+  transition-duration: 0.1s;
+}
+
+/* Animations pour les cartes */
+.card {
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  will-change: transform, box-shadow;
+}
+
+.card:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+}
+
+/* Animation des inputs */
+input, textarea, select {
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+input:focus, textarea:focus, select:focus {
+  transform: scale(1.02);
+  box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
 }
 
 /* Boutons modernes */
@@ -198,11 +244,6 @@ a:hover {
   padding: var(--space-6);
   box-shadow: var(--shadow-xs);
   transition: var(--transition-normal);
-}
-
-.card:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
 }
 
 .card-content {
@@ -540,4 +581,41 @@ button:focus,
 a:focus {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
+}
+
+/* Amélioration des animations globales */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Optimisations pour les animations fluides */
+html {
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  scroll-behavior: smooth;
+  text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text-primary);
+  line-height: 1.6;
+  font-weight: 400;
+  font-size: 16px;
+  min-height: 100vh;
+  position: relative;
+  
+  /* Optimisations pour les animations */
+  will-change: auto;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* Amélioration des animations d'entrée de page */
+.page-container {
+  animation: pageEnter 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }
