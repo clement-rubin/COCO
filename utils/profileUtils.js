@@ -988,3 +988,138 @@ export async function deleteUserComment(commentId, userId) {
     return false
   }
 }
+
+/**
+ * Vérifie si deux utilisateurs sont amis
+ * @param {string} userId1 - Premier utilisateur
+ * @param {string} userId2 - Deuxième utilisateur
+ * @returns {Promise<Object>} Statut de l'amitié
+ */
+export async function checkFriendshipStatus(userId1, userId2) {
+  if (!userId1 || !userId2 || userId1 === userId2) {
+    return { status: 'self', isFriend: false, isPending: false }
+  }
+
+  try {
+    const { data: friendship, error } = await supabase
+      .from('friendships')
+      .select('status, user_id, friend_id')
+      .or(`and(user_id.eq.${userId1},friend_id.eq.${userId2}),and(user_id.eq.${userId2},friend_id.eq.${userId1})`)
+      .single()
+
+    if (error && error.code !== 'PGRST116') {
+      logError('Error checking friendship status', error, { userId1, userId2 })
+      return { status: 'unknown', isFriend: false, isPending: false }
+    }
+
+    if (!friendship) {
+      return { status: 'none', isFriend: false, isPending: false }
+    }
+
+    const isAccepted = friendship.status === 'accepted'
+    const isPending = friendship.status === 'pending'
+    const isInitiator = friendship.user_id === userId1
+
+    return {
+      status: friendship.status,
+      isFriend: isAccepted,
+      isPending: isPending,
+      isInitiator: isInitiator,
+      canSendRequest: !friendship,
+      canAcceptRequest: isPending && !isInitiator
+    }
+
+  } catch (error) {
+    logError('Exception checking friendship status', error, { userId1, userId2 })
+    return { status: 'error', isFriend: false, isPending: false }
+  }
+}
+
+/**
+ * Récupère le profil public d'un utilisateur avec ses recettes
+ * @param {string} userId - L'ID de l'utilisateur
+ * @param {string} currentUserId - L'ID de l'utilisateur actuel (optionnel)
+ * @returns {Promise<Object>} Profil utilisateur avec recettes
+ */
+export async function getUserPublicProfile(userId, currentUserId = null) {
+  if (!userId) {
+    logWarning('getUserPublicProfile called without userId')
+    return null
+  }
+
+  try {
+    // Récupérer le profil utilisateur
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('user_id, display_name, bio, avatar_url, location, website, is_private, created_at')
+      .eq('user_id', userId)
+      .single()
+
+    if (profileError) {
+      logError('Error fetching user profile', profileError, { userId })
+      return null
+    }
+
+    if (!profile) {
+      logWarning('No profile found for user', { userId })
+      return null
+    }
+
+    // Vérifier le statut d'amitié si l'utilisateur actuel est fourni
+    let friendshipStatus = null
+    if (currentUserId && currentUserId !== userId) {
+      friendshipStatus = await checkFriendshipStatus(currentUserId, userId)
+    }
+
+    // Si le profil est privé et que l'utilisateur n'est pas ami, limiter les informations
+    if (profile.is_private && currentUserId !== userId && 
+        (!friendshipStatus || !friendshipStatus.isFriend)) {
+      return {
+        user_id: profile.user_id,
+        display_name: profile.display_name,
+        bio: 'Profil privé 🔒',
+        avatar_url: profile.avatar_url,
+        is_private: true,
+        created_at: profile.created_at,
+        friendshipStatus,
+        recipes: [],
+        stats: {
+          recipesCount: 0,
+          friendsCount: 0,
+          isPrivate: true
+        }
+      }
+    }
+
+    // Récupérer les recettes de l'utilisateur
+    const { data: recipes, error: recipesError } = await supabase
+      .from('recipes')
+      .select('id, title, description, image, category, difficulty, created_at, prepTime, cookTime')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(20)
+
+    if (recipesError) {
+      logError('Error fetching user recipes', recipesError, { userId })
+    }
+
+    // Récupérer les statistiques de l'utilisateur
+    const stats = await getUserStats(userId)
+
+    return {
+      ...profile,
+      friendshipStatus,
+      recipes: recipes || [],
+      stats: {
+        recipesCount: recipes?.length || 0,
+        friendsCount: stats.friendsCount || 0,
+        profileCompleteness: stats.profileCompleteness || 0,
+        memberSince: profile.created_at
+      }
+    }
+
+  } catch (error) {
+    logError('Exception while fetching user public profile', error, { userId })
+    return null
+  }
+}

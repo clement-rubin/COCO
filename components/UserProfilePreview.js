@@ -37,7 +37,7 @@ export default function UserProfilePreview({ user, isVisible, onClose, position 
   }
 
   const handleViewProfile = () => {
-    router.push(`/profile/${user.user_id}`)
+    router.push(`/user/${user.user_id}`)
     onClose()
   }
 
