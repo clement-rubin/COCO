@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import ShareButton from './ShareButton'
+import { showRecipeLikeInteractionNotification } from '../utils/notificationUtils'
 import styles from '../styles/SocialFeed.module.css'
 import { getRecipeImageUrl } from '../lib/supabase'
 
@@ -47,6 +48,9 @@ export default function SocialFeed() {
   }, [])
 
   const toggleLike = (postId) => {
+    const post = posts.find(p => p.id === postId)
+    const isLiking = !userLikes.has(postId)
+    
     setUserLikes(prev => {
       const newLikes = new Set(prev)
       if (newLikes.has(postId)) {
@@ -63,6 +67,21 @@ export default function SocialFeed() {
             ? { ...post, likes: post.likes + 1 }
             : post
         ))
+        
+        // Déclencher une notification pour l'auteur du post
+        if (post && post.user.name !== 'Vous') { // Supposons que "Vous" indique l'utilisateur actuel
+          showRecipeLikeInteractionNotification(
+            {
+              id: post.recipe.id,
+              title: post.recipe.title,
+              image: post.recipe.image
+            },
+            {
+              user_id: 'current_user_id', // À remplacer par l'ID de l'utilisateur actuel
+              display_name: 'Utilisateur actuel' // À remplacer par le nom de l'utilisateur actuel
+            }
+          )
+        }
         
         // Animation de like
         const heart = document.createElement('div')

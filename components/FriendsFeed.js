@@ -3,6 +3,7 @@ import { useRouter } from 'next/router'
 import Image from 'next/image'
 import { useAuth } from './AuthContext'
 import { logUserInteraction, logError } from '../utils/logger'
+import { showRecipeLikeInteractionNotification } from '../utils/notificationUtils'
 import styles from '../styles/FriendsFeed.module.css'
 
 export default function FriendsFeed({ feedType = 'featured' }) {
@@ -187,12 +188,30 @@ export default function FriendsFeed({ feedType = 'featured' }) {
       return
     }
     
+    const recipe = recipes.find(r => r.id === recipeId)
+    const isLiking = !likedRecipes.has(recipeId)
+    
     setLikedRecipes(prev => {
       const newSet = new Set(prev)
       if (newSet.has(recipeId)) {
         newSet.delete(recipeId)
       } else {
         newSet.add(recipeId)
+        
+        // Déclencher une notification pour le chef de la recette
+        if (recipe && recipe.chef !== user.user_metadata?.display_name) {
+          showRecipeLikeInteractionNotification(
+            {
+              id: recipe.id,
+              title: recipe.name,
+              image: recipe.image
+            },
+            {
+              user_id: user.id,
+              display_name: user.user_metadata?.display_name || user.email?.split('@')[0] || 'Utilisateur'
+            }
+          )
+        }
       }
       
       // Save to localStorage safely

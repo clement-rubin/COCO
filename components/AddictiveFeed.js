@@ -3,6 +3,7 @@ import { useRouter } from 'next/router'
 import Image from 'next/image'
 import { useAuth } from './AuthContext'
 import { logUserInteraction, logError, logInfo, logDebug } from '../utils/logger'
+import { showRecipeLikeInteractionNotification } from '../utils/notificationUtils'
 import styles from '../styles/AddictiveFeed.module.css'
 
 export default function AddictiveFeed() {
@@ -252,12 +253,29 @@ export default function AddictiveFeed() {
       return
     }
     
+    const recipe = recipes.find(r => r.id === recipeId)
+    const isLiking = !userActions.likes.has(recipeId)
+    
     setUserActions(prev => {
       const newLikes = new Set(prev.likes)
-      const isLiking = !newLikes.has(recipeId)
       
       if (isLiking) {
         newLikes.add(recipeId)
+        
+        // Déclencher une notification pour le propriétaire de la recette
+        if (recipe && recipe.user && recipe.user.id !== user.id) {
+          showRecipeLikeInteractionNotification(
+            {
+              id: recipe.recipe.id,
+              title: recipe.recipe.title,
+              image: recipe.recipe.image
+            },
+            {
+              user_id: user.id,
+              display_name: user.user_metadata?.display_name || user.email?.split('@')[0] || 'Utilisateur'
+            }
+          )
+        }
         
         // Animation de like simple
         const heart = document.createElement('div')
@@ -293,12 +311,11 @@ export default function AddictiveFeed() {
     
     setRecipes(prev => prev.map(recipe => {
       if (recipe.id === recipeId) {
-        const isLiked = !userActions.likes.has(recipeId)
         return {
           ...recipe,
           recipe: {
             ...recipe.recipe,
-            likes: recipe.recipe.likes + (isLiked ? 1 : -1)
+            likes: recipe.recipe.likes + (isLiking ? 1 : -1)
           }
         }
       }
@@ -307,10 +324,10 @@ export default function AddictiveFeed() {
     
     logUserInteraction('TOGGLE_LIKE', 'addictive-feed', {
       recipeId,
-      action: userActions.likes.has(recipeId) ? 'unlike' : 'like',
+      action: isLiking ? 'like' : 'unlike',
       userId: user?.id
     })
-  }, [user, router, userActions.likes])
+  }, [user, router, userActions.likes, recipes])
 
   const openRecipe = useCallback((recipeId) => {
     router.push(`/recipe/${recipeId}`)

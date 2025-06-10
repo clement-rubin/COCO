@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from './AuthContext'
 import { supabase } from '../lib/supabase'
 import { logUserInteraction, logError } from '../utils/logger'
+import { showRecipeCommentNotification } from '../utils/notificationUtils'
 import styles from '../styles/Comments.module.css'
 
 export default function Comments({ 
@@ -143,6 +144,27 @@ export default function Comments({
       
       setComments(prev => [comment, ...prev])
       setNewComment('')
+      
+      // Déclencher une notification pour le propriétaire de la recette
+      // Note: Dans une vraie app, vous récupéreriez les infos de la recette depuis l'API
+      const mockRecipe = {
+        id: targetId,
+        title: 'Recette délicieuse', // À remplacer par la vraie recette
+        image: '/placeholder-recipe.jpg'
+      }
+      
+      const mockRecipeOwner = {
+        user_id: 'recipe_owner_id', // À remplacer par le vrai propriétaire
+        display_name: 'Propriétaire de la recette'
+      }
+      
+      // Envoyer la notification seulement si ce n'est pas l'auteur qui commente sa propre recette
+      if (user.id !== mockRecipeOwner.user_id) {
+        showRecipeCommentNotification(mockRecipe, {
+          user_id: user.id,
+          display_name: user.user_metadata?.display_name || 'Utilisateur'
+        }, comment)
+      }
       
       // Animation de succès
       const successMessage = document.createElement('div')

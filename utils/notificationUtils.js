@@ -567,6 +567,55 @@ export const showCookingReminderNotification = (recipe, step) => {
   )
 }
 
+// Nouvelles fonctions pour les interactions utilisateur
+export const showRecipeCommentNotification = (recipe, fromUser, comment) => {
+  return notificationManager.show(
+    NOTIFICATION_TYPES.SYSTEM,
+    'Nouveau commentaire sur votre recette',
+    {
+      body: `${fromUser.display_name} a commenté "${recipe.title}": ${comment.text.substring(0, 50)}${comment.text.length > 50 ? '...' : ''}`,
+      image: recipe.image,
+      data: { 
+        recipeId: recipe.id, 
+        userId: fromUser.user_id,
+        commentId: comment.id,
+        type: 'comment'
+      }
+    }
+  )
+}
+
+export const showRecipeLikeInteractionNotification = (recipe, fromUser) => {
+  return notificationManager.show(
+    NOTIFICATION_TYPES.RECIPE_LIKED,
+    '❤️ Votre recette a été aimée !',
+    {
+      body: `${fromUser.display_name || fromUser.name || 'Un utilisateur'} aime votre recette "${recipe.title}"`,
+      icon: '/icons/heart.png',
+      data: { 
+        recipeId: recipe.id, 
+        userId: fromUser.user_id || fromUser.id,
+        type: 'like'
+      },
+      forceFallback: true // Forcer l'affichage fallback pour être sûr que ça arrive dans la cloche
+    }
+  )
+}
+
+export const showNewFollowerNotification = (follower) => {
+  return notificationManager.show(
+    NOTIFICATION_TYPES.FRIEND_ACCEPTED,
+    'Nouveau follower !',
+    {
+      body: `${follower.display_name || follower.name} vous suit maintenant`,
+      data: { 
+        userId: follower.user_id || follower.id,
+        type: 'follow'
+      }
+    }
+  )
+}
+
 // Ajouter les styles CSS dynamiquement
 if (typeof document !== 'undefined') {
   const style = document.createElement('style')

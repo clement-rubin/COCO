@@ -7,6 +7,7 @@ import ShareButton from './ShareButton'
 import { processImageData } from '../utils/imageUtils'
 import { logDebug, logInfo, logError } from '../utils/logger'
 import { canUserEditRecipe, deleteUserRecipe } from '../utils/profileUtils'
+import { showRecipeLikeInteractionNotification } from '../utils/notificationUtils'
 import styles from '../styles/RecipeCard.module.css'
 
 export default function RecipeCard({ recipe, isUserRecipe = true, isPhotoOnly = false, onRecipeDeleted, onEdit, onDelete }) {
@@ -69,7 +70,24 @@ export default function RecipeCard({ recipe, isUserRecipe = true, isPhotoOnly = 
   const toggleFavorite = (e) => {
     e.preventDefault()
     e.stopPropagation()
+    
+    const isLiking = !isFavorite
     setIsFavorite(!isFavorite)
+    
+    // Déclencher une notification pour l'auteur de la recette si ce n'est pas soi-même
+    if (isLiking && user && recipe.user_id && recipe.user_id !== user.id) {
+      showRecipeLikeInteractionNotification(
+        {
+          id: safeRecipe.id,
+          title: safeRecipe.title,
+          image: safeRecipe.image
+        },
+        {
+          user_id: user.id,
+          display_name: user.user_metadata?.display_name || user.email?.split('@')[0] || 'Utilisateur'
+        }
+      )
+    }
   }
 
   const handleImageLoad = () => {
