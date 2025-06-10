@@ -806,8 +806,24 @@ async function checkWelcomeTrophies(userId) {
  */
 async function notifyTrophyUnlocked(userId, newTrophies) {
   try {
+    // Utiliser le nouveau système de notifications
+    const { notificationManager, NOTIFICATION_TYPES } = await import('./notificationUtils')
+    
+    for (const trophy of newTrophies) {
+      await notificationManager.show(
+        NOTIFICATION_TYPES.TROPHY,
+        `🏆 Nouveau trophée débloqué !`,
+        {
+          body: `${trophy.name}: ${trophy.description}`,
+          icon: '/icons/trophy.png',
+          duration: 8000,
+          data: { trophyId: trophy.id, userId }
+        }
+      )
+    }
+
+    // Ancien système pour compatibilité
     if (typeof window !== 'undefined' && window.dispatchEvent) {
-      // Déclencher un événement personnalisé pour la notification
       const event = new CustomEvent('trophyUnlocked', {
         detail: { userId, trophies: newTrophies }
       })

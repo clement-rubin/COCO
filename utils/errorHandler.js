@@ -187,6 +187,12 @@ const USER_FRIENDLY_MESSAGES = {
   'Notification format invalid': 'Format de notification invalide.',
   'Notification permission required': 'Permission de notification requise.',
   'Browser notification blocked': 'Notifications bloquées par le navigateur.',
+  'Notification center unavailable': 'Centre de notifications temporairement indisponible.',
+  'Notification storage full': 'Stockage des notifications plein.',
+  'Notification center error': 'Erreur du centre de notifications.',
+  'Failed to load notifications': 'Impossible de charger les notifications.',
+  'Notification sync failed': 'Échec de la synchronisation des notifications.',
+  'Notification display timeout': 'Délai d\'affichage des notifications dépassé.'
 }
 
 /**
