@@ -12,7 +12,8 @@ export const TROPHY_DEFINITIONS = {
     category: 'creation',
     rarity: 'common',
     condition: { type: 'recipes_count', value: 1 },
-    points: 50
+    points: 50,
+    immersiveMessage: '🎉 Félicitations Chef ! Votre aventure culinaire commence maintenant !'
   },
   recipe_collector: {
     id: 'recipe_collector',
@@ -22,7 +23,8 @@ export const TROPHY_DEFINITIONS = {
     category: 'creation',
     rarity: 'uncommon',
     condition: { type: 'recipes_count', value: 10 },
-    points: 200
+    points: 200,
+    immersiveMessage: '📚 Votre livre de recettes se remplit ! Continuez cette belle collection !'
   },
   master_chef: {
     id: 'master_chef',
@@ -32,7 +34,115 @@ export const TROPHY_DEFINITIONS = {
     category: 'creation',
     rarity: 'legendary',
     condition: { type: 'recipes_count', value: 50 },
-    points: 1000
+    points: 1000,
+    immersiveMessage: '⭐ Incroyable ! Vous êtes maintenant un véritable Chef Étoilé !'
+  },
+
+  // Nouveaux trophées de streaks
+  streak_7_days: {
+    id: 'streak_7_days',
+    name: 'Cuisinier Régulier',
+    description: 'Se connecter 7 jours consécutifs',
+    icon: '🔥',
+    category: 'engagement',
+    rarity: 'uncommon',
+    condition: { type: 'daily_streak', value: 7 },
+    points: 150,
+    immersiveMessage: '🔥 Vous êtes en feu ! 7 jours de passion culinaire !'
+  },
+  streak_30_days: {
+    id: 'streak_30_days',
+    name: 'Passionné Dévoué',
+    description: 'Se connecter 30 jours consécutifs',
+    icon: '🌟',
+    category: 'engagement',
+    rarity: 'rare',
+    condition: { type: 'daily_streak', value: 30 },
+    points: 500,
+    immersiveMessage: '🌟 Un mois entier de dévotion ! Votre passion inspire la communauté !'
+  },
+  streak_100_days: {
+    id: 'streak_100_days',
+    name: 'Légende Culinaire',
+    description: 'Se connecter 100 jours consécutifs',
+    icon: '👑',
+    category: 'engagement',
+    rarity: 'legendary',
+    condition: { type: 'daily_streak', value: 100 },
+    points: 2000,
+    immersiveMessage: '👑 LÉGENDAIRE ! 100 jours de pure excellence culinaire !'
+  },
+
+  // Trophées d'interaction
+  social_butterfly: {
+    id: 'social_butterfly',
+    name: 'Papillon Social',
+    description: 'Avoir 25 amis',
+    icon: '🦋',
+    category: 'social',
+    rarity: 'rare',
+    condition: { type: 'friends_count', value: 25 },
+    points: 500,
+    immersiveMessage: '🦋 Votre charisme attire les chefs du monde entier !'
+  },
+  interaction_master: {
+    id: 'interaction_master',
+    name: 'Maître des Interactions',
+    description: 'Liker 100 recettes',
+    icon: '❤️',
+    category: 'social',
+    rarity: 'rare',
+    condition: { type: 'likes_given', value: 100 },
+    points: 400,
+    immersiveMessage: '❤️ Votre générosité illumine la communauté COCO !'
+  },
+  comment_enthusiast: {
+    id: 'comment_enthusiast',
+    name: 'Commentateur Passionné',
+    description: 'Commenter 50 recettes',
+    icon: '💬',
+    category: 'social',
+    rarity: 'uncommon',
+    condition: { type: 'comments_given', value: 50 },
+    points: 300,
+    immersiveMessage: '💬 Vos conseils enrichissent l\'expérience de tous !'
+  },
+
+  // Trophées de perfectionnisme
+  perfectionist: {
+    id: 'perfectionist',
+    name: 'Perfectionniste',
+    description: 'Avoir 5 recettes avec une note parfaite',
+    icon: '⭐',
+    category: 'quality',
+    rarity: 'epic',
+    condition: { type: 'perfect_recipes', value: 5 },
+    points: 800,
+    immersiveMessage: '⭐ La perfection n\'est plus un rêve, c\'est votre réalité !'
+  },
+  speed_chef: {
+    id: 'speed_chef',
+    name: 'Chef Éclair',
+    description: 'Créer 5 recettes en moins de 15 minutes',
+    icon: '⚡',
+    category: 'speed',
+    rarity: 'rare',
+    condition: { type: 'quick_recipes', value: 5 },
+    points: 400,
+    immersiveMessage: '⚡ Vitesse et qualité : vous maîtrisez l\'art de l\'efficacité !'
+  },
+
+  // Trophées saisonniers
+  seasonal_spring: {
+    id: 'seasonal_spring',
+    name: 'Chef du Printemps',
+    description: 'Partager une recette au printemps',
+    icon: '🌸',
+    category: 'seasonal',
+    rarity: 'uncommon',
+    condition: { type: 'seasonal_recipe', value: 'spring' },
+    points: 200,
+    immersiveMessage: '🌸 Le renouveau culinaire commence avec vous !'
   },
 
   // Trophées sociaux
@@ -44,51 +154,228 @@ export const TROPHY_DEFINITIONS = {
     category: 'social',
     rarity: 'common',
     condition: { type: 'friends_count', value: 1 },
-    points: 25
-  },
-  social_butterfly: {
-    id: 'social_butterfly',
-    name: 'Papillon Social',
-    description: 'Avoir 25 amis',
-    icon: '🦋',
-    category: 'social',
-    rarity: 'rare',
-    condition: { type: 'friends_count', value: 25 },
-    points: 500
+    points: 25,
+    immersiveMessage: '👥 L\'aventure est toujours meilleure à plusieurs !'
   },
 
-  // Trophées d'engagement
-  profile_complete: {
-    id: 'profile_complete',
-    name: 'Profil Parfait',
-    description: 'Compléter 100% de votre profil',
-    icon: '✨',
-    category: 'engagement',
+  // NOUVEAUX TROPHÉES DE NIVEAU
+  level_5: {
+    id: 'level_5',
+    name: 'Cuisinier Confirmé',
+    description: 'Atteindre le niveau 5',
+    icon: '⭐',
+    category: 'level',
     rarity: 'uncommon',
-    condition: { type: 'profile_completeness', value: 100 },
-    points: 150
+    condition: { type: 'level', value: 5 },
+    points: 300,
+    immersiveMessage: '⭐ Niveau 5 atteint ! Votre talent culinaire se révèle !'
   },
-  early_adopter: {
-    id: 'early_adopter',
-    name: 'Pionnier',
-    description: 'Membre depuis plus de 30 jours',
+  level_10: {
+    id: 'level_10',
+    name: 'Chef Expérimenté',
+    description: 'Atteindre le niveau 10',
     icon: '🌟',
-    category: 'engagement',
+    category: 'level',
     rarity: 'rare',
-    condition: { type: 'days_since_registration', value: 30 },
-    points: 300
+    condition: { type: 'level', value: 10 },
+    points: 750,
+    immersiveMessage: '🌟 Niveau 10 ! Vous brillez dans l\'univers culinaire !'
   },
 
-  // Trophées spéciaux
-  welcome_aboard: {
-    id: 'welcome_aboard',
-    name: 'Bienvenue!',
-    description: 'Créer votre compte COCO',
-    icon: '🎉',
-    category: 'special',
-    rarity: 'common',
-    condition: { type: 'account_created', value: true },
-    points: 10
+  // TROPHÉES DE SPÉCIALISATION
+  dessert_master: {
+    id: 'dessert_master',
+    name: 'Maître Pâtissier',
+    description: 'Créer 10 desserts',
+    icon: '🍰',
+    category: 'specialization',
+    rarity: 'rare',
+    condition: { type: 'category_recipes', value: 10, category: 'Dessert' },
+    points: 400,
+    immersiveMessage: '🍰 Sucré succès ! Vos desserts sont de véritables œuvres d\'art !'
+  },
+  healthy_guru: {
+    id: 'healthy_guru',
+    name: 'Guru Healthy',
+    description: 'Créer 15 plats healthy',
+    icon: '🥗',
+    category: 'specialization',
+    rarity: 'rare',
+    condition: { type: 'category_recipes', value: 15, category: 'Healthy' },
+    points: 450,
+    immersiveMessage: '🥗 Santé et saveurs parfaitement équilibrées ! Un vrai guru !'
+  },
+  italian_expert: {
+    id: 'italian_expert',
+    name: 'Expert Italien',
+    description: 'Créer 8 plats italiens',
+    icon: '🍝',
+    category: 'specialization',
+    rarity: 'uncommon',
+    condition: { type: 'category_recipes', value: 8, category: 'Italien' },
+    points: 350,
+    immersiveMessage: '🍝 Mamma mia ! Vous maîtrisez la cuisine italienne !'
+  },
+
+  // TROPHÉES DE VITESSE
+  lightning_chef: {
+    id: 'lightning_chef',
+    name: 'Chef Éclair',
+    description: 'Publier 3 recettes en une journée',
+    icon: '⚡',
+    category: 'speed',
+    rarity: 'epic',
+    condition: { type: 'daily_recipes', value: 3 },
+    points: 600,
+    immersiveMessage: '⚡ Vitesse fulgurante ! Votre créativité ne connaît pas de limites !'
+  },
+  consistency_king: {
+    id: 'consistency_king',
+    name: 'Roi de la Régularité',
+    description: 'Publier au moins une recette pendant 7 jours consécutifs',
+    icon: '👑',
+    category: 'consistency',
+    rarity: 'legendary',
+    condition: { type: 'consecutive_days_recipes', value: 7 },
+    points: 1200,
+    immersiveMessage: '👑 Régularité royale ! Votre dévotion culinaire inspire !'
+  },
+
+  // TROPHÉES D'INNOVATION
+  creative_genius: {
+    id: 'creative_genius',
+    name: 'Génie Créatif',
+    description: 'Créer des recettes dans 5 catégories différentes',
+    icon: '🎨',
+    category: 'creativity',
+    rarity: 'epic',
+    condition: { type: 'unique_categories', value: 5 },
+    points: 800,
+    immersiveMessage: '🎨 Créativité sans limites ! Votre polyvalence est remarquable !'
+  },
+  photo_artist: {
+    id: 'photo_artist',
+    name: 'Artiste Photo',
+    description: 'Partager 20 photos de plats',
+    icon: '📸',
+    category: 'visual',
+    rarity: 'rare',
+    condition: { type: 'photo_shares', value: 20 },
+    points: 450,
+    immersiveMessage: '📸 Un œil artistique exceptionnel ! Vos photos donnent faim !'
+  },
+
+  // TROPHÉES COMMUNAUTAIRES AVANCÉS
+  community_leader: {
+    id: 'community_leader',
+    name: 'Leader Communautaire',
+    description: 'Avoir 50 amis et 100 likes reçus',
+    icon: '🌟',
+    category: 'community',
+    rarity: 'legendary',
+    condition: { type: 'combined', conditions: [
+      { type: 'friends_count', value: 50 },
+      { type: 'likes_received', value: 100 }
+    ]},
+    points: 1500,
+    immersiveMessage: '🌟 Leader naturel ! Votre influence rayonne dans toute la communauté !'
+  },
+  mentor: {
+    id: 'mentor',
+    name: 'Mentor Culinaire',
+    description: 'Commenter 100 recettes et avoir 25 amis',
+    icon: '🧑‍🏫',
+    category: 'mentorship',
+    rarity: 'epic',
+    condition: { type: 'combined', conditions: [
+      { type: 'comments_given', value: 100 },
+      { type: 'friends_count', value: 25 }
+    ]},
+    points: 900,
+    immersiveMessage: '🧑‍🏫 Mentor inspirant ! Vos conseils guident la nouvelle génération !'
+  },
+
+  // TROPHÉES SAISONNIERS COMPLETS
+  seasonal_summer: {
+    id: 'seasonal_summer',
+    name: 'Chef de l\'Été',
+    description: 'Partager une recette en été',
+    icon: '☀️',
+    category: 'seasonal',
+    rarity: 'uncommon',
+    condition: { type: 'seasonal_recipe', value: 'summer' },
+    points: 200,
+    immersiveMessage: '☀️ L\'été dans l\'assiette ! Vos saveurs réchauffent les cœurs !'
+  },
+  seasonal_autumn: {
+    id: 'seasonal_autumn',
+    name: 'Chef de l\'Automne',
+    description: 'Partager une recette en automne',
+    icon: '🍂',
+    category: 'seasonal',
+    rarity: 'uncommon',
+    condition: { type: 'seasonal_recipe', value: 'autumn' },
+    points: 200,
+    immersiveMessage: '🍂 Couleurs automnales ! Vos plats réchauffent l\'âme !'
+  },
+  seasonal_winter: {
+    id: 'seasonal_winter',
+    name: 'Chef de l\'Hiver',
+    description: 'Partager une recette en hiver',
+    icon: '❄️',
+    category: 'seasonal',
+    rarity: 'uncommon',
+    condition: { type: 'seasonal_recipe', value: 'winter' },
+    points: 200,
+    immersiveMessage: '❄️ Chaleur hivernale ! Vos recettes réchauffent les soirées froides !'
+  },
+
+  // TROPHÉES DE MAÎTRISE TECHNIQUE
+  technique_master: {
+    id: 'technique_master',
+    name: 'Maître des Techniques',
+    description: 'Utiliser 10 techniques de cuisson différentes',
+    icon: '🔥',
+    category: 'technique',
+    rarity: 'epic',
+    condition: { type: 'cooking_techniques', value: 10 },
+    points: 700,
+    immersiveMessage: '🔥 Maîtrise technique absolue ! Chaque méthode vous obéit !'
+  },
+  time_wizard: {
+    id: 'time_wizard',
+    name: 'Magicien du Temps',
+    description: 'Créer 5 recettes rapides (moins de 15 min)',
+    icon: '⏰',
+    category: 'efficiency',
+    rarity: 'rare',
+    condition: { type: 'quick_prep_recipes', value: 5 },
+    points: 400,
+    immersiveMessage: '⏰ Magie temporelle ! Rapidité et qualité parfaitement dosées !'
+  },
+
+  // TROPHÉES D'EXCEPTION
+  perfectionist_pro: {
+    id: 'perfectionist_pro',
+    name: 'Perfectionniste Pro',
+    description: 'Avoir 10 recettes avec note parfaite',
+    icon: '💎',
+    category: 'excellence',
+    rarity: 'legendary',
+    condition: { type: 'perfect_recipes', value: 10 },
+    points: 2000,
+    immersiveMessage: '💎 Excellence absolue ! Votre perfectionnisme atteint des sommets !'
+  },
+  viral_sensation: {
+    id: 'viral_sensation',
+    name: 'Sensation Virale',
+    description: 'Avoir une recette avec 200 likes',
+    icon: '🚀',
+    category: 'viral',
+    rarity: 'legendary',
+    condition: { type: 'recipe_likes', value: 200 },
+    points: 1800,
+    immersiveMessage: '🚀 Sensation virale ! Votre recette fait le tour de la planète !'
   }
 }
 
@@ -199,6 +486,30 @@ function checkTrophyCondition(condition, userStats) {
       return userStats.daysSinceRegistration >= condition.value
     case 'account_created':
       return condition.value === true
+    case 'daily_streak':
+      return userStats.dailyStreak >= condition.value
+    case 'level':
+      return userStats.level >= condition.value
+    case 'category_recipes':
+      return userStats.categoryRecipes?.[condition.category] >= condition.value
+    case 'daily_recipes':
+      return userStats.dailyRecipes >= condition.value
+    case 'consecutive_days_recipes':
+      return userStats.consecutiveDaysRecipes >= condition.value
+    case 'likes_received':
+      return userStats.likesReceived >= condition.value
+    case 'photo_shares':
+      return userStats.photoShares >= condition.value
+    case 'unique_categories':
+      return userStats.uniqueCategories >= condition.value
+    case 'cooking_techniques':
+      return userStats.cookingTechniques >= condition.value
+    case 'quick_prep_recipes':
+      return userStats.quickPrepRecipes >= condition.value
+    case 'perfect_recipes':
+      return userStats.perfectRecipes >= condition.value
+    case 'recipe_likes':
+      return userStats.recipeLikes >= condition.value
     default:
       return false
   }
@@ -262,7 +573,19 @@ async function getUserStatsForTrophies(userId) {
         recipesCount: stats.recipesCount || 0,
         friendsCount: stats.friendsCount || 0,
         profileCompleteness: stats.profileCompleteness || 0,
-        daysSinceRegistration: stats.daysSinceRegistration || 0
+        daysSinceRegistration: stats.daysSinceRegistration || 0,
+        dailyStreak: stats.dailyStreak || 0,
+        level: stats.level || 0,
+        categoryRecipes: stats.categoryRecipes || {},
+        dailyRecipes: stats.dailyRecipes || 0,
+        consecutiveDaysRecipes: stats.consecutiveDaysRecipes || 0,
+        likesReceived: stats.likesReceived || 0,
+        photoShares: stats.photoShares || 0,
+        uniqueCategories: stats.uniqueCategories || 0,
+        cookingTechniques: stats.cookingTechniques || 0,
+        quickPrepRecipes: stats.quickPrepRecipes || 0,
+        perfectRecipes: stats.perfectRecipes || 0,
+        recipeLikes: stats.recipeLikes || 0
       }
     } else {
       // Fallback vers la méthode directe
@@ -450,6 +773,50 @@ export async function getTrophyProgress(userId) {
         case 'account_created':
           progressPercent = 100 // Should be unlocked immediately
           break
+        case 'level':
+          currentValue = userStats.level
+          progressPercent = Math.min((currentValue / trophy.condition.value) * 100, 100)
+          break
+        case 'category_recipes':
+          currentValue = userStats.categoryRecipes?.[trophy.condition.category] || 0
+          progressPercent = Math.min((currentValue / trophy.condition.value) * 100, 100)
+          break
+        case 'daily_recipes':
+          currentValue = userStats.dailyRecipes
+          progressPercent = Math.min((currentValue / trophy.condition.value) * 100, 100)
+          break
+        case 'consecutive_days_recipes':
+          currentValue = userStats.consecutiveDaysRecipes
+          progressPercent = Math.min((currentValue / trophy.condition.value) * 100, 100)
+          break
+        case 'likes_received':
+          currentValue = userStats.likesReceived
+          progressPercent = Math.min((currentValue / trophy.condition.value) * 100, 100)
+          break
+        case 'photo_shares':
+          currentValue = userStats.photoShares
+          progressPercent = Math.min((currentValue / trophy.condition.value) * 100, 100)
+          break
+        case 'unique_categories':
+          currentValue = userStats.uniqueCategories
+          progressPercent = Math.min((currentValue / trophy.condition.value) * 100, 100)
+          break
+        case 'cooking_techniques':
+          currentValue = userStats.cookingTechniques
+          progressPercent = Math.min((currentValue / trophy.condition.value) * 100, 100)
+          break
+        case 'quick_prep_recipes':
+          currentValue = userStats.quickPrepRecipes
+          progressPercent = Math.min((currentValue / trophy.condition.value) * 100, 100)
+          break
+        case 'perfect_recipes':
+          currentValue = userStats.perfectRecipes
+          progressPercent = Math.min((currentValue / trophy.condition.value) * 100, 100)
+          break
+        case 'recipe_likes':
+          currentValue = userStats.recipeLikes
+          progressPercent = Math.min((currentValue / trophy.condition.value) * 100, 100)
+          break
       }
 
       if (progressPercent > 0) {
@@ -591,11 +958,24 @@ export async function syncTrophiesAfterAction(userId, actionType, actionData = {
       actionData
     })
 
+    // Mettre à jour les défis quotidiens
+    await updateDailyProgress(userId, actionType, actionData)
+
     let newTrophies = []
 
     switch (actionType) {
       case 'recipe_created':
         newTrophies = await checkRecipeTrophies(userId)
+        await updateChallengeProgress(userId, 'daily_recipe_share')
+        break
+      case 'recipe_liked':
+        await updateChallengeProgress(userId, 'daily_likes')
+        break
+      case 'recipe_commented':
+        await updateChallengeProgress(userId, 'daily_comments')
+        break
+      case 'recipe_viewed':
+        await updateChallengeProgress(userId, 'daily_views')
         break
       case 'friend_added':
         newTrophies = await checkSocialTrophies(userId)
@@ -612,17 +992,12 @@ export async function syncTrophiesAfterAction(userId, actionType, actionData = {
     }
 
     if (newTrophies.length > 0) {
-      // Déclencher une notification en temps réel (uniquement côté client)
+      // Déclencher une notification immersive
       if (typeof window !== 'undefined') {
         try {
-          const { showTrophyNotification } = await import('./notificationUtils')
-          
-          // Afficher une notification pour chaque nouveau trophée
-          for (const trophy of newTrophies) {
-            await showTrophyNotification(trophy)
-          }
+          await showImmersiveTrophyNotification(newTrophies)
         } catch (error) {
-          logError('Failed to show trophy notification', error)
+          logError('Failed to show immersive trophy notification', error)
         }
       }
       
@@ -643,425 +1018,330 @@ export async function syncTrophiesAfterAction(userId, actionType, actionData = {
 }
 
 /**
- * Vérifie spécifiquement les trophées liés aux recettes
- * @param {string} userId - ID de l'utilisateur
- * @returns {Promise<Array>} Nouveaux trophées débloqués
+ * Met à jour la progression quotidienne
  */
-async function checkRecipeTrophies(userId) {
+async function updateDailyProgress(userId, actionType, actionData) {
   try {
-    const userStats = await getUserStatsForTrophies(userId)
-    const { data: unlockedTrophies } = await supabase
-      .from('user_trophies')
-      .select('trophy_id')
-      .eq('user_id', userId)
-
-    const unlockedIds = new Set(unlockedTrophies?.map(t => t.trophy_id) || [])
-    const newlyUnlocked = []
-
-    // Vérifier les trophées de recettes
-    const recipeTrophies = ['first_recipe', 'recipe_collector', 'master_chef']
+    // Mettre à jour le streak quotidien
+    await updateDailyStreak(userId)
     
-    for (const trophyId of recipeTrophies) {
-      if (unlockedIds.has(trophyId)) continue
-      
+    // Actions spécifiques
+    switch (actionType) {
+      case 'login':
+      case 'daily_visit':
+        await updateDailyStreak(userId)
+        break
+    }
+  } catch (error) {
+    logError('Error updating daily progress', error)
+  }
+}
+
+/**
+ * Met à jour le streak quotidien de l'utilisateur
+ */
+async function updateDailyStreak(userId) {
+  try {
+    const today = new Date().toDateString()
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toDateString()
+    
+    const streakKey = `daily_streak_${userId}`
+    const lastVisitKey = `last_visit_${userId}`
+    
+    const currentStreak = parseInt(localStorage.getItem(streakKey) || '0')
+    const lastVisit = localStorage.getItem(lastVisitKey)
+    
+    if (lastVisit === today) {
+      // Déjà visité aujourd'hui
+      return currentStreak
+    }
+    
+    let newStreak = 1
+    if (lastVisit === yesterday) {
+      // Continuation du streak
+      newStreak = currentStreak + 1
+    }
+    
+    // Sauvegarder
+    localStorage.setItem(streakKey, newStreak.toString())
+    localStorage.setItem(lastVisitKey, today)
+    
+    // Vérifier les trophées de streak
+    await checkStreakTrophies(userId, newStreak)
+    
+    return newStreak
+  } catch (error) {
+    logError('Error updating daily streak', error)
+    return 0
+  }
+}
+
+/**
+ * Vérifie les trophées de streak
+ */
+async function checkStreakTrophies(userId, currentStreak) {
+  try {
+    const streakTrophies = ['streak_7_days', 'streak_30_days', 'streak_100_days']
+    
+    for (const trophyId of streakTrophies) {
       const trophy = TROPHY_DEFINITIONS[trophyId]
-      if (trophy && checkTrophyCondition(trophy.condition, userStats)) {
-        const success = await unlockTrophy(userId, trophyId)
-        if (success) {
-          newlyUnlocked.push({
-            ...trophy,
-            unlockedAt: new Date().toISOString()
-          })
+      if (trophy && currentStreak >= trophy.condition.value) {
+        // Vérifier si pas déjà débloqué
+        const { data: existing } = await supabase
+          .from('user_trophies')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('trophy_id', trophyId)
+          .maybeSingle()
+        
+        if (!existing) {
+          await unlockTrophy(userId, trophyId)
         }
       }
     }
-
-    return newlyUnlocked
   } catch (error) {
-    logError('Error checking recipe trophies', error)
-    return []
+    logError('Error checking streak trophies', error)
   }
 }
 
 /**
- * Vérifie spécifiquement les trophées sociaux
- * @param {string} userId - ID de l'utilisateur
- * @returns {Promise<Array>} Nouveaux trophées débloqués
+ * Affiche une notification de trophée immersive
  */
-async function checkSocialTrophies(userId) {
+async function showImmersiveTrophyNotification(trophies) {
   try {
-    const userStats = await getUserStatsForTrophies(userId)
-    const { data: unlockedTrophies } = await supabase
-      .from('user_trophies')
-      .select('trophy_id')
-      .eq('user_id', userId)
-
-    const unlockedIds = new Set(unlockedTrophies?.map(t => t.trophy_id) || [])
-    const newlyUnlocked = []
-
-    // Vérifier les trophées sociaux
-    const socialTrophies = ['first_friend', 'social_butterfly']
-    
-    for (const trophyId of socialTrophies) {
-      if (unlockedIds.has(trophyId)) continue
-      
-      const trophy = TROPHY_DEFINITIONS[trophyId]
-      if (trophy && checkTrophyCondition(trophy.condition, userStats)) {
-        const success = await unlockTrophy(userId, trophyId)
-        if (success) {
-          newlyUnlocked.push({
-            ...trophy,
-            unlockedAt: new Date().toISOString()
-          })
-        }
-      }
-    }
-
-    return newlyUnlocked
-  } catch (error) {
-    logError('Error checking social trophies', error)
-    return []
-  }
-}
-
-/**
- * Vérifie spécifiquement les trophées d'engagement
- * @param {string} userId - ID de l'utilisateur
- * @returns {Promise<Array>} Nouveaux trophées débloqués
- */
-async function checkEngagementTrophies(userId) {
-  try {
-    const userStats = await getUserStatsForTrophies(userId)
-    const { data: unlockedTrophies } = await supabase
-      .from('user_trophies')
-      .select('trophy_id')
-      .eq('user_id', userId)
-
-    const unlockedIds = new Set(unlockedTrophies?.map(t => t.trophy_id) || [])
-    const newlyUnlocked = []
-
-    // Vérifier les trophées d'engagement
-    const engagementTrophies = ['profile_complete', 'early_adopter']
-    
-    for (const trophyId of engagementTrophies) {
-      if (unlockedIds.has(trophyId)) continue
-      
-      const trophy = TROPHY_DEFINITIONS[trophyId]
-      if (trophy && checkTrophyCondition(trophy.condition, userStats)) {
-        const success = await unlockTrophy(userId, trophyId)
-        if (success) {
-          newlyUnlocked.push({
-            ...trophy,
-            unlockedAt: new Date().toISOString()
-          })
-        }
-      }
-    }
-
-    return newlyUnlocked
-  } catch (error) {
-    logError('Error checking engagement trophies', error)
-    return []
-  }
-}
-
-/**
- * Vérifie les trophées de bienvenue
- * @param {string} userId - ID de l'utilisateur
- * @returns {Promise<Array>} Nouveaux trophées débloqués
- */
-async function checkWelcomeTrophies(userId) {
-  try {
-    const { data: unlockedTrophies } = await supabase
-      .from('user_trophies')
-      .select('trophy_id')
-      .eq('user_id', userId)
-
-    const unlockedIds = new Set(unlockedTrophies?.map(t => t.trophy_id) || [])
-    const newlyUnlocked = []
-
-    // Débloquer automatiquement le trophée de bienvenue
-    if (!unlockedIds.has('welcome_aboard')) {
-      const success = await unlockTrophy(userId, 'welcome_aboard')
-      if (success) {
-        newlyUnlocked.push({
-          ...TROPHY_DEFINITIONS['welcome_aboard'],
-          unlockedAt: new Date().toISOString()
-        })
-      }
-    }
-
-    return newlyUnlocked
-  } catch (error) {
-    logError('Error checking welcome trophies', error)
-    return []
-  }
-}
-
-/**
- * Notifie l'utilisateur des nouveaux trophées débloqués
- * @param {string} userId - ID de l'utilisateur
- * @param {Array} newTrophies - Nouveaux trophées débloqués
- * @returns {Promise<void>}
- */
-async function notifyTrophyUnlocked(userId, newTrophies) {
-  try {
-    // Utiliser le nouveau système de notifications
     const { notificationManager, NOTIFICATION_TYPES } = await import('./notificationUtils')
     
-    for (const trophy of newTrophies) {
+    for (const trophy of trophies) {
       await notificationManager.show(
         NOTIFICATION_TYPES.TROPHY,
-        `🏆 Nouveau trophée débloqué !`,
+        '🏆 NOUVEAU TROPHÉE DÉBLOQUÉ !',
         {
-          body: `${trophy.name}: ${trophy.description}`,
+          body: trophy.immersiveMessage || `${trophy.name}: ${trophy.description}`,
           icon: '/icons/trophy.png',
-          duration: 8000,
-          data: { trophyId: trophy.id, userId }
+          duration: 10000,
+          forceFallback: true,
+          data: { 
+            trophyId: trophy.id, 
+            points: trophy.points,
+            rarity: trophy.rarity 
+          }
+        }
+      )
+      
+      // Ajouter un délai entre les notifications multiples
+      if (trophies.length > 1) {
+        await new Promise(resolve => setTimeout(resolve, 1000))
+      }
+    }
+
+  } catch (error) {
+    logError('Error showing immersive trophy notification', error)
+  }
+}
+
+/**
+ * Système de niveaux basé sur les points
+ */
+export const LEVEL_SYSTEM = {
+  levels: [
+    { level: 1, minPoints: 0, maxPoints: 99, title: 'Apprenti Cuisinier', icon: '👶', color: '#6b7280' },
+    { level: 2, minPoints: 100, maxPoints: 299, title: 'Cuisinier Amateur', icon: '🍳', color: '#10b981' },
+    { level: 3, minPoints: 300, maxPoints: 599, title: 'Cuisinier Confirmé', icon: '👨‍🍳', color: '#3b82f6' },
+    { level: 4, minPoints: 600, maxPoints: 999, title: 'Chef Talentueux', icon: '🎯', color: '#8b5cf6' },
+    { level: 5, minPoints: 1000, maxPoints: 1999, title: 'Chef Étoilé', icon: '⭐', color: '#f59e0b' },
+    { level: 6, minPoints: 2000, maxPoints: 3999, title: 'Maître Chef', icon: '👑', color: '#ef4444' },
+    { level: 7, minPoints: 4000, maxPoints: 7999, title: 'Chef Légendaire', icon: '🏆', color: '#ec4899' },
+    { level: 8, minPoints: 8000, maxPoints: 15999, title: 'Grand Maître', icon: '💎', color: '#14b8a6' },
+    { level: 9, minPoints: 16000, maxPoints: 31999, title: 'Chef Divin', icon: '🌟', color: '#f97316' },
+    { level: 10, minPoints: 32000, maxPoints: Infinity, title: 'Légende Immortelle', icon: '🔮', color: '#a855f7' }
+  ]
+}
+
+/**
+ * Calcule le niveau d'un utilisateur basé sur ses points
+ */
+export function calculateUserLevel(totalPoints) {
+  for (let i = LEVEL_SYSTEM.levels.length - 1; i >= 0; i--) {
+    const level = LEVEL_SYSTEM.levels[i]
+    if (totalPoints >= level.minPoints) {
+      const nextLevel = LEVEL_SYSTEM.levels[i + 1]
+      return {
+        ...level,
+        currentPoints: totalPoints,
+        pointsToNext: nextLevel ? nextLevel.minPoints - totalPoints : 0,
+        progressPercent: nextLevel ? 
+          Math.round(((totalPoints - level.minPoints) / (nextLevel.minPoints - level.minPoints)) * 100) : 100
+      }
+    }
+  }
+  return LEVEL_SYSTEM.levels[0]
+}
+
+/**
+ * Système de défis quotidiens
+ */
+export const DAILY_CHALLENGES = {
+  challenges: [
+    {
+      id: 'daily_share',
+      name: 'Partage Quotidien',
+      description: 'Partager une recette aujourd\'hui',
+      icon: '📤',
+      points: 50,
+      type: 'daily_recipe_share'
+    },
+    {
+      id: 'daily_like',
+      name: 'Cœur Généreux',
+      description: 'Liker 5 recettes aujourd\'hui',
+      icon: '❤️',
+      points: 30,
+      type: 'daily_likes',
+      target: 5
+    },
+    {
+      id: 'daily_comment',
+      name: 'Conseil du Jour',
+      description: 'Commenter 3 recettes aujourd\'hui',
+      icon: '💬',
+      points: 40,
+      type: 'daily_comments',
+      target: 3
+    },
+    {
+      id: 'daily_explore',
+      name: 'Explorateur',
+      description: 'Consulter 10 recettes aujourd\'hui',
+      icon: '🔍',
+      points: 25,
+      type: 'daily_views',
+      target: 10
+    }
+  ]
+}
+
+/**
+ * Génère les défis quotidiens pour un utilisateur
+ */
+export function generateDailyChallenges() {
+  const today = new Date().toDateString()
+  const selectedChallenges = DAILY_CHALLENGES.challenges
+    .sort(() => Math.random() - 0.5)
+    .slice(0, 3)
+  
+  return selectedChallenges.map(challenge => ({
+    ...challenge,
+    id: `${challenge.id}_${today}`,
+    date: today,
+    completed: false,
+    progress: 0
+  }))
+}
+
+/**
+ * Mise à jour de la progression d'un défi
+ */
+export async function updateChallengeProgress(userId, challengeType, increment = 1) {
+  try {
+    // Récupérer les défis actuels de l'utilisateur
+    const today = new Date().toDateString()
+    const storageKey = `daily_challenges_${userId}_${today}`
+    
+    let challenges = []
+    try {
+      const stored = localStorage.getItem(storageKey)
+      challenges = stored ? JSON.parse(stored) : generateDailyChallenges()
+    } catch {
+      challenges = generateDailyChallenges()
+    }
+
+    // Mettre à jour la progression
+    const challenge = challenges.find(c => c.type === challengeType)
+    if (challenge && !challenge.completed) {
+      challenge.progress = Math.min((challenge.progress || 0) + increment, challenge.target || 1)
+      
+      if (challenge.progress >= (challenge.target || 1)) {
+        challenge.completed = true
+        
+        // Récompenser l'utilisateur
+        await rewardChallengeCompletion(userId, challenge)
+      }
+      
+      // Sauvegarder
+      localStorage.setItem(storageKey, JSON.stringify(challenges))
+      
+      // Notifier l'interface
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('challengeUpdated', {
+          detail: { userId, challenge, allChallenges: challenges }
+        }))
+      }
+    }
+
+    return challenges
+  } catch (error) {
+    logError('Error updating challenge progress', error)
+    return []
+  }
+}
+
+/**
+ * Récompense la completion d'un défi
+ */
+async function rewardChallengeCompletion(userId, challenge) {
+  try {
+    // Ajouter les points (simulation - en production, cela irait en base)
+    const pointsKey = `user_points_${userId}`
+    const currentPoints = parseInt(localStorage.getItem(pointsKey) || '0')
+    localStorage.setItem(pointsKey, (currentPoints + challenge.points).toString())
+
+    // Afficher une notification immersive
+    if (typeof window !== 'undefined') {
+      const { notificationManager, NOTIFICATION_TYPES } = await import('./notificationUtils')
+      
+      await notificationManager.show(
+        NOTIFICATION_TYPES.SUCCESS,
+        '🎯 Défi complété !',
+        {
+          body: `${challenge.name} - +${challenge.points} points !`,
+          icon: '/icons/challenge-complete.png',
+          duration: 6000,
+          forceFallback: true,
+          data: { challengeId: challenge.id, points: challenge.points }
         }
       )
     }
 
-    // Ancien système pour compatibilité
-    if (typeof window !== 'undefined' && window.dispatchEvent) {
-      const event = new CustomEvent('trophyUnlocked', {
-        detail: { userId, trophies: newTrophies }
-      })
-      window.dispatchEvent(event)
-    }
-
-    logInfo('Trophy notification sent', {
+    logInfo('Daily challenge completed', {
       userId: userId?.substring(0, 8) + '...',
-      trophiesCount: newTrophies.length
+      challengeId: challenge.id,
+      points: challenge.points
     })
 
   } catch (error) {
-    logError('Error sending trophy notification', error)
+    logError('Error rewarding challenge completion', error)
   }
 }
 
 /**
- * Obtient la progression en temps réel d'un trophée spécifique
- * @param {string} userId - ID de l'utilisateur
- * @param {string} trophyId - ID du trophée
- * @returns {Promise<Object>} Progression du trophée
+ * Récupère les défis quotidiens d'un utilisateur
  */
-export async function getTrophyProgressRealtime(userId, trophyId) {
+export function getUserDailyChallenges(userId) {
   try {
-    const trophy = TROPHY_DEFINITIONS[trophyId]
-    if (!trophy) return null
-
-    const userStats = await getUserStatsForTrophies(userId)
+    const today = new Date().toDateString()
+    const storageKey = `daily_challenges_${userId}_${today}`
     
-    let currentValue = 0
-    let progressPercent = 0
-
-    switch (trophy.condition.type) {
-      case 'recipes_count':
-        currentValue = userStats.recipesCount
-        progressPercent = Math.min((currentValue / trophy.condition.value) * 100, 100)
-        break
-      case 'friends_count':
-        currentValue = userStats.friendsCount
-        progressPercent = Math.min((currentValue / trophy.condition.value) * 100, 100)
-        break
-      case 'profile_completeness':
-        currentValue = userStats.profileCompleteness
-        progressPercent = Math.min((currentValue / trophy.condition.value) * 100, 100)
-        break
-      case 'days_since_registration':
-        currentValue = userStats.daysSinceRegistration
-        progressPercent = Math.min((currentValue / trophy.condition.value) * 100, 100)
-        break
-      case 'account_created':
-        progressPercent = 100
-        break
-    }
-
-    return {
-      ...trophy,
-      currentValue,
-      targetValue: trophy.condition.value,
-      progressPercent: Math.round(progressPercent),
-      isCompleted: progressPercent >= 100
-    }
-
-  } catch (error) {
-    logError('Error getting realtime trophy progress', error)
-    return null
-  }
-}
-
-/**
- * Synchronise tous les trophées d'un utilisateur
- * @param {string} userId - ID de l'utilisateur
- * @returns {Promise<{newTrophies: Array, updatedProgress: Array}>}
- */
-export async function syncAllTrophies(userId) {
-  try {
-    logInfo('Starting full trophy sync', { 
-      userId: userId?.substring(0, 8) + '...' 
-    })
-
-    // Vérifier tous les nouveaux trophées
-    const newTrophies = await checkAndUnlockTrophies(userId)
+    const stored = localStorage.getItem(storageKey)
+    const challenges = stored ? JSON.parse(stored) : generateDailyChallenges()
     
-    // Obtenir la progression mise à jour
-    const updatedProgress = await getTrophyProgress(userId)
-
-    logInfo('Full trophy sync completed', {
-      userId: userId?.substring(0, 8) + '...',
-      newTrophiesCount: newTrophies.length,
-      progressItemsCount: updatedProgress.length
-    })
-
-    return {
-      newTrophies,
-      updatedProgress
+    // Sauvegarder si pas encore fait
+    if (!stored) {
+      localStorage.setItem(storageKey, JSON.stringify(challenges))
     }
-
-  } catch (error) {
-    logError('Error in full trophy sync', error)
-    return {
-      newTrophies: [],
-      updatedProgress: []
-    }
-  }
-}
-
-/**
- * Débloque manuellement un trophée pour un utilisateur si les conditions sont remplies
- * @param {string} userId - ID de l'utilisateur
- * @param {string} trophyId - ID du trophée à débloquer
- * @returns {Promise<{success: boolean, trophy?: Object, error?: string}>}
- */
-export async function manuallyUnlockTrophy(userId, trophyId) {
-  try {
-    logInfo('Manual trophy unlock requested', { 
-      userId: userId?.substring(0, 8) + '...',
-      trophyId
-    })
-
-    // Vérifier que le trophée existe
-    const trophy = TROPHY_DEFINITIONS[trophyId]
-    if (!trophy) {
-      return { success: false, error: 'Trophée non trouvé' }
-    }
-
-    // Vérifier que le trophée n'est pas déjà débloqué
-    const { data: existingTrophy, error: checkError } = await supabase
-      .from('user_trophies')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('trophy_id', trophyId)
-      .maybeSingle() // Use maybeSingle() instead of single() to handle no results gracefully
-
-    if (checkError) {
-      logError('Error checking existing trophy', checkError)
-      return { success: false, error: 'Erreur lors de la vérification du trophée' }
-    }
-
-    if (existingTrophy) {
-      return { success: false, error: 'Trophée déjà débloqué' }
-    }
-
-    // Vérifier que les conditions sont remplies
-    const userStats = await getUserStatsForTrophies(userId)
-    const isConditionMet = checkTrophyCondition(trophy.condition, userStats)
-
-    if (!isConditionMet) {
-      return { success: false, error: 'Conditions non remplies pour ce trophée' }
-    }
-
-    // Débloquer le trophée
-    const unlockSuccess = await unlockTrophy(userId, trophyId)
-    if (!unlockSuccess) {
-      return { success: false, error: 'Erreur lors du déblocage du trophée' }
-    }
-
-    logInfo('Trophy manually unlocked successfully', {
-      userId: userId?.substring(0, 8) + '...',
-      trophyId,
-      points: trophy.points
-    })
-
-    return {
-      success: true,
-      trophy: {
-        ...trophy,
-        unlockedAt: new Date().toISOString(),
-        pointsEarned: trophy.points
-      }
-    }
-
-  } catch (error) {
-    logError('Error in manuallyUnlockTrophy', error)
-    return { success: false, error: 'Erreur serveur lors du déblocage' }
-  }
-}
-
-/**
- * Vérifie si un trophée peut être débloqué manuellement
- * @param {string} userId - ID de l'utilisateur
- * @param {string} trophyId - ID du trophée
- * @returns {Promise<{canUnlock: boolean, progress: number, reason?: string}>}
- */
-export async function canManuallyUnlockTrophy(userId, trophyId) {
-  try {
-    const trophy = TROPHY_DEFINITIONS[trophyId]
-    if (!trophy) {
-      return { canUnlock: false, progress: 0, reason: 'Trophée introuvable' }
-    }
-
-    // Vérifier si déjà débloqué
-    const { data: existingTrophy } = await supabase
-      .from('user_trophies')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('trophy_id', trophyId)
-      .maybeSingle() // Use maybeSingle() instead of single()
-
-    if (existingTrophy) {
-      return { canUnlock: false, progress: 100, reason: 'Déjà débloqué' }
-    }
-
-    // Calculer la progression
-    const userStats = await getUserStatsForTrophies(userId)
-    let currentValue = 0
-    let progressPercent = 0
-
-    switch (trophy.condition.type) {
-      case 'recipes_count':
-        currentValue = userStats.recipesCount
-        progressPercent = Math.min((currentValue / trophy.condition.value) * 100, 100)
-        break
-      case 'friends_count':
-        currentValue = userStats.friendsCount
-        progressPercent = Math.min((currentValue / trophy.condition.value) * 100, 100)
-        break
-      case 'profile_completeness':
-        currentValue = userStats.profileCompleteness
-        progressPercent = Math.min((currentValue / trophy.condition.value) * 100, 100)
-        break
-      case 'days_since_registration':
-        currentValue = userStats.daysSinceRegistration
-        progressPercent = Math.min((currentValue / trophy.condition.value) * 100, 100)
-        break
-      case 'account_created':
-        progressPercent = 100
-        break
-    }
-
-    const canUnlock = progressPercent >= 100
     
-    return {
-      canUnlock,
-      progress: Math.round(progressPercent),
-      reason: canUnlock ? 'Prêt à débloquer' : 'Progression incomplète'
-    }
-
+    return challenges
   } catch (error) {
-    logError('Error checking if trophy can be unlocked', error)
-    return { canUnlock: false, progress: 0, reason: 'Erreur lors de la vérification' }
+    logError('Error getting user daily challenges', error)
+    return generateDailyChallenges()
   }
 }

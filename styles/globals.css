@@ -304,26 +304,111 @@ a:hover {
 }
 
 @keyframes slideUp {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
+  from { 
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to { 
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
-@keyframes gentleFloat {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
+/* Animation pulsation pour les éléments interactifs */
+@keyframes pulse-subtle {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
 }
 
-@keyframes pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.8; transform: scale(1.05); }
+/* Animation de rebond pour les éléments importants */
+@keyframes bounce-subtle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
 }
 
-.fade-in {
-  animation: fadeIn 0.6s ease-out;
+/* Spin animations améliorées */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
-.slide-up {
-  animation: slideUp 0.4s ease-out;
+@keyframes spin-smooth {
+  0% { 
+    transform: rotate(0deg);
+    filter: brightness(1);
+  }
+  25% {
+    filter: brightness(1.1);
+  }
+  50% {
+    transform: rotate(180deg);
+    filter: brightness(1.2);
+  }
+  75% {
+    filter: brightness(1.1);
+  }
+  100% { 
+    transform: rotate(360deg);
+    filter: brightness(1);
+  }
+}
+
+@keyframes spin-elastic {
+  0% { 
+    transform: rotate(0deg) scale(1);
+  }
+  25% {
+    transform: rotate(90deg) scale(1.05);
+  }
+  50% {
+    transform: rotate(180deg) scale(1.1);
+  }
+  75% {
+    transform: rotate(270deg) scale(1.05);
+  }
+  100% { 
+    transform: rotate(360deg) scale(1);
+  }
+}
+
+@keyframes spin-glow {
+  0% { 
+    transform: rotate(0deg);
+    box-shadow: 0 0 5px rgba(255, 107, 53, 0.3);
+  }
+  50% {
+    transform: rotate(180deg);
+    box-shadow: 0 0 20px rgba(255, 107, 53, 0.6);
+  }
+  100% { 
+    transform: rotate(360deg);
+    box-shadow: 0 0 5px rgba(255, 107, 53, 0.3);
+  }
+}
+
+/* Classes utilitaires pour les spins */
+.spin-default {
+  animation: spin 1s linear infinite;
+}
+
+.spin-smooth {
+  animation: spin-smooth 1.5s ease-in-out infinite;
+}
+
+.spin-elastic {
+  animation: spin-elastic 2s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+}
+
+.spin-glow {
+  animation: spin-glow 2s ease-in-out infinite;
+}
+
+.spin-slow {
+  animation: spin 3s linear infinite;
+}
+
+.spin-fast {
+  animation: spin 0.5s linear infinite;
 }
 
 /* Utilities */
