@@ -1123,3 +1123,179 @@ export async function getUserPublicProfile(userId, currentUserId = null) {
     return null
   }
 }
+
+/**
+ * Gestionnaire de profils utilisateur
+ */
+export class ProfileManager {
+  constructor() {
+    this.profileCache = new Map()
+    this.cacheExpiry = 5 * 60 * 1000 // 5 minutes
+  }
+
+  /**
+   * Récupère les données d'un profil utilisateur
+   */
+  async getUserProfile(userId) {
+    try {
+      // Vérifier le cache
+      const cached = this.profileCache.get(userId)
+      if (cached && Date.now() - cached.timestamp < this.cacheExpiry) {
+        return cached.data
+      }
+
+      // Récupérer les données fraîches
+      const [userResponse, statsResponse, recipesResponse] = await Promise.all([
+        fetch(`/api/users/${userId}`),
+        fetch(`/api/users/${userId}/stats`),
+        fetch(`/api/users/${userId}/recipes?limit=6`)
+      ])
+
+      const userData = await userResponse.json()
+      const statsData = await statsResponse.json()
+      const recipesData = await recipesResponse.json()
+
+      const profile = {
+        ...userData,
+        stats: statsData,
+        recent_recipes: recipesData.recipes || []
+      }
+
+      // Mettre en cache
+      this.profileCache.set(userId, {
+        data: profile,
+        timestamp: Date.now()
+      })
+
+      logInfo('Profil utilisateur récupéré', { userId })
+      return profile
+
+    } catch (error) {
+      logError('Erreur lors de la récupération du profil', error)
+      throw error
+    }
+  }
+
+  /**
+   * Met à jour les statistiques d'un profil
+   */
+  updateProfileStats(userId, newStats) {
+    const cached = this.profileCache.get(userId)
+    if (cached) {
+      cached.data.stats = { ...cached.data.stats, ...newStats }
+      cached.timestamp = Date.now()
+    }
+  }
+
+  /**
+   * Invalide le cache d'un profil
+   */
+  invalidateProfile(userId) {
+    this.profileCache.delete(userId)
+  }
+
+  /**
+   * Vide tout le cache
+   */
+  clearCache() {
+    this.profileCache.clear()
+  }
+}
+
+// Instance globale
+export const profileManager = new ProfileManager()
+
+/**
+ * Ouvre le modal de profil pour un utilisateur
+ */
+export const openUserProfile = (userId, currentUser) => {
+  // Dispatch d'un événement personnalisé pour ouvrir le modal
+  const event = new CustomEvent('openProfile', {
+    detail: { userId, currentUser }
+  })
+  window.dispatchEvent(event)
+}
+
+/**
+ * Gère les clics sur les avatars/noms d'utilisateur
+ */
+export const handleUserClick = (user, currentUser, event) => {
+  event?.preventDefault()
+  event?.stopPropagation()
+  
+  const userId = user.user_id || user.id
+  if (userId) {
+    openUserProfile(userId, currentUser)
+    logInfo('Ouverture du profil utilisateur', { userId })
+  }
+}
+
+/**
+ * Crée un élément cliquable pour un utilisateur
+ */
+export const createUserClickableElement = (user, currentUser, options = {}) => {
+  const {
+    showAvatar = true,
+    showName = true,
+    className = '',
+    size = 'md'
+  } = options
+
+  const element = document.createElement('div')
+  element.className = `user-clickable ${className} ${size}`
+  element.style.cssText = `
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+  `
+
+  if (showAvatar) {
+    const avatar = document.createElement('img')
+    avatar.src = user.profile_picture || '/icons/default-avatar.png'
+    avatar.alt = user.display_name || user.name
+    avatar.style.cssText = `
+      width: ${size === 'sm' ? '24px' : size === 'lg' ? '48px' : '32px'};
+      height: ${size === 'sm' ? '24px' : size === 'lg' ? '48px' : '32px'};
+      border-radius: 50%;
+      object-fit: cover;
+    `
+    element.appendChild(avatar)
+  }
+
+  if (showName) {
+    const name = document.createElement('span')
+    name.textContent = user.display_name || user.name
+    name.style.cssText = `
+      color: #374151;
+      font-weight: 500;
+      font-size: ${size === 'sm' ? '14px' : '16px'};
+    `
+    element.appendChild(name)
+  }
+
+  element.addEventListener('click', (e) => {
+    handleUserClick(user, currentUser, e)
+  })
+
+  element.addEventListener('mouseenter', () => {
+    element.style.opacity = '0.8'
+  })
+
+  element.addEventListener('mouseleave', () => {
+    element.style.opacity = '1'
+  })
+
+  return element
+}
+
+/**
+ * Ajoute la fonctionnalité de clic sur profil à un élément existant
+ */
+export const makeElementUserClickable = (element, user, currentUser) => {
+  element.style.cursor = 'pointer'
+  element.addEventListener('click', (e) => {
+    handleUserClick(user, currentUser, e)
+  })
+}

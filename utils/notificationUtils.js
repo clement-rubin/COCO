@@ -597,7 +597,7 @@ export const showRecipeLikeInteractionNotification = (recipe, fromUser) => {
         userId: fromUser.user_id || fromUser.id,
         type: 'like'
       },
-      forceFallback: true // Forcer l'affichage fallback pour être sûr que ça arrive dans la cloche
+      forceFallback: true
     }
   )
 }
@@ -611,6 +611,20 @@ export const showNewFollowerNotification = (follower) => {
       data: { 
         userId: follower.user_id || follower.id,
         type: 'follow'
+      }
+    }
+  )
+}
+
+export const showProfileViewNotification = (viewer) => {
+  return notificationManager.show(
+    NOTIFICATION_TYPES.SYSTEM,
+    'Votre profil a été consulté',
+    {
+      body: `${viewer.display_name || viewer.name} a visité votre profil`,
+      data: { 
+        userId: viewer.user_id || viewer.id,
+        type: 'profile_view'
       }
     }
   )
