@@ -238,64 +238,164 @@
 }
 
 .commentsSection {
-  border-top: 1px solid rgba(255, 107, 53, 0.1);
-  background: var(--warm-cream);
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-top: 3px solid rgba(255, 107, 53, 0.2);
+  border-radius: 0 0 20px 20px;
+  overflow: hidden;
+  position: relative;
+}
+
+.commentsSection::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #ff6b35, #f97316);
 }
 
 .comments {
-  max-height: 200px;
+  max-height: 280px;
   overflow-y: auto;
-  padding: var(--spacing-md) var(--spacing-lg);
+  padding: 20px 24px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 107, 53, 0.3) transparent;
+}
+
+.comments::-webkit-scrollbar {
+  width: 6px;
+}
+
+.comments::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 3px;
+}
+
+.comments::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #ff6b35, #f97316);
+  border-radius: 3px;
 }
 
 .comment {
-  margin-bottom: var(--spacing-md);
-  padding: var(--spacing-sm);
-  background: white;
-  border-radius: var(--border-radius-small);
-  font-size: 0.9rem;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 12px;
+  border: 1px solid rgba(226, 232, 240, 0.6);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: #374151;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.comment:hover {
+  background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
+  border-color: rgba(59, 130, 246, 0.3);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.08);
+}
+
+.comment::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: linear-gradient(180deg, #ff6b35, #f97316);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.comment:hover::before {
+  opacity: 1;
 }
 
 .commentTime {
-  font-size: 0.7rem;
-  color: var(--text-light);
-  margin-left: var(--spacing-sm);
+  font-size: 0.8rem;
+  color: #64748b;
+  font-weight: 600;
+  margin-left: 12px;
+  opacity: 0.8;
 }
 
 .addComment {
   display: flex;
-  padding: var(--spacing-md) var(--spacing-lg);
-  gap: var(--spacing-sm);
+  padding: 20px 24px;
+  gap: 12px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-top: 1px solid rgba(226, 232, 240, 0.4);
 }
 
 .commentInput {
   flex: 1;
-  border: 1px solid rgba(255, 107, 53, 0.2);
-  border-radius: var(--border-radius-medium);
-  padding: var(--spacing-md);
-  font-size: 0.9rem;
+  border: 2px solid rgba(226, 232, 240, 0.6);
+  border-radius: 16px;
+  padding: 14px 18px;
+  font-size: 0.95rem;
+  font-weight: 500;
   outline: none;
-  transition: border-color 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
 }
 
 .commentInput:focus {
-  border-color: var(--primary-orange);
+  border-color: #ff6b35;
+  box-shadow: 
+    0 0 0 3px rgba(255, 107, 53, 0.08),
+    0 4px 16px rgba(255, 107, 53, 0.12);
+  background: rgba(255, 255, 255, 1);
+  transform: translateY(-1px);
+}
+
+.commentInput::placeholder {
+  color: #94a3b8;
+  font-weight: 500;
 }
 
 .sendComment {
-  background: var(--primary-orange);
+  background: linear-gradient(135deg, #ff6b35 0%, #f97316 100%);
   color: white;
   border: none;
-  padding: var(--spacing-md) var(--spacing-lg);
-  border-radius: var(--border-radius-medium);
+  padding: 14px 20px;
+  border-radius: 16px;
   cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 1rem;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  font-size: 1.1rem;
+  font-weight: 700;
+  box-shadow: 
+    0 4px 16px rgba(255, 107, 53, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  position: relative;
+  overflow: hidden;
+  min-width: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .sendComment:hover {
-  background: var(--primary-orange-dark);
-  transform: translateX(2px);
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 
+    0 8px 25px rgba(255, 107, 53, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.sendComment:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.sendComment::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.6s ease;
+}
+
+.sendComment:hover::before {
+  left: 100%;
 }
 
 @media (max-width: 768px) {
