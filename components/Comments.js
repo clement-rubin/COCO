@@ -96,13 +96,41 @@ export default function Comments({
         text: newComment.trim(),
         created_at: new Date().toISOString(),
         likes: 0,
-        replies: []
+        replies: [],
+        isNew: true // Marquer comme nouveau commentaire
       }
       
       await new Promise(resolve => setTimeout(resolve, 500))
       
       setComments(prev => [comment, ...prev])
       setNewComment('')
+      
+      // Animation de succès
+      const successMessage = document.createElement('div')
+      successMessage.innerHTML = '🎉 Commentaire publié avec succès!'
+      successMessage.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+        padding: 16px 24px;
+        border-radius: 16px;
+        font-weight: 600;
+        z-index: 10000;
+        box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+        animation: slideInRight 0.5s ease-out;
+      `
+      document.body.appendChild(successMessage)
+      
+      // Retirer l'indicateur "nouveau" après 5 secondes
+      setTimeout(() => {
+        setComments(prev => prev.map(c => 
+          c.id === comment.id ? { ...c, isNew: false } : c
+        ))
+      }, 5000)
+      
+      setTimeout(() => successMessage.remove(), 3000)
       
       logUserInteraction('SUBMIT_COMMENT', 'comment-form', {
         targetId,
@@ -265,7 +293,16 @@ export default function Comments({
       {comments.length > 0 ? (
         <div className={styles.commentsList}>
           {comments.map((comment) => (
-            <div key={comment.id} className={styles.comment}>
+            <div 
+              key={comment.id} 
+              className={`${styles.comment} ${comment.isNew ? styles.new : ''}`}
+            >
+              {comment.isNew && (
+                <div className={styles.newCommentBadge}>
+                  ✨ Nouveau
+                </div>
+              )}
+              
               <div className={styles.commentHeader}>
                 <div className={styles.commentUser}>
                   <div className={styles.userAvatar}>
@@ -378,6 +415,19 @@ export default function Comments({
           )}
         </div>
       )}
+
+      <style jsx>{`
+        @keyframes slideInRight {
+          from {
+            opacity: 0;
+            transform: translateX(100px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+      `}</style>
     </div>
   )
 }
