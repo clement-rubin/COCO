@@ -72,7 +72,17 @@
   display: flex;
   align-items: center;
   gap: var(--spacing-xs);
-  font-size: 1rem;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  width: fit-content;
+}
+
+.userName:hover {
+  background: rgba(255, 107, 53, 0.1);
+  color: var(--primary-orange);
+  transform: scale(1.02);
 }
 
 .verified {

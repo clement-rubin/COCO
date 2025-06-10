@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import ShareButton from './ShareButton'
+import UserProfilePreview from './UserProfilePreview'
 import { showRecipeLikeInteractionNotification } from '../utils/notificationUtils'
 import styles from '../styles/SocialFeed.module.css'
 import { getRecipeImageUrl } from '../lib/supabase'
@@ -11,6 +12,11 @@ export default function SocialFeed() {
   const [comments, setComments] = useState({})
   const [newComment, setNewComment] = useState('')
   const [activePost, setActivePost] = useState(null)
+  const [profilePreview, setProfilePreview] = useState({
+    isVisible: false,
+    user: null,
+    position: null
+  })
 
   // Données simulées pour le feed social
   useEffect(() => {
@@ -126,116 +132,155 @@ export default function SocialFeed() {
     ))
   }
 
+  const handleUserNameClick = (user, event) => {
+    event.stopPropagation()
+    const rect = event.target.getBoundingClientRect()
+    setProfilePreview({
+      isVisible: true,
+      user: {
+        user_id: user.id || user.user_id,
+        display_name: user.name,
+        bio: 'Chef passionné de la communauté COCO',
+        avatar_url: null
+      },
+      position: {
+        x: rect.left + rect.width / 2,
+        y: rect.top
+      }
+    })
+  }
+
+  const closeProfilePreview = () => {
+    setProfilePreview({
+      isVisible: false,
+      user: null,
+      position: null
+    })
+  }
+
   return (
-    <div className={styles.feed}>
-      <div className={styles.feedHeader}>
-        <h2>🔥 Tendances du moment</h2>
-        <p>Découvrez les créations les plus populaires de la communauté</p>
-      </div>
+    <>
+      <div className={styles.feed}>
+        <div className={styles.feedHeader}>
+          <h2>🔥 Tendances du moment</h2>
+          <p>Découvrez les créations les plus populaires de la communauté</p>
+        </div>
 
-      {posts.map(post => (
-        <article key={post.id} className={styles.post}>
-          <div className={styles.postHeader}>
-            <div className={styles.userInfo}>
-              <span className={styles.avatar}>{post.user.avatar}</span>
-              <div>
-                <div className={styles.userName}>
-                  {post.user.name}
-                  {post.user.verified && <span className={styles.verified}>✅</span>}
-                </div>
-                <div className={styles.timeAgo}>{post.timeAgo}</div>
-              </div>
-            </div>
-            <button className={styles.followBtn}>+ Suivre</button>
-          </div>
-
-          <div className={styles.recipeContent}>
-            <div className={styles.imageContainer}>
-              <Image
-                src={post.recipe.image}
-                alt={post.recipe.title}
-                fill
-                className={styles.recipeImage}
-                onDoubleClick={() => toggleLike(post.id)}
-              />
-              <div className={styles.imageOverlay}>
-                <button 
-                  className={`${styles.likeBtn} ${userLikes.has(post.id) ? styles.liked : ''}`}
-                  onClick={() => toggleLike(post.id)}
-                >
-                  {userLikes.has(post.id) ? '❤️' : '🤍'}
-                </button>
-              </div>
-            </div>
-            
-            <div className={styles.recipeInfo}>
-              <h3>{post.recipe.title}</h3>
-              <p>{post.recipe.description}</p>
-              <div className={styles.tags}>
-                {post.tags.map(tag => (
-                  <span key={tag} className={styles.tag}>{tag}</span>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className={styles.postStats}>
-            <span>❤️ {post.likes} likes</span>
-            <span>💬 {(comments[post.id] || []).length} commentaires</span>
-            <span>📤 {post.shares} partages</span>
-          </div>
-
-          <div className={styles.postActions}>
-            <button 
-              className={`${styles.actionBtn} ${userLikes.has(post.id) ? styles.active : ''}`}
-              onClick={() => toggleLike(post.id)}
-            >
-              {userLikes.has(post.id) ? '❤️' : '🤍'} J'aime
-            </button>
-            
-            <button 
-              className={styles.actionBtn}
-              onClick={() => setActivePost(activePost === post.id ? null : post.id)}
-            >
-              💬 Commenter
-            </button>
-            
-            <ShareButton 
-              recipe={post.recipe}
-              onShare={(platform) => handleShare(platform, post)}
-            />
-          </div>
-
-          {activePost === post.id && (
-            <div className={styles.commentsSection}>
-              <div className={styles.comments}>
-                {(comments[post.id] || []).map(comment => (
-                  <div key={comment.id} className={styles.comment}>
-                    <strong>{comment.user}:</strong> {comment.text}
-                    <span className={styles.commentTime}>{comment.timeAgo}</span>
+        {posts.map(post => (
+          <article key={post.id} className={styles.post}>
+            <div className={styles.postHeader}>
+              <div className={styles.userInfo}>
+                <span className={styles.avatar}>{post.user.avatar}</span>
+                <div>
+                  <div 
+                    className={styles.userName}
+                    onClick={(e) => handleUserNameClick(post.user, e)}
+                  >
+                    {post.user.name}
+                    {post.user.verified && <span className={styles.verified}>✅</span>}
                   </div>
-                ))}
+                  <div className={styles.timeAgo}>{post.timeAgo}</div>
+                </div>
               </div>
-              <div className={styles.addComment}>
-                <input
-                  type="text"
-                  placeholder="Ajouter un commentaire..."
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && addComment(post.id)}
-                  className={styles.commentInput}
+              <button className={styles.followBtn}>+ Suivre</button>
+            </div>
+
+            <div className={styles.recipeContent}>
+              <div className={styles.imageContainer}>
+                <Image
+                  src={post.recipe.image}
+                  alt={post.recipe.title}
+                  fill
+                  className={styles.recipeImage}
+                  onDoubleClick={() => toggleLike(post.id)}
                 />
-                <button 
-                  onClick={() => addComment(post.id)}
-                  className={styles.sendComment}
-                >
-                  ➤
-                </button>
+                <div className={styles.imageOverlay}>
+                  <button 
+                    className={`${styles.likeBtn} ${userLikes.has(post.id) ? styles.liked : ''}`}
+                    onClick={() => toggleLike(post.id)}
+                  >
+                    {userLikes.has(post.id) ? '❤️' : '🤍'}
+                  </button>
+                </div>
+              </div>
+              
+              <div className={styles.recipeInfo}>
+                <h3>{post.recipe.title}</h3>
+                <p>{post.recipe.description}</p>
+                <div className={styles.tags}>
+                  {post.tags.map(tag => (
+                    <span key={tag} className={styles.tag}>{tag}</span>
+                  ))}
+                </div>
               </div>
             </div>
-          )}
-        </article>
-      ))}
+
+            <div className={styles.postStats}>
+              <span>❤️ {post.likes} likes</span>
+              <span>💬 {(comments[post.id] || []).length} commentaires</span>
+              <span>📤 {post.shares} partages</span>
+            </div>
+
+            <div className={styles.postActions}>
+              <button 
+                className={`${styles.actionBtn} ${userLikes.has(post.id) ? styles.active : ''}`}
+                onClick={() => toggleLike(post.id)}
+              >
+                {userLikes.has(post.id) ? '❤️' : '🤍'} J'aime
+              </button>
+              
+              <button 
+                className={styles.actionBtn}
+                onClick={() => setActivePost(activePost === post.id ? null : post.id)}
+              >
+                💬 Commenter
+              </button>
+              
+              <ShareButton 
+                recipe={post.recipe}
+                onShare={(platform) => handleShare(platform, post)}
+              />
+            </div>
+
+            {activePost === post.id && (
+              <div className={styles.commentsSection}>
+                <div className={styles.comments}>
+                  {(comments[post.id] || []).map(comment => (
+                    <div key={comment.id} className={styles.comment}>
+                      <strong>{comment.user}:</strong> {comment.text}
+                      <span className={styles.commentTime}>{comment.timeAgo}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className={styles.addComment}>
+                  <input
+                    type="text"
+                    placeholder="Ajouter un commentaire..."
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && addComment(post.id)}
+                    className={styles.commentInput}
+                  />
+                  <button 
+                    onClick={() => addComment(post.id)}
+                    className={styles.sendComment}
+                  >
+                    ➤
+                  </button>
+                </div>
+              </div>
+            )}
+          </article>
+        ))}
+
+        {/* Aperçu du profil utilisateur */}
+        <UserProfilePreview
+          user={profilePreview.user}
+          isVisible={profilePreview.isVisible}
+          onClose={closeProfilePreview}
+          position={profilePreview.position}
+        />
+      </div>
 
       <style jsx>{`
         @keyframes heartFloat {
@@ -249,6 +294,6 @@ export default function SocialFeed() {
           }
         }
       `}</style>
-    </div>
+    </>
   )
 }

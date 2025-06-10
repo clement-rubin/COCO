@@ -1,23 +1,29 @@
 import { useState } from 'react'
 import styles from '../styles/UserShare.module.css'
 import { processImageData } from '../utils/imageUtils'
+import UserProfilePreview from './UserProfilePreview'
 
 export default function UserShare({ recipe, isOpen, onClose }) {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedUsers, setSelectedUsers] = useState([])
   const [message, setMessage] = useState(`Regarde cette délicieuse recette: ${recipe?.title}`)
+  const [profilePreview, setProfilePreview] = useState({
+    isVisible: false,
+    user: null,
+    position: null
+  })
 
   // Simulation d'utilisateurs - à remplacer par vraies données
   const users = [
-    { id: 1, name: 'Marie Dubois', avatar: '👩‍🍳', lastSeen: 'En ligne' },
-    { id: 2, name: 'Pierre Martin', avatar: '👨‍🍳', lastSeen: 'Il y a 2h' },
-    { id: 3, name: 'Sophie Laurent', avatar: '👩‍🦳', lastSeen: 'Hier' },
-    { id: 4, name: 'Lucas Moreau', avatar: '👨‍🦱', lastSeen: 'En ligne' },
-    { id: 5, name: 'Emma Petit', avatar: '👩‍🦰', lastSeen: 'Il y a 1h' }
+    { id: 1, user_id: 'user1', display_name: 'Marie Dubois', avatar_url: null, bio: 'Passionnée de pâtisserie française 🧁', lastSeen: 'En ligne' },
+    { id: 2, user_id: 'user2', display_name: 'Pierre Martin', avatar_url: null, bio: 'Chef cuisinier amateur, spécialisé en cuisine méditerranéenne', lastSeen: 'Il y a 2h' },
+    { id: 3, user_id: 'user3', display_name: 'Sophie Laurent', avatar_url: null, bio: 'Blogueuse culinaire et photographe food', lastSeen: 'Hier' },
+    { id: 4, user_id: 'user4', display_name: 'Lucas Moreau', avatar_url: null, bio: 'Étudiant en cuisine, toujours à la recherche de nouvelles saveurs', lastSeen: 'En ligne' },
+    { id: 5, user_id: 'user5', display_name: 'Emma Petit', avatar_url: null, bio: 'Nutritionniste et amatrice de cuisine saine', lastSeen: 'Il y a 1h' }
   ]
 
   const filteredUsers = users.filter(user =>
-    user.name.toLowerCase().includes(searchTerm.toLowerCase())
+    user.display_name.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   const toggleUserSelection = (userId) => {
@@ -26,6 +32,27 @@ export default function UserShare({ recipe, isOpen, onClose }) {
         ? prev.filter(id => id !== userId)
         : [...prev, userId]
     )
+  }
+
+  const handleUserNameClick = (user, event) => {
+    event.stopPropagation()
+    const rect = event.target.getBoundingClientRect()
+    setProfilePreview({
+      isVisible: true,
+      user,
+      position: {
+        x: rect.left + rect.width / 2,
+        y: rect.top
+      }
+    })
+  }
+
+  const closeProfilePreview = () => {
+    setProfilePreview({
+      isVisible: false,
+      user: null,
+      position: null
+    })
   }
 
   const handleSend = () => {
@@ -47,155 +74,106 @@ export default function UserShare({ recipe, isOpen, onClose }) {
   if (!isOpen) return null
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      background: 'rgba(0, 0, 0, 0.6)',
-      zIndex: 1000,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: 'var(--spacing-md)'
-    }}>
-      <div style={{
-        background: 'white',
-        borderRadius: 'var(--border-radius-large)',
-        width: '100%',
-        maxWidth: '500px',
-        maxHeight: '90vh',
-        overflow: 'hidden',
-        display: 'flex',
-        flexDirection: 'column'
-      }}>
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: 'var(--spacing-lg)',
-          borderBottom: '1px solid var(--border-light)'
-        }}>
-          <h3 style={{ margin: 0, color: 'var(--primary-orange)' }}>Partager avec des amis</h3>
-          <button 
-            onClick={onClose}
-            style={{
-              background: 'none',
-              border: 'none',
-              fontSize: '1.5rem',
-              cursor: 'pointer',
-              color: 'var(--text-medium)'
-            }}
-          >
-            ✕
-          </button>
-        </div>
-
-        {recipe && (
-          <div style={{
-            display: 'flex',
-            gap: 'var(--spacing-md)',
-            padding: 'var(--spacing-lg)',
-            borderBottom: '1px solid var(--border-light)'
-          }}>
-            {recipe.image && (
-              <img 
-                src={processImageData(recipe.image, '/placeholder-recipe.jpg')} 
-                alt={recipe.title}
-                style={{
-                  width: '60px',
-                  height: '60px',
-                  borderRadius: 'var(--border-radius-medium)',
-                  objectFit: 'cover'
-                }}
-                onError={(e) => {
-                  e.target.src = '/placeholder-recipe.jpg'
-                }}
-              />
-            )}
-            <div>
-              <h4 style={{ margin: '0 0 var(--spacing-xs) 0', color: 'var(--primary-orange)' }}>
-                {recipe.title}
-              </h4>
-              <p style={{ margin: 0, color: 'var(--text-medium)', fontSize: '0.9rem' }}>
-                {recipe.description}
-              </p>
-            </div>
+    <>
+      <div className={styles.overlay} onClick={onClose}>
+        <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+          <div className={styles.header}>
+            <h3>Partager avec des amis</h3>
+            <button onClick={onClose} className={styles.closeButton}>✕</button>
           </div>
-        )}
 
-        <div className={styles.searchContainer}>
-          <input
-            type="text"
-            placeholder="Rechercher des amis..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className={styles.searchInput}
-          />
-        </div>
-
-        <div className={styles.usersList}>
-          {filteredUsers.map(user => (
-            <div 
-              key={user.id}
-              className={`${styles.userItem} ${selectedUsers.includes(user.id) ? styles.selected : ''}`}
-              onClick={() => toggleUserSelection(user.id)}
-            >
-              <div className={styles.userAvatar}>{user.avatar}</div>
-              <div className={styles.userInfo}>
-                <span className={styles.userName}>{user.name}</span>
-                <span className={styles.userStatus}>{user.lastSeen}</span>
-              </div>
-              <div className={styles.checkbox}>
-                {selectedUsers.includes(user.id) ? '✅' : '⚪'}
+          {recipe && (
+            <div className={styles.recipePreview}>
+              {recipe.image && (
+                <img 
+                  src={processImageData(recipe.image, '/placeholder-recipe.jpg')} 
+                  alt={recipe.title}
+                  className={styles.recipeImage}
+                  onError={(e) => {
+                    e.target.src = '/placeholder-recipe.jpg'
+                  }}
+                />
+              )}
+              <div className={styles.recipeInfo}>
+                <h4>{recipe.title}</h4>
+                <p>{recipe.description}</p>
               </div>
             </div>
-          ))}
-        </div>
+          )}
 
-        <div className={styles.messageContainer}>
-          <textarea
-            placeholder="Ajouter un message..."
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            className={styles.messageInput}
-            rows={3}
-          />
-        </div>
+          <div className={styles.searchContainer}>
+            <input
+              type="text"
+              placeholder="Rechercher des amis..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className={styles.searchInput}
+            />
+          </div>
 
-        <div className={styles.actions}>
-          <button 
-            onClick={onClose}
-            style={{
-              flex: 1,
-              padding: 'var(--spacing-md)',
-              background: 'var(--text-light)',
-              color: 'white',
-              border: 'none',
-              borderRadius: 'var(--border-radius-medium)',
-              cursor: 'pointer'
-            }}
-          >
-            Annuler
-          </button>
-          <button 
-            onClick={handleSend}
-            disabled={selectedUsers.length === 0}
-            style={{
-              flex: 1,
-              padding: 'var(--spacing-md)',
-              background: selectedUsers.length === 0 ? 'var(--text-light)' : 'var(--primary-orange)',
-              color: 'white',
-              border: 'none',
-              borderRadius: 'var(--border-radius-medium)',
-              cursor: selectedUsers.length === 0 ? 'not-allowed' : 'pointer'
-            }}
-          >
-            Partager ({selectedUsers.length})
-          </button>
+          <div className={styles.usersList}>
+            {filteredUsers.map((user, index) => (
+              <div 
+                key={user.id}
+                className={`${styles.userItem} ${selectedUsers.includes(user.id) ? styles.selected : ''}`}
+                onClick={() => toggleUserSelection(user.id)}
+                style={{ '--index': index }}
+              >
+                <div className={styles.userAvatar}>
+                  {user.avatar_url ? (
+                    <img src={user.avatar_url} alt={user.display_name} />
+                  ) : (
+                    user.display_name?.charAt(0)?.toUpperCase() || '👤'
+                  )}
+                </div>
+                <div className={styles.userInfo}>
+                  <span 
+                    className={styles.userName}
+                    onClick={(e) => handleUserNameClick(user, e)}
+                  >
+                    {user.display_name}
+                  </span>
+                  <span className={styles.userStatus}>{user.lastSeen}</span>
+                </div>
+                <div className={styles.checkbox}>
+                  {selectedUsers.includes(user.id) ? '✅' : '⚪'}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className={styles.messageContainer}>
+            <textarea
+              placeholder="Ajouter un message..."
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              className={styles.messageInput}
+              rows={3}
+            />
+          </div>
+
+          <div className={styles.actions}>
+            <button onClick={onClose} className={styles.cancelButton}>
+              Annuler
+            </button>
+            <button 
+              onClick={handleSend}
+              disabled={selectedUsers.length === 0}
+              className={styles.sendButton}
+            >
+              Partager ({selectedUsers.length})
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* Aperçu du profil utilisateur */}
+      <UserProfilePreview
+        user={profilePreview.user}
+        isVisible={profilePreview.isVisible}
+        onClose={closeProfilePreview}
+        position={profilePreview.position}
+      />
+    </>
   )
 }

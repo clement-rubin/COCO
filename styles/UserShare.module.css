@@ -203,6 +203,15 @@
   position: relative;
   transition: all 0.3s ease;
   margin-bottom: 2px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+.userName:hover {
+  background: rgba(255, 107, 53, 0.1);
+  color: var(--primary-orange);
+  transform: scale(1.02);
 }
 
 .userName.verified::after {
@@ -349,4 +358,96 @@
     z-index: 2;
     box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
   }
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--text-medium);
+  padding: 0.5rem;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.closeButton:hover {
+  background: rgba(255, 107, 53, 0.1);
+  color: var(--primary-orange);
+}
+
+.recipePreview {
+  display: flex;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg);
+  border-bottom: 1px solid rgba(255, 107, 53, 0.1);
+  background: rgba(255, 107, 53, 0.02);
+}
+
+.recipeImage {
+  width: 60px;
+  height: 60px;
+  border-radius: var(--border-radius-medium);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.recipeInfo h4 {
+  margin: 0 0 var(--spacing-xs) 0;
+  color: var(--primary-orange);
+  font-size: 1rem;
+}
+
+.recipeInfo p {
+  margin: 0;
+  color: var(--text-medium);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.actions {
+  display: flex;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg);
+}
+
+.cancelButton {
+  flex: 1;
+  padding: var(--spacing-md);
+  background: var(--text-light);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius-medium);
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.cancelButton:hover {
+  background: var(--text-medium);
+  transform: translateY(-1px);
+}
+
+.sendButton {
+  flex: 1;
+  padding: var(--spacing-md);
+  background: var(--primary-orange);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius-medium);
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.sendButton:hover:not(:disabled) {
+  background: var(--primary-orange-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
+}
+
+.sendButton:disabled {
+  background: var(--text-light);
+  cursor: not-allowed;
+  transform: none;
 }
