@@ -5,16 +5,24 @@ import { useRouter } from 'next/router'
 import { useAuth } from '../components/AuthContext'
 import { handleAuthError } from '../utils/errorHandler'
 import { createOrUpdateProfile } from '../lib/supabase'
+import { supabase } from '../lib/supabaseClient'
 
 export default function Register() {
   const [displayName, setDisplayName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [bio, setBio] = useState('')
+  const [location, setLocation] = useState('')
+  const [website, setWebsite] = useState('')
+  const [dateOfBirth, setDateOfBirth] = useState('')
+  const [phone, setPhone] = useState('')
+  const [isPrivate, setIsPrivate] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(false)
   const [passwordStrength, setPasswordStrength] = useState(0)
+  const [step, setStep] = useState(1) // For multi-step registration
   
   const { signUp, user } = useAuth()
   const router = useRouter()
@@ -62,7 +70,6 @@ export default function Register() {
     if (passwordStrength <= 75) return '#10b981'
     return '#3b82f6'
   }
-
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
@@ -89,7 +96,8 @@ export default function Register() {
     }
 
     try {
-      const { data, error: signUpError } = await signUp(email, password, displayName)
+      // Create the user account
+      const { data, error: signUpError } = await signUp(email, password)
       
       if (signUpError) {
         const errorMessage = handleAuthError(signUpError).userError || 'Une erreur est survenue lors de l\'inscription'
@@ -97,13 +105,39 @@ export default function Register() {
         return
       }
 
-      // If the account was created but there was an issue with profile creation,
-      // try to create the profile manually
-      if (data?.user?.id && signUpError?.message?.includes('Database error saving')) {
-        await createOrUpdateProfile(data.user.id, {
-          email: data.user.email,
-          displayName: displayName
-        })
+      // If the user was created successfully, create a profile for them
+      if (data?.user?.id) {
+        const userId = data.user.id;
+        
+        // Format the date of birth if provided
+        let formattedDOB = null;
+        if (dateOfBirth) {
+          formattedDOB = new Date(dateOfBirth).toISOString().split('T')[0];
+        }
+        
+        // Create or update the user profile in the profiles table
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert([
+            { 
+              user_id: userId,
+              display_name: displayName,
+              bio: bio || null,
+              location: location || null,
+              website: website || null,
+              date_of_birth: formattedDOB,
+              phone: phone || null,
+              is_private: isPrivate,
+              total_friends_count: 0,
+              total_recipes_count: 0
+            }
+          ]);
+
+        if (profileError) {
+          console.error('Error creating profile:', profileError);
+          // Don't show this error to the user, just log it
+          // We'll still let them continue since the user was created
+        }
       }
 
       setSuccess(true)
@@ -187,131 +221,268 @@ export default function Register() {
                 <span className="alert-icon">✅</span>
                 <span>Compte créé avec succès! Veuillez vérifier votre email.</span>
               </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="register-form">
-              <div className="form-group">
-                <label htmlFor="displayName">Nom d'utilisateur</label>
-                <div className="input-wrapper">
-                  <span className="input-icon">👤</span>
-                  <input
-                    id="displayName"
-                    type="text"
-                    value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value)}
-                    required
-                    disabled={loading}
-                    placeholder="Votre pseudo"
-                    minLength="2"
-                    maxLength="30"
-                  />
+            )}            <form onSubmit={handleSubmit} className="register-form">
+              {/* Step indicator */}
+              <div className="step-indicator">
+                <div className={`step ${step >= 1 ? 'active' : ''}`}>
+                  <span className="step-number">1</span>
+                  <span className="step-text">Compte</span>
                 </div>
-                <div className="input-hint">
-                  Entre 2 et 30 caractères
+                <div className="step-line"></div>
+                <div className={`step ${step >= 2 ? 'active' : ''}`}>
+                  <span className="step-number">2</span>
+                  <span className="step-text">Profil</span>
                 </div>
               </div>
-
-              <div className="form-group">
-                <label htmlFor="email">Adresse email</label>
-                <div className="input-wrapper">
-                  <span className="input-icon">📧</span>
-                  <input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    disabled={loading}
-                    placeholder="votre@email.com"
-                  />
-                </div>
-                <div className="input-hint">
-                  Nous vous enverrons un email de confirmation
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="password">Mot de passe</label>
-                <div className="input-wrapper">
-                  <span className="input-icon">🔒</span>
-                  <input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    disabled={loading}
-                    placeholder="••••••••"
-                    minLength="6"
-                  />
-                </div>
-                {password && (
-                  <div className="password-strength">
-                    <div className="strength-bar">
-                      <div 
-                        className="strength-progress" 
-                        style={{ 
-                          width: `${passwordStrength}%`, 
-                          backgroundColor: getStrengthColor() 
-                        }}
-                      ></div>
+              
+              {/* Step 1: Account Information */}
+              {step === 1 && (
+                <>
+                  <div className="form-group">
+                    <label htmlFor="email">Adresse email</label>
+                    <div className="input-wrapper">
+                      <span className="input-icon">�</span>
+                      <input
+                        id="email"
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                        disabled={loading}
+                        placeholder="votre@email.com"
+                      />
                     </div>
-                    <div className="strength-label" style={{ color: getStrengthColor() }}>
-                      {getStrengthLabel()}
+                    <div className="input-hint">
+                      Nous vous enverrons un email de confirmation
                     </div>
                   </div>
-                )}
-              </div>
 
-              <div className="form-group">
-                <label htmlFor="confirmPassword">Confirmer le mot de passe</label>
-                <div className="input-wrapper">
-                  <span className="input-icon">🔒</span>
-                  <input
-                    id="confirmPassword"
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    required
-                    disabled={loading}
-                    placeholder="••••••••"
-                    minLength="6"
-                  />
-                </div>
-                {password && confirmPassword && (
-                  <div className="input-hint" style={{ color: password === confirmPassword ? '#10b981' : '#ef4444' }}>
-                    {password === confirmPassword ? '✓ Les mots de passe correspondent' : '✗ Les mots de passe ne correspondent pas'}
+                  <div className="form-group">
+                    <label htmlFor="displayName">Nom d'utilisateur</label>
+                    <div className="input-wrapper">
+                      <span className="input-icon">�</span>
+                      <input
+                        id="displayName"
+                        type="text"
+                        value={displayName}
+                        onChange={(e) => setDisplayName(e.target.value)}
+                        required
+                        disabled={loading}
+                        placeholder="Votre pseudo"
+                        minLength="2"
+                        maxLength="30"
+                      />
+                    </div>
+                    <div className="input-hint">
+                      Entre 2 et 30 caractères
+                    </div>
                   </div>
-                )}
-              </div>
 
-              <div className="terms">
-                <p>
-                  En créant un compte, vous acceptez nos{' '}
-                  <Link href="/terms" className="terms-link">
-                    Conditions d'utilisation
-                  </Link>{' '}
-                  et notre{' '}
-                  <Link href="/privacy" className="terms-link">
-                    Politique de confidentialité
-                  </Link>
-                </p>
-              </div>
+                  <div className="form-group">
+                    <label htmlFor="password">Mot de passe</label>
+                    <div className="input-wrapper">
+                      <span className="input-icon">🔒</span>
+                      <input
+                        id="password"
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        disabled={loading}
+                        placeholder="••••••••"
+                        minLength="6"
+                      />
+                    </div>
+                    {password && (
+                      <div className="password-strength">
+                        <div className="strength-bar">
+                          <div 
+                            className="strength-progress" 
+                            style={{ 
+                              width: `${passwordStrength}%`, 
+                              backgroundColor: getStrengthColor() 
+                            }}
+                          ></div>
+                        </div>
+                        <div className="strength-label" style={{ color: getStrengthColor() }}>
+                          {getStrengthLabel()}
+                        </div>
+                      </div>
+                    )}
+                  </div>
 
-              <button
-                type="submit"
-                disabled={loading || !email || !password || !confirmPassword || !displayName || password !== confirmPassword}
-                className={`submit-button ${loading || !email || !password || !confirmPassword || !displayName || password !== confirmPassword ? 'disabled' : ''}`}
-              >
-                {loading ? (
-                  <>
-                    <span className="loading-spinner"></span>
-                    Création en cours...
-                  </>
-                ) : (
-                  'Créer mon compte'
-                )}
-              </button>
+                  <div className="form-group">
+                    <label htmlFor="confirmPassword">Confirmer le mot de passe</label>
+                    <div className="input-wrapper">
+                      <span className="input-icon">🔒</span>
+                      <input
+                        id="confirmPassword"
+                        type="password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        required
+                        disabled={loading}
+                        placeholder="••••••••"
+                        minLength="6"
+                      />
+                    </div>
+                    {password && confirmPassword && (
+                      <div className="input-hint" style={{ color: password === confirmPassword ? '#10b981' : '#ef4444' }}>
+                        {password === confirmPassword ? '✓ Les mots de passe correspondent' : '✗ Les mots de passe ne correspondent pas'}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="form-actions">
+                    <button
+                      type="button"
+                      onClick={() => setStep(2)}
+                      disabled={!email || !password || !confirmPassword || !displayName || password !== confirmPassword}
+                      className={`next-button ${!email || !password || !confirmPassword || !displayName || password !== confirmPassword ? 'disabled' : ''}`}
+                    >
+                      Continuer
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {/* Step 2: Profile Information */}
+              {step === 2 && (
+                <>
+                  <div className="form-group">
+                    <label htmlFor="bio">Bio</label>
+                    <div className="input-wrapper textarea-wrapper">
+                      <textarea
+                        id="bio"
+                        value={bio}
+                        onChange={(e) => setBio(e.target.value)}
+                        disabled={loading}
+                        placeholder="Parlez-nous de vous..."
+                        maxLength="200"
+                      />
+                    </div>
+                    <div className="input-hint">
+                      Maximum 200 caractères
+                    </div>
+                  </div>
+
+                  <div className="form-row">
+                    <div className="form-group half">
+                      <label htmlFor="location">Localisation</label>
+                      <div className="input-wrapper">
+                        <span className="input-icon">📍</span>
+                        <input
+                          id="location"
+                          type="text"
+                          value={location}
+                          onChange={(e) => setLocation(e.target.value)}
+                          disabled={loading}
+                          placeholder="Ville, Pays"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="form-group half">
+                      <label htmlFor="dateOfBirth">Date de naissance</label>
+                      <div className="input-wrapper">
+                        <span className="input-icon">🎂</span>
+                        <input
+                          id="dateOfBirth"
+                          type="date"
+                          value={dateOfBirth}
+                          onChange={(e) => setDateOfBirth(e.target.value)}
+                          disabled={loading}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="form-row">
+                    <div className="form-group half">
+                      <label htmlFor="website">Site web</label>
+                      <div className="input-wrapper">
+                        <span className="input-icon">🌐</span>
+                        <input
+                          id="website"
+                          type="url"
+                          value={website}
+                          onChange={(e) => setWebsite(e.target.value)}
+                          disabled={loading}
+                          placeholder="https://monsite.com"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="form-group half">
+                      <label htmlFor="phone">Téléphone</label>
+                      <div className="input-wrapper">
+                        <span className="input-icon">📱</span>
+                        <input
+                          id="phone"
+                          type="tel"
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          disabled={loading}
+                          placeholder="+33 6 12 34 56 78"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="form-group checkbox-group">
+                    <div className="checkbox-wrapper">
+                      <input
+                        id="isPrivate"
+                        type="checkbox"
+                        checked={isPrivate}
+                        onChange={(e) => setIsPrivate(e.target.checked)}
+                        disabled={loading}
+                      />
+                      <label htmlFor="isPrivate">Profil privé</label>
+                    </div>
+                    <div className="input-hint">
+                      Un profil privé ne sera visible que par vos amis
+                    </div>
+                  </div>
+
+                  <div className="terms">
+                    <p>
+                      En créant un compte, vous acceptez nos{' '}
+                      <Link href="/terms" className="terms-link">
+                        Conditions d'utilisation
+                      </Link>{' '}
+                      et notre{' '}
+                      <Link href="/privacy" className="terms-link">
+                        Politique de confidentialité
+                      </Link>
+                    </p>
+                  </div>
+
+                  <div className="form-actions">
+                    <button
+                      type="button"
+                      onClick={() => setStep(1)}
+                      className="back-button"
+                    >
+                      Retour
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className={`submit-button ${loading ? 'disabled' : ''}`}
+                    >
+                      {loading ? (
+                        <>
+                          <span className="loading-spinner"></span>
+                          Création en cours...
+                        </>
+                      ) : (
+                        'Créer mon compte'
+                      )}
+                    </button>
+                  </div>
+                </>
+              )}
             </form>
 
             <div className="form-footer">
@@ -594,9 +765,7 @@ export default function Register() {
           align-items: center;
           justify-content: center;
           gap: 8px;
-        }
-
-        .form-footer p {
+        }        .form-footer p {
           margin: 0;
           color: #6b7280;
         }
@@ -606,6 +775,155 @@ export default function Register() {
           text-decoration: none;
           font-weight: 600;
           transition: color 0.3s;
+        }
+        
+        .textarea-wrapper {
+          display: block;
+          width: 100%;
+        }
+
+        .textarea-wrapper textarea {
+          width: 100%;
+          padding: 16px;
+          border: 1px solid #e5e7eb;
+          border-radius: 12px;
+          font-size: 1rem;
+          min-height: 100px;
+          resize: vertical;
+          font-family: inherit;
+          transition: all 0.3s;
+        }
+
+        .textarea-wrapper textarea:focus {
+          outline: none;
+          border-color: #10b981;
+          box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+        }
+
+        .form-row {
+          display: flex;
+          gap: 16px;
+          width: 100%;
+        }
+
+        .form-group.half {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .checkbox-group {
+          margin-top: 12px;
+        }
+
+        .checkbox-wrapper {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .checkbox-wrapper input[type="checkbox"] {
+          width: 20px;
+          height: 20px;
+          padding: 0;
+        }
+        
+        .step-indicator {
+          display: flex;
+          align-items: center;
+          margin-bottom: 32px;
+          width: 100%;
+        }
+        
+        .step {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          flex: 1;
+        }
+        
+        .step-number {
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          background-color: #e5e7eb;
+          color: #6b7280;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 600;
+          margin-bottom: 8px;
+          transition: all 0.3s;
+        }
+        
+        .step.active .step-number {
+          background-color: #10b981;
+          color: white;
+        }
+        
+        .step-text {
+          font-size: 0.85rem;
+          color: #6b7280;
+          font-weight: 500;
+        }
+        
+        .step.active .step-text {
+          color: #10b981;
+          font-weight: 600;
+        }
+        
+        .step-line {
+          flex: 1;
+          height: 2px;
+          background-color: #e5e7eb;
+          margin: 0 8px;
+          margin-bottom: 24px;
+        }
+        
+        .form-actions {
+          display: flex;
+          gap: 12px;
+        }
+        
+        .back-button {
+          padding: 16px;
+          background: #f9fafb;
+          color: #374151;
+          border: 1px solid #e5e7eb;
+          border-radius: 12px;
+          font-size: 1rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s;
+          flex: 1;
+        }
+        
+        .back-button:hover {
+          background: #f3f4f6;
+        }
+        
+        .next-button, .submit-button {
+          padding: 16px;
+          background: #10b981;
+          color: white;
+          border: none;
+          border-radius: 12px;
+          font-size: 1rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s;
+          flex: 2;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+        }
+        
+        .next-button:hover:not(.disabled), .submit-button:hover:not(.disabled) {
+          background: #059669;
+        }
+        
+        .next-button.disabled {
+          background: #d1d5db;
+          cursor: not-allowed;
         }
 
         .signin-link:hover {
