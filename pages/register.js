@@ -238,10 +238,9 @@ export default function Register() {
               {/* Step 1: Account Information */}
               {step === 1 && (
                 <>
-                  <div className="form-group">
-                    <label htmlFor="email">Adresse email</label>
+                  <div className="form-group">                    <label htmlFor="email">Adresse email</label>
                     <div className="input-wrapper">
-                      <span className="input-icon">�</span>
+                      <span className="input-icon">📧</span>
                       <input
                         id="email"
                         type="email"
@@ -257,10 +256,9 @@ export default function Register() {
                     </div>
                   </div>
 
-                  <div className="form-group">
-                    <label htmlFor="displayName">Nom d'utilisateur</label>
+                  <div className="form-group">                    <label htmlFor="displayName">Nom d'utilisateur</label>
                     <div className="input-wrapper">
-                      <span className="input-icon">�</span>
+                      <span className="input-icon">👤</span>
                       <input
                         id="displayName"
                         type="text"
