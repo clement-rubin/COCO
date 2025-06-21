@@ -157,6 +157,51 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
+  const checkAndCreateProfile = async (userId, userData) => {
+    try {
+      if (!userId) return false
+      
+      // Check if profile exists
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('user_id', userId)
+        .single()
+      
+      if (profileError && profileError.code !== 'PGRST116') {
+        // Log error but continue
+        logError('Erreur lors de la vérification du profil', profileError)
+      }
+      
+      // If profile doesn't exist, create one
+      if (!profile) {
+        logInfo('Création manuelle du profil utilisateur', { userId })
+        
+        const { error: insertError } = await supabase
+          .from('profiles')
+          .insert({
+            user_id: userId,
+            display_name: userData.displayName || userData.email?.split('@')[0] || 'Utilisateur',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+        
+        if (insertError) {
+          logError('Erreur lors de la création du profil utilisateur', insertError)
+          return false
+        }
+        
+        logInfo('Profil utilisateur créé avec succès', { userId })
+        return true
+      }
+      
+      return true
+    } catch (error) {
+      logError('Erreur lors de la vérification/création du profil', error)
+      return false
+    }
+  }
+
   const signUp = async (email, password, displayName) => {
     try {
       logUserInteraction('SIGN_UP_ATTEMPT', 'auth-signup', { email })
@@ -198,8 +243,13 @@ export const AuthProvider = ({ children }) => {
         email: data.user?.email 
       })
 
-      // Le profil sera créé automatiquement par le trigger Supabase
-      // Ou sera créé lors de la première connexion
+      // Vérifier/créer le profil manuellement après l'inscription
+      if (data.user?.id) {
+        await checkAndCreateProfile(data.user.id, {
+          email: data.user.email,
+          displayName: displayName
+        })
+      }
 
       return { data, error: null }
     } catch (error) {
@@ -215,7 +265,8 @@ export const AuthProvider = ({ children }) => {
     signUp,
     signOut,
     resetPassword,
-    resendConfirmation
+    resendConfirmation,
+    checkAndCreateProfile
   }
 
   return (

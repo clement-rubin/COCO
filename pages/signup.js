@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/router'
 import { useAuth } from '../components/AuthContext'
 import { handleAuthError } from '../utils/errorHandler'
+import { logError } from '../utils/logger'
 import ErrorDisplay from '../components/ErrorDisplay'
 
 export default function Signup() {
@@ -52,12 +53,32 @@ export default function Signup() {
         })
         setLoading(false)
         return
-      }
-
-      const { data, error: signUpError } = await signUp(email, password, displayName)
+      }      const { data, error: signUpError } = await signUp(email, password, displayName)
       
       if (signUpError) {
         const errorResult = handleAuthError(signUpError)
+        
+        // Special handling for database error when saving user
+        if (signUpError.message?.includes('Database error saving new user')) {
+          // Try to create the profile manually
+          if (data?.user?.id) {
+            try {
+              const { checkAndCreateProfile } = useAuth()
+              await checkAndCreateProfile(data.user.id, { 
+                email: data.user.email,
+                displayName: displayName
+              });
+              // If we got here, profile was created successfully - continue to success
+              setSuccess(true);
+              setTimeout(() => { router.push('/auth/confirm'); }, 3000);
+              return;
+            } catch (profileError) {
+              // Still failed, show the original error
+              logError('Tentative manuelle de création de profil échouée', profileError);
+            }
+          }
+        }
+        
         setError(errorResult.userError)
         return
       }

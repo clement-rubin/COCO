@@ -41,6 +41,7 @@ const USER_FRIENDLY_MESSAGES = {
   'Email not confirmed': 'Veuillez confirmer votre email avant de vous connecter.',
   'User not found': 'Aucun compte associé à cet email.',
   'Password is too weak': 'Le mot de passe doit contenir au moins 8 caractères.',
+  'Database error saving new user': 'Problème lors de la création de votre profil. Veuillez réessayer avec un nom d\'utilisateur différent.',
   
   // Erreurs de validation
   'Title is required': 'Le titre de la recette est obligatoire.',

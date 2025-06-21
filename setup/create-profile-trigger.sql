@@ -1,15 +1,48 @@
 -- Function to automatically create a user profile when a new user registers
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
+DECLARE
+  display_name_value TEXT;
+  email_username TEXT;
 BEGIN
-  INSERT INTO public.profiles (user_id, display_name)
-  VALUES (NEW.id, 
-          COALESCE(
-            NEW.raw_user_meta_data->>'display_name',  -- Use display_name from metadata if available
-            split_part(NEW.email, '@', 1)            -- Otherwise use email before @ as fallback
-          )
-        )
-  ON CONFLICT (user_id) DO NOTHING;
+  -- Extract username from email
+  email_username := split_part(NEW.email, '@', 1);
+  
+  -- Get display name from metadata, fallback to email username
+  display_name_value := COALESCE(
+    NEW.raw_user_meta_data->>'display_name',
+    email_username,
+    'Utilisateur'
+  );
+  
+  -- Make sure display_name meets size requirements (2-30 chars)
+  IF length(display_name_value) < 2 THEN
+    display_name_value := 'Utilisateur';
+  ELSIF length(display_name_value) > 30 THEN
+    display_name_value := substring(display_name_value, 1, 30);
+  END IF;
+  
+  -- Create the profile with proper error handling
+  BEGIN
+    INSERT INTO public.profiles (
+      user_id,
+      display_name,
+      created_at,
+      updated_at
+    )
+    VALUES (
+      NEW.id,
+      display_name_value,
+      NOW(),
+      NOW()
+    )
+    ON CONFLICT (user_id) DO NOTHING;
+    EXCEPTION WHEN OTHERS THEN
+      -- Log the error but don't fail the transaction
+      -- This allows user creation even if profile creation fails
+      RAISE WARNING 'Error creating profile for user %: %', NEW.id, SQLERRM;
+  END;
+  
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
