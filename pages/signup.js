@@ -5,7 +5,7 @@ import { useRouter } from 'next/router'
 import { useAuth } from '../components/AuthContext'
 import { handleAuthError } from '../utils/errorHandler'
 import { logError } from '../utils/logger'
-import { createOrUpdateProfile } from '../lib/supabase'
+import { createOrUpdateProfile, supabase } from '../lib/supabase'
 import ErrorDisplay from '../components/ErrorDisplay'
 
 export default function Signup() {
@@ -61,21 +61,40 @@ export default function Signup() {
         
         // Special handling for database error when saving user
         if (signUpError.message?.includes('Database error saving new user')) {
-          // Try to create the profile manually
-          if (data?.user?.id) {
-            try {
-              await checkAndCreateProfile(data.user.id, { 
-                email: data.user.email,
+          // For this specific error, try to continue anyway - the user might have been created
+          // but the profile creation failed
+          try {
+            // Try to get session in case user was actually created
+            const { data: sessionData } = await supabase.auth.getSession();
+            const userId = sessionData?.session?.user?.id;
+            
+            if (userId) {
+              // If we got a user ID, user was created but profile creation failed
+              // Try to create the profile manually
+              await checkAndCreateProfile(userId, { 
+                email: sessionData.session.user.email,
                 displayName: displayName
               });
               // If we got here, profile was created successfully - continue to success
               setSuccess(true);
               setTimeout(() => { router.push('/auth/confirm'); }, 3000);
               return;
-            } catch (profileError) {
-              // Still failed, show the original error
-              logError('Tentative manuelle de création de profil échouée', profileError);
+            } else {
+              // Try with the original data if available
+              if (data?.user?.id) {
+                await checkAndCreateProfile(data.user.id, { 
+                  email: data.user.email,
+                  displayName: displayName
+                });
+                // If we got here, profile was created successfully - continue to success
+                setSuccess(true);
+                setTimeout(() => { router.push('/auth/confirm'); }, 3000);
+                return;
+              }
             }
+          } catch (profileError) {
+            // Still failed, show the original error
+            logError('Tentative manuelle de création de profil échouée', profileError);
           }
         }
         

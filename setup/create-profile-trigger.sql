@@ -4,36 +4,52 @@ RETURNS trigger AS $$
 DECLARE
   display_name_value TEXT;
   email_username TEXT;
+  default_name CONSTANT TEXT := 'Utilisateur';
 BEGIN
-  -- Extract username from email
-  email_username := split_part(NEW.email, '@', 1);
+  -- Extract username from email safely
+  BEGIN
+    email_username := split_part(NEW.email, '@', 1);
+  EXCEPTION WHEN OTHERS THEN
+    email_username := default_name;
+  END;
   
-  -- Get display name from metadata, fallback to email username
-  display_name_value := COALESCE(
-    NEW.raw_user_meta_data->>'display_name',
-    email_username,
-    'Utilisateur'
-  );
+  -- Get display name from metadata with safer extraction
+  BEGIN
+    display_name_value := COALESCE(
+      NEW.raw_user_meta_data->>'display_name',
+      email_username,
+      default_name
+    );
+  EXCEPTION WHEN OTHERS THEN
+    display_name_value := COALESCE(email_username, default_name);
+  END;
   
   -- Make sure display_name meets size requirements (2-30 chars)
-  IF length(display_name_value) < 2 THEN
-    display_name_value := 'Utilisateur';
+  IF display_name_value IS NULL OR length(display_name_value) < 2 THEN
+    display_name_value := default_name;
   ELSIF length(display_name_value) > 30 THEN
     display_name_value := substring(display_name_value, 1, 30);
   END IF;
-    -- Create the profile with proper error handling
+  
+  -- Create the profile with proper error handling
   BEGIN
     INSERT INTO public.profiles (
       user_id,
       display_name,
       created_at,
-      updated_at
+      updated_at,
+      is_private,
+      total_friends_count,
+      total_recipes_count
     )
     VALUES (
       NEW.id,
       display_name_value,
       NOW(),
-      NOW()
+      NOW(),
+      FALSE,
+      0,
+      0
     )
     ON CONFLICT (user_id) DO UPDATE SET
       display_name = EXCLUDED.display_name,

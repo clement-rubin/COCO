@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react'
-import { supabase } from '../lib/supabase'
+import { supabase, createOrUpdateProfile } from '../lib/supabase'
 import { logInfo, logError, logUserInteraction } from '../utils/logger'
 
 const AuthContext = createContext({})
@@ -156,12 +156,11 @@ export const AuthProvider = ({ children }) => {
       return { error }
     }
   }
-
   const checkAndCreateProfile = async (userId, userData) => {
     try {
       if (!userId) return false
       
-      // Check if profile exists
+      // First, check if profile exists
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('id')
@@ -173,26 +172,46 @@ export const AuthProvider = ({ children }) => {
         logError('Erreur lors de la vérification du profil', profileError)
       }
       
-      // If profile doesn't exist, create one
-      if (!profile) {
-        logInfo('Création manuelle du profil utilisateur', { userId })
+      // If profile doesn't exist or we had an error checking, try to create/update it
+      if (!profile || profileError) {
+        logInfo('Création/mise à jour manuelle du profil utilisateur', { userId })
         
-        const { error: insertError } = await supabase
-          .from('profiles')
-          .insert({
-            user_id: userId,
-            display_name: userData.displayName || userData.email?.split('@')[0] || 'Utilisateur',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+        try {
+          // Use our utility function (imported from supabase.js)
+          const profileData = await createOrUpdateProfile(userId, {
+            display_name: userData.displayName,
+            email: userData.email
           })
-        
-        if (insertError) {
-          logError('Erreur lors de la création du profil utilisateur', insertError)
+          
+          if (profileData) {
+            logInfo('Profil utilisateur créé/mis à jour avec succès', { userId })
+            return true
+          }
+          
+          // Try direct insert as a fallback
+          const { error: insertError } = await supabase
+            .from('profiles')
+            .insert({
+              user_id: userId,
+              display_name: userData.displayName || userData.email?.split('@')[0] || 'Utilisateur',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+              is_private: false,
+              total_friends_count: 0,
+              total_recipes_count: 0
+            })
+          
+          if (insertError) {
+            logError('Erreur lors de la création directe du profil utilisateur', insertError)
+            return false
+          }
+          
+          logInfo('Profil utilisateur créé avec succès (méthode directe)', { userId })
+          return true
+        } catch (insertError) {
+          logError('Exception lors de la création/mise à jour du profil', insertError)
           return false
         }
-        
-        logInfo('Profil utilisateur créé avec succès', { userId })
-        return true
       }
       
       return true
@@ -201,7 +220,6 @@ export const AuthProvider = ({ children }) => {
       return false
     }
   }
-
   const signUp = async (email, password, displayName) => {
     try {
       logUserInteraction('SIGN_UP_ATTEMPT', 'auth-signup', { email })
@@ -234,6 +252,18 @@ export const AuthProvider = ({ children }) => {
       })
 
       if (error) {
+        // Special handling for database error which might be due to profile creation failing
+        // The user account may still have been created
+        if (error.message?.includes('Database error saving new user') && data?.user?.id) {
+          logInfo('Utilisateur potentiellement créé malgré l\'erreur, tentative de création de profil manuelle', {
+            userId: data.user.id,
+            error: error.message
+          });
+          
+          // Let's return the data and error but allow the caller to handle this specific case
+          return { data, error };
+        }
+        
         logError('Erreur lors de la création du compte', error)
         throw error
       }
