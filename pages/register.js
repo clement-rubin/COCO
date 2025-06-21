@@ -1,11 +1,13 @@
 import Head from 'next/head'
 import Link from 'next/link'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/router'
 import { useAuth } from '../components/AuthContext'
 import { handleAuthError } from '../utils/errorHandler'
 import { createOrUpdateProfile } from '../lib/supabase'
 import { supabase } from '../lib/supabaseClient'
+import DevLogs from '../components/DevLogs'
+import { logDebug, logInfo, logSuccess, logWarning, logError, getLogs, clearLogs } from '../utils/logger'
 
 export default function Register() {
   const [displayName, setDisplayName] = useState('')
@@ -23,6 +25,8 @@ export default function Register() {
   const [success, setSuccess] = useState(false)
   const [passwordStrength, setPasswordStrength] = useState(0)
   const [step, setStep] = useState(1) // For multi-step registration
+  const [showDevLogs, setShowDevLogs] = useState(false)
+  const [logEntries, setLogEntries] = useState([])
   
   const { signUp, user } = useAuth()
   const router = useRouter()
@@ -62,7 +66,6 @@ export default function Register() {
     if (passwordStrength <= 75) return 'Bon'
     return 'Excellent'
   }
-
   const getStrengthColor = () => {
     if (passwordStrength === 0) return '#e5e7eb'
     if (passwordStrength <= 25) return '#ef4444'
@@ -70,30 +73,53 @@ export default function Register() {
     if (passwordStrength <= 75) return '#10b981'
     return '#3b82f6'
   }
+  
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
     setSuccess(false)
+    
+    logInfo('Registration form submission started', {
+      email,
+      displayName,
+      passwordLength: password.length,
+      hasConfirmPassword: !!confirmPassword,
+      hasBio: !!bio,
+      hasLocation: !!location,
+      hasWebsite: !!website,
+      hasDateOfBirth: !!dateOfBirth,
+      hasPhone: !!phone,
+      isPrivate,
+      timestamp: new Date().toISOString()
+    })
 
     // Validation
     if (password !== confirmPassword) {
-      setError('Les mots de passe ne correspondent pas')
-      setLoading(false)
-      return
+      const errorMsg = 'Les mots de passe ne correspondent pas';
+      logWarning('Password validation failed', { error: errorMsg });
+      setError(errorMsg);
+      setLoading(false);
+      return;
     }
 
     if (password.length < 6) {
-      setError('Le mot de passe doit contenir au moins 6 caractères')
-      setLoading(false)
-      return
+      const errorMsg = 'Le mot de passe doit contenir au moins 6 caractères';
+      logWarning('Password validation failed', { error: errorMsg, passwordLength: password.length });
+      setError(errorMsg);
+      setLoading(false);
+      return;
     }
 
     if (displayName.length < 2 || displayName.length > 30) {
-      setError('Le nom d\'utilisateur doit contenir entre 2 et 30 caractères')
-      setLoading(false)
-      return
+      const errorMsg = 'Le nom d\'utilisateur doit contenir entre 2 et 30 caractères';
+      logWarning('Username validation failed', { error: errorMsg, displayNameLength: displayName.length });
+      setError(errorMsg);
+      setLoading(false);
+      return;
     }
+    
+    logInfo('Form validation passed', { displayName, email });
 
     try {
       // Create the user account
@@ -153,6 +179,62 @@ export default function Register() {
       setLoading(false)
     }
   }
+
+  // Update log entries from the logger utility
+  useEffect(() => {
+    // Function to refresh logs
+    const refreshLogs = () => {
+      setLogEntries(getLogs());
+    };
+    
+    // Initial load
+    refreshLogs();
+    
+    // Set up interval to refresh logs periodically
+    const interval = setInterval(refreshLogs, 1000);
+    
+    // Add Ctrl+Shift+D keyboard shortcut to toggle dev logs
+    const handleKeyDown = (e) => {
+      if (e.ctrlKey && e.shiftKey && e.key === 'D') {
+        e.preventDefault();
+        toggleDevLogs();
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    
+    // Log initial render
+    logInfo('Registration page initialized', { 
+      timestamp: new Date().toISOString(),
+      userAgent: navigator.userAgent,
+      windowSize: {
+        width: window.innerWidth,
+        height: window.innerHeight
+      },
+      referrer: document.referrer,
+      url: window.location.href,
+      query: router.query
+    });
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
+  // Toggle dev logs panel
+  const toggleDevLogs = () => {
+    logDebug('Developer logs toggled', { state: !showDevLogs });
+    setShowDevLogs(!showDevLogs);
+  };
+  
+  // Automatically show logs when an error occurs
+  useEffect(() => {
+    if (error) {
+      logError('Registration error occurred', { errorMessage: error });
+      setShowDevLogs(true);
+    }
+  }, [error]);
 
   return (
     <div className="register-page">
@@ -491,7 +573,14 @@ export default function Register() {
             </div>
           </div>
         </div>
-      </div>
+      </div>      
+      {/* Composant DevLogs pour afficher les logs détaillés */}
+      <DevLogs 
+        logEntries={logEntries}
+        showDevLogs={showDevLogs}
+        toggleDevLogs={toggleDevLogs}
+        clearLogs={clearLogs}
+      />
 
       <style jsx>{`
         .register-page {
