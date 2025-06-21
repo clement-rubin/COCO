@@ -645,3 +645,117 @@ export async function sendErrorReport(error, context = {}) {
     logError('Failed to send error report', e)
   }
 }
+
+/**
+ * Utility for creating detailed, formatted logs
+ * 
+ * Usage:
+ * import { logger } from '../utils/logger';
+ * 
+ * logger.info('User authenticated', { userId: 'abc123', email: 'user@example.com' });
+ * logger.error('Authentication failed', { error: err, email: 'user@example.com' });
+ */
+
+const LOG_LEVELS = {
+  DEBUG: { name: 'DEBUG', color: '#6b7280', emoji: '🔍' },
+  INFO: { name: 'INFO', color: '#3b82f6', emoji: 'ℹ️' },
+  SUCCESS: { name: 'SUCCESS', color: '#10b981', emoji: '✅' },
+  WARNING: { name: 'WARNING', color: '#f59e0b', emoji: '⚠️' },
+  ERROR: { name: 'ERROR', color: '#ef4444', emoji: '❌' }
+};
+
+/**
+ * Format logs for consistent display
+ */
+const formatLog = (level, message, data = {}) => {
+  const { name, color, emoji } = LOG_LEVELS[level];
+  
+  // Get timestamp in locale format
+  const timestamp = new Date().toLocaleTimeString();
+  
+  // Create log object
+  const logObject = {
+    level: name,
+    timestamp,
+    message,
+    ...data
+  };
+  
+  // Print styled log to console
+  console.log(
+    `%c${emoji} ${name} [${timestamp}]%c ${message}`,
+    `color: ${color}; font-weight: bold;`,
+    'color: inherit;',
+    data
+  );
+  
+  // Return structured log object for potential additional processing
+  return logObject;
+};
+
+export const logger = {
+  debug: (message, data) => {
+    if (isDev) {
+      return formatLog('DEBUG', message, data);
+    }
+  },
+  info: (message, data) => {
+    return formatLog('INFO', message, data);
+  },
+  success: (message, data) => {
+    return formatLog('SUCCESS', message, data);
+  },
+  warning: (message, data) => {
+    return formatLog('WARNING', message, data);
+  },
+  error: (message, data) => {
+    return formatLog('ERROR', message, data);
+  }
+};
+
+/**
+ * Enhanced logger with timing capabilities for measuring performance
+ */
+export const createTimedLogger = (componentName) => {
+  const timers = {};
+  
+  return {
+    ...logger,
+    startTimer: (label) => {
+      timers[label] = performance.now();
+      logger.debug(`⏱️ Started timer: ${label}`, { component: componentName });
+    },
+    endTimer: (label) => {
+      if (!timers[label]) {
+        logger.warning(`Timer "${label}" was never started`, { component: componentName });
+        return;
+      }
+      
+      const duration = performance.now() - timers[label];
+      delete timers[label];
+      
+      logger.debug(`⏱️ ${label} completed in ${duration.toFixed(2)}ms`, { 
+        component: componentName,
+        durationMs: duration 
+      });
+      
+      return duration;
+    }
+  };
+};
+
+/**
+ * Track authenticated user actions
+ */
+export const userActionLogger = {
+  logAction: (userId, action, details = {}) => {
+    logger.info(`User Action: ${action}`, {
+      userId,
+      action,
+      timestamp: new Date().toISOString(),
+      ...details
+    });
+    
+    // You could extend this to send logs to your backend/analytics service
+  }
+};
