@@ -55,41 +55,7 @@ export const AuthProvider = ({ children }) => {
 
     return () => subscription.unsubscribe()
   }, [])
-
-  const signUp = async (email, password, metadata = {}) => {
-    try {
-      logUserInteraction('SIGN_UP_ATTEMPT', 'auth-signup', { email })
-      
-      const redirectTo = typeof window !== 'undefined' 
-        ? `${window.location.origin}/auth/confirm`
-        : '/auth/confirm';
-      
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: metadata,
-          emailRedirectTo: redirectTo
-        }
-      })
-
-      if (error) {
-        logError('Erreur lors de l\'inscription', error)
-        throw error
-      }
-
-      logInfo('Inscription réussie', { 
-        userId: data.user?.id,
-        email: data.user?.email,
-        needsConfirmation: !data.session
-      })
-
-      return { data, error: null }
-    } catch (error) {
-      logError('Erreur lors de l\'inscription', error)
-      return { data: null, error }
-    }
-  }
+  // Fonction de création de compte supprimée
 
   const signIn = async (email, password) => {
     try {
@@ -191,11 +157,9 @@ export const AuthProvider = ({ children }) => {
       return { error }
     }
   }
-
   const value = {
     user,
     loading,
-    signUp,
     signIn,
     signOut,
     resetPassword,
