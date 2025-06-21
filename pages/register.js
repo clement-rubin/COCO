@@ -227,14 +227,31 @@ export default function Register() {
     logDebug('Developer logs toggled', { state: !showDevLogs });
     setShowDevLogs(!showDevLogs);
   };
-  
-  // Automatically show logs when an error occurs
+    // Automatically show logs when an error occurs
   useEffect(() => {
     if (error) {
       logError('Registration error occurred', { errorMessage: error });
+      // Always show developer logs when an error occurs
       setShowDevLogs(true);
+      
+      // Log additional system information for debugging
+      logDebug('System information', {
+        browser: navigator.userAgent,
+        screenSize: `${window.innerWidth}x${window.innerHeight}`,
+        timestamp: new Date().toISOString(),
+        referrer: document.referrer || 'direct',
+        language: navigator.language,
+        formState: {
+          displayName: displayName ? `${displayName.length} chars` : 'empty',
+          email: email ? 'provided' : 'empty',
+          passwordLength: password?.length || 0,
+          passwordStrength: passwordStrength,
+          hasConfirmPassword: !!confirmPassword,
+          step: step
+        }
+      });
     }
-  }, [error]);
+  }, [error, displayName, email, password, passwordStrength, confirmPassword, step]);
 
   return (
     <div className="register-page">

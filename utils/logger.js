@@ -8,7 +8,11 @@ const COLORS = {
   info: '#3b82f6',
   success: '#10b981',
   warning: '#f59e0b',
-  error: '#ef4444'
+  error: '#ef4444',
+  component: '#8b5cf6', // violet pour les événements de composants
+  user: '#ec4899',      // rose pour les interactions utilisateur
+  api: '#0ea5e9',       // bleu ciel pour les appels API
+  performance: '#f59e0b' // orange pour les métriques de performance
 };
 
 // Store logs in memory for the DevLogs component
@@ -85,6 +89,37 @@ export const clearLogs = () => {
 // Get all logs
 export const getLogs = () => [...logHistory];
 
+// Component event logging
+export const logComponentEvent = (componentName, eventType, data = {}) => {
+  return addLogEntry('component', `${componentName}: ${eventType}`, data);
+};
+
+// User interaction logging
+export const logUserInteraction = (action, element, data = {}) => {
+  return addLogEntry('user', `User ${action} on ${element}`, data);
+};
+
+// API call logging
+export const logApiCall = (endpoint, method, data = {}) => {
+  return addLogEntry('api', `${method} ${endpoint}`, data);
+};
+
+// Performance metrics logging
+export const logPerformance = (operation, durationMs, data = {}) => {
+  return addLogEntry('performance', `${operation} took ${durationMs}ms`, {
+    duration: durationMs,
+    ...data
+  });
+};
+
+// Frontend error logging
+export const logFrontendError = (errorType, errorDetails, data = {}) => {
+  return addLogEntry('error', `Frontend Error: ${errorType}`, {
+    details: errorDetails,
+    ...data
+  });
+};
+
 // Export functions
 export default {
   debug: logDebug,
@@ -92,6 +127,11 @@ export default {
   success: logSuccess,
   warning: logWarning,
   error: logError,
+  component: logComponentEvent,
+  user: logUserInteraction,
+  api: logApiCall,
+  performance: logPerformance,
+  frontendError: logFrontendError,
   clear: clearLogs,
   getLogs
 };
