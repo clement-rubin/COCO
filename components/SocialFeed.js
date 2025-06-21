@@ -280,13 +280,15 @@ export default function SocialFeed() {
           onClose={closeProfilePreview}
           position={profilePreview.position}
         />
-      </div>
-
-      <style jsx>{`
+      </div>      <style jsx>{`
         @keyframes heartFloat {
           0% {
             transform: translateY(0) scale(1);
             opacity: 1;
+          }
+          50% {
+            transform: translateY(-50px) scale(1.5);
+            opacity: 0.7;
           }
           100% {
             transform: translateY(-100px) scale(2);

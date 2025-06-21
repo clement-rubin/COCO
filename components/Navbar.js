@@ -3,7 +3,6 @@ import { useState } from 'react'
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-
   return (
     <nav style={{
       background: 'rgba(255,255,255,0.96)',
@@ -13,6 +12,7 @@ export default function Navbar() {
       top: 0,
       zIndex: 100,
       width: '100%',
+      backdropFilter: 'blur(18px) saturate(160%)',
       backdropFilter: 'blur(18px) saturate(160%)'
     }}>
       <div style={{

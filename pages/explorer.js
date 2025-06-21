@@ -4,6 +4,7 @@ import { useRouter } from 'next/router'
 import { useAuth } from '../components/AuthContext'
 import { logUserInteraction } from '../utils/logger'
 import { syncTrophiesAfterAction } from '../utils/trophyUtils'
+import SwipeNavigation from '../components/SwipeNavigation'
 import styles from '../styles/Explorer.module.css'
 
 export default function Explorer() {
@@ -239,6 +240,14 @@ export default function Explorer() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  // Routes principales pour la navigation par swipe
+  const mainRoutes = [
+    { path: '/', label: 'Accueil' },
+    { path: '/explorer', label: 'Explorer' },
+    { path: '/share-photo', label: 'Partager' },
+    { path: '/amis', label: 'Amis' }
+  ];
+
   if (loading) {
     return (
       <div className={styles.container}>
@@ -256,6 +265,9 @@ export default function Explorer() {
         <title>Explorer - COCO</title>
         <meta name="description" content="Explorez et découvrez les meilleures recettes de COCO" />
       </Head>
+
+      {/* Navigation par swipe pour mobile */}
+      <SwipeNavigation routes={mainRoutes} currentPath="/explorer" />
 
       {/* Header mobile moderne avec nouveau design */}
       <header className={styles.mobileHeader}>

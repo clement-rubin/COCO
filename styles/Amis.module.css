@@ -240,8 +240,12 @@
 }
 
 @keyframes shimmer {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
+  0% {
+    background-position: -100% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 .searchResults h3 {
@@ -856,9 +860,6 @@
   border-top: 2px solid white;
   border-radius: 50%;
   animation: spin 1s linear infinite;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
 }
 
 .statusButton.success {
@@ -1123,6 +1124,7 @@
   bottom: 0;
   background: linear-gradient(45deg, transparent 0%, rgba(255, 107, 53, 0.02) 50%, transparent 100%);
   pointer-events: none;
+  animation: shimmer 2s linear infinite;
 }
 
 .tabs button {
@@ -1244,7 +1246,6 @@
   font-weight: 700;
   animation: badgeBounce 1.5s ease-in-out infinite;
   box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
-  border: 2px solid white;
 }
 
 .tabBadge.urgent {
