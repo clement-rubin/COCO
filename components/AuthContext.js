@@ -244,11 +244,26 @@ export const AuthProvider = ({ children }) => {
       })
 
       // Vérifier/créer le profil manuellement après l'inscription
+      // Si l'auto-trigger PostgreSQL a échoué, essayer de créer le profil ici
       if (data.user?.id) {
-        await checkAndCreateProfile(data.user.id, {
-          email: data.user.email,
-          displayName: displayName
-        })
+        try {
+          const profileCreated = await checkAndCreateProfile(data.user.id, {
+            email: data.user.email,
+            displayName: displayName
+          })
+          
+          if (profileCreated) {
+            logInfo('Profil utilisateur créé/vérifié manuellement', { 
+              userId: data.user.id
+            })
+          }
+        } catch (profileError) {
+          logError('Erreur lors de la création manuelle du profil', profileError, {
+            userId: data.user.id
+          })
+          // Continue the flow even if profile creation fails here
+          // The user may be able to recreate their profile later
+        }
       }
 
       return { data, error: null }

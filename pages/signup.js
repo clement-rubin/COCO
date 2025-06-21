@@ -5,6 +5,7 @@ import { useRouter } from 'next/router'
 import { useAuth } from '../components/AuthContext'
 import { handleAuthError } from '../utils/errorHandler'
 import { logError } from '../utils/logger'
+import { createOrUpdateProfile } from '../lib/supabase'
 import ErrorDisplay from '../components/ErrorDisplay'
 
 export default function Signup() {
@@ -63,7 +64,6 @@ export default function Signup() {
           // Try to create the profile manually
           if (data?.user?.id) {
             try {
-              const { checkAndCreateProfile } = useAuth()
               await checkAndCreateProfile(data.user.id, { 
                 email: data.user.email,
                 displayName: displayName
@@ -99,6 +99,24 @@ export default function Signup() {
   }
 
   const resetError = () => setError(null)
+
+  // Function to check and create a profile manually if needed
+  const checkAndCreateProfile = async (userId, userData) => {
+    try {
+      if (!userId) return false;
+
+      // Try to create/update the profile through the helper function
+      const profileData = await createOrUpdateProfile(userId, {
+        display_name: userData.displayName,
+        email: userData.email
+      });
+
+      return !!profileData;
+    } catch (error) {
+      logError('Error in manual profile creation', error);
+      return false;
+    }
+  };
 
   if (success) {
     return (

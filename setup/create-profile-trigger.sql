@@ -21,8 +21,7 @@ BEGIN
   ELSIF length(display_name_value) > 30 THEN
     display_name_value := substring(display_name_value, 1, 30);
   END IF;
-  
-  -- Create the profile with proper error handling
+    -- Create the profile with proper error handling
   BEGIN
     INSERT INTO public.profiles (
       user_id,
@@ -36,7 +35,9 @@ BEGIN
       NOW(),
       NOW()
     )
-    ON CONFLICT (user_id) DO NOTHING;
+    ON CONFLICT (user_id) DO UPDATE SET
+      display_name = EXCLUDED.display_name,
+      updated_at = NOW();
     EXCEPTION WHEN OTHERS THEN
       -- Log the error but don't fail the transaction
       -- This allows user creation even if profile creation fails
