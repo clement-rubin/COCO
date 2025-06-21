@@ -55,7 +55,6 @@ export const AuthProvider = ({ children }) => {
 
     return () => subscription.unsubscribe()
   }, [])
-  // Fonction de création de compte supprimée
 
   const signIn = async (email, password) => {
     try {
@@ -157,10 +156,63 @@ export const AuthProvider = ({ children }) => {
       return { error }
     }
   }
+
+  const signUp = async (email, password, displayName) => {
+    try {
+      logUserInteraction('SIGN_UP_ATTEMPT', 'auth-signup', { email })
+      
+      // Valider les entrées 
+      if (!email || !password || !displayName) {
+        throw new Error('Tous les champs sont requis')
+      }
+      
+      if (password.length < 6) {
+        throw new Error('Le mot de passe doit contenir au moins 6 caractères')
+      }
+      
+      if (displayName.length < 2 || displayName.length > 30) {
+        throw new Error('Le nom d\'utilisateur doit contenir entre 2 et 30 caractères')
+      }
+
+      // Enregistrer l'utilisateur
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            display_name: displayName,
+          },
+          emailRedirectTo: typeof window !== 'undefined' 
+            ? `${window.location.origin}/auth/confirm`
+            : '/auth/confirm'
+        }
+      })
+
+      if (error) {
+        logError('Erreur lors de la création du compte', error)
+        throw error
+      }
+
+      logInfo('Compte créé avec succès', { 
+        userId: data.user?.id,
+        email: data.user?.email 
+      })
+
+      // Le profil sera créé automatiquement par le trigger Supabase
+      // Ou sera créé lors de la première connexion
+
+      return { data, error: null }
+    } catch (error) {
+      logError('Erreur lors de la création du compte', error)
+      return { data: null, error }
+    }
+  }
+
   const value = {
     user,
     loading,
     signIn,
+    signUp,
     signOut,
     resetPassword,
     resendConfirmation
