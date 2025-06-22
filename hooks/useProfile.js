@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../components/AuthContext'
 import { logInfo, logError } from '../utils/logger'
+import { createProfile } from '../utils/profileUtils'
 
 /**
  * Hook for managing user profile data
@@ -103,46 +104,16 @@ export default function useProfile(userId = null) {
     if (!targetUserId) {
       throw new Error('No user ID available')
     }
-    
     try {
-      // Check if profile exists
-      const { data: existingProfile, error: checkError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('user_id', targetUserId)
-        .single()
-      
-      // If profile exists, no action needed
-      if (existingProfile) {
-        return { created: false, profile: existingProfile }
-      }
-      
-      // Create default profile data
-      const defaultProfile = {
-        user_id: targetUserId,
-        display_name: defaultData.display_name || user?.email?.split('@')[0] || 'Utilisateur',
-        bio: defaultData.bio || null,
-        is_private: defaultData.is_private || false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }
-      
-      // Create profile
-      const { data: newProfile, error: createError } = await supabase
-        .from('profiles')
-        .insert([defaultProfile])
-        .select()
-        .single()
-      
-      if (createError) {
-        throw createError
-      }
-      
-      // Update local state
-      setProfile(newProfile)
-      
+      // Utilise la fonction utilitaire simple
+      const { profile, error } = await createProfile(
+        targetUserId,
+        defaultData.display_name || user?.email?.split('@')[0] || 'Utilisateur'
+      )
+      if (error) throw new Error(error)
+      setProfile(profile)
       logInfo('Profile created successfully', { userId: targetUserId })
-      return { created: true, profile: newProfile }
+      return { created: true, profile }
     } catch (err) {
       logError('Failed to create profile', err)
       throw err

@@ -988,3 +988,31 @@ export async function deleteUserComment(commentId, userId) {
     return false
   }
 }
+
+/**
+ * Crée un profil utilisateur minimal si non existant.
+ * @param {string} user_id - L'UUID de l'utilisateur (auth.users.id)
+ * @param {string} [display_name] - Nom d'affichage (optionnel)
+ * @returns {Promise<{profile: object|null, error: string|null}>}
+ */
+export async function createProfile(user_id, display_name = null) {
+  if (!user_id) return { profile: null, error: 'user_id requis' }
+  // Vérifier si le profil existe déjà
+  const { data: existing, error: checkError } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('user_id', user_id)
+    .single()
+  if (existing) return { profile: existing, error: null }
+  // Créer le profil minimal
+  const { data, error } = await supabase
+    .from('profiles')
+    .insert([{
+      user_id,
+      display_name: display_name || 'Utilisateur'
+    }])
+    .select()
+    .single()
+  if (error) return { profile: null, error: error.message }
+  return { profile: data, error: null }
+}
