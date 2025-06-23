@@ -490,47 +490,57 @@ export default function Amis() {
     }
   };
 
-  // Fonction corrigée pour filtrer les amis
+  // Fonction corrigée pour filtrer les amis avec protection mobile renforcée
   const getFilteredFriends = () => {
     try {
-      if (!friends || !Array.isArray(friends) || friends.length === 0) {
+      // Protection renforcée pour mobile
+      const safeFriends = friends && Array.isArray(friends) ? friends : [];
+      
+      if (safeFriends.length === 0) {
         return [];
       }
       
-      let filteredFriends = [...friends];
+      // Créer une copie sûre des données
+      let filteredFriends = safeFriends.map(friend => ({
+        ...friend,
+        profiles: friend?.profiles || {}
+      }));
       
-      // Appliquer le filtre
+      // Appliquer le filtre avec vérifications
       switch (friendFilter) {
         case 'recent':
-          // Simulation du tri par amis ajoutés récemment
           filteredFriends = filteredFriends.slice(0, Math.min(5, filteredFriends.length));
           break;
         case 'active':
-          // Simulation du tri par amis actifs récemment
-          filteredFriends = filteredFriends.filter(() => Math.random() > 0.5);
+          // Version déterministe pour éviter les bugs mobiles
+          filteredFriends = filteredFriends.filter((_, index) => index % 2 === 0);
           break;
         case 'all':
         default:
-          // Tous les amis
+          // Tous les amis - pas de filtrage
           break;
       }
       
-      // Appliquer le tri
+      // Appliquer le tri avec protection d'erreur
       switch (friendSort) {
         case 'name':
           filteredFriends.sort((a, b) => {
-            const nameA = (a?.profiles?.display_name || '').toLowerCase();
-            const nameB = (b?.profiles?.display_name || '').toLowerCase();
-            return nameA.localeCompare(nameB);
+            try {
+              const nameA = String(a?.profiles?.display_name || '').toLowerCase();
+              const nameB = String(b?.profiles?.display_name || '').toLowerCase();
+              return nameA.localeCompare(nameB);
+            } catch (sortError) {
+              logError('Error sorting friends by name:', sortError);
+              return 0;
+            }
           });
           break;
         case 'recent':
-          // Tri par ordre chronologique (plus récent en premier)
           filteredFriends.reverse();
           break;
         case 'active':
-          // Tri par activité (simulation)
-          filteredFriends.sort(() => Math.random() - 0.5);
+          // Tri stable pour mobile
+          filteredFriends.sort((a, b) => (a?.id || 0) - (b?.id || 0));
           break;
         default:
           break;
@@ -538,8 +548,9 @@ export default function Amis() {
       
       return filteredFriends;
     } catch (error) {
-      logError('Error in getFilteredFriends:', error);
-      return friends || [];
+      logError('Error in getFilteredFriends (mobile-safe):', error);
+      // Retour de secours sûr
+      return Array.isArray(friends) ? friends : [];
     }
   };
 

@@ -35,15 +35,17 @@ function logApiError(operation, error, context = {}) {
 
 // Helper function to validate and sanitize query parameters
 function validateQueryParams(query) {
-  const { author, user_id, category, limit = '50', logs, logsLimit = '20' } = query || {}
+  const { author, user_id, category, limit = '50', logs, logsLimit = '20', friends_only, offset = '0' } = query || {}
   
   return {
     author: author && typeof author === 'string' && author.trim() ? author.trim() : null,
     user_id: user_id && typeof user_id === 'string' && user_id.trim() ? user_id.trim() : null,
     category: category && typeof category === 'string' && category.trim() ? category.trim() : null,
     limit: Math.min(Math.max(parseInt(limit) || 50, 1), 100), // Between 1 and 100
+    offset: Math.max(parseInt(offset) || 0, 0), // Non-negative
     fetchLogs: logs === 'true' || logs === '1',
-    logsLimit: Math.min(Math.max(parseInt(logsLimit) || 20, 1), 100) // Between 1 and 100
+    logsLimit: Math.min(Math.max(parseInt(logsLimit) || 20, 1), 100), // Between 1 and 100
+    friendsOnly: friends_only === 'true' || friends_only === '1'
   }
 }
 
@@ -132,7 +134,7 @@ export default async function handler(req, res) {
       try {
         // Validate and sanitize query parameters
         const params = validateQueryParams(req.query)
-        const { author, user_id, category, limit, fetchLogs, logsLimit } = params
+        const { author, user_id, category, limit, offset, fetchLogs, logsLimit, friendsOnly } = params
         
         logInfo('GET recipes - Request details', {
           reference: requestReference,
@@ -142,6 +144,7 @@ export default async function handler(req, res) {
           hasAuthor: !!author,
           fetchLogs: fetchLogs,
           logsLimit: logsLimit,
+          friendsOnly: friendsOnly,
           userIdType: typeof user_id,
           userIdLength: user_id?.length,
           timestamp: new Date().toISOString()
@@ -164,13 +167,118 @@ export default async function handler(req, res) {
           }
           
           // If only logs were requested (no other filters), return them directly
-          if (!user_id && !author && !category) {
+          if (!user_id && !author && !category && !friendsOnly) {
             logInfo('Returning only logs', {
               reference: requestReference,
               logsCount: logs.length
             })
             
             return safeResponse(res, 200, { logs })
+          }
+        }
+
+        // Handle friends-only recipes
+        if (friendsOnly && user_id) {
+          logInfo('Fetching friends-only recipes', {
+            reference: requestReference,
+            userId: user_id,
+            limit,
+            offset
+          })
+
+          try {
+            // Get user's friends using SQL function
+            const { data: friendsData, error: friendsError } = await supabase
+              .rpc('get_user_friends_simple', { target_user_id: user_id })
+
+            if (friendsError) {
+              logError('Error fetching friends for recipes', friendsError, {
+                reference: requestReference,
+                userId: user_id
+              })
+              // Fallback to empty friends list
+              return safeResponse(res, 200, [])
+            }
+
+            // Extract friend IDs
+            const friendIds = friendsData?.map(friend => friend.friend_user_id) || []
+            
+            // Add the user themselves to see their own recipes in the feed
+            friendIds.push(user_id)
+
+            logInfo('Friends IDs retrieved for recipes', {
+              reference: requestReference,
+              friendsCount: friendIds.length - 1, // -1 because we added user_id
+              totalUserIds: friendIds.length,
+              userId: user_id
+            })
+
+            if (friendIds.length === 1) { // Only the user themselves
+              logInfo('No friends found, returning user recipes only', {
+                reference: requestReference,
+                userId: user_id
+              })
+            }
+
+            // Build query for friends' recipes
+            let query = supabase
+              .from('recipes')
+              .select('*')
+              .in('user_id', friendIds)
+              .order('created_at', { ascending: false })
+
+            // Apply offset and limit
+            if (offset > 0) {
+              query = query.range(offset, offset + limit - 1)
+            } else {
+              query = query.limit(limit)
+            }
+
+            const { data: friendsRecipes, error: recipesError } = await query
+
+            if (recipesError) {
+              logError('Error fetching friends recipes', recipesError, {
+                reference: requestReference,
+                friendsCount: friendIds.length,
+                userId: user_id
+              })
+              throw recipesError
+            }
+
+            logInfo('Friends recipes fetched successfully', {
+              reference: requestReference,
+              recipesCount: friendsRecipes?.length || 0,
+              friendsCount: friendIds.length - 1,
+              userId: user_id,
+              hasResults: (friendsRecipes?.length || 0) > 0
+            })
+
+            return safeResponse(res, 200, friendsRecipes || [])
+
+          } catch (friendsApiError) {
+            logError('Error in friends-only recipes flow', friendsApiError, {
+              reference: requestReference,
+              userId: user_id
+            })
+            
+            // Fallback to user's own recipes if friends query fails
+            logInfo('Falling back to user recipes only', {
+              reference: requestReference,
+              userId: user_id
+            })
+
+            const { data: userRecipes, error: userRecipesError } = await supabase
+              .from('recipes')
+              .select('*')
+              .eq('user_id', user_id)
+              .order('created_at', { ascending: false })
+              .limit(limit)
+
+            if (userRecipesError) {
+              throw userRecipesError
+            }
+
+            return safeResponse(res, 200, userRecipes || [])
           }
         }
         
@@ -186,7 +294,7 @@ export default async function handler(req, res) {
         })
         
         // Apply filters only if they have valid values
-        if (user_id) {
+        if (user_id && !friendsOnly) {
           logInfo('Applying user_id filter', { 
             reference: requestReference,
             user_id, 
@@ -198,7 +306,7 @@ export default async function handler(req, res) {
         }
         
         // Filter by author if specified (fallback) and no user_id
-        if (author && !user_id) {
+        if (author && !user_id && !friendsOnly) {
           logInfo('Applying author filter (fallback)', { 
             reference: requestReference,
             author,
@@ -218,10 +326,15 @@ export default async function handler(req, res) {
           query = query.eq('category', category)
         }
         
-        // Apply ordering and limit
+        // Apply ordering, offset and limit
         query = query
           .order('created_at', { ascending: false })
-          .limit(limit)
+
+        if (offset > 0) {
+          query = query.range(offset, offset + limit - 1)
+        } else {
+          query = query.limit(limit)
+        }
         
         logDebug('Executing Supabase query', {
           reference: requestReference,

@@ -257,432 +257,535 @@ export default function Profil() {
           <meta name="description" content="Gérez votre profil sur COCO" />
         </Head>
 
-        {/* Hero Section avec design COCO */}
+        {/* Hero Section redesigné avec style COCO moderne */}
         <section className={styles.heroSection}>
+          <div className={styles.heroBackground}>
+            <div className={styles.heroPattern}></div>
+          </div>
+          
           <div className={styles.profileCard}>
-            {/* Avatar avec design cohérent */}
-            <div className={styles.avatar}>
-              {profile?.display_name?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || '👤'}
+            {/* Avatar avec nouveau design */}
+            <div className={styles.avatarContainer}>
+              <div className={styles.avatar}>
+                {profile?.display_name?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || '👤'}
+              </div>
+              <div className={styles.statusIndicator}></div>
             </div>
             
-            <h1 className={styles.profileName}>
-              {profile?.display_name || user?.email || 'Utilisateur'}
-            </h1>
-            
-            <p className={styles.profileEmail}>
-              {profile?.bio || 'Passionné de cuisine et de partage 🍳'}
-            </p>
+            <div className={styles.profileInfo}>
+              <h1 className={styles.profileName}>
+                {profile?.display_name || user?.email || 'Utilisateur'}
+                {profile?.is_private && <span className={styles.privateBadge}>🔒</span>}
+              </h1>
+              
+              <p className={styles.profileBio}>
+                {profile?.bio || 'Passionné de cuisine et de partage 🍳'}
+              </p>
 
-            {/* Stats avec design COCO */}
-            <div className={styles.statsGrid}>
-              {[{
-                icon: '📝',
-                value: userStats.recipesCount,
-                label: 'Recette'
-              },
-              {
-                icon: '❤️',
-                value: userStats.likesReceived,
-                label: 'Like'
-              },
-              {
-                icon: '👥',
-                value: userStats.friendsCount,
-                label: 'Ami'
-              },
-              {
-                icon: '🏆',
-                value: userStats.trophiesUnlocked,
-                label: 'Trophée'
-              },
-              {
-                icon: '⭐',
-                value: userStats.trophyPoints,
-                label: 'Point'
-              }].map((stat, index) => (
-                <div key={index} className={styles.statItem}>
-                  <div className={styles.statIcon}>{stat.icon}</div>
-                  <div className={styles.statNumber}>{stat.value}</div>
-                  <div className={styles.statLabel}>
-                    {stat.label}{stat.value > 1 ? 's' : ''}
-                  </div>
+              {profile?.location && (
+                <div className={styles.locationBadge}>
+                  <span className={styles.locationIcon}>📍</span>
+                  <span>{profile.location}</span>
                 </div>
-              ))}
+              )}
+            </div>
+
+            {/* Stats redesignées avec style moderne */}
+            <div className={styles.statsContainer}>
+              <div className={styles.statsGrid}>
+                {[{
+                  icon: '📝',
+                  value: userStats.recipesCount,
+                  label: 'Recette',
+                  color: '#FF6B6B'
+                },
+                {
+                  icon: '❤️',
+                  value: userStats.likesReceived,
+                  label: 'Like',
+                  color: '#FF4757'
+                },
+                {
+                  icon: '👥',
+                  value: userStats.friendsCount,
+                  label: 'Ami',
+                  color: '#3742FA'
+                },
+                {
+                  icon: '🏆',
+                  value: userStats.trophiesUnlocked,
+                  label: 'Trophée',
+                  color: '#FFD700'
+                },
+                {
+                  icon: '⭐',
+                  value: userStats.trophyPoints,
+                  label: 'Point',
+                  color: '#FFA502'
+                }].map((stat, index) => (
+                  <div 
+                    key={index} 
+                    className={styles.statCard}
+                    style={{'--stat-color': stat.color}}
+                  >
+                    <div className={styles.statIcon} style={{color: stat.color}}>
+                      {stat.icon}
+                    </div>
+                    <div className={styles.statNumber}>{stat.value}</div>
+                    <div className={styles.statLabel}>
+                      {stat.label}{stat.value > 1 ? 's' : ''}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </section>
 
-        {/* Content avec design cohérent */}
+        {/* Content Section avec nouveau design */}
         <section className={styles.contentSection}>
-          {/* Tab Navigation avec style COCO */}
-          <div className={styles.tabNavigation}>
-            {[{
-              id: 'info',
-              label: 'Profil',
-              icon: '👤'
-            },
-            {
-              id: 'recipes',
-              label: 'Recettes',
-              icon: '📝'
-            },
-            {
-              id: 'trophies',
-              label: 'Trophées',
-              icon: '🏆'
-            },
-            {
-              id: 'settings',
-              label: 'Paramètres',
-              icon: '⚙️'
-            }].map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`${styles.tabButton} ${activeTab === tab.id ? styles.active : ''}`}
-              >
-                <span className={styles.tabIcon}>{tab.icon}</span>
-                <span className={styles.tabLabel}>{tab.label}</span>
-              </button>
-            ))}
+          {/* Tab Navigation moderne */}
+          <div className={styles.tabContainer}>
+            <div className={styles.tabNavigation}>
+              {[{
+                id: 'info',
+                label: 'Profil',
+                icon: '👤',
+                color: '#3742FA'
+              },
+              {
+                id: 'recipes',
+                label: 'Recettes',
+                icon: '📝',
+                color: '#FF6B6B'
+              },
+              {
+                id: 'trophies',
+                label: 'Trophées',
+                icon: '🏆',
+                color: '#FFD700'
+              },
+              {
+                id: 'settings',
+                label: 'Paramètres',
+                icon: '⚙️',
+                color: '#2F3542'
+              }].map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`${styles.tabButton} ${activeTab === tab.id ? styles.active : ''}`}
+                  style={activeTab === tab.id ? {'--tab-color': tab.color} : {}}
+                >
+                  <span className={styles.tabIcon}>{tab.icon}</span>
+                  <span className={styles.tabLabel}>{tab.label}</span>
+                  {activeTab === tab.id && <div className={styles.tabIndicator}></div>}
+                </button>
+              ))}
+            </div>
           </div>
 
-          {/* Tab Content */}
+          {/* Tab Content avec meilleur style */}
           <div className={styles.tabContent}>
             {activeTab === 'info' && (
               <div className={styles.infoSection}>
-                <div className={styles.sectionHeader}>
-                  <h2 className={styles.sectionTitle}>Informations personnelles</h2>
-                  <button
-                    onClick={() => setIsEditing(!isEditing)}
-                    className={`btn ${isEditing ? 'btn-secondary' : 'btn-primary'}`}
-                  >
-                    {isEditing ? '❌ Annuler' : '✏️ Modifier'}
-                  </button>
-                </div>
-
-                {isEditing ? (
-                  <div className={styles.editForm}>
-                    {/* Profile Completeness */}
-                    <div className={styles.completenessCard}>
-                      <div className={styles.completenessHeader}>
-                        <span>Complétude du profil</span>
-                        <span className={styles.completenessPercent}>
-                          {calculateProfileCompleteness(editForm)}%
-                        </span>
-                      </div>
-                      <div className={styles.progressBar}>
-                        <div 
-                          className={styles.progressFill}
-                          style={{width: `${calculateProfileCompleteness(editForm)}%`}}
-                        />
-                      </div>
+                <div className={styles.sectionCard}>
+                  <div className={styles.sectionHeader}>
+                    <div className={styles.sectionTitle}>
+                      <span className={styles.sectionIcon}>👤</span>
+                      <h2>Informations personnelles</h2>
                     </div>
-
-                    {/* Success Message */}
-                    {saveSuccess && (
-                      <div className={styles.successMessage}>
-                        <span>✅</span>
-                        <span>Profil mis à jour avec succès !</span>
-                      </div>
-                    )}
-
-                    {/* Form fields */}
-                    {[{
-                      key: 'display_name',
-                      label: 'Nom d\'affichage',
-                      type: 'text',
-                      icon: '👤',
-                      required: true,
-                      maxLength: 30
-                    },
-                    {
-                      key: 'bio',
-                      label: 'Biographie',
-                      type: 'textarea',
-                      icon: '📝',
-                      maxLength: 500
-                    },
-                    {
-                      key: 'location',
-                      label: 'Localisation',
-                      type: 'text',
-                      icon: '📍'
-                    },
-                    {
-                      key: 'website',
-                      label: 'Site web',
-                      type: 'url',
-                      icon: '🌐'
-                    },
-                    {
-                      key: 'date_of_birth',
-                      label: 'Date de naissance',
-                      type: 'date',
-                      icon: '🎂'
-                    },
-                    {
-                      key: 'phone',
-                      label: 'Téléphone',
-                      type: 'tel',
-                      icon: '📞'
-                    }].map((field) => (
-                      <div key={field.key} className={styles.formField}>
-                        <label className={styles.fieldLabel}>
-                          <span className={styles.fieldIcon}>{field.icon}</span>
-                          {field.label}
-                          {field.required && <span className={styles.required}>*</span>}
-                          {field.maxLength && (
-                            <span className={styles.charCount}>
-                              {editForm[field.key]?.length || 0}/{field.maxLength}
-                            </span>
-                          )}
-                        </label>
-                        {field.type === 'textarea' ? (
-                          <textarea
-                            value={editForm[field.key]}
-                            onChange={(e) => {
-                              setEditForm(prev => ({ ...prev, [field.key]: e.target.value }))
-                              if (validationErrors[field.key]) {
-                                setValidationErrors(prev => ({ ...prev, [field.key]: undefined }))
-                              }
-                            }}
-                            maxLength={field.maxLength}
-                            className={`${styles.formInput} ${validationErrors[field.key] ? styles.error : ''}`}
-                            placeholder={`Votre ${field.label.toLowerCase()}...`}
-                          />
-                        ) : (
-                          <input
-                            type={field.type}
-                            value={editForm[field.key]}
-                            onChange={(e) => {
-                              setEditForm(prev => ({ ...prev, [field.key]: e.target.value }))
-                              if (validationErrors[field.key]) {
-                                setValidationErrors(prev => ({ ...prev, [field.key]: undefined }))
-                              }
-                            }}
-                            maxLength={field.maxLength}
-                            className={`${styles.formInput} ${validationErrors[field.key] ? styles.error : ''}`}
-                            placeholder={`Votre ${field.label.toLowerCase()}...`}
-                          />
-                        )}
-                        {validationErrors[field.key] && (
-                          <div className={styles.errorMessage}>
-                            <span>⚠️</span>
-                            {validationErrors[field.key]}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-
-                    {/* Privacy toggle */}
-                    <div className={styles.privacyToggle}>
-                      <label className={styles.toggleLabel}>
-                        <input
-                          type="checkbox"
-                          checked={editForm.is_private}
-                          onChange={(e) => setEditForm(prev => ({ ...prev, is_private: e.target.checked }))}
-                          className={styles.toggleInput}
-                        />
-                        <div className={styles.toggleContent}>
-                          <div className={styles.toggleTitle}>
-                            <span>🔒</span>
-                            Profil privé
-                            {editForm.is_private && (
-                              <span className={styles.privateBadge}>PRIVÉ</span>
-                            )}
-                          </div>
-                          <div className={styles.toggleDescription}>
-                            {editForm.is_private 
-                              ? 'Seuls vos amis peuvent voir votre profil complet' 
-                              : 'Votre profil est visible par tous les utilisateurs'
-                            }
-                          </div>
-                        </div>
-                      </label>
-                    </div>
-
-                    {/* Save button */}
                     <button
-                      onClick={handleSaveProfile}
-                      disabled={loading}
-                      className={`btn btn-primary ${styles.saveBtn} ${loading ? styles.loading : ''}`}
+                      onClick={() => setIsEditing(!isEditing)}
+                      className={`${styles.actionButton} ${isEditing ? styles.secondary : styles.primary}`}
                     >
-                      {loading ? (
-                        <>
-                          <div className={styles.spinner} />
-                          Sauvegarde en cours...
-                        </>
-                      ) : (
-                        <>💾 Sauvegarder les modifications</>
-                      )}
+                      <span className={styles.buttonIcon}>
+                        {isEditing ? '❌' : '✏️'}
+                      </span>
+                      <span>{isEditing ? 'Annuler' : 'Modifier'}</span>
                     </button>
                   </div>
-                ) : (
-                  <div className={styles.profileInfo}>
-                    {[{
-                      label: 'Email',
-                      value: user?.email,
-                      icon: '✉️'
-                    },
-                    {
-                      label: 'Nom',
-                      value: profile?.display_name || 'Non défini',
-                      icon: '👤'
-                    },
-                    {
-                      label: 'Biographie',
-                      value: profile?.bio || 'Aucune biographie',
-                      icon: '📝'
-                    },
-                    {
-                      label: 'Localisation',
-                      value: profile?.location || 'Non définie',
-                      icon: '📍'
-                    },
-                    {
-                      label: 'Site web',
-                      value: profile?.website,
-                      icon: '🌐',
-                      isLink: true
-                    },
-                    {
-                      label: 'Date de naissance',
-                      value: profile?.date_of_birth ? new Date(profile.date_of_birth).toLocaleDateString('fr-FR') : 'Non définie',
-                      icon: '🎂'
-                    },
-                    {
-                      label: 'Téléphone',
-                      value: profile?.phone || 'Non défini',
-                      icon: '📞'
-                    },
-                    {
-                      label: 'Profil',
-                      value: profile?.is_private ? 'Privé 🔒' : 'Public 🌍',
-                      icon: '⚙️'
-                    },
-                    {
-                      label: 'Membre depuis',
-                      value: user?.created_at ? new Date(user.created_at).toLocaleDateString('fr-FR') : 'N/A',
-                      icon: '📅'
-                    }].map((item, index) => (
-                      <div key={index} className={styles.infoItem}>
-                        <span className={styles.infoIcon}>{item.icon}</span>
-                        <div className={styles.infoContent}>
-                          <div className={styles.infoLabel}>{item.label}</div>
-                          <div className={styles.infoValue}>
-                            {item.isLink && item.value ? (
-                              <a 
-                                href={item.value} 
-                                target="_blank" 
-                                rel="noopener noreferrer" 
-                                className={styles.infoLink}
-                              >
-                                {item.value} 🔗
-                              </a>
-                            ) : (
-                              item.value
-                            )}
+
+                  {isEditing ? (
+                    <div className={styles.editForm}>
+                      {/* Profile Completeness avec nouveau design */}
+                      <div className={styles.completenessCard}>
+                        <div className={styles.completenessHeader}>
+                          <span className={styles.completenessIcon}>📊</span>
+                          <div className={styles.completenessInfo}>
+                            <span className={styles.completenessTitle}>Complétude du profil</span>
+                            <span className={styles.completenessPercent}>
+                              {calculateProfileCompleteness(editForm)}%
+                            </span>
+                          </div>
+                        </div>
+                        <div className={styles.progressContainer}>
+                          <div className={styles.progressBar}>
+                            <div 
+                              className={styles.progressFill}
+                              style={{
+                                width: `${calculateProfileCompleteness(editForm)}%`,
+                                backgroundColor: calculateProfileCompleteness(editForm) > 70 ? '#2ED573' : 
+                                                calculateProfileCompleteness(editForm) > 40 ? '#FFA502' : '#FF4757'
+                              }}
+                            />
+                          </div>
+                          <div className={styles.progressText}>
+                            {calculateProfileCompleteness(editForm) === 100 ? 'Profil complet !' :
+                             calculateProfileCompleteness(editForm) > 70 ? 'Presque terminé' :
+                             'À compléter'}
                           </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
+
+                      {/* Success Message redesigné */}
+                      {saveSuccess && (
+                        <div className={styles.alertSuccess}>
+                          <span className={styles.alertIcon}>✅</span>
+                          <span className={styles.alertText}>Profil mis à jour avec succès !</span>
+                        </div>
+                      )}
+
+                      {/* Form fields avec nouveau style */}
+                      <div className={styles.formGrid}>
+                        {[{
+                          key: 'display_name',
+                          label: 'Nom d\'affichage',
+                          type: 'text',
+                          icon: '👤',
+                          required: true,
+                          maxLength: 30
+                        },
+                        {
+                          key: 'bio',
+                          label: 'Biographie',
+                          type: 'textarea',
+                          icon: '📝',
+                          maxLength: 500
+                        },
+                        {
+                          key: 'location',
+                          label: 'Localisation',
+                          type: 'text',
+                          icon: '📍'
+                        },
+                        {
+                          key: 'website',
+                          label: 'Site web',
+                          type: 'url',
+                          icon: '🌐'
+                        },
+                        {
+                          key: 'date_of_birth',
+                          label: 'Date de naissance',
+                          type: 'date',
+                          icon: '🎂'
+                        },
+                        {
+                          key: 'phone',
+                          label: 'Téléphone',
+                          type: 'tel',
+                          icon: '📞'
+                        }].map((field) => (
+                          <div key={field.key} className={styles.inputGroup}>
+                            <label className={styles.inputLabel}>
+                              <span className={styles.inputIcon}>{field.icon}</span>
+                              <span className={styles.labelText}>
+                                {field.label}
+                                {field.required && <span className={styles.required}>*</span>}
+                              </span>
+                              {field.maxLength && (
+                                <span className={styles.charCounter}>
+                                  {editForm[field.key]?.length || 0}/{field.maxLength}
+                                </span>
+                              )}
+                            </label>
+                            
+                            <div className={styles.inputContainer}>
+                              {field.type === 'textarea' ? (
+                                <textarea
+                                  value={editForm[field.key]}
+                                  onChange={(e) => {
+                                    setEditForm(prev => ({ ...prev, [field.key]: e.target.value }))
+                                    if (validationErrors[field.key]) {
+                                      setValidationErrors(prev => ({ ...prev, [field.key]: undefined }))
+                                    }
+                                  }}
+                                  maxLength={field.maxLength}
+                                  className={`${styles.input} ${styles.textarea} ${validationErrors[field.key] ? styles.error : ''}`}
+                                  placeholder={`Votre ${field.label.toLowerCase()}...`}
+                                  rows="3"
+                                />
+                              ) : (
+                                <input
+                                  type={field.type}
+                                  value={editForm[field.key]}
+                                  onChange={(e) => {
+                                    setEditForm(prev => ({ ...prev, [field.key]: e.target.value }))
+                                    if (validationErrors[field.key]) {
+                                      setValidationErrors(prev => ({ ...prev, [field.key]: undefined }))
+                                    }
+                                  }}
+                                  maxLength={field.maxLength}
+                                  className={`${styles.input} ${validationErrors[field.key] ? styles.error : ''}`}
+                                  placeholder={`Votre ${field.label.toLowerCase()}...`}
+                                />
+                              )}
+                              
+                              {validationErrors[field.key] && (
+                                <div className={styles.inputError}>
+                                  <span className={styles.errorIcon}>⚠️</span>
+                                  <span>{validationErrors[field.key]}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Privacy toggle redesigné */}
+                      <div className={styles.privacySection}>
+                        <div className={styles.toggleCard}>
+                          <div className={styles.toggleInfo}>
+                            <div className={styles.toggleTitle}>
+                              <span className={styles.toggleIcon}>🔒</span>
+                              <span>Profil privé</span>
+                              {editForm.is_private && (
+                                <span className={styles.privateBadge}>PRIVÉ</span>
+                              )}
+                            </div>
+                            <div className={styles.toggleDescription}>
+                              {editForm.is_private 
+                                ? 'Seuls vos amis peuvent voir votre profil complet' 
+                                : 'Votre profil est visible par tous les utilisateurs'
+                              }
+                            </div>
+                          </div>
+                          
+                          <label className={styles.switch}>
+                            <input
+                              type="checkbox"
+                              checked={editForm.is_private}
+                              onChange={(e) => setEditForm(prev => ({ ...prev, is_private: e.target.checked }))
+                              }
+                            />
+                            <span className={styles.slider}></span>
+                          </label>
+                        </div>
+                      </div>
+
+                      {/* Save button redesigné */}
+                      <div className={styles.formActions}>
+                        <button
+                          onClick={handleSaveProfile}
+                          disabled={loading}
+                          className={`${styles.saveButton} ${loading ? styles.loading : ''}`}
+                        >
+                          {loading ? (
+                            <>
+                              <div className={styles.spinner} />
+                              <span>Sauvegarde...</span>
+                            </>
+                          ) : (
+                            <>
+                              <span className={styles.buttonIcon}>💾</span>
+                              <span>Sauvegarder</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className={styles.profileDisplay}>
+                      <div className={styles.infoGrid}>
+                        {[{
+                          label: 'Email',
+                          value: user?.email,
+                          icon: '✉️'
+                        },
+                        {
+                          label: 'Nom',
+                          value: profile?.display_name || 'Non défini',
+                          icon: '👤'
+                        },
+                        {
+                          label: 'Biographie',
+                          value: profile?.bio || 'Aucune biographie',
+                          icon: '📝'
+                        },
+                        {
+                          label: 'Localisation',
+                          value: profile?.location || 'Non définie',
+                          icon: '📍'
+                        },
+                        {
+                          label: 'Site web',
+                          value: profile?.website,
+                          icon: '🌐',
+                          isLink: true
+                        },
+                        {
+                          label: 'Date de naissance',
+                          value: profile?.date_of_birth ? new Date(profile.date_of_birth).toLocaleDateString('fr-FR') : 'Non définie',
+                          icon: '🎂'
+                        },
+                        {
+                          label: 'Téléphone',
+                          value: profile?.phone || 'Non défini',
+                          icon: '📞'
+                        },
+                        {
+                          label: 'Confidentialité',
+                          value: profile?.is_private ? 'Profil privé 🔒' : 'Profil public 🌍',
+                          icon: '⚙️'
+                        },
+                        {
+                          label: 'Membre depuis',
+                          value: user?.created_at ? new Date(user.created_at).toLocaleDateString('fr-FR') : 'N/A',
+                          icon: '📅'
+                        }].map((item, index) => (
+                          <div key={index} className={styles.infoCard}>
+                            <div className={styles.infoCardHeader}>
+                              <span className={styles.infoCardIcon}>{item.icon}</span>
+                              <span className={styles.infoCardLabel}>{item.label}</span>
+                            </div>
+                            <div className={styles.infoCardValue}>
+                              {item.isLink && item.value ? (
+                                <a 
+                                  href={item.value} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer" 
+                                  className={styles.linkValue}
+                                >
+                                  {item.value} 🔗
+                                </a>
+                              ) : (
+                                item.value
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
+            {/* Autres onglets avec le même style amélioré */}
             {activeTab === 'recipes' && (
               <div className={styles.recipesSection}>
-                <div className={styles.sectionHeader}>
-                  <h2 className={styles.sectionTitle}>
-                    🍳 Mes créations ({userRecipes.length})
-                  </h2>
-                  {userRecipes.length > 0 && (
-                    <button
-                      onClick={handleViewAllRecipes}
-                      className="btn btn-secondary"
-                    >
-                      📋 Voir toutes →
-                    </button>
-                  )}
-                </div>
-
-                {userRecipes.length === 0 ? (
-                  <div className={styles.emptyState}>
-                    <div className={styles.emptyIcon}>👨‍🍳</div>
-                    <h3 className={styles.emptyTitle}>
-                      Votre aventure culinaire commence ici !
-                    </h3>
-                    <p className={styles.emptyDescription}>
-                      Partagez vos créations, inspirez la communauté et devenez une star de la cuisine !
-                    </p>
-                    <button
-                      onClick={() => router.push('/share-photo')}
-                      className="btn btn-primary"
-                    >
-                      📸 Créer ma première recette
-                    </button>
-                  </div>
-                ) : (
-                  <div className={styles.recipesGrid}>
-                    {userRecipes.map((recipe) => (
-                      <div 
-                        key={recipe.id} 
-                        className={styles.recipeCard}
-                        onClick={() => router.push(`/recipe/${recipe.id}`)}
+                <div className={styles.sectionCard}>
+                  <div className={styles.sectionHeader}>
+                    <div className={styles.sectionTitle}>
+                      <span className={styles.sectionIcon}>🍳</span>
+                      <h2>Mes créations ({userRecipes.length})</h2>
+                    </div>
+                    {userRecipes.length > 0 && (
+                      <button
+                        onClick={handleViewAllRecipes}
+                        className={styles.actionButton}
                       >
-                        <div className={styles.recipeImage}>
-                          {recipe.category === 'Photo partagée' ? '📸' : '🍽️'}
-                          <div className={styles.categoryBadge}>
-                            {recipe.category}
+                        <span className={styles.buttonIcon}>📋</span>
+                        <span>Voir toutes</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {userRecipes.length === 0 ? (
+                    <div className={styles.emptyState}>
+                      <div className={styles.emptyIcon}>👨‍🍳</div>
+                      <h3 className={styles.emptyTitle}>
+                        Votre aventure culinaire commence ici !
+                      </h3>
+                      <p className={styles.emptyDescription}>
+                        Partagez vos créations, inspirez la communauté et devenez une star de la cuisine !
+                      </p>
+                      <button
+                        onClick={() => router.push('/share-photo')}
+                        className={styles.ctaButton}
+                      >
+                        <span className={styles.buttonIcon}>📸</span>
+                        <span>Créer ma première recette</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className={styles.recipesGrid}>
+                      {userRecipes.map((recipe) => (
+                        <div 
+                          key={recipe.id} 
+                          className={styles.recipeCard}
+                          onClick={() => router.push(`/recipe/${recipe.id}`)}
+                        >
+                          <div className={styles.recipeImage}>
+                            <div className={styles.recipeImagePlaceholder}>
+                              {recipe.category === 'Photo partagée' ? '📸' : '🍽️'}
+                            </div>
+                            <div className={styles.categoryBadge}>
+                              {recipe.category}
+                            </div>
+                          </div>
+                          
+                          <div className={styles.recipeContent}>
+                            <h3 className={styles.recipeTitle}>{recipe.title}</h3>
+                            <p className={styles.recipeDescription}>
+                              {recipe.description || recipe.category}
+                            </p>
                           </div>
                         </div>
-                        
-                        <div className={styles.recipeContent}>
-                          <h3 className={styles.recipeTitle}>{recipe.title}</h3>
-                          <p className={styles.recipeDescription}>
-                            {recipe.description || recipe.category}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
             {activeTab === 'trophies' && (
-              <TrophySection userId={user?.id} />
+              <div className={styles.trophiesSection}>
+                <div className={styles.sectionCard}>
+                  <TrophySection userId={user?.id} />
+                </div>
+              </div>
             )}
 
             {activeTab === 'settings' && (
               <div className={styles.settingsSection}>
-                <h2 className={styles.sectionTitle}>⚙️ Paramètres du compte</h2>
-                
-                <div className={styles.constructionNotice}>
-                  <div className={styles.constructionIcon}>🚧</div>
-                  <h3 className={styles.constructionTitle}>Section en construction</h3>
-                  <p className={styles.constructionText}>
-                    Les paramètres avancés arrivent bientôt ! En attendant, vous pouvez modifier vos informations dans l'onglet Profil.
-                  </p>
+                <div className={styles.sectionCard}>
+                  <div className={styles.sectionHeader}>
+                    <div className={styles.sectionTitle}>
+                      <span className={styles.sectionIcon}>⚙️</span>
+                      <h2>Paramètres du compte</h2>
+                    </div>
+                  </div>
+                  
+                  <div className={styles.constructionNotice}>
+                    <div className={styles.constructionIcon}>🚧</div>
+                    <h3 className={styles.constructionTitle}>Section en construction</h3>
+                    <p className={styles.constructionText}>
+                      Les paramètres avancés arrivent bientôt ! En attendant, vous pouvez modifier vos informations dans l'onglet Profil.
+                    </p>
+                  </div>
                 </div>
               </div>
             )}
           </div>
         </section>
 
-        {/* Trophy Notification */}
+        {/* Trophy Notification avec nouveau style */}
         {showTrophyNotification && newTrophies.length > 0 && (
           <div className={styles.trophyNotification}>
-            <div className={styles.notificationTitle}>
-              🏆 Nouveau trophée débloqué !
+            <div className={styles.notificationHeader}>
+              <span className={styles.notificationIcon}>🏆</span>
+              <span className={styles.notificationTitle}>Nouveau trophée débloqué !</span>
             </div>
-            {newTrophies.map(trophy => (
-              <div key={trophy.id} className={styles.notificationTrophy}>
-                {trophy.icon} {trophy.name}
-              </div>
-            ))}
+            <div className={styles.notificationTrophies}>
+              {newTrophies.map(trophy => (
+                <div key={trophy.id} className={styles.notificationTrophy}>
+                  <span className={styles.trophyIcon}>{trophy.icon}</span>
+                  <span className={styles.trophyName}>{trophy.name}</span>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>
