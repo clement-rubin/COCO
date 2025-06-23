@@ -187,17 +187,99 @@ export default async function handler(req, res) {
           })
 
           try {
-            // Get user's friends using SQL function
+            // Get user's friends using SQL function with better error handling
             const { data: friendsData, error: friendsError } = await supabase
               .rpc('get_user_friends_simple', { target_user_id: user_id })
 
             if (friendsError) {
               logError('Error fetching friends for recipes', friendsError, {
                 reference: requestReference,
-                userId: user_id
+                userId: user_id,
+                errorCode: friendsError.code
               })
-              // Fallback to empty friends list
-              return safeResponse(res, 200, [])
+              
+              // Si la fonction n'existe pas, essayer une requête directe
+              if (friendsError.code === 'PGRST116') {
+                logInfo('Function not found, trying direct friendship query', {
+                  reference: requestReference,
+                  userId: user_id
+                })
+                
+                const { data: directFriendsData, error: directError } = await supabase
+                  .from('friendships')
+                  .select(`
+                    user_id,
+                    friend_id,
+                    profiles!friendships_friend_id_fkey(user_id, display_name)
+                  `)
+                  .or(`user_id.eq.${user_id},friend_id.eq.${user_id}`)
+                  .eq('status', 'accepted')
+
+                if (!directError && directFriendsData) {
+                  // Transformer les données directes au format attendu
+                  const transformedFriends = directFriendsData.map(friendship => ({
+                    friend_user_id: friendship.user_id === user_id ? friendship.friend_id : friendship.user_id
+                  }))
+                  
+                  const friendIds = transformedFriends.map(friend => friend.friend_user_id).filter(Boolean)
+                  friendIds.push(user_id) // Ajouter l'utilisateur lui-même
+                  
+                  logInfo('Direct friendship query successful', {
+                    reference: requestReference,
+                    friendsCount: friendIds.length - 1,
+                    userId: user_id
+                  })
+                  
+                  // Récupérer les recettes avec les IDs d'amis
+                  let query = supabase
+                    .from('recipes')
+                    .select('*')
+                    .in('user_id', friendIds)
+                    .order('created_at', { ascending: false })
+
+                  if (offset > 0) {
+                    query = query.range(offset, offset + limit - 1)
+                  } else {
+                    query = query.limit(limit)
+                  }
+
+                  const { data: friendsRecipes, error: recipesError } = await query
+
+                  if (recipesError) {
+                    throw recipesError
+                  }
+
+                  logInfo('Friends recipes fetched via direct query', {
+                    reference: requestReference,
+                    recipesCount: friendsRecipes?.length || 0,
+                    friendsCount: friendIds.length - 1,
+                    userId: user_id
+                  })
+
+                  return safeResponse(res, 200, friendsRecipes || [])
+                } else {
+                  throw directError || new Error('Failed to fetch friends via direct query')
+                }
+              } else {
+                // Fallback to user's own recipes if friends query fails
+                logInfo('Falling back to user recipes only', {
+                  reference: requestReference,
+                  userId: user_id
+                })
+
+                const { data: userRecipes, error: userRecipesError } = await supabase
+                  .from('recipes')
+                  .select('*')
+                  .eq('user_id', user_id)
+                  .order('created_at', { ascending: false })
+                  .limit(limit)
+
+                if (userRecipesError) {
+                  throw userRecipesError
+                }
+
+                return safeResponse(res, 200, userRecipes || [])
+              }
             }
 
             // Extract friend IDs
@@ -210,7 +292,8 @@ export default async function handler(req, res) {
               reference: requestReference,
               friendsCount: friendIds.length - 1, // -1 because we added user_id
               totalUserIds: friendIds.length,
-              userId: user_id
+              userId: user_id,
+              friendIds: friendIds.slice(0, 5) // Log first 5 for debugging
             })
 
             if (friendIds.length === 1) { // Only the user themselves
@@ -250,7 +333,8 @@ export default async function handler(req, res) {
               recipesCount: friendsRecipes?.length || 0,
               friendsCount: friendIds.length - 1,
               userId: user_id,
-              hasResults: (friendsRecipes?.length || 0) > 0
+              hasResults: (friendsRecipes?.length || 0) > 0,
+              sampleRecipeIds: friendsRecipes?.slice(0, 3).map(r => r.id) || []
             })
 
             return safeResponse(res, 200, friendsRecipes || [])
@@ -262,7 +346,7 @@ export default async function handler(req, res) {
             })
             
             // Fallback to user's own recipes if friends query fails
-            logInfo('Falling back to user recipes only', {
+            logInfo('Falling back to user recipes only (final fallback)', {
               reference: requestReference,
               userId: user_id
             })

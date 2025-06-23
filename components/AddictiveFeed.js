@@ -42,9 +42,10 @@ export default function AddictiveFeed() {
           component: 'AddictiveFeed'
         })
       } else {
-        // Si pas connecté, rediriger vers la page de connexion
-        router.push('/login?message=' + encodeURIComponent('Connectez-vous pour voir les recettes de vos amis'))
-        return
+        // Si pas connecté, charger quelques recettes publiques comme aperçu
+        logInfo('User not logged in, loading public recipes preview', {
+          component: 'AddictiveFeed'
+        })
       }
       
       const response = await fetch(apiUrl)
@@ -55,22 +56,64 @@ export default function AddictiveFeed() {
       
       const recipesData = await response.json()
       
-      logInfo('Friends recipes loaded successfully', {
+      logInfo('Recipes loaded successfully', {
         count: recipesData.length,
         source: 'AddictiveFeed',
-        userId: user.id
+        userId: user?.id,
+        friendsOnly: !!user?.id
       })
+      
+      // Si aucune recette d'amis, charger quelques recettes publiques
+      if (user?.id && recipesData.length === 0) {
+        logInfo('No friends recipes found, loading fallback public recipes', {
+          userId: user.id,
+          component: 'AddictiveFeed'
+        })
+        
+        // Charger quelques recettes publiques en fallback
+        const fallbackResponse = await fetch(`/api/recipes?_t=${timestamp}&limit=5`)
+        if (fallbackResponse.ok) {
+          const fallbackData = await fallbackResponse.json()
+          if (fallbackData.length > 0) {
+            const formattedFallback = fallbackData.map(recipe => formatRecipeData(recipe))
+            setRecipes(formattedFallback)
+            setPage(1)
+            return
+          }
+        }
+      }
       
       const formattedRecipes = recipesData.map(recipe => formatRecipeData(recipe))
       setRecipes(formattedRecipes)
       setPage(1)
     } catch (err) {
-      logError('Failed to load friends recipes', err, {
+      logError('Failed to load recipes', err, {
         component: 'AddictiveFeed',
         method: 'loadInitialRecipes',
         userId: user?.id
       })
-      setError('Impossible de charger les recettes de vos amis. Veuillez réessayer.')
+      
+      // En cas d'erreur, essayer de charger des recettes publiques
+      try {
+        logInfo('Attempting fallback to public recipes after error', {
+          userId: user?.id,
+          component: 'AddictiveFeed'
+        })
+        
+        const fallbackResponse = await fetch(`/api/recipes?_t=${Date.now()}&limit=5`)
+        if (fallbackResponse.ok) {
+          const fallbackData = await fallbackResponse.json()
+          const formattedFallback = fallbackData.map(recipe => formatRecipeData(recipe))
+          setRecipes(formattedFallback)
+          setPage(1)
+          setError(null) // Clear error since we have fallback data
+          return
+        }
+      } catch (fallbackErr) {
+        logError('Fallback public recipes also failed', fallbackErr)
+      }
+      
+      setError('Impossible de charger les recettes. Vérifiez votre connexion et réessayez.')
     } finally {
       setLoading(false)
     }

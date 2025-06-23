@@ -105,7 +105,12 @@ export default function Home() {
   // Rediriger vers la page de présentation si non connecté
   useEffect(() => {
     if (!loading && !user) {
-      router.push('/presentation')
+      // Au lieu de rediriger immédiatement, donner une chance de voir un aperçu
+      const timer = setTimeout(() => {
+        router.push('/presentation')
+      }, 2000) // Attendre 2 secondes pour montrer un aperçu
+
+      return () => clearTimeout(timer)
     }
   }, [user, loading, router])
 

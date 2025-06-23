@@ -497,14 +497,29 @@ export default function Amis() {
       const safeFriends = friends && Array.isArray(friends) ? friends : [];
       
       if (safeFriends.length === 0) {
+        logInfo('No friends found for filtering', { userId: user?.id });
         return [];
       }
       
-      // Créer une copie sûre des données
-      let filteredFriends = safeFriends.map(friend => ({
-        ...friend,
-        profiles: friend?.profiles || {}
-      }));
+      // Créer une copie sûre des données avec validation complète
+      let filteredFriends = safeFriends.map(friend => {
+        // Validation stricte de la structure des données
+        if (!friend || typeof friend !== 'object') {
+          logError('Invalid friend object structure', null, { friend });
+          return null;
+        }
+        
+        return {
+          ...friend,
+          profiles: friend?.profiles && typeof friend.profiles === 'object' ? friend.profiles : {
+            user_id: friend.friend_id || friend.user_id,
+            display_name: 'Utilisateur inconnu',
+            bio: '',
+            avatar_url: null
+          },
+          friend_id: friend.friend_id || friend.user_id // Assurer la compatibilité
+        };
+      }).filter(Boolean); // Supprimer les entrées null
       
       // Appliquer le filtre avec vérifications
       switch (friendFilter) {
@@ -545,6 +560,14 @@ export default function Amis() {
         default:
           break;
       }
+      
+      logInfo('Friends filtered successfully', {
+        originalCount: safeFriends.length,
+        filteredCount: filteredFriends.length,
+        filter: friendFilter,
+        sort: friendSort,
+        userId: user?.id
+      });
       
       return filteredFriends;
     } catch (error) {
