@@ -1067,11 +1067,3 @@ export async function canManuallyUnlockTrophy(userId, trophyId) {
     return { canUnlock: false, progress: 0, reason: 'Erreur lors de la vérification' }
   }
 }
-      reason: canUnlock ? 'Prêt à débloquer' : 'Progression incomplète'
-    }
-
-  } catch (error) {
-    logError('Error checking if trophy can be unlocked', error)
-    return { canUnlock: false, progress: 0, reason: 'Erreur lors de la vérification' }
-  }
-}
