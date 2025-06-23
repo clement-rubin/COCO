@@ -237,7 +237,7 @@ export const AuthProvider = ({ children }) => {
         throw new Error('Le nom d\'utilisateur doit contenir entre 2 et 30 caractères')
       }
 
-      // Enregistrer l'utilisateur
+      // Enregistrer l'utilisateur avec redirection vers la page validated après confirmation
       const { data, error } = await supabase.auth.signUp({
         email,
         password,

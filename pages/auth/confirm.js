@@ -25,14 +25,23 @@ export default function Confirm() {
         setStatus('success')
         setMessage('Votre email a été confirmé avec succès !')
         
-        // Redirect to home after 3 seconds
+        // Redirect to validated page with name if available
+        const displayName = user.user_metadata?.display_name || ''
+        const redirectUrl = `/auth/validated?email=${encodeURIComponent(user.email)}${displayName ? `&name=${encodeURIComponent(displayName)}` : ''}`
+        
+        // Redirect to validated page after 1 second
         setTimeout(() => {
-          router.push('/')
-        }, 3000)
+          router.push(redirectUrl)
+        }, 1000)
       } else {
         // Still waiting for authentication state
         setStatus('success')
         setMessage('Votre email a été confirmé ! Vous pouvez maintenant vous connecter.')
+        
+        // Redirect to validated page after 2 seconds
+        setTimeout(() => {
+          router.push('/auth/validated')
+        }, 2000)
       }
     }
 
@@ -103,30 +112,13 @@ export default function Confirm() {
               }}>
                 {message}
               </p>
-              {user ? (
-                <p style={{ 
-                  color: 'var(--text-light)',
-                  fontSize: '0.9rem',
-                  marginBottom: 'var(--spacing-lg)'
-                }}>
-                  Redirection automatique vers l'accueil...
-                </p>
-              ) : (
-                <Link 
-                  href="/login"
-                  style={{
-                    display: 'inline-block',
-                    padding: 'var(--spacing-md) var(--spacing-lg)',
-                    background: 'var(--primary-orange)',
-                    color: 'white',
-                    textDecoration: 'none',
-                    borderRadius: 'var(--border-radius-medium)',
-                    fontWeight: '600'
-                  }}
-                >
-                  Se connecter
-                </Link>
-              )}
+              <p style={{ 
+                color: 'var(--text-light)',
+                fontSize: '0.9rem',
+                marginBottom: 'var(--spacing-lg)'
+              }}>
+                Redirection automatique vers la page d'accueil...
+              </p>
             </>
           )}
 
@@ -184,6 +176,14 @@ export default function Confirm() {
       </div>
 
       <style jsx>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
+    </div>
+  )
+}
         @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
