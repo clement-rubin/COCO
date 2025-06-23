@@ -35,7 +35,7 @@ export default function AddictiveFeed() {
       
       // Si l'utilisateur est connecté, TOUJOURS charger uniquement les recettes de ses amis
       if (user?.id) {
-        apiUrl += `&friends_only=true&current_user_id=${user.id}`
+        apiUrl += `&friends_only=true&user_id=${user.id}`
         
         logInfo('Loading friends-only recipes', {
           userId: user.id,
@@ -83,7 +83,7 @@ export default function AddictiveFeed() {
     try {
       const offset = page * 10
       const timestamp = Date.now()
-      let apiUrl = `/api/recipes?_t=${timestamp}&limit=10&offset=${offset}&friends_only=true&current_user_id=${user.id}`
+      let apiUrl = `/api/recipes?_t=${timestamp}&limit=10&offset=${offset}&friends_only=true&user_id=${user.id}`
       
       const response = await fetch(apiUrl)
       

@@ -280,66 +280,58 @@ async function getUserStatsForTrophies(userId) {
     }
 
   } catch (error) {
-    logError('Error getting user stats for trophies', error)
+    console.error('Error getting user stats for trophies', error)
     return await getUserStatsForTrophiesFallback(userId)
   }
 }
 
+// Assurons-nous que la fonction fallback existe et fonctionne correctement
 async function getUserStatsForTrophiesFallback(userId) {
+  // Implémentation simplifiée pour récupérer les statistiques directement
   try {
-    // Récupération des données du profil utilisateur
-    const profileResponse = await fetch(`/api/profile?user_id=${userId}`)
-    
-    if (profileResponse.ok) {
-      const profileData = await profileResponse.json()
-      const profile = profileData.data || profileData
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('display_name, bio, avatar_url, location, website, created_at')
+      .eq('user_id', userId)
+      .single();
       
-      // Calculer les statistiques pour les trophées
-      const stats = {
-        profileCompleteness: calculateProfileCompleteness(profile),
-        daysSinceRegistration: profile.created_at ? 
-          Math.floor((Date.now() - new Date(profile.created_at).getTime()) / (1000 * 60 * 60 * 24)) : 0,
-        hasAvatar: !!profile.avatar_url,
-        hasBio: !!profile.bio && profile.bio.trim().length > 0,
-        hasLocation: !!profile.location && profile.location.trim().length > 0,
-        hasWebsite: !!profile.website && profile.website.trim().length > 0,
-        hasPhone: !!profile.phone && profile.phone.trim().length > 0,
-        hasDateOfBirth: !!profile.date_of_birth,
-        recipesCount: 0, // Will be fetched separately if needed
-        friendsCount: 0  // Will be fetched separately if needed
-      }
+    const { data: friendships } = await supabase
+      .from('friendships')
+      .select('status')
+      .or(`user_id.eq.${userId},friend_id.eq.${userId}`)
+      .eq('status', 'accepted');
       
-      return stats
-    }
-    
-    // Fallback values if API call fails
-    return {
-      profileCompleteness: 0,
-      daysSinceRegistration: 0,
-      hasAvatar: false,
-      hasBio: false,
-      hasLocation: false,
-      hasWebsite: false,
-      hasPhone: false,
-      hasDateOfBirth: false,
-      recipesCount: 0,
-      friendsCount: 0
-    }
+    const { count: recipesCount } = await supabase
+      .from('recipes')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId);
 
-  } catch (error) {
-    console.error('Error in getUserStatsForTrophiesFallback:', error)
-    return {
-      profileCompleteness: 0,
-      daysSinceRegistration: 0,
-      hasAvatar: false,
-      hasBio: false,
-      hasLocation: false,
-      hasWebsite: false,
-      hasPhone: false,
-      hasDateOfBirth: false,
-      recipesCount: 0,
-      friendsCount: 0
+    // Calculer la complétude du profil
+    let profileCompleteness = 0;
+    if (profile) {
+      const fields = ['display_name', 'bio', 'avatar_url', 'location', 'website'];
+      const filledFields = fields.filter(field => profile[field] && profile[field].trim());
+      profileCompleteness = Math.round((filledFields.length / fields.length) * 100);
     }
+    
+    // Calculer les jours depuis l'inscription
+    const createdAt = profile?.created_at ? new Date(profile.created_at) : new Date();
+    const daysSinceRegistration = Math.floor((Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
+
+    return {
+      recipesCount: recipesCount || 0,
+      friendsCount: friendships?.length || 0,
+      profileCompleteness: profileCompleteness,
+      daysSinceRegistration: daysSinceRegistration
+    };
+  } catch (error) {
+    console.error('Error in stats fallback', error);
+    return {
+      recipesCount: 0,
+      friendsCount: 0,
+      profileCompleteness: 0,
+      daysSinceRegistration: 0
+    };
   }
 }
 
@@ -1067,6 +1059,14 @@ export async function canManuallyUnlockTrophy(userId, trophyId) {
     return {
       canUnlock,
       progress: Math.round(progressPercent),
+      reason: canUnlock ? 'Prêt à débloquer' : 'Progression incomplète'
+    }
+
+  } catch (error) {
+    logError('Error checking if trophy can be unlocked', error)
+    return { canUnlock: false, progress: 0, reason: 'Erreur lors de la vérification' }
+  }
+}
       reason: canUnlock ? 'Prêt à débloquer' : 'Progression incomplète'
     }
 
