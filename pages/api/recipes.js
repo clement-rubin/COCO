@@ -179,7 +179,7 @@ export default async function handler(req, res) {
 
         // Handle friends-only recipes
         if (friendsOnly && user_id) {
-          logInfo('Fetching friends-only recipes', {
+          logInfo('Fetching mutual friends-only recipes', {
             reference: requestReference,
             userId: user_id,
             limit,
@@ -187,121 +187,68 @@ export default async function handler(req, res) {
           })
 
           try {
-            // Première tentative : utiliser la fonction SQL optimisée
-            const { data: friendsData, error: friendsError } = await supabase
-              .rpc('get_user_friends_simple', { target_user_id: user_id })
+            // Première étape : récupérer les amitiés mutuelles acceptées
+            const { data: friendshipsData, error: friendsError } = await supabase
+              .from('friendships')
+              .select('user_id, friend_id, status')
+              .or(`user_id.eq.${user_id},friend_id.eq.${user_id}`)
+              .eq('status', 'accepted')
 
             if (friendsError) {
-              logError('Error fetching friends for recipes', friendsError, {
+              logError('Error fetching friendships for mutual check', friendsError, {
                 reference: requestReference,
                 userId: user_id,
                 errorCode: friendsError.code
               })
               
-              // Fallback amélioré : requête directe avec meilleure gestion d'erreur
-              if (friendsError.code === 'PGRST116' || friendsError.code === '42883') {
-                logInfo('Function not found, using direct friendship query', {
-                  reference: requestReference,
-                  userId: user_id
-                })
-                
-                const { data: directFriendsData, error: directError } = await supabase
-                  .from('friendships')
-                  .select('user_id, friend_id')
-                  .or(`user_id.eq.${user_id},friend_id.eq.${user_id}`)
-                  .eq('status', 'accepted')
-
-                if (!directError && directFriendsData) {
-                  // Extraire les IDs des amis
-                  const friendIds = new Set()
-                  directFriendsData.forEach(friendship => {
-                    if (friendship.user_id === user_id) {
-                      friendIds.add(friendship.friend_id)
-                    } else {
-                      friendIds.add(friendship.user_id)
-                    }
-                  })
-                  
-                  // Ajouter l'utilisateur lui-même
-                  friendIds.add(user_id)
-                  const friendIdsArray = Array.from(friendIds)
-                  
-                  logInfo('Direct friendship query successful', {
-                    reference: requestReference,
-                    friendsCount: friendIdsArray.length - 1,
-                    totalUserIds: friendIdsArray.length,
-                    userId: user_id
-                  })
-                  
-                  // Récupérer les recettes avec gestion d'erreur améliorée
-                  let query = supabase
-                    .from('recipes')
-                    .select('*')
-                    .in('user_id', friendIdsArray)
-                    .order('created_at', { ascending: false })
-
-                  if (offset > 0) {
-                    query = query.range(offset, offset + limit - 1)
-                  } else {
-                    query = query.limit(limit)
-                  }
-
-                  const { data: friendsRecipes, error: recipesError } = await query
-
-                  if (recipesError) {
-                    logError('Error fetching friends recipes via direct query', recipesError, {
-                      reference: requestReference,
-                      friendsCount: friendIdsArray.length,
-                      userId: user_id
-                    })
-                    throw recipesError
-                  }
-
-                  logInfo('Friends recipes fetched via direct query', {
-                    reference: requestReference,
-                    recipesCount: friendsRecipes?.length || 0,
-                    friendsCount: friendIdsArray.length - 1,
-                    userId: user_id,
-                    hasResults: (friendsRecipes?.length || 0) > 0
-                  })
-
-                  return safeResponse(res, 200, friendsRecipes || [])
-                } else {
-                  logError('Direct friendship query failed', directError, {
-                    reference: requestReference,
-                    userId: user_id
-                  })
-                  throw directError || new Error('Failed to fetch friends via direct query')
-                }
-              } else {
-                throw friendsError
-              }
+              return safeResponse(res, 200, [])
             }
 
-            // Traitement normal si la fonction SQL fonctionne
-            const friendIds = friendsData?.map(friend => friend.friend_user_id) || []
-            friendIds.push(user_id) // Ajouter l'utilisateur lui-même
+            if (!friendshipsData || friendshipsData.length === 0) {
+              logInfo('No friendships found', {
+                reference: requestReference,
+                userId: user_id
+              })
+              return safeResponse(res, 200, [])
+            }
 
-            logInfo('Friends IDs retrieved for recipes', {
-              reference: requestReference,
-              friendsCount: friendIds.length - 1,
-              totalUserIds: friendIds.length,
-              userId: user_id,
-              sampleFriendIds: friendIds.slice(0, 3)
+            // Deuxième étape : identifier les amis mutuels
+            const friendshipCounts = {}
+            const allFriendIds = new Set()
+            
+            friendshipsData.forEach(friendship => {
+              const friendId = friendship.user_id === user_id ? friendship.friend_id : friendship.user_id
+              allFriendIds.add(friendId)
+              friendshipCounts[friendId] = (friendshipCounts[friendId] || 0) + 1
             })
 
-            if (friendIds.length === 1) {
-              logInfo('No friends found, returning user recipes only', {
+            // Ne garder que les amis qui apparaissent 2 fois (relation mutuelle)
+            const mutualFriendIds = Object.keys(friendshipCounts)
+              .filter(friendId => friendshipCounts[friendId] === 2)
+            
+            // Ajouter l'utilisateur lui-même
+            mutualFriendIds.push(user_id)
+
+            logInfo('Mutual friends identified', {
+              reference: requestReference,
+              totalFriends: allFriendIds.size,
+              mutualFriends: mutualFriendIds.length - 1, // -1 pour exclure l'utilisateur
+              userId: user_id,
+              sampleMutualIds: mutualFriendIds.slice(0, 3)
+            })
+
+            if (mutualFriendIds.length === 1) {
+              logInfo('No mutual friends found, returning user recipes only', {
                 reference: requestReference,
                 userId: user_id
               })
             }
 
-            // Construire la requête pour les recettes des amis
+            // Construire la requête pour les recettes des amis mutuels uniquement
             let query = supabase
               .from('recipes')
               .select('*')
-              .in('user_id', friendIds)
+              .in('user_id', mutualFriendIds)
               .order('created_at', { ascending: false })
 
             if (offset > 0) {
@@ -310,73 +257,36 @@ export default async function handler(req, res) {
               query = query.limit(limit)
             }
 
-            const { data: friendsRecipes, error: recipesError } = await query
+            const { data: mutualFriendsRecipes, error: recipesError } = await query
 
             if (recipesError) {
-              logError('Error fetching friends recipes', recipesError, {
+              logError('Error fetching mutual friends recipes', recipesError, {
                 reference: requestReference,
-                friendsCount: friendIds.length,
-                userId: user_id
+                userId: user_id,
+                mutualFriendsCount: mutualFriendIds.length
               })
               throw recipesError
             }
 
-            logInfo('Friends recipes fetched successfully', {
+            logInfo('Mutual friends recipes fetched successfully', {
               reference: requestReference,
-              recipesCount: friendsRecipes?.length || 0,
-              friendsCount: friendIds.length - 1,
+              recipesCount: mutualFriendsRecipes?.length || 0,
+              mutualFriendsCount: mutualFriendIds.length - 1, // -1 pour exclure l'utilisateur
               userId: user_id,
-              hasResults: (friendsRecipes?.length || 0) > 0,
-              sampleRecipeIds: friendsRecipes?.slice(0, 3).map(r => r.id) || [],
-              recipeAuthors: friendsRecipes?.reduce((acc, recipe) => {
-                acc[recipe.user_id] = (acc[recipe.user_id] || 0) + 1
-                return acc
-              }, {}) || {}
+              hasResults: (mutualFriendsRecipes?.length || 0) > 0
             })
 
-            return safeResponse(res, 200, friendsRecipes || [])
+            return safeResponse(res, 200, mutualFriendsRecipes || [])
 
-          } catch (friendsApiError) {
-            logError('Error in friends-only recipes flow', friendsApiError, {
+          } catch (mutualFriendsError) {
+            logError('Error in mutual friends recipes flow', mutualFriendsError, {
               reference: requestReference,
               userId: user_id,
-              errorMessage: friendsApiError.message
+              errorMessage: mutualFriendsError.message
             })
             
-            // Fallback final : retourner les propres recettes de l'utilisateur
-            logInfo('Final fallback: returning user own recipes', {
-              reference: requestReference,
-              userId: user_id
-            })
-
-            try {
-              const { data: userRecipes, error: userRecipesError } = await supabase
-                .from('recipes')
-                .select('*')
-                .eq('user_id', user_id)
-                .order('created_at', { ascending: false })
-                .limit(limit)
-
-              if (userRecipesError) {
-                throw userRecipesError
-              }
-
-              logInfo('User own recipes returned as fallback', {
-                reference: requestReference,
-                recipesCount: userRecipes?.length || 0,
-                userId: user_id
-              })
-
-              return safeResponse(res, 200, userRecipes || [])
-            } catch (fallbackError) {
-              logError('Even fallback to user recipes failed', fallbackError, {
-                reference: requestReference,
-                userId: user_id
-              })
-              
-              // Retourner un tableau vide plutôt qu'une erreur
-              return safeResponse(res, 200, [])
-            }
+            // Fallback final : retourner un tableau vide
+            return safeResponse(res, 200, [])
           }
         }
         

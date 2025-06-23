@@ -618,12 +618,114 @@ export default function Amis() {
     }
   };
 
-  // Fonction améliorée pour récupérer les recettes des amis
-  const fetchFriendRecipes = async (friendId) => {
-    if (!friendId || friendsRecipes[friendId]) return; // Already loaded or invalid ID
+  // Fonction pour charger toutes les recettes des amis à la fois - VERSION MUTUELLE
+  const loadAllFriendsRecipes = async () => {
+    if (!friends || friends.length === 0) return;
     
     try {
-      logInfo('Fetching recipes for friend:', friendId);
+      // Récupérer uniquement les amis avec lesquels on a une relation mutuelle acceptée
+      const { data: mutualFriends, error: mutualError } = await supabase
+        .from('friendships')
+        .select(`
+          user_id,
+          friend_id,
+          status,
+          mutual_friendship:friendships!inner(
+            id,
+            status
+          )
+        `)
+        .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`)
+        .eq('status', 'accepted')
+        .eq('mutual_friendship.status', 'accepted');
+
+      if (mutualError) {
+        logError('Error checking mutual friendships:', mutualError);
+        // Fallback vers la méthode actuelle si la requête échoue
+        const friendIds = friends
+          .map(f => f?.friend_id)
+          .filter(id => id && !friendsRecipes[id]);
+        
+        if (friendIds.length === 0) return;
+        
+        await loadRecipesForFriends(friendIds);
+        return;
+      }
+
+      // Extraire les IDs des amis mutuels uniquement
+      const mutualFriendIds = new Set();
+      mutualFriends?.forEach(friendship => {
+        if (friendship.user_id === user.id) {
+          mutualFriendIds.add(friendship.friend_id);
+        } else {
+          mutualFriendIds.add(friendship.user_id);
+        }
+      });
+
+      const friendIdsToLoad = Array.from(mutualFriendIds).filter(id => !friendsRecipes[id]);
+      
+      if (friendIdsToLoad.length === 0) return;
+      
+      logInfo('Loading recipes for mutual friends only:', friendIdsToLoad);
+      
+      await loadRecipesForFriends(friendIdsToLoad);
+      
+    } catch (error) {
+      logError('Error loading mutual friends recipes:', error);
+    }
+  };
+
+  // Fonction helper pour charger les recettes d'une liste d'amis
+  const loadRecipesForFriends = async (friendIds) => {
+    const { data, error } = await supabase
+      .from('recipes')
+      .select('id, title, image, created_at, category, description, user_id')
+      .in('user_id', friendIds)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    
+    // Grouper les recettes par user_id
+    const recipesByUser = {};
+    data?.forEach(recipe => {
+      if (!recipesByUser[recipe.user_id]) {
+        recipesByUser[recipe.user_id] = [];
+      }
+      if (recipesByUser[recipe.user_id].length < 3) {
+        recipesByUser[recipe.user_id].push(recipe);
+      }
+    });
+    
+    setFriendsRecipes(prev => ({
+      ...prev,
+      ...recipesByUser
+    }));
+    
+    logInfo('Mutual friends recipes loaded:', Object.keys(recipesByUser));
+  };
+
+  // Fonction améliorée pour récupérer les recettes des amis - VERSION MUTUELLE
+  const fetchFriendRecipes = async (friendId) => {
+    if (!friendId || friendsRecipes[friendId]) return;
+    
+    try {
+      // Vérifier d'abord que c'est bien un ami mutuel
+      const { data: mutualCheck, error: mutualError } = await supabase
+        .from('friendships')
+        .select('id')
+        .or(`and(user_id.eq.${user.id},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${user.id})`)
+        .eq('status', 'accepted');
+
+      if (mutualError || !mutualCheck || mutualCheck.length < 2) {
+        logInfo('Not mutual friends, skipping recipes load:', { friendId, mutualCount: mutualCheck?.length });
+        setFriendsRecipes(prev => ({
+          ...prev,
+          [friendId]: []
+        }));
+        return;
+      }
+      
+      logInfo('Fetching recipes for mutual friend:', friendId);
       
       const { data, error } = await supabase
         .from('recipes')
@@ -637,62 +739,18 @@ export default function Amis() {
         throw error;
       }
 
-      logInfo('Friend recipes fetched:', { friendId, count: data?.length || 0 });
+      logInfo('Mutual friend recipes fetched:', { friendId, count: data?.length || 0 });
 
       setFriendsRecipes(prev => ({
         ...prev,
         [friendId]: data || []
       }));
     } catch (error) {
-      logError('Error fetching friend recipes:', error);
+      logError('Error fetching mutual friend recipes:', error);
       setFriendsRecipes(prev => ({
         ...prev,
         [friendId]: []
       }));
-    }
-  };
-
-  // Fonction pour charger toutes les recettes des amis à la fois
-  const loadAllFriendsRecipes = async () => {
-    if (!friends || friends.length === 0) return;
-    
-    try {
-      const friendIds = friends
-        .map(f => f?.friend_id)
-        .filter(id => id && !friendsRecipes[id]);
-      
-      if (friendIds.length === 0) return;
-      
-      logInfo('Loading recipes for multiple friends:', friendIds);
-      
-      const { data, error } = await supabase
-        .from('recipes')
-        .select('id, title, image, created_at, category, description, user_id')
-        .in('user_id', friendIds)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      
-      // Grouper les recettes par user_id
-      const recipesByUser = {};
-      data?.forEach(recipe => {
-        if (!recipesByUser[recipe.user_id]) {
-          recipesByUser[recipe.user_id] = [];
-        }
-        if (recipesByUser[recipe.user_id].length < 3) {
-          recipesByUser[recipe.user_id].push(recipe);
-        }
-      });
-      
-      setFriendsRecipes(prev => ({
-        ...prev,
-        ...recipesByUser
-      }));
-      
-      logInfo('All friends recipes loaded:', Object.keys(recipesByUser));
-      
-    } catch (error) {
-      logError('Error loading all friends recipes:', error);
     }
   };
 
