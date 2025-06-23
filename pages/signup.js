@@ -66,6 +66,7 @@ export default function Signup() {
           try {
             // Try to get session in case user was actually created
             const { data: sessionData } = await supabase.auth.getSession();
+            
             const userId = sessionData?.session?.user?.id;
             
             if (userId) {
