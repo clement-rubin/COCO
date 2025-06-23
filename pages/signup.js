@@ -106,10 +106,12 @@ export default function Signup() {
       // Succès - montrer le message de confirmation
       setSuccess(true)
       
-      // Redirection vers la page de confirmation après 3 secondes
+      // SUPPRIMER CES LIGNES qui redirigent automatiquement
+      /*
       setTimeout(() => {
         router.push('/auth/confirm')
       }, 3000)
+      */
     } catch (err) {
       const errorResult = handleAuthError(err)
       setError(errorResult.userError)
