@@ -311,7 +311,160 @@
   box-shadow: 0 12px 32px rgba(255, 107, 53, 0.4);
 }
 
-/* Enhanced responsive design */
+.suggestionBanner {
+  background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+  border: 1px solid #f39c12;
+  border-radius: 16px;
+  padding: 16px 20px;
+  margin: 0 16px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  animation: slideInDown 0.5s ease-out;
+}
+
+.suggestionIcon {
+  font-size: 2rem;
+  flex-shrink: 0;
+}
+
+.suggestionText {
+  flex: 1;
+}
+
+.suggestionText strong {
+  color: #d68910;
+  font-size: 1.1rem;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.suggestionText p {
+  color: #b7950b;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.addFriendsBtn {
+  background: linear-gradient(135deg, #f39c12, #e67e22);
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.addFriendsBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(243, 156, 18, 0.4);
+}
+
+.previewBanner {
+  background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+  border: 1px solid #17a2b8;
+  border-radius: 16px;
+  padding: 16px 20px;
+  margin: 0 16px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  animation: slideInDown 0.5s ease-out;
+}
+
+.previewIcon {
+  font-size: 2rem;
+  flex-shrink: 0;
+}
+
+.previewText {
+  flex: 1;
+}
+
+.previewText strong {
+  color: #117a8b;
+  font-size: 1.1rem;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.previewText p {
+  color: #0c5460;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.loginBtn {
+  background: linear-gradient(135deg, #17a2b8, #138496);
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.loginBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(23, 162, 184, 0.4);
+}
+
+.suggestionCard {
+  border: 2px solid #f39c12;
+  position: relative;
+}
+
+.suggestionCard::before {
+  content: '💡 Suggestion';
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: linear-gradient(135deg, #f39c12, #e67e22);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  z-index: 2;
+}
+
+.previewCard {
+  border: 2px solid #17a2b8;
+  position: relative;
+}
+
+.previewCard::before {
+  content: '👀 Aperçu';
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: linear-gradient(135deg, #17a2b8, #138496);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  z-index: 2;
+}
+
+@keyframes slideInDown {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Responsive pour mobile */
 @media (max-width: 768px) {
   .recipeCard {
     border-radius: 20px;

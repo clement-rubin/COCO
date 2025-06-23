@@ -31,61 +31,95 @@ export default function AddictiveFeed() {
     setLoading(true)
     try {
       const timestamp = Date.now()
-      let apiUrl = `/api/recipes?_t=${timestamp}&limit=10`
       
-      // Si l'utilisateur est connecté, TOUJOURS charger uniquement les recettes de ses amis
+      // Si l'utilisateur est connecté, charger ses recettes d'amis
       if (user?.id) {
-        apiUrl += `&friends_only=true&user_id=${user.id}`
-        
-        logInfo('Loading friends-only recipes', {
-          userId: user.id,
-          component: 'AddictiveFeed'
-        })
-      } else {
-        // Si pas connecté, charger quelques recettes publiques comme aperçu
-        logInfo('User not logged in, loading public recipes preview', {
-          component: 'AddictiveFeed'
-        })
-      }
-      
-      const response = await fetch(apiUrl)
-      
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`)
-      }
-      
-      const recipesData = await response.json()
-      
-      logInfo('Recipes loaded successfully', {
-        count: recipesData.length,
-        source: 'AddictiveFeed',
-        userId: user?.id,
-        friendsOnly: !!user?.id
-      })
-      
-      // Si aucune recette d'amis, charger quelques recettes publiques
-      if (user?.id && recipesData.length === 0) {
-        logInfo('No friends recipes found, loading fallback public recipes', {
+        logInfo('Loading friends recipes for user', {
           userId: user.id,
           component: 'AddictiveFeed'
         })
         
-        // Charger quelques recettes publiques en fallback
-        const fallbackResponse = await fetch(`/api/recipes?_t=${timestamp}&limit=5`)
-        if (fallbackResponse.ok) {
-          const fallbackData = await fallbackResponse.json()
-          if (fallbackData.length > 0) {
-            const formattedFallback = fallbackData.map(recipe => formatRecipeData(recipe))
-            setRecipes(formattedFallback)
+        // Étape 1: Charger les recettes des amis
+        let friendsApiUrl = `/api/recipes?_t=${timestamp}&limit=15&friends_only=true&user_id=${user.id}`
+        
+        const friendsResponse = await fetch(friendsApiUrl)
+        
+        if (friendsResponse.ok) {
+          const friendsRecipesData = await friendsResponse.json()
+          
+          logInfo('Friends recipes loaded', {
+            count: friendsRecipesData.length,
+            userId: user.id,
+            component: 'AddictiveFeed'
+          })
+          
+          if (friendsRecipesData.length > 0) {
+            const formattedFriendsRecipes = friendsRecipesData.map(recipe => formatRecipeData(recipe))
+            setRecipes(formattedFriendsRecipes)
             setPage(1)
+            setError(null)
+            return
+          } else {
+            logInfo('No friends recipes found, will show suggestion message', {
+              userId: user.id,
+              component: 'AddictiveFeed'
+            })
+          }
+        }
+        
+        // Étape 2: Si pas de recettes d'amis, charger quelques recettes populaires comme suggestion
+        logInfo('Loading popular recipes as fallback', {
+          userId: user.id,
+          component: 'AddictiveFeed'
+        })
+        
+        const popularApiUrl = `/api/recipes?_t=${timestamp}&limit=8`
+        const popularResponse = await fetch(popularApiUrl)
+        
+        if (popularResponse.ok) {
+          const popularData = await popularResponse.json()
+          if (popularData.length > 0) {
+            const formattedPopular = popularData.map(recipe => {
+              // Marquer ces recettes comme suggestions
+              const formatted = formatRecipeData(recipe)
+              formatted.isSuggestion = true
+              return formatted
+            })
+            setRecipes(formattedPopular)
+            setPage(1)
+            setError(null)
             return
           }
         }
+        
+        // Si aucune recette trouvée, afficher le message d'état vide
+        setRecipes([])
+        setPage(1)
+        
+      } else {
+        // Utilisateur non connecté - charger quelques recettes publiques comme aperçu
+        logInfo('User not logged in, loading public recipes preview', {
+          component: 'AddictiveFeed'
+        })
+        
+        const publicApiUrl = `/api/recipes?_t=${timestamp}&limit=6`
+        const response = await fetch(publicApiUrl)
+        
+        if (!response.ok) {
+          throw new Error(`Error ${response.status}: ${response.statusText}`)
+        }
+        
+        const recipesData = await response.json()
+        const formattedRecipes = recipesData.map(recipe => {
+          const formatted = formatRecipeData(recipe)
+          formatted.isPreview = true
+          return formatted
+        })
+        
+        setRecipes(formattedRecipes)
+        setPage(1)
       }
       
-      const formattedRecipes = recipesData.map(recipe => formatRecipeData(recipe))
-      setRecipes(formattedRecipes)
-      setPage(1)
     } catch (err) {
       logError('Failed to load recipes', err, {
         component: 'AddictiveFeed',
@@ -93,27 +127,8 @@ export default function AddictiveFeed() {
         userId: user?.id
       })
       
-      // En cas d'erreur, essayer de charger des recettes publiques
-      try {
-        logInfo('Attempting fallback to public recipes after error', {
-          userId: user?.id,
-          component: 'AddictiveFeed'
-        })
-        
-        const fallbackResponse = await fetch(`/api/recipes?_t=${Date.now()}&limit=5`)
-        if (fallbackResponse.ok) {
-          const fallbackData = await fallbackResponse.json()
-          const formattedFallback = fallbackData.map(recipe => formatRecipeData(recipe))
-          setRecipes(formattedFallback)
-          setPage(1)
-          setError(null) // Clear error since we have fallback data
-          return
-        }
-      } catch (fallbackErr) {
-        logError('Fallback public recipes also failed', fallbackErr)
-      }
-      
       setError('Impossible de charger les recettes. Vérifiez votre connexion et réessayez.')
+      setRecipes([])
     } finally {
       setLoading(false)
     }
@@ -438,30 +453,53 @@ export default function AddictiveFeed() {
     return (
       <div className={styles.emptyContainer}>
         <div className={styles.emptyIcon}>👥</div>
-        <h3>Aucune recette d'amis</h3>
+        <h3>
+          {user ? 'Connectez-vous avec vos amis culinaires !' : 'Rejoignez COCO !'}
+        </h3>
         <p>
-          Vos amis n'ont pas encore partagé de recettes. 
-          Invitez-les à rejoindre COCO ou ajoutez de nouveaux amis !
+          {user 
+            ? 'Vos amis n\'ont pas encore partagé de recettes. Invitez-les à rejoindre COCO ou découvrez de nouveaux amis !'
+            : 'Connectez-vous pour découvrir les délicieuses recettes de la communauté COCO.'
+          }
         </p>
         <div className={styles.emptyActions}>
-          <button 
-            onClick={() => router.push('/amis')} 
-            className={styles.primaryButton}
-          >
-            👥 Gérer mes amis
-          </button>
-          <button 
-            onClick={() => router.push('/explorer')} 
-            className={styles.secondaryButton}
-          >
-            🔍 Explorer toutes les recettes
-          </button>
-          <button 
-            onClick={() => router.push('/submit-recipe')} 
-            className={styles.tertiaryButton}
-          >
-            ➕ Partager une recette
-          </button>
+          {user ? (
+            <>
+              <button 
+                onClick={() => router.push('/amis')} 
+                className={styles.primaryButton}
+              >
+                👥 Gérer mes amis
+              </button>
+              <button 
+                onClick={() => router.push('/explorer')} 
+                className={styles.secondaryButton}
+              >
+                🔍 Explorer toutes les recettes
+              </button>
+              <button 
+                onClick={() => router.push('/share-photo')} 
+                className={styles.tertiaryButton}
+              >
+                📸 Partager une recette
+              </button>
+            </>
+          ) : (
+            <>
+              <button 
+                onClick={() => router.push('/login')} 
+                className={styles.primaryButton}
+              >
+                🔐 Se connecter
+              </button>
+              <button 
+                onClick={() => router.push('/explorer')} 
+                className={styles.secondaryButton}
+              >
+                🔍 Aperçu des recettes
+              </button>
+            </>
+          )}
         </div>
       </div>
     )
@@ -469,9 +507,43 @@ export default function AddictiveFeed() {
 
   return (
     <div className={styles.feedContainer} ref={containerRef}>
+      {/* Message d'information si ce sont des suggestions */}
+      {recipes.length > 0 && recipes[0]?.isSuggestion && (
+        <div className={styles.suggestionBanner}>
+          <div className={styles.suggestionIcon}>💡</div>
+          <div className={styles.suggestionText}>
+            <strong>Recettes suggérées</strong>
+            <p>Ajoutez des amis pour voir leurs créations culinaires ici !</p>
+          </div>
+          <button 
+            onClick={() => router.push('/amis')} 
+            className={styles.addFriendsBtn}
+          >
+            👥 Ajouter des amis
+          </button>
+        </div>
+      )}
+      
+      {/* Message d'aperçu pour les utilisateurs non connectés */}
+      {recipes.length > 0 && recipes[0]?.isPreview && (
+        <div className={styles.previewBanner}>
+          <div className={styles.previewIcon}>👀</div>
+          <div className={styles.previewText}>
+            <strong>Aperçu de COCO</strong>
+            <p>Connectez-vous pour accéder à toutes les fonctionnalités !</p>
+          </div>
+          <button 
+            onClick={() => router.push('/login')} 
+            className={styles.loginBtn}
+          >
+            🔐 Se connecter
+          </button>
+        </div>
+      )}
+
       <div className={styles.recipesGrid}>
         {recipes.map((post) => (
-          <div key={post.id} className={styles.recipeCard}>
+          <div key={post.id} className={`${styles.recipeCard} ${post.isSuggestion ? styles.suggestionCard : ''} ${post.isPreview ? styles.previewCard : ''}`}>
             {/* Image */}
             <div className={styles.recipeImageContainer} onClick={() => openRecipe(post.recipe.id)}>
               <Image

@@ -493,87 +493,128 @@ export default function Amis() {
   // Fonction corrigée pour filtrer les amis avec protection mobile renforcée
   const getFilteredFriends = () => {
     try {
-      // Protection renforcée pour mobile
-      const safeFriends = friends && Array.isArray(friends) ? friends : [];
+      // Protection renforcée pour mobile - vérification complète
+      if (!friends || !Array.isArray(friends)) {
+        logInfo('Friends is not a valid array', { 
+          friendsType: typeof friends, 
+          friendsIsArray: Array.isArray(friends),
+          userId: user?.id 
+        });
+        return [];
+      }
       
-      if (safeFriends.length === 0) {
+      if (friends.length === 0) {
         logInfo('No friends found for filtering', { userId: user?.id });
         return [];
       }
       
       // Créer une copie sûre des données avec validation complète
-      let filteredFriends = safeFriends.map(friend => {
-        // Validation stricte de la structure des données
-        if (!friend || typeof friend !== 'object') {
-          logError('Invalid friend object structure', null, { friend });
-          return null;
-        }
-        
-        return {
-          ...friend,
-          profiles: friend?.profiles && typeof friend.profiles === 'object' ? friend.profiles : {
-            user_id: friend.friend_id || friend.user_id,
-            display_name: 'Utilisateur inconnu',
-            bio: '',
-            avatar_url: null
-          },
-          friend_id: friend.friend_id || friend.user_id // Assurer la compatibilité
-        };
-      }).filter(Boolean); // Supprimer les entrées null
+      let filteredFriends = friends
+        .filter(friend => {
+          // Validation stricte de la structure des données
+          if (!friend || typeof friend !== 'object') {
+            logError('Invalid friend object structure', null, { friend });
+            return false;
+          }
+          
+          // Vérifier que l'ami a un ID valide
+          const friendId = friend.friend_id || friend.user_id;
+          if (!friendId) {
+            logError('Friend missing ID', null, { friend });
+            return false;
+          }
+          
+          return true;
+        })
+        .map(friend => {
+          // Normaliser la structure des données
+          return {
+            ...friend,
+            friend_id: friend.friend_id || friend.user_id, // Assurer la compatibilité
+            profiles: friend?.profiles && typeof friend.profiles === 'object' ? friend.profiles : {
+              user_id: friend.friend_id || friend.user_id,
+              display_name: friend.profiles?.display_name || 'Utilisateur inconnu',
+              bio: friend.profiles?.bio || '',
+              avatar_url: friend.profiles?.avatar_url || null
+            }
+          };
+        });
       
-      // Appliquer le filtre avec vérifications
-      switch (friendFilter) {
-        case 'recent':
-          filteredFriends = filteredFriends.slice(0, Math.min(5, filteredFriends.length));
-          break;
-        case 'active':
-          // Version déterministe pour éviter les bugs mobiles
-          filteredFriends = filteredFriends.filter((_, index) => index % 2 === 0);
-          break;
-        case 'all':
-        default:
-          // Tous les amis - pas de filtrage
-          break;
+      // Appliquer le filtre avec vérifications sécurisées
+      try {
+        switch (friendFilter) {
+          case 'recent':
+            filteredFriends = filteredFriends.slice(0, Math.min(5, filteredFriends.length));
+            break;
+          case 'active':
+            // Version déterministe pour éviter les bugs mobiles
+            filteredFriends = filteredFriends.filter((_, index) => index % 2 === 0);
+            break;
+          case 'all':
+          default:
+            // Tous les amis - pas de filtrage supplémentaire
+            break;
+        }
+      } catch (filterError) {
+        logError('Error applying friend filter:', filterError);
+        // En cas d'erreur de filtrage, retourner tous les amis
       }
       
       // Appliquer le tri avec protection d'erreur
-      switch (friendSort) {
-        case 'name':
-          filteredFriends.sort((a, b) => {
-            try {
-              const nameA = String(a?.profiles?.display_name || '').toLowerCase();
-              const nameB = String(b?.profiles?.display_name || '').toLowerCase();
-              return nameA.localeCompare(nameB);
-            } catch (sortError) {
-              logError('Error sorting friends by name:', sortError);
-              return 0;
-            }
-          });
-          break;
-        case 'recent':
-          filteredFriends.reverse();
-          break;
-        case 'active':
-          // Tri stable pour mobile
-          filteredFriends.sort((a, b) => (a?.id || 0) - (b?.id || 0));
-          break;
-        default:
-          break;
+      try {
+        switch (friendSort) {
+          case 'name':
+            filteredFriends.sort((a, b) => {
+              try {
+                const nameA = String(a?.profiles?.display_name || '').toLowerCase();
+                const nameB = String(b?.profiles?.display_name || '').toLowerCase();
+                return nameA.localeCompare(nameB);
+              } catch (sortError) {
+                logError('Error sorting friends by name:', sortError);
+                return 0;
+              }
+            });
+            break;
+          case 'recent':
+            // Tri par ordre inverse (plus récents en premier)
+            filteredFriends.reverse();
+            break;
+          case 'active':
+            // Tri stable par ID pour mobile
+            filteredFriends.sort((a, b) => {
+              const idA = parseInt(a?.id || 0);
+              const idB = parseInt(b?.id || 0);
+              return idA - idB;
+            });
+            break;
+          default:
+            // Pas de tri spécial
+            break;
+        }
+      } catch (sortError) {
+        logError('Error sorting friends:', sortError);
+        // En cas d'erreur de tri, garder l'ordre original
       }
       
       logInfo('Friends filtered successfully', {
-        originalCount: safeFriends.length,
+        originalCount: friends.length,
         filteredCount: filteredFriends.length,
         filter: friendFilter,
         sort: friendSort,
-        userId: user?.id
+        userId: user?.id,
+        sampleFriendIds: filteredFriends.slice(0, 3).map(f => f.friend_id)
       });
       
       return filteredFriends;
     } catch (error) {
-      logError('Error in getFilteredFriends (mobile-safe):', error);
-      // Retour de secours sûr
-      return Array.isArray(friends) ? friends : [];
+      logError('Critical error in getFilteredFriends (mobile-safe):', error, {
+        friendsType: typeof friends,
+        friendsLength: friends?.length,
+        userId: user?.id
+      });
+      
+      // Retour de secours ultra-sûr
+      return Array.isArray(friends) ? friends.slice(0, 10) : [];
     }
   };
 
@@ -821,7 +862,9 @@ export default function Amis() {
             <span className={styles.statNumber}>{friendshipStats.pending}</span>
             <span className={styles.statLabel}>En attente</span>
             {friendshipStats.pending > 0 && (
-              <div className={styles.pendingBadge}>!</div>
+              <div className={`${styles.tabBadge} ${friendshipStats.pending > 3 ? styles.urgent : ''}`}>
+                {friendshipStats.pending}
+              </div>
             )}
           </div>
           {/* Nouvelle statistique: trophées d'amitié */}
