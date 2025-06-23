@@ -179,7 +179,7 @@ export default async function handler(req, res) {
 
         // Handle friends-only recipes
         if (friendsOnly && user_id) {
-          logInfo('Fetching mutual friends-only recipes', {
+          logInfo('Fetching strict mutual friends-only recipes', {
             reference: requestReference,
             userId: user_id,
             limit,
@@ -187,68 +187,80 @@ export default async function handler(req, res) {
           })
 
           try {
-            // Première étape : récupérer les amitiés mutuelles acceptées
-            const { data: friendshipsData, error: friendsError } = await supabase
+            // Étape 1 : Récupérer TOUTES les amitiés liées à l'utilisateur
+            const { data: allFriendships, error: friendsError } = await supabase
               .from('friendships')
               .select('user_id, friend_id, status')
               .or(`user_id.eq.${user_id},friend_id.eq.${user_id}`)
               .eq('status', 'accepted')
 
             if (friendsError) {
-              logError('Error fetching friendships for mutual check', friendsError, {
+              logError('Error fetching friendships for strict mutual check', friendsError, {
                 reference: requestReference,
                 userId: user_id,
                 errorCode: friendsError.code
               })
+              return safeResponse(res, 200, [])
+            }
+
+            if (!allFriendships || allFriendships.length === 0) {
+              logInfo('No friendships found - returning empty array', {
+                reference: requestReference,
+                userId: user_id
+              })
+              return safeResponse(res, 200, [])
+            }
+
+            // Étape 2 : Identifier UNIQUEMENT les amitiés bidirectionnelles (mutuelles)
+            const friendshipPairs = new Map()
+            
+            allFriendships.forEach(friendship => {
+              const otherUserId = friendship.user_id === user_id ? friendship.friend_id : friendship.user_id
+              const pairKey = [user_id, otherUserId].sort().join('|')
               
-              return safeResponse(res, 200, [])
-            }
-
-            if (!friendshipsData || friendshipsData.length === 0) {
-              logInfo('No friendships found', {
-                reference: requestReference,
-                userId: user_id
-              })
-              return safeResponse(res, 200, [])
-            }
-
-            // Deuxième étape : identifier les amis mutuels
-            const friendshipCounts = {}
-            const allFriendIds = new Set()
-            
-            friendshipsData.forEach(friendship => {
-              const friendId = friendship.user_id === user_id ? friendship.friend_id : friendship.user_id
-              allFriendIds.add(friendId)
-              friendshipCounts[friendId] = (friendshipCounts[friendId] || 0) + 1
+              if (!friendshipPairs.has(pairKey)) {
+                friendshipPairs.set(pairKey, { count: 0, otherUserId, friendships: [] })
+              }
+              
+              const pair = friendshipPairs.get(pairKey)
+              pair.count++
+              pair.friendships.push(friendship)
             })
 
-            // Ne garder que les amis qui apparaissent 2 fois (relation mutuelle)
-            const mutualFriendIds = Object.keys(friendshipCounts)
-              .filter(friendId => friendshipCounts[friendId] === 2)
-            
-            // Ajouter l'utilisateur lui-même
-            mutualFriendIds.push(user_id)
+            // Étape 3 : Ne garder que les paires avec exactement 2 relations (bidirectionnelles)
+            const strictMutualFriendIds = []
+            friendshipPairs.forEach((pair, pairKey) => {
+              if (pair.count === 2) {
+                // Vérifier que les deux relations sont bien acceptées
+                const allAccepted = pair.friendships.every(f => f.status === 'accepted')
+                if (allAccepted) {
+                  strictMutualFriendIds.push(pair.otherUserId)
+                }
+              }
+            })
 
-            logInfo('Mutual friends identified', {
+            logInfo('Strict bidirectional friends verification', {
               reference: requestReference,
-              totalFriends: allFriendIds.size,
-              mutualFriends: mutualFriendIds.length - 1, // -1 pour exclure l'utilisateur
+              totalFriendships: allFriendships.length,
+              friendshipPairs: friendshipPairs.size,
+              strictMutualFriends: strictMutualFriendIds.length,
               userId: user_id,
-              sampleMutualIds: mutualFriendIds.slice(0, 3)
+              mutualFriendIds: strictMutualFriendIds.slice(0, 3) // Log first 3 for debugging
             })
 
-            if (mutualFriendIds.length === 1) {
-              logInfo('No mutual friends found, returning user recipes only', {
+            if (strictMutualFriendIds.length === 0) {
+              logInfo('No strict mutual friends found, returning empty array', {
                 reference: requestReference,
                 userId: user_id
               })
+              return safeResponse(res, 200, [])
             }
 
-            // Construire la requête pour les recettes des amis mutuels uniquement
+            // Étape 4 : Récupérer les recettes UNIQUEMENT des amis mutuels (sans l'utilisateur lui-même)
             let query = supabase
               .from('recipes')
               .select('*')
-              .in('user_id', mutualFriendIds)
+              .in('user_id', strictMutualFriendIds) // Seulement les amis mutuels, pas l'utilisateur
               .order('created_at', { ascending: false })
 
             if (offset > 0) {
@@ -257,35 +269,52 @@ export default async function handler(req, res) {
               query = query.limit(limit)
             }
 
-            const { data: mutualFriendsRecipes, error: recipesError } = await query
+            const { data: strictMutualRecipes, error: recipesError } = await query
 
             if (recipesError) {
-              logError('Error fetching mutual friends recipes', recipesError, {
+              logError('Error fetching strict mutual friends recipes', recipesError, {
                 reference: requestReference,
                 userId: user_id,
-                mutualFriendsCount: mutualFriendIds.length
+                mutualFriendsCount: strictMutualFriendIds.length
               })
-              throw recipesError
+              return safeResponse(res, 200, [])
             }
 
-            logInfo('Mutual friends recipes fetched successfully', {
+            const recipes = strictMutualRecipes || []
+
+            logInfo('Strict mutual friends recipes fetched', {
               reference: requestReference,
-              recipesCount: mutualFriendsRecipes?.length || 0,
-              mutualFriendsCount: mutualFriendIds.length - 1, // -1 pour exclure l'utilisateur
+              recipesCount: recipes.length,
+              strictMutualFriendsCount: strictMutualFriendIds.length,
               userId: user_id,
-              hasResults: (mutualFriendsRecipes?.length || 0) > 0
+              hasResults: recipes.length > 0,
+              uniqueAuthors: [...new Set(recipes.map(r => r.user_id))].length,
+              sampleAuthors: [...new Set(recipes.map(r => r.user_id))].slice(0, 3)
             })
 
-            return safeResponse(res, 200, mutualFriendsRecipes || [])
+            // Étape 5 : Vérification finale de sécurité
+            const validRecipes = recipes.filter(recipe => 
+              strictMutualFriendIds.includes(recipe.user_id)
+            )
+            
+            if (validRecipes.length !== recipes.length) {
+              logWarning('Filtered out non-mutual-friend recipes', {
+                reference: requestReference,
+                originalCount: recipes.length,
+                filteredCount: validRecipes.length,
+                removedCount: recipes.length - validRecipes.length
+              })
+            }
 
-          } catch (mutualFriendsError) {
-            logError('Error in mutual friends recipes flow', mutualFriendsError, {
+            return safeResponse(res, 200, validRecipes)
+
+          } catch (strictMutualError) {
+            logError('Error in strict mutual friends recipes flow', strictMutualError, {
               reference: requestReference,
               userId: user_id,
-              errorMessage: mutualFriendsError.message
+              errorMessage: strictMutualError.message
             })
             
-            // Fallback final : retourner un tableau vide
             return safeResponse(res, 200, [])
           }
         }
