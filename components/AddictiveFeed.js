@@ -38,60 +38,41 @@ export default function AddictiveFeed() {
           component: 'AddictiveFeed'
         })
         
-        // Étape 1: Récupérer les amitiés mutuelles acceptées
-        const { data: friendshipsData, error: friendsError } = await supabase
-          .from('friendships')
-          .select('user_id, friend_id, status')
-          .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`)
-          .eq('status', 'accepted')
+        // Utiliser l'API recipes avec le paramètre friendsOnly
+        const timestamp = Date.now()
+        const apiUrl = `/api/recipes?friendsOnly=true&user_id=${user.id}&limit=20&_t=${timestamp}`
+        const response = await fetch(apiUrl)
         
-        if (friendsError) {
-          logError('Error getting friendships for mutual check:', friendsError)
-        } else if (friendshipsData && friendshipsData.length > 0) {
-          // Identifier les amis mutuels
-          const friendshipCounts = {}
-          
-          friendshipsData.forEach(friendship => {
-            const friendId = friendship.user_id === user.id ? friendship.friend_id : friendship.user_id
-            friendshipCounts[friendId] = (friendshipCounts[friendId] || 0) + 1
-          })
-          
-          // Ne garder que les amis mutuels (qui apparaissent 2 fois)
-          const mutualFriendIds = Object.keys(friendshipCounts)
-            .filter(friendId => friendshipCounts[friendId] === 2)
-          
-          logInfo('Mutual friends found', {
-            mutualFriendIds,
-            count: mutualFriendIds.length,
-            userId: user.id
-          })
-          
-          if (mutualFriendIds.length > 0) {
-            // Charger uniquement les recettes des amis mutuels
-            const { data: mutualFriendsRecipesData, error: recipesError } = await supabase
-              .from('recipes')
-              .select('*')
-              .in('user_id', mutualFriendIds)
-              .order('created_at', { ascending: false })
-              .limit(15)
-            
-            if (!recipesError && mutualFriendsRecipesData && mutualFriendsRecipesData.length > 0) {
-              const formattedMutualRecipes = mutualFriendsRecipesData.map(recipe => formatRecipeData(recipe))
-              setRecipes(formattedMutualRecipes)
-              setPage(1)
-              setError(null)
-              return
-            }
-          }
+        if (!response.ok) {
+          throw new Error(`Error ${response.status}: ${response.statusText}`)
         }
         
-        // Si pas d'amis mutuels ou pas de recettes, afficher un message
-        logInfo('No mutual friends or mutual friends recipes found', {
+        const recipesData = await response.json()
+        
+        if (recipesData && recipesData.length > 0) {
+          const formattedRecipes = recipesData.map(recipe => formatRecipeData(recipe))
+          setRecipes(formattedRecipes)
+          setPage(1)
+          setError(null)
+          return
+        }
+        
+        // Si pas de recettes d'amis, charger recettes publiques
+        logInfo('No friends recipes found, loading public recipes', {
           userId: user.id,
           component: 'AddictiveFeed'
         })
         
-        setRecipes([])
+        const publicApiUrl = `/api/recipes?_t=${timestamp}&limit=10`
+        const publicResponse = await fetch(publicApiUrl)
+        
+        if (!publicResponse.ok) {
+          throw new Error(`Error ${publicResponse.status}: ${publicResponse.statusText}`)
+        }
+        
+        const publicRecipesData = await publicResponse.json()
+        const formattedRecipes = publicRecipesData.map(recipe => formatRecipeData(recipe))
+        setRecipes(formattedRecipes)
         setPage(1)
         
       } else {
@@ -100,6 +81,7 @@ export default function AddictiveFeed() {
           component: 'AddictiveFeed'
         })
         
+        const timestamp = Date.now()
         const publicApiUrl = `/api/recipes?_t=${timestamp}&limit=6`
         const response = await fetch(publicApiUrl)
         
@@ -121,7 +103,7 @@ export default function AddictiveFeed() {
     } catch (err) {
       logError('Failed to load recipes', err, {
         component: 'AddictiveFeed',
-        method: 'loadInitialRecipes',
+        method: 'loadRecipes',
         userId: user?.id
       })
       
@@ -137,7 +119,7 @@ export default function AddictiveFeed() {
     
     setLoadingMore(true)
     try {
-      // Récupérer les amitiés mutuelles pour la pagination
+      // Récupérer les amitiés pour la pagination
       const { data: friendshipsData, error: friendsError } = await supabase
         .from('friendships')
         .select('user_id, friend_id, status')
@@ -149,28 +131,31 @@ export default function AddictiveFeed() {
         return
       }
       
-      // Identifier les amis mutuels
-      const friendshipCounts = {}
+      // Extraire les IDs des amis
+      const friendIds = new Set()
       friendshipsData.forEach(friendship => {
-        const friendId = friendship.user_id === user.id ? friendship.friend_id : friendship.user_id
-        friendshipCounts[friendId] = (friendshipCounts[friendId] || 0) + 1
+        if (friendship.user_id === user.id) {
+          friendIds.add(friendship.friend_id)
+        } else if (friendship.friend_id === user.id) {
+          friendIds.add(friendship.user_id)
+        }
       })
       
-      const mutualFriendIds = Object.keys(friendshipCounts)
-        .filter(friendId => friendshipCounts[friendId] === 2)
+      const friendIdsArray = Array.from(friendIds)
+      const allUserIds = [...friendIdsArray, user.id]
       
-      if (mutualFriendIds.length === 0) {
+      if (allUserIds.length === 0) {
         setHasMore(false)
         return
       }
       
       const offset = page * 10
       
-      // Charger plus de recettes des amis mutuels seulement
+      // Charger plus de recettes
       const { data: recipesData, error } = await supabase
         .from('recipes')
         .select('*')
-        .in('user_id', mutualFriendIds)
+        .in('user_id', allUserIds)
         .order('created_at', { ascending: false })
         .range(offset, offset + 9)
       
@@ -187,7 +172,7 @@ export default function AddictiveFeed() {
       setRecipes(prev => [...prev, ...formattedRecipes])
       setPage(prev => prev + 1)
     } catch (err) {
-      logError('Failed to load more mutual friends recipes', err, {
+      logError('Failed to load more recipes', err, {
         component: 'AddictiveFeed',
         method: 'loadMoreRecipes',
         page,
