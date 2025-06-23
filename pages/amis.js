@@ -490,65 +490,79 @@ export default function Amis() {
     }
   };
 
-  // Fonction manquante pour filtrer les amis
+  // Fonction corrigée pour filtrer les amis
   const getFilteredFriends = () => {
-    if (!friends || friends.length === 0) return [];
-    
-    let filteredFriends = [...friends];
-    
-    // Appliquer le filtre
-    switch (friendFilter) {
-      case 'recent':
-        // Simulation du tri par amis ajoutés récemment
-        filteredFriends = filteredFriends.filter((_, index) => index < 5);
-        break;
-      case 'active':
-        // Simulation du tri par amis actifs récemment
-        filteredFriends = filteredFriends.filter(() => Math.random() > 0.5);
-        break;
-      case 'all':
-      default:
-        // Tous les amis
-        break;
+    try {
+      if (!friends || !Array.isArray(friends) || friends.length === 0) {
+        return [];
+      }
+      
+      let filteredFriends = [...friends];
+      
+      // Appliquer le filtre
+      switch (friendFilter) {
+        case 'recent':
+          // Simulation du tri par amis ajoutés récemment
+          filteredFriends = filteredFriends.slice(0, Math.min(5, filteredFriends.length));
+          break;
+        case 'active':
+          // Simulation du tri par amis actifs récemment
+          filteredFriends = filteredFriends.filter(() => Math.random() > 0.5);
+          break;
+        case 'all':
+        default:
+          // Tous les amis
+          break;
+      }
+      
+      // Appliquer le tri
+      switch (friendSort) {
+        case 'name':
+          filteredFriends.sort((a, b) => {
+            const nameA = (a?.profiles?.display_name || '').toLowerCase();
+            const nameB = (b?.profiles?.display_name || '').toLowerCase();
+            return nameA.localeCompare(nameB);
+          });
+          break;
+        case 'recent':
+          // Tri par ordre chronologique (plus récent en premier)
+          filteredFriends.reverse();
+          break;
+        case 'active':
+          // Tri par activité (simulation)
+          filteredFriends.sort(() => Math.random() - 0.5);
+          break;
+        default:
+          break;
+      }
+      
+      return filteredFriends;
+    } catch (error) {
+      logError('Error in getFilteredFriends:', error);
+      return friends || [];
     }
-    
-    // Appliquer le tri
-    switch (friendSort) {
-      case 'name':
-        filteredFriends.sort((a, b) => {
-          const nameA = a.profiles?.display_name?.toLowerCase() || '';
-          const nameB = b.profiles?.display_name?.toLowerCase() || '';
-          return nameA.localeCompare(nameB);
-        });
-        break;
-      case 'recent':
-        // Tri par ordre chronologique (plus récent en premier)
-        filteredFriends.reverse();
-        break;
-      case 'active':
-        // Tri par activité (simulation)
-        filteredFriends.sort(() => Math.random() - 0.5);
-        break;
-      default:
-        break;
-    }
-    
-    return filteredFriends;
   };
 
+  // Fonction améliorée pour récupérer les recettes des amis
   const fetchFriendRecipes = async (friendId) => {
-    if (friendsRecipes[friendId]) return; // Already loaded
+    if (!friendId || friendsRecipes[friendId]) return; // Already loaded or invalid ID
     
     try {
+      logInfo('Fetching recipes for friend:', friendId);
+      
       const { data, error } = await supabase
         .from('recipes')
-        .select('id, title, image, created_at')
+        .select('id, title, image, created_at, category, description')
         .eq('user_id', friendId)
-        .eq('is_public', true)
         .order('created_at', { ascending: false })
         .limit(3);
 
-      if (error) throw error;
+      if (error) {
+        logError('Error fetching friend recipes:', error);
+        throw error;
+      }
+
+      logInfo('Friend recipes fetched:', { friendId, count: data?.length || 0 });
 
       setFriendsRecipes(prev => ({
         ...prev,
@@ -562,6 +576,88 @@ export default function Amis() {
       }));
     }
   };
+
+  // Fonction pour charger toutes les recettes des amis à la fois
+  const loadAllFriendsRecipes = async () => {
+    if (!friends || friends.length === 0) return;
+    
+    try {
+      const friendIds = friends
+        .map(f => f?.friend_id)
+        .filter(id => id && !friendsRecipes[id]);
+      
+      if (friendIds.length === 0) return;
+      
+      logInfo('Loading recipes for multiple friends:', friendIds);
+      
+      const { data, error } = await supabase
+        .from('recipes')
+        .select('id, title, image, created_at, category, description, user_id')
+        .in('user_id', friendIds)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      
+      // Grouper les recettes par user_id
+      const recipesByUser = {};
+      data?.forEach(recipe => {
+        if (!recipesByUser[recipe.user_id]) {
+          recipesByUser[recipe.user_id] = [];
+        }
+        if (recipesByUser[recipe.user_id].length < 3) {
+          recipesByUser[recipe.user_id].push(recipe);
+        }
+      });
+      
+      setFriendsRecipes(prev => ({
+        ...prev,
+        ...recipesByUser
+      }));
+      
+      logInfo('All friends recipes loaded:', Object.keys(recipesByUser));
+      
+    } catch (error) {
+      logError('Error loading all friends recipes:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      loadFriendshipStats();
+      loadFriendshipTrophies();
+      // Charger les recettes des amis quand l'onglet friendsRecipes est actif
+      if (activeTab === 'friendsRecipes') {
+        loadAllFriendsRecipes();
+      }
+    }
+  }, [user, activeTab]);
+
+  // Nouvelle fonction pour charger les amis et leurs recettes
+  const loadFriendsWithRecipes = async (userId) => {
+    try {
+      // Charger les amis
+      await loadFriends(userId);
+      
+      // Charger les recettes de tous les amis
+      await loadAllFriendsRecipes();
+    } catch (error) {
+      logError('Error loading friends with recipes:', error);
+    }
+  };
+
+  // Appel initial pour charger l'utilisateur et ses amis
+  useEffect(() => {
+    const init = async () => {
+      await checkUser();
+      
+      if (user) {
+        // Charger les amis et leurs recettes
+        await loadFriendsWithRecipes(user.id);
+      }
+    };
+    
+    init();
+  }, []);
 
   const searchSection = (
     <div className={styles.searchSection}>
@@ -1092,50 +1188,89 @@ export default function Amis() {
               </div>
             ) : (
               <div className={styles.friendsRecipesGrid}>
-                {friends.map(friendship => (
-                  <div key={friendship.friend_id} className={styles.friendsRecipesBlock} style={{ animation: 'cardSlideIn 0.7s cubic-bezier(0.68,-0.55,0.265,1.55)' }}>
-                    <div className={styles.friendsRecipesHeader}>
-                      <div className={styles.avatarMini}>
-                        {friendship.profiles?.avatar_url ? (
-                          <img src={friendship.profiles.avatar_url} alt={friendship.profiles.display_name} />
+                <div className={styles.loadAllButton}>
+                  <button 
+                    onClick={loadAllFriendsRecipes}
+                    className={styles.refreshButton}
+                  >
+                    🔄 Actualiser toutes les recettes
+                  </button>
+                </div>
+                {friends.map(friendship => {
+                  const friendRecipes = friendsRecipes[friendship.friend_id] || [];
+                  
+                  return (
+                    <div key={friendship.friend_id} className={styles.friendsRecipesBlock} style={{ animation: 'cardSlideIn 0.7s cubic-bezier(0.68,-0.55,0.265,1.55)' }}>
+                      <div className={styles.friendsRecipesHeader}>
+                        <div className={styles.avatarMini}>
+                          {friendship.profiles?.avatar_url ? (
+                            <img src={friendship.profiles.avatar_url} alt={friendship.profiles.display_name} />
+                          ) : (
+                            <div className={styles.avatarPlaceholderMini}>
+                              {friendship.profiles?.display_name?.charAt(0)?.toUpperCase() || '?'}
+                            </div>
+                          )}
+                        </div>
+                        <span>{friendship.profiles?.display_name || 'Utilisateur'}</span>
+                        <span className={styles.recipeCount}>
+                          ({friendRecipes.length} recette{friendRecipes.length !== 1 ? 's' : ''})
+                        </span>
+                      </div>
+                      <div className={styles.friendsRecipesList}>
+                        {friendRecipes.length > 0 ? (
+                          friendRecipes.map(recipe => (
+                            <div
+                              key={recipe.id}
+                              className={styles.recipeMiniCard}
+                              onClick={() => router.push(`/recipe/${recipe.id}`)}
+                            >
+                              <div className={styles.recipeMiniImage}>
+                                <img
+                                  src={recipe.image || '/placeholder-recipe.jpg'}
+                                  alt={recipe.title}
+                                  style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover' }}
+                                />
+                              </div>
+                              <div className={styles.recipeMiniInfo}>
+                                <div className={styles.recipeMiniTitle}>
+                                  {recipe.title?.length > 18 ? recipe.title.slice(0, 18) + '…' : recipe.title}
+                                </div>
+                                {recipe.category && (
+                                  <div className={styles.recipeMiniCategory}>
+                                    {recipe.category}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))
                         ) : (
-                          <div className={styles.avatarPlaceholderMini}>
-                            {friendship.profiles?.display_name?.charAt(0)?.toUpperCase() || '?'}
+                          <div style={{ fontSize: 12, color: '#888', padding: '8px' }}>
+                            {friendsRecipes.hasOwnProperty(friendship.friend_id) ? (
+                              "Aucune recette partagée"
+                            ) : (
+                              <button 
+                                onClick={() => fetchFriendRecipes(friendship.friend_id)}
+                                className={styles.loadRecipesButton}
+                              >
+                                Charger les recettes
+                              </button>
+                            )}
                           </div>
                         )}
                       </div>
-                      <span>{friendship.profiles?.display_name || 'Utilisateur'}</span>
-                    </div>
-                    <div className={styles.friendsRecipesList}>
-                      {(friendsRecipes[friendship.friend_id] || []).length > 0 ? (
-                        friendsRecipes[friendship.friend_id].map(recipe => (
-                          <div
-                            key={recipe.id}
-                            className={styles.recipeMiniCard}
-                            onClick={() => router.push(`/recipe/${recipe.id}`)}
+                      {friendRecipes.length > 0 && (
+                        <div className={styles.viewAllContainer}>
+                          <button 
+                            className={styles.viewAllRecipesButton}
+                            onClick={() => router.push(`/profile/${friendship.friend_id}?tab=recipes`)}
                           >
-                            <div className={styles.recipeMiniImage}>
-                              <img
-                                src={recipe.image || '/placeholder-recipe.jpg'}
-                                alt={recipe.title}
-                                style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover' }}
-                              />
-                            </div>
-                            <div className={styles.recipeMiniTitle}>
-                              {recipe.title?.length > 18 ? recipe.title.slice(0, 18) + '…' : recipe.title}
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div style={{ fontSize: 12, color: '#888' }}>
-                          {friendsRecipes[friendship.friend_id]
-                            ? "Aucune recette partagée"
-                            : <button onClick={() => fetchFriendRecipes(friendship.friend_id)}>Charger</button>}
+                            Voir toutes les recettes →
+                          </button>
                         </div>
                       )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </section>

@@ -863,62 +863,162 @@ export default async function handler(req, res) {
 
 export async function fetchFriendRecipes(userId, limit = 10, offset = 0) {
   try {
-    // Base query
+    logInfo(`Starting fetchFriendRecipes for user: ${userId}`, {
+      userId,
+      limit,
+      offset
+    });
+    
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
+    
+    // Étape 1: Récupérer les amitiés acceptées
+    const { data: friendships, error: friendError } = await supabase
+      .from('friendships')
+      .select('user_id, friend_id, created_at')
+      .or(`user_id.eq.${userId},friend_id.eq.${userId}`)
+      .eq('status', 'accepted');
+    
+    if (friendError) {
+      logError('Error fetching friendships:', friendError);
+      throw new Error(`Error fetching friendships: ${friendError.message}`);
+    }
+    
+    logInfo('Friendships found:', {
+      count: friendships?.length || 0,
+      friendships: friendships?.map(f => ({
+        user_id: f.user_id,
+        friend_id: f.friend_id
+      }))
+    });
+    
+    // Extraire les IDs uniques des amis
+    const friendIds = new Set();
+    friendships?.forEach(f => {
+      if (f.user_id === userId) {
+        friendIds.add(f.friend_id);
+      } else {
+        friendIds.add(f.user_id);
+      }
+    });
+    
+    // Ajouter l'utilisateur lui-même pour voir ses propres recettes
+    friendIds.add(userId);
+    
+    const friendIdsArray = Array.from(friendIds);
+    
+    logInfo('Friend IDs to query:', {
+      friendIds: friendIdsArray,
+      totalCount: friendIdsArray.length
+    });
+    
+    if (friendIdsArray.length === 0) {
+      logInfo('No friends found, returning empty array');
+      return [];
+    }
+    
+    // Étape 2: Récupérer les recettes de tous les amis (et de l'utilisateur)
     let query = supabase
       .from('recipes')
-      .select('*')
+      .select(`
+        id,
+        title,
+        description,
+        image,
+        category,
+        author,
+        user_id,
+        created_at,
+        updated_at,
+        prepTime,
+        cookTime,
+        difficulty,
+        ingredients,
+        instructions
+      `)
+      .in('user_id', friendIdsArray)
+      .order('created_at', { ascending: false });
     
-    // Si nous voulons seulement les recettes des amis
-    if (userId) {
-      // Sous-requête pour obtenir les IDs des amis acceptés
-      const { data: friendships, error: friendError } = await supabase
-        .from('friendships')
-        .select('user_id, friend_id')
-        .or(`user_id.eq.${userId},friend_id.eq.${userId}`)
-        .eq('status', 'accepted')
-      
-      if (friendError) {
-        throw new Error(`Error fetching friendships: ${friendError.message}`)
-      }
-      
-      // Extraire les IDs uniques des amis
-      const friendIds = friendships.map(f => 
-        f.user_id === userId ? f.friend_id : f.user_id
-      )
-      
-      // Ajouter l'ID de l'utilisateur lui-même pour voir aussi ses propres recettes
-      friendIds.push(userId)
-      
-      // Filtrer les recettes par ces IDs
-      if (friendIds.length > 0) {
-        query = query.in('user_id', friendIds)
-      } else {
-        // Si pas d'amis, montrer seulement ses propres recettes
-        query = query.eq('user_id', userId)
-      }
-      
-      logInfo(`Fetching recipes for user ${userId} and ${friendIds.length-1} friends`)
+    // Appliquer la pagination
+    if (limit && limit > 0) {
+      query = query.limit(parseInt(limit));
     }
     
-    // Pagination
-    if (limit) {
-      query = query.limit(parseInt(limit))
+    if (offset && offset > 0) {
+      query = query.offset(parseInt(offset));
     }
     
-    if (offset) {
-      query = query.offset(parseInt(offset))
+    const { data: recipes, error: recipesError } = await query;
+    
+    if (recipesError) {
+      logError('Error fetching recipes:', recipesError);
+      throw new Error(`Error fetching recipes: ${recipesError.message}`);
     }
     
-    const { data, error } = await query
+    logInfo('Recipes fetched successfully:', {
+      totalRecipes: recipes?.length || 0,
+      recipesByUser: recipes?.reduce((acc, recipe) => {
+        acc[recipe.user_id] = (acc[recipe.user_id] || 0) + 1;
+        return acc;
+      }, {})
+    });
     
-    if (error) {
-      throw error
-    }
-    
-    return data || []
+    return recipes || [];
     
   } catch (error) {
-    logError('Error fetching friend recipes', error)
-    throw error
+    logError('Error in fetchFriendRecipes:', error);
+    throw error;
+  }
+}
+
+// Nouvelle fonction pour récupérer les recettes d'un ami spécifique
+export async function fetchSpecificFriendRecipes(userId, friendId, limit = 3) {
+  try {
+    logInfo(`Fetching recipes for specific friend: ${friendId} by user: ${userId}`);
+    
+    // Vérifier d'abord que c'est bien un ami
+    const { data: friendship, error: friendError } = await supabase
+      .from('friendships')
+      .select('id')
+      .or(`user_id.eq.${userId},friend_id.eq.${userId}`)
+      .or(`user_id.eq.${friendId},friend_id.eq.${friendId}`)
+      .eq('status', 'accepted')
+      .limit(1);
+    
+    if (friendError || !friendship?.length) {
+      logWarning('Not friends or friendship not found', { userId, friendId });
+      return [];
+    }
+    
+    // Récupérer les recettes de l'ami
+    const { data: recipes, error: recipesError } = await supabase
+      .from('recipes')
+      .select(`
+        id,
+        title,
+        description,
+        image,
+        category,
+        created_at
+      `)
+      .eq('user_id', friendId)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    
+    if (recipesError) {
+      throw recipesError;
+    }
+    
+    logInfo('Friend recipes fetched:', {
+      friendId,
+      count: recipes?.length || 0
+    });
+    
+    return recipes || [];
+    
+  } catch (error) {
+    logError('Error fetching specific friend recipes:', error);
+    return [];
   }
 }
