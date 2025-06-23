@@ -5,6 +5,7 @@ import { useAuth } from './AuthContext'
 import { logUserInteraction, logError, logInfo, logDebug } from '../utils/logger'
 import { showRecipeLikeInteractionNotification } from '../utils/notificationUtils'
 import styles from '../styles/AddictiveFeed.module.css'
+import { supabase } from '../utils/supabaseClient'
 
 export default function AddictiveFeed() {
   const router = useRouter()
@@ -39,60 +40,51 @@ export default function AddictiveFeed() {
           component: 'AddictiveFeed'
         })
         
-        // Étape 1: Charger les recettes des amis
-        let friendsApiUrl = `/api/recipes?_t=${timestamp}&limit=15&friends_only=true&user_id=${user.id}`
+        // Étape 1: D'abord récupérer la liste des amis confirmés
+        const { data: confirmedFriends, error: friendsError } = await supabase
+          .rpc('get_user_friends_simple', { target_user_id: user.id })
         
-        const friendsResponse = await fetch(friendsApiUrl)
-        
-        if (friendsResponse.ok) {
-          const friendsRecipesData = await friendsResponse.json()
+        if (friendsError) {
+          logError('Error getting confirmed friends:', friendsError)
+          // Fallback vers recettes populaires
+        } else if (confirmedFriends && confirmedFriends.length > 0) {
+          // Extraire les IDs des amis confirmés
+          const friendIds = confirmedFriends
+            .map(friend => friend.friend_user_id)
+            .filter(id => id && id !== user.id) // Exclure l'utilisateur actuel
           
-          logInfo('Friends recipes loaded', {
-            count: friendsRecipesData.length,
-            userId: user.id,
-            component: 'AddictiveFeed'
+          logInfo('Confirmed friends found', {
+            friendIds,
+            count: friendIds.length,
+            userId: user.id
           })
           
-          if (friendsRecipesData.length > 0) {
-            const formattedFriendsRecipes = friendsRecipesData.map(recipe => formatRecipeData(recipe))
-            setRecipes(formattedFriendsRecipes)
-            setPage(1)
-            setError(null)
-            return
-          } else {
-            logInfo('No friends recipes found, will show suggestion message', {
-              userId: user.id,
-              component: 'AddictiveFeed'
-            })
+          if (friendIds.length > 0) {
+            // Charger uniquement les recettes des amis confirmés
+            const { data: friendsRecipesData, error: recipesError } = await supabase
+              .from('recipes')
+              .select('*')
+              .in('user_id', friendIds)
+              .order('created_at', { ascending: false })
+              .limit(15)
+            
+            if (!recipesError && friendsRecipesData && friendsRecipesData.length > 0) {
+              const formattedFriendsRecipes = friendsRecipesData.map(recipe => formatRecipeData(recipe))
+              setRecipes(formattedFriendsRecipes)
+              setPage(1)
+              setError(null)
+              return
+            }
           }
         }
         
-        // Étape 2: Si pas de recettes d'amis, charger quelques recettes populaires comme suggestion
-        logInfo('Loading popular recipes as fallback', {
+        // Si pas d'amis ou pas de recettes d'amis, afficher un message explicatif
+        logInfo('No friends or friends recipes found', {
           userId: user.id,
           component: 'AddictiveFeed'
         })
         
-        const popularApiUrl = `/api/recipes?_t=${timestamp}&limit=8`
-        const popularResponse = await fetch(popularApiUrl)
-        
-        if (popularResponse.ok) {
-          const popularData = await popularResponse.json()
-          if (popularData.length > 0) {
-            const formattedPopular = popularData.map(recipe => {
-              // Marquer ces recettes comme suggestions
-              const formatted = formatRecipeData(recipe)
-              formatted.isSuggestion = true
-              return formatted
-            })
-            setRecipes(formattedPopular)
-            setPage(1)
-            setError(null)
-            return
-          }
-        }
-        
-        // Si aucune recette trouvée, afficher le message d'état vide
+        // Afficher le message d'état vide
         setRecipes([])
         setPage(1)
         
@@ -139,17 +131,38 @@ export default function AddictiveFeed() {
     
     setLoadingMore(true)
     try {
-      const offset = page * 10
-      const timestamp = Date.now()
-      let apiUrl = `/api/recipes?_t=${timestamp}&limit=10&offset=${offset}&friends_only=true&user_id=${user.id}`
+      // D'abord récupérer la liste des amis confirmés
+      const { data: confirmedFriends, error: friendsError } = await supabase
+        .rpc('get_user_friends_simple', { target_user_id: user.id })
       
-      const response = await fetch(apiUrl)
-      
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`)
+      if (friendsError || !confirmedFriends || confirmedFriends.length === 0) {
+        setHasMore(false)
+        return
       }
       
-      const recipesData = await response.json()
+      // Extraire les IDs des amis confirmés
+      const friendIds = confirmedFriends
+        .map(friend => friend.friend_user_id)
+        .filter(id => id && id !== user.id)
+      
+      if (friendIds.length === 0) {
+        setHasMore(false)
+        return
+      }
+      
+      const offset = page * 10
+      
+      // Charger plus de recettes des amis confirmés seulement
+      const { data: recipesData, error } = await supabase
+        .from('recipes')
+        .select('*')
+        .in('user_id', friendIds)
+        .order('created_at', { ascending: false })
+        .range(offset, offset + 9) // 10 recettes par page
+      
+      if (error) {
+        throw error
+      }
       
       if (recipesData.length === 0) {
         setHasMore(false)
@@ -458,8 +471,8 @@ export default function AddictiveFeed() {
         </h3>
         <p>
           {user 
-            ? 'Vos amis n\'ont pas encore partagé de recettes. Invitez-les à rejoindre COCO ou découvrez de nouveaux amis !'
-            : 'Connectez-vous pour découvrir les délicieuses recettes de la communauté COCO.'
+            ? 'Vos amis n\'ont pas encore partagé de recettes. Invitez-les à rejoindre COCO pour découvrir leurs créations culinaires !'
+            : 'Connectez-vous pour découvrir les délicieuses recettes de vos amis sur COCO.'
           }
         </p>
         <div className={styles.emptyActions}>
@@ -496,7 +509,7 @@ export default function AddictiveFeed() {
                 onClick={() => router.push('/explorer')} 
                 className={styles.secondaryButton}
               >
-                🔍 Aperçu des recettes
+                🔍 Découvrir les recettes
               </button>
             </>
           )}
@@ -507,43 +520,30 @@ export default function AddictiveFeed() {
 
   return (
     <div className={styles.feedContainer} ref={containerRef}>
-      {/* Message d'information si ce sont des suggestions */}
-      {recipes.length > 0 && recipes[0]?.isSuggestion && (
-        <div className={styles.suggestionBanner}>
-          <div className={styles.suggestionIcon}>💡</div>
-          <div className={styles.suggestionText}>
-            <strong>Recettes suggérées</strong>
-            <p>Ajoutez des amis pour voir leurs créations culinaires ici !</p>
-          </div>
-          <button 
-            onClick={() => router.push('/amis')} 
-            className={styles.addFriendsBtn}
-          >
-            👥 Ajouter des amis
-          </button>
+      {/* Bannière d'information pour clarifier que c'est le feed des amis */}
+      <div className={styles.feedInfo}>
+        <div className={styles.feedInfoIcon}>👥</div>
+        <div className={styles.feedInfoText}>
+          <strong>Feed de vos amis</strong>
+          <p>Découvrez les dernières recettes partagées par vos amis culinaires</p>
         </div>
-      )}
-      
-      {/* Message d'aperçu pour les utilisateurs non connectés */}
-      {recipes.length > 0 && recipes[0]?.isPreview && (
-        <div className={styles.previewBanner}>
-          <div className={styles.previewIcon}>👀</div>
-          <div className={styles.previewText}>
-            <strong>Aperçu de COCO</strong>
-            <p>Connectez-vous pour accéder à toutes les fonctionnalités !</p>
-          </div>
-          <button 
-            onClick={() => router.push('/login')} 
-            className={styles.loginBtn}
-          >
-            🔐 Se connecter
-          </button>
-        </div>
-      )}
+        <button 
+          onClick={() => router.push('/explorer')} 
+          className={styles.exploreAllBtn}
+        >
+          🔍 Explorer tout
+        </button>
+      </div>
 
       <div className={styles.recipesGrid}>
         {recipes.map((post) => (
-          <div key={post.id} className={`${styles.recipeCard} ${post.isSuggestion ? styles.suggestionCard : ''} ${post.isPreview ? styles.previewCard : ''}`}>
+          <div key={post.id} className={styles.recipeCard}>
+            {/* Ajout d'un badge "Ami" pour clarifier */}
+            <div className={styles.friendBadge}>
+              <span className={styles.friendIcon}>🤝</span>
+              <span className={styles.friendLabel}>Ami</span>
+            </div>
+            
             {/* Image */}
             <div className={styles.recipeImageContainer} onClick={() => openRecipe(post.recipe.id)}>
               <Image
@@ -584,6 +584,7 @@ export default function AddictiveFeed() {
                   <span className={styles.userName}>
                     {post.user.name}
                     {post.user.verified && <span className={styles.verified}>✅</span>}
+                    <span className={styles.friendIndicator} title="Votre ami">👥</span>
                   </span>
                   <span className={styles.timeAgo}>{post.timeAgo}</span>
                 </div>
@@ -637,19 +638,24 @@ export default function AddictiveFeed() {
       {loadingMore && (
         <div className={styles.loadingMore}>
           <div className={styles.spinner}></div>
-          <p>Chargement de nouvelles recettes...</p>
+          <p>Chargement de nouvelles recettes de vos amis...</p>
         </div>
       )}
 
       {/* End of feed message */}
       {!hasMore && recipes.length > 0 && (
         <div className={styles.endMessage}>
-          <p>Vous avez parcouru toutes nos recettes ! 🎉</p>
-          <button onClick={() => {
-            window.scrollTo({ top: 0, behavior: 'smooth' })
-          }} className={styles.scrollTopBtn}>
-            Retour en haut ↑
-          </button>
+          <p>Vous avez vu toutes les recettes de vos amis ! 🎉</p>
+          <div className={styles.endActions}>
+            <button onClick={() => {
+              window.scrollTo({ top: 0, behavior: 'smooth' })
+            }} className={styles.scrollTopBtn}>
+              Retour en haut ↑
+            </button>
+            <button onClick={() => router.push('/amis')} className={styles.addMoreFriendsBtn}>
+              👥 Ajouter plus d'amis
+            </button>
+          </div>
         </div>
       )}
 
