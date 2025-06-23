@@ -490,6 +490,52 @@ export default function Amis() {
     }
   };
 
+  // Fonction manquante pour filtrer les amis
+  const getFilteredFriends = () => {
+    if (!friends || friends.length === 0) return [];
+    
+    let filteredFriends = [...friends];
+    
+    // Appliquer le filtre
+    switch (friendFilter) {
+      case 'recent':
+        // Simulation du tri par amis ajoutés récemment
+        filteredFriends = filteredFriends.filter((_, index) => index < 5);
+        break;
+      case 'active':
+        // Simulation du tri par amis actifs récemment
+        filteredFriends = filteredFriends.filter(() => Math.random() > 0.5);
+        break;
+      case 'all':
+      default:
+        // Tous les amis
+        break;
+    }
+    
+    // Appliquer le tri
+    switch (friendSort) {
+      case 'name':
+        filteredFriends.sort((a, b) => {
+          const nameA = a.profiles?.display_name?.toLowerCase() || '';
+          const nameB = b.profiles?.display_name?.toLowerCase() || '';
+          return nameA.localeCompare(nameB);
+        });
+        break;
+      case 'recent':
+        // Tri par ordre chronologique (plus récent en premier)
+        filteredFriends.reverse();
+        break;
+      case 'active':
+        // Tri par activité (simulation)
+        filteredFriends.sort(() => Math.random() - 0.5);
+        break;
+      default:
+        break;
+    }
+    
+    return filteredFriends;
+  };
+
   const fetchFriendRecipes = async (friendId) => {
     if (friendsRecipes[friendId]) return; // Already loaded
     
