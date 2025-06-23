@@ -18,6 +18,8 @@ export default function Signup() {
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(null)
 
+  const resetError = () => setError(null)
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError(null)
@@ -26,35 +28,235 @@ export default function Signup() {
 
     // Validation côté client
     if (!email || !password || !displayName) {
-      setError('Tous les champs sont requis')
+      setError({
+        message: 'Tous les champs sont requis',
+        type: 'validation_error',
+        recoveryStrategy: 'retry'
+      })
       setLoading(false)
       return
     }
+    
     if (password.length < 6) {
-      setError('Le mot de passe doit contenir au moins 6 caractères')
+      setError({
+        message: 'Le mot de passe doit contenir au moins 6 caractères',
+        type: 'validation_error',
+        recoveryStrategy: 'retry'
+      })
       setLoading(false)
       return
     }
+    
     if (displayName.length < 2 || displayName.length > 30) {
-      setError('Le nom d\'utilisateur doit contenir entre 2 et 30 caractères')
+      setError({
+        message: 'Le nom d\'utilisateur doit contenir entre 2 et 30 caractères',
+        type: 'validation_error',
+        recoveryStrategy: 'retry'
+      })
       setLoading(false)
       return
     }
 
-    // Appel à Supabase Auth pour créer l'utilisateur
-    const { data, error: signUpError } = await signUp(email, password, displayName)
-    if (signUpError) {
-      setError(signUpError.message || 'Erreur lors de la création du compte')
+    // Validation du format email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      setError({
+        message: 'Veuillez entrer une adresse email valide',
+        type: 'validation_error',
+        recoveryStrategy: 'retry'
+      })
       setLoading(false)
       return
     }
 
-    setSuccess('Compte créé ! Vérifiez votre email pour confirmer votre inscription.')
-    setLoading(false)
-    // Redirection possible après quelques secondes
-    setTimeout(() => {
-      router.push('/auth/confirm')
-    }, 2000)
+    try {
+      // Appel à Supabase Auth pour créer l'utilisateur
+      const { data, error: signUpError } = await signUp(email, password, displayName)
+      
+      if (signUpError) {
+        // Gérer les erreurs spécifiques
+        let errorMessage = signUpError.message || 'Erreur lors de la création du compte'
+        let errorType = 'server_error'
+        
+        if (signUpError.message?.includes('already registered')) {
+          errorMessage = 'Cette adresse email est déjà utilisée'
+          errorType = 'duplicate_email'
+        } else if (signUpError.message?.includes('Invalid email')) {
+          errorMessage = 'Adresse email invalide'
+          errorType = 'validation_error'
+        } else if (signUpError.message?.includes('Password')) {
+          errorMessage = 'Le mot de passe ne respecte pas les critères requis'
+          errorType = 'validation_error'
+        }
+        
+        setError({
+          message: errorMessage,
+          type: errorType,
+          recoveryStrategy: 'retry'
+        })
+        setLoading(false)
+        return
+      }
+
+      // Succès - L'email de vérification a été envoyé automatiquement par Supabase
+      setSuccess({
+        title: 'Compte créé avec succès !',
+        message: `Un email de vérification a été envoyé à ${email}. Veuillez vérifier votre boîte mail et cliquer sur le lien pour activer votre compte.`,
+        email: email
+      })
+      setLoading(false)
+      
+      // Redirection vers la page de confirmation après 3 secondes
+      setTimeout(() => {
+        router.push('/auth/confirm')
+      }, 3000)
+      
+    } catch (err) {
+      setError({
+        message: 'Une erreur inattendue est survenue',
+        type: 'unknown_error',
+        recoveryStrategy: 'retry'
+      })
+      setLoading(false)
+    }
+  }
+
+  // Si l'inscription a réussi, afficher la page de succès
+  if (success) {
+    return (
+      <div>
+        <Head>
+          <title>Inscription réussie - COCO</title>
+          <meta name="description" content="Votre compte COCO a été créé avec succès" />
+        </Head>
+
+        <div style={{
+          minHeight: '100vh',
+          background: 'linear-gradient(135deg, #ff6b6b 0%, #feca57 50%, #ff9ff3 100%)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px',
+          position: 'relative'
+        }}>
+          {/* Background Pattern */}
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+            opacity: 0.3
+          }}></div>
+
+          <div style={{
+            background: 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(10px)',
+            borderRadius: '24px',
+            padding: '48px',
+            width: '100%',
+            maxWidth: '420px',
+            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.2)',
+            textAlign: 'center',
+            position: 'relative',
+            zIndex: 1
+          }}>
+            <div style={{ 
+              fontSize: '4rem', 
+              marginBottom: '24px',
+              filter: 'drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1))'
+            }}>
+              ✅
+            </div>
+            
+            <h1 style={{ 
+              fontSize: '2rem', 
+              fontWeight: '700',
+              background: 'linear-gradient(135deg, #ff6b6b, #feca57)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              marginBottom: '16px',
+              letterSpacing: '-0.5px'
+            }}>
+              {success.title}
+            </h1>
+            
+            <p style={{ 
+              color: '#6b7280',
+              fontSize: '1.1rem',
+              lineHeight: '1.6',
+              marginBottom: '32px'
+            }}>
+              {success.message}
+            </p>
+            
+            <div style={{ 
+              background: 'rgba(255, 107, 107, 0.1)',
+              border: '1px solid rgba(255, 107, 107, 0.2)',
+              borderRadius: '12px',
+              padding: '16px',
+              marginBottom: '32px'
+            }}>
+              <p style={{ 
+                color: '#ff6b6b',
+                fontSize: '0.9rem',
+                margin: 0,
+                fontWeight: '500'
+              }}>
+                💡 N'oubliez pas de vérifier vos spams si vous ne trouvez pas l'email
+              </p>
+            </div>
+            
+            <div style={{ 
+              display: 'flex', 
+              flexDirection: 'column',
+              gap: '12px'
+            }}>
+              <Link 
+                href="/auth/confirm"
+                style={{
+                  display: 'inline-block',
+                  padding: '16px 32px',
+                  background: 'linear-gradient(135deg, #ff6b6b 0%, #feca57 100%)',
+                  color: 'white',
+                  textDecoration: 'none',
+                  borderRadius: '16px',
+                  fontWeight: '700',
+                  fontSize: '1rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                  boxShadow: '0 8px 20px rgba(255, 107, 107, 0.3)',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.transform = 'translateY(-2px)'
+                  e.target.style.boxShadow = '0 12px 25px rgba(255, 107, 107, 0.4)'
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.transform = 'translateY(0)'
+                  e.target.style.boxShadow = '0 8px 20px rgba(255, 107, 107, 0.3)'
+                }}
+              >
+                Continuer
+              </Link>
+              
+              <Link 
+                href="/login"
+                style={{
+                  color: '#6b7280',
+                  textDecoration: 'none',
+                  fontSize: '0.9rem',
+                  fontWeight: '500'
+                }}
+              >
+                Retour à la connexion
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
