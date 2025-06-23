@@ -78,7 +78,6 @@ export default function Signup() {
               });
               // If we got here, profile was created successfully - continue to success
               setSuccess(true);
-              setTimeout(() => { router.push('/auth/confirm'); }, 3000);
               return;
             } else {
               // Try with the original data if available
@@ -89,7 +88,6 @@ export default function Signup() {
                 });
                 // If we got here, profile was created successfully - continue to success
                 setSuccess(true);
-                setTimeout(() => { router.push('/auth/confirm'); }, 3000);
                 return;
               }
             }
@@ -173,7 +171,7 @@ export default function Signup() {
             Veuillez vérifier votre boîte de réception et cliquer sur le lien de confirmation.
           </p>
           <p style={{ color: '#6b7280' }}>
-            Redirection vers la page de confirmation...
+            Vous pourrez vous connecter après avoir confirmé votre email.
           </p>
         </div>
       </div>
