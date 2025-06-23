@@ -56,6 +56,16 @@ export const TROPHY_DEFINITIONS = {
     condition: { type: 'friends_count', value: 25 },
     points: 500
   },
+  social_influencer: {
+    id: 'social_influencer',
+    name: 'Influenceur Culinaire',
+    description: 'Avoir 50 amis qui suivent vos recettes',
+    icon: '🌟',
+    category: 'social',
+    rarity: 'legendary',
+    condition: { type: 'friends_count', value: 50 },
+    points: 1000
+  },
 
   // Trophées d'engagement
   profile_complete: {

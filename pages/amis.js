@@ -26,6 +26,11 @@ export default function Amis() {
   const [sentRequests, setSentRequests] = useState(new Set());
   const [successCards, setSuccessCards] = useState(new Set());
   const [toastMessage, setToastMessage] = useState(null);
+  // Nouveaux états pour les améliorations
+  const [friendFilter, setFriendFilter] = useState('all'); // 'all', 'recent', 'active'
+  const [friendSort, setFriendSort] = useState('name'); // 'name', 'recent', 'active'
+  const [friendshipTrophies, setFriendshipTrophies] = useState(0);
+  const [mutualFriendsData, setMutualFriendsData] = useState({});
   const router = useRouter();
 
   useEffect(() => {
@@ -35,8 +40,55 @@ export default function Amis() {
   useEffect(() => {
     if (user) {
       loadFriendshipStats();
+      // Chargement du nombre de trophées d'amitié
+      loadFriendshipTrophies();
     }
   }, [user]);
+
+  // Nouvelle fonction pour charger les trophées liés à l'amitié
+  const loadFriendshipTrophies = async () => {
+    try {
+      // Dans une implémentation réelle, on ferait un appel API
+      // Ici, on simule avec des données statiques
+      const { data: trophies, error } = await supabase
+        .from('user_trophies')
+        .select('trophy_id')
+        .eq('user_id', user.id);
+        
+      if (!error && trophies) {
+        // Filtrer les trophies liés à l'amitié (first_friend, social_butterfly)
+        const friendTrophies = trophies.filter(t => 
+          t.trophy_id === 'first_friend' || 
+          t.trophy_id === 'social_butterfly');
+          
+        setFriendshipTrophies(friendTrophies.length);
+      }
+    } catch (error) {
+      logError('Error loading friendship trophies:', error);
+    }
+  };
+
+  // Nouvelle fonction pour charger les amis communs
+  const loadMutualFriends = async (targetUserId) => {
+    if (!user || !targetUserId || user.id === targetUserId) return;
+    
+    try {
+      // Dans une vraie implémentation, ce serait une fonction SQL
+      const { data, error } = await supabase.rpc('get_mutual_friends_count', {
+        user_id1: user.id,
+        user_id2: targetUserId
+      });
+      
+      if (!error) {
+        setMutualFriendsData(prev => ({
+          ...prev,
+          [targetUserId]: data || 0
+        }));
+      }
+    } catch (error) {
+      logError('Error loading mutual friends:', error);
+    }
+  };
 
   const showMessage = (message, isError = false) => {
     if (isError) {
@@ -596,6 +648,11 @@ export default function Amis() {
               <div className={styles.pendingBadge}>!</div>
             )}
           </div>
+          {/* Nouvelle statistique: trophées d'amitié */}
+          <div className={styles.stat}>
+            <span className={styles.statNumber}>{friendshipTrophies}</span>
+            <span className={styles.statLabel}>Trophées d'amitié</span>
+          </div>
         </div>
       </header>
 
@@ -668,142 +725,212 @@ export default function Amis() {
       <main style={{ maxWidth: 900, margin: '0 auto' }}>
         {activeTab === 'friends' && (
           <section className={styles.friendsSection}>
-            <h2>Mes amis ({friends.length})</h2>
+            <div className={styles.sectionHeader}>
+              <h2>Mes amis ({friends.length})</h2>
+              
+              {/* Nouveau: Filtres pour les amis */}
+              {friends.length > 0 && (
+                <div className={styles.friendsFilters}>
+                  <select 
+                    value={friendFilter}
+                    onChange={(e) => setFriendFilter(e.target.value)}
+                    className={styles.filterSelect}
+                  >
+                    <option value="all">Tous</option>
+                    <option value="recent">Ajoutés récemment</option>
+                    <option value="active">Actifs récemment</option>
+                  </select>
+                </div>
+              )}
+            </div>
+            
             {friends.length > 0 ? (
               <div className={styles.friendsGrid}>
-                {friends.map((friendship) => (
-                  <div
-                    key={friendship.id}
-                    className={styles.friendCard}
-                    onMouseEnter={() => {
-                      setHoveredFriendId(friendship.friend_id);
-                      fetchFriendRecipes(friendship.friend_id);
-                    }}
-                    onMouseLeave={() => setHoveredFriendId(null)}
-                  >
-                    <div className={styles.avatar}>
-                      {friendship.profiles?.avatar_url ? (
-                        <img src={friendship.profiles.avatar_url} alt={friendship.profiles.display_name} />
-                      ) : (
-                        <div className={styles.avatarPlaceholder}>
-                          {friendship.profiles?.display_name?.charAt(0)?.toUpperCase() || '?'}
-                        </div>
-                      )}
-                    </div>
-                    <h4>{friendship.profiles?.display_name || 'Utilisateur'}</h4>
-                    <p>{friendship.profiles?.bio || 'Amateur de cuisine passionné 🍽️'}</p>
-                    
-                    {/* Section Gestion des amitiés améliorée */}
-                    <div className={styles.friendActions}>
-                      <div className={styles.actionButtonsContainer}>
-                        <button
-                          onClick={() => router.push(`/profile/${friendship.friend_id}`)}
-                          className={styles.viewProfileButton}
-                          title="Voir le profil"
-                        >
-                          <span className={styles.buttonIcon}>👤</span>
-                          <span className={styles.buttonText}>Profil</span>
-                        </button>
-                        
-                        <button
-                          onClick={() => fetchFriendshipStatus(friendship.friend_id)}
-                          className={styles.statusButton}
-                          disabled={friendshipStatuses[friendship.friend_id]?.loading}
-                          title="Vérifier le statut de l'amitié"
-                        >
-                          <span className={styles.buttonIcon}>
-                            {friendshipStatuses[friendship.friend_id]?.loading ? '⏳' : 'ℹ️'}
-                          </span>
-                          <span className={styles.buttonText}>Statut</span>
-                        </button>
-                        
-                        <div className={styles.dangerActions}>
-                          <button
-                            onClick={() => handleRemoveFriend(friendship.friend_id, friendship.profiles?.display_name)}
-                            disabled={friendshipActions[friendship.friend_id]?.loading}
-                            className={styles.removeButton}
-                            title="Retirer de mes amis"
-                          >
-                            <span className={styles.buttonIcon}>
-                              {friendshipActions[friendship.friend_id]?.loading ? '⏳' : '🗑️'}
-                            </span>
-                            <span className={styles.buttonText}>Supprimer</span>
-                          </button>
-                          
-                          <button
-                            onClick={() => handleBlockUser(friendship.friend_id, friendship.profiles?.display_name)}
-                            disabled={friendshipActions[friendship.friend_id]?.loading}
-                            className={styles.blockButton}
-                            title="Bloquer cet utilisateur"
-                          >
-                            <span className={styles.buttonIcon}>
-                              {friendshipActions[friendship.friend_id]?.loading ? '⏳' : '🚫'}
-                            </span>
-                            <span className={styles.buttonText}>Bloquer</span>
-                          </button>
-                        </div>
+                {getFilteredFriends().map((friendship) => {
+                  const isOnline = Math.random() > 0.7; // Simulation de statut en ligne
+                  const lastActive = Math.floor(Math.random() * 72); // Simulation d'heures depuis dernière activité
+                  
+                  // Charger les amis communs si pas déjà chargés
+                  if (!mutualFriendsData[friendship.friend_id] && friendship.friend_id) {
+                    loadMutualFriends(friendship.friend_id);
+                  }
+                  
+                  return (
+                    <div
+                      key={friendship.id}
+                      className={styles.friendCard}
+                      onMouseEnter={() => {
+                        setHoveredFriendId(friendship.friend_id);
+                        fetchFriendRecipes(friendship.friend_id);
+                      }}
+                      onMouseLeave={() => setHoveredFriendId(null)}
+                    >
+                      {/* Nouveau: Badge de statut d'activité */}
+                      <div className={`${styles.statusIndicator} ${isOnline ? styles.online : styles.offline}`} 
+                           title={isOnline ? 'En ligne' : `Dernière activité: il y a ${lastActive}h`}>
+                        {isOnline ? '🟢' : '⚪'}
                       </div>
                       
-                      {/* Affichage du statut d'amitié amélioré */}
-                      {friendshipStatuses[friendship.friend_id] && !friendshipStatuses[friendship.friend_id].loading && (
-                        <div className={styles.statusInfo}>
-                          <div className={styles.statusBadge}>
-                            <span className={styles.statusLabel}>Statut:</span>
-                            <span className={`${styles.statusValue} ${styles[friendshipStatuses[friendship.friend_id].status]}`}>
-                              {friendshipStatuses[friendship.friend_id].status === 'accepted' && '✅ Amis'}
-                              {friendshipStatuses[friendship.friend_id].status === 'pending' && '⏳ En attente'}
-                              {friendshipStatuses[friendship.friend_id].status === 'blocked' && '🚫 Bloqué'}
-                              {friendshipStatuses[friendship.friend_id].status === 'none' && '❌ Aucune relation'}
-                            </span>
-                          </div>
-                          {friendshipStatuses[friendship.friend_id].canSendRequest && (
-                            <div className={styles.statusHint}>
-                              💡 Vous pouvez renvoyer une demande d'amitié
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Prévisualisation des recettes au survol */}
-                    {hoveredFriendId === friendship.friend_id && (
-                      <div className={styles.friendRecipesPreview}>
-                        <strong>Recettes récentes :</strong>
-                        {friendsRecipes[friendship.friend_id] && friendsRecipes[friendship.friend_id].length > 0 ? (
-                          <div className={styles.recipesMiniGrid}>
-                            {friendsRecipes[friendship.friend_id].map(recipe => (
-                              <div
-                                key={recipe.id}
-                                className={styles.recipeMiniCard}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  router.push(`/recipe/${recipe.id}`);
-                                }}
-                              >
-                                <div className={styles.recipeMiniImage}>
-                                  <img
-                                    src={recipe.image || '/placeholder-recipe.jpg'}
-                                    alt={recipe.title}
-                                    style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover' }}
-                                  />
-                                </div>
-                                <div className={styles.recipeMiniTitle}>
-                                  {recipe.title?.length > 18 ? recipe.title.slice(0, 18) + '…' : recipe.title}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
+                      <div className={styles.avatar}>
+                        {friendship.profiles?.avatar_url ? (
+                          <img src={friendship.profiles.avatar_url} alt={friendship.profiles.display_name} />
                         ) : (
-                          <div style={{ fontSize: 12, color: '#888' }}>
-                            {friendsRecipes[friendship.friend_id]
-                              ? "Aucune recette partagée"
-                              : "Chargement..."}
+                          <div className={styles.avatarPlaceholder}>
+                            {friendship.profiles?.display_name?.charAt(0)?.toUpperCase() || '?'
+                            }
                           </div>
                         )}
                       </div>
-                    )}
-                  </div>
-                ))}
+                      <h4>{friendship.profiles?.display_name || 'Utilisateur'}</h4>
+                      <p>{friendship.profiles?.bio || 'Amateur de cuisine passionné 🍽️'}</p>
+                      
+                      {/* Nouveau: Affichage des amis communs */}
+                      {mutualFriendsData[friendship.friend_id] > 0 && (
+                        <div className={styles.mutualFriends}>
+                          <span className={styles.mutualIcon}>👥</span>
+                          <span className={styles.mutualCount}>
+                            {mutualFriendsData[friendship.friend_id]} 
+                            {mutualFriendsData[friendship.friend_id] === 1 ? ' ami commun' : ' amis communs'}
+                          </span>
+                        </div>
+                      )}
+                      
+                      {/* Section Gestion des amitiés améliorée */}
+                      <div className={styles.friendActions}>
+                        <div className={styles.actionButtonsContainer}>
+                          <button
+                            onClick={() => router.push(`/profile/${friendship.friend_id}`)}
+                            className={styles.viewProfileButton}
+                            title="Voir le profil"
+                          >
+                            <span className={styles.buttonIcon}>👤</span>
+                            <span className={styles.buttonText}>Profil</span>
+                          </button>
+                          
+                          {/* Nouveau: Bouton message direct */}
+                          <button
+                            onClick={() => alert('Fonctionnalité de messagerie à venir!')}
+                            className={styles.messageButton}
+                            title="Envoyer un message"
+                          >
+                            <span className={styles.buttonIcon}>💬</span>
+                            <span className={styles.buttonText}>Message</span>
+                          </button>
+                          
+                          <button
+                            onClick={() => fetchFriendshipStatus(friendship.friend_id)}
+                            className={styles.statusButton}
+                            disabled={friendshipStatuses[friendship.friend_id]?.loading}
+                            title="Vérifier le statut de l'amitié"
+                          >
+                            <span className={styles.buttonIcon}>
+                              {friendshipStatuses[friendship.friend_id]?.loading ? '⏳' : 'ℹ️'}
+                            </span>
+                            <span className={styles.buttonText}>Statut</span>
+                          </button>
+                          
+                          <div className={styles.dangerActions}>
+                            <button
+                              onClick={() => handleRemoveFriend(friendship.friend_id, friendship.profiles?.display_name)}
+                              disabled={friendshipActions[friendship.friend_id]?.loading}
+                              className={styles.removeButton}
+                              title="Retirer de mes amis"
+                            >
+                              <span className={styles.buttonIcon}>
+                                {friendshipActions[friendship.friend_id]?.loading ? '⏳' : '🗑️'}
+                              </span>
+                              <span className={styles.buttonText}>Supprimer</span>
+                            </button>
+                            
+                            <button
+                              onClick={() => handleBlockUser(friendship.friend_id, friendship.profiles?.display_name)}
+                              disabled={friendshipActions[friendship.friend_id]?.loading}
+                              className={styles.blockButton}
+                              title="Bloquer cet utilisateur"
+                            >
+                              <span className={styles.buttonIcon}>
+                                {friendshipActions[friendship.friend_id]?.loading ? '⏳' : '🚫'}
+                              </span>
+                              <span className={styles.buttonText}>Bloquer</span>
+                            </button>
+                          </div>
+                        </div>
+                        
+                        {/* Affichage du statut d'amitié amélioré */}
+                        {friendshipStatuses[friendship.friend_id] && !friendshipStatuses[friendship.friend_id].loading && (
+                          <div className={styles.statusInfo}>
+                            <div className={styles.statusBadge}>
+                              <span className={styles.statusLabel}>Statut:</span>
+                              <span className={`${styles.statusValue} ${styles[friendshipStatuses[friendship.friend_id].status]}`}>
+                                {friendshipStatuses[friendship.friend_id].status === 'accepted' && '✅ Amis'}
+                                {friendshipStatuses[friendship.friend_id].status === 'pending' && '⏳ En attente'}
+                                {friendshipStatuses[friendship.friend_id].status === 'blocked' && '🚫 Bloqué'}
+                                {friendshipStatuses[friendship.friend_id].status === 'none' && '❌ Aucune relation'}
+                              </span>
+                            </div>
+                            {friendshipStatuses[friendship.friend_id].canSendRequest && (
+                              <div className={styles.statusHint}>
+                                💡 Vous pouvez renvoyer une demande d'amitié
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Prévisualisation des recettes au survol - améliorée */}
+                      {hoveredFriendId === friendship.friend_id && (
+                        <div className={styles.friendRecipesPreview}>
+                          <strong>Recettes récentes :</strong>
+                          {friendsRecipes[friendship.friend_id] && friendsRecipes[friendship.friend_id].length > 0 ? (
+                            <div className={styles.recipesMiniGrid}>
+                              {friendsRecipes[friendship.friend_id].map(recipe => (
+                                <div
+                                  key={recipe.id}
+                                  className={styles.recipeMiniCard}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    router.push(`/recipe/${recipe.id}`);
+                                  }}
+                                >
+                                  <div className={styles.recipeMiniImage}>
+                                    <img
+                                      src={recipe.image || '/placeholder-recipe.jpg'}
+                                      alt={recipe.title}
+                                      style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover' }}
+                                    />
+                                  </div>
+                                  <div className={styles.recipeMiniTitle}>
+                                    {recipe.title?.length > 18 ? recipe.title.slice(0, 18) + '…' : recipe.title}
+                                  </div>
+                                  {/* Nouveau: badge de catégorie */}
+                                  <span className={styles.recipeMiniCategory}>
+                                    {recipe.category || 'Plat'}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div style={{ fontSize: 12, color: '#888' }}>
+                              {friendsRecipes[friendship.friend_id]
+                                ? "Aucune recette partagée"
+                                : "Chargement..."}
+                            </div>
+                          )}
+                          {/* Nouveau: bouton pour voir toutes les recettes */}
+                          <button 
+                            className={styles.viewAllRecipesButton}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(`/profile/${friendship.friend_id}?tab=recipes`);
+                            }}
+                          >
+                            Voir toutes les recettes →
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <div className={styles.emptyState}>

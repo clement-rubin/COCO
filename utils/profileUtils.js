@@ -1016,3 +1016,53 @@ export async function createProfile(user_id, display_name = null) {
   if (error) return { profile: null, error: error.message }
   return { profile: data, error: null }
 }
+
+/**
+ * Récupère le nombre d'amis communs entre deux utilisateurs
+ * @param {string} userId1 - L'ID du premier utilisateur
+ * @param {string} userId2 - L'ID du second utilisateur
+ * @returns {Promise<number>} Le nombre d'amis communs
+ */
+export async function getMutualFriendsCount(userId1, userId2) {
+  try {
+    if (!userId1 || !userId2 || userId1 === userId2) {
+      return 0;
+    }
+    
+    // Récupérer les amis du premier utilisateur
+    const { data: user1Friends, error: error1 } = await supabase
+      .from('friendships')
+      .select('friend_id')
+      .eq('user_id', userId1)
+      .eq('status', 'accepted');
+      
+    if (error1 || !user1Friends) {
+      logError('Erreur lors de la récupération des amis du premier utilisateur', error1);
+      return 0;
+    }
+    
+    // Récupérer les amis du second utilisateur
+    const { data: user2Friends, error: error2 } = await supabase
+      .from('friendships')
+      .select('friend_id')
+      .eq('user_id', userId2)
+      .eq('status', 'accepted');
+      
+    if (error2 || !user2Friends) {
+      logError('Erreur lors de la récupération des amis du second utilisateur', error2);
+      return 0;
+    }
+    
+    // Extraire les IDs des amis
+    const user1FriendIds = user1Friends.map(f => f.friend_id);
+    const user2FriendIds = user2Friends.map(f => f.friend_id);
+    
+    // Compter les amis communs
+    const mutualFriends = user1FriendIds.filter(id => user2FriendIds.includes(id));
+    return mutualFriends.length;
+    
+  } catch (error) {
+    logError('Erreur lors du calcul des amis communs', error);
+    return 0;
+  }
+}
