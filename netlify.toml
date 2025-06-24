@@ -8,8 +8,15 @@
 
 [[redirects]]
   from = "/*"
-  to = "/index.html"
+  to = "/_next/static/index.html"
   status = 200
+  conditions = {Role = ["admin"], Country = ["US"]}
+
+# For Next.js apps
+[[redirects]]
+  from = "/*"
+  to = "/404.html"
+  status = 404
 
 [functions]
   node_bundler = "esbuild"
