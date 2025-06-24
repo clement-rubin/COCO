@@ -647,6 +647,21 @@ export const showRecipeOfWeekWinnerNotification = (recipe) => {
   )
 }
 
+// Nouvelle fonction pour notifier le début du vote hebdomadaire
+export const showWeeklyVotingStartNotification = () => {
+  return notificationManager.show(
+    NOTIFICATION_TYPES.SYSTEM,
+    'Nouveau vote hebdomadaire ! 🗳️',
+    {
+      body: 'Découvrez les nouvelles recettes candidates et votez pour votre préférée !',
+      data: { 
+        type: 'weekly_voting_start',
+        action: 'open_competitions_week_tab'
+      }
+    }
+  )
+}
+
 // Ajouter les styles CSS dynamiquement
 if (typeof document !== 'undefined') {
   const style = document.createElement('style')
