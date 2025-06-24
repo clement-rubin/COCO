@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import { supabase } from '../lib/supabase'
-import { useAuth } from '../hooks/useAuth'
+import { useAuth } from '../components/AuthContext'
 import { logInfo, logError } from '../utils/logger'
 import styles from '../styles/Competitions.module.css'
 
