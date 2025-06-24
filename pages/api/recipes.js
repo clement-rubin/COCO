@@ -179,7 +179,7 @@ export default async function handler(req, res) {
 
         // Handle friends-only recipes
         if (friendsOnly && user_id) {
-          logInfo('Fetching strict mutual friends-only recipes', {
+          logInfo('Fetching all friends recipes (no mutual restriction)', {
             reference: requestReference,
             userId: user_id,
             limit,
@@ -187,7 +187,7 @@ export default async function handler(req, res) {
           })
 
           try {
-            // Étape 1 : Récupérer TOUTES les amitiés liées à l'utilisateur
+            // Récupérer toutes les amitiés acceptées (unidirectionnelles ou bidirectionnelles)
             const { data: allFriendships, error: friendsError } = await supabase
               .from('friendships')
               .select('user_id, friend_id, status')
@@ -195,7 +195,7 @@ export default async function handler(req, res) {
               .eq('status', 'accepted')
 
             if (friendsError) {
-              logError('Error fetching friendships for strict mutual check', friendsError, {
+              logError('Error fetching friendships for all friends', friendsError, {
                 reference: requestReference,
                 userId: user_id,
                 errorCode: friendsError.code
@@ -211,56 +211,42 @@ export default async function handler(req, res) {
               return safeResponse(res, 200, [])
             }
 
-            // Étape 2 : Identifier UNIQUEMENT les amitiés bidirectionnelles (mutuelles)
-            const friendshipPairs = new Map()
-            
+            // Extraire tous les amis (unidirectionnels)
+            const friendIds = new Set()
             allFriendships.forEach(friendship => {
-              const otherUserId = friendship.user_id === user_id ? friendship.friend_id : friendship.user_id
-              const pairKey = [user_id, otherUserId].sort().join('|')
-              
-              if (!friendshipPairs.has(pairKey)) {
-                friendshipPairs.set(pairKey, { count: 0, otherUserId, friendships: [] })
-              }
-              
-              const pair = friendshipPairs.get(pairKey)
-              pair.count++
-              pair.friendships.push(friendship)
-            })
-
-            // Étape 3 : Ne garder que les paires avec exactement 2 relations (bidirectionnelles)
-            const strictMutualFriendIds = []
-            friendshipPairs.forEach((pair, pairKey) => {
-              if (pair.count === 2) {
-                // Vérifier que les deux relations sont bien acceptées
-                const allAccepted = pair.friendships.every(f => f.status === 'accepted')
-                if (allAccepted) {
-                  strictMutualFriendIds.push(pair.otherUserId)
-                }
+              if (friendship.user_id === user_id) {
+                friendIds.add(friendship.friend_id)
+              } else {
+                friendIds.add(friendship.user_id)
               }
             })
 
-            logInfo('Strict bidirectional friends verification', {
+            // Optionnel : inclure les recettes de l'utilisateur lui-même
+            // friendIds.add(user_id)
+
+            const friendIdsArray = Array.from(friendIds)
+
+            logInfo('All friends IDs for recipes', {
               reference: requestReference,
               totalFriendships: allFriendships.length,
-              friendshipPairs: friendshipPairs.size,
-              strictMutualFriends: strictMutualFriendIds.length,
+              friendsCount: friendIdsArray.length,
               userId: user_id,
-              mutualFriendIds: strictMutualFriendIds.slice(0, 3) // Log first 3 for debugging
+              friendIds: friendIdsArray.slice(0, 3)
             })
 
-            if (strictMutualFriendIds.length === 0) {
-              logInfo('No strict mutual friends found, returning empty array', {
+            if (friendIdsArray.length === 0) {
+              logInfo('No friends found, returning empty array', {
                 reference: requestReference,
                 userId: user_id
               })
               return safeResponse(res, 200, [])
             }
 
-            // Étape 4 : Récupérer les recettes UNIQUEMENT des amis mutuels (sans l'utilisateur lui-même)
+            // Récupérer les recettes de tous les amis (unidirectionnels)
             let query = supabase
               .from('recipes')
               .select('*')
-              .in('user_id', strictMutualFriendIds) // Seulement les amis mutuels, pas l'utilisateur
+              .in('user_id', friendIdsArray)
               .order('created_at', { ascending: false })
 
             if (offset > 0) {
@@ -269,52 +255,37 @@ export default async function handler(req, res) {
               query = query.limit(limit)
             }
 
-            const { data: strictMutualRecipes, error: recipesError } = await query
+            const { data: friendsRecipes, error: recipesError } = await query
 
             if (recipesError) {
-              logError('Error fetching strict mutual friends recipes', recipesError, {
+              logError('Error fetching all friends recipes', recipesError, {
                 reference: requestReference,
                 userId: user_id,
-                mutualFriendsCount: strictMutualFriendIds.length
+                friendsCount: friendIdsArray.length
               })
               return safeResponse(res, 200, [])
             }
 
-            const recipes = strictMutualRecipes || []
+            const recipes = friendsRecipes || []
 
-            logInfo('Strict mutual friends recipes fetched', {
+            logInfo('All friends recipes fetched', {
               reference: requestReference,
               recipesCount: recipes.length,
-              strictMutualFriendsCount: strictMutualFriendIds.length,
+              friendsCount: friendIdsArray.length,
               userId: user_id,
               hasResults: recipes.length > 0,
               uniqueAuthors: [...new Set(recipes.map(r => r.user_id))].length,
               sampleAuthors: [...new Set(recipes.map(r => r.user_id))].slice(0, 3)
             })
 
-            // Étape 5 : Vérification finale de sécurité
-            const validRecipes = recipes.filter(recipe => 
-              strictMutualFriendIds.includes(recipe.user_id)
-            )
-            
-            if (validRecipes.length !== recipes.length) {
-              logWarning('Filtered out non-mutual-friend recipes', {
-                reference: requestReference,
-                originalCount: recipes.length,
-                filteredCount: validRecipes.length,
-                removedCount: recipes.length - validRecipes.length
-              })
-            }
+            return safeResponse(res, 200, recipes)
 
-            return safeResponse(res, 200, validRecipes)
-
-          } catch (strictMutualError) {
-            logError('Error in strict mutual friends recipes flow', strictMutualError, {
+          } catch (allFriendsError) {
+            logError('Error in all friends recipes flow', allFriendsError, {
               reference: requestReference,
               userId: user_id,
-              errorMessage: strictMutualError.message
+              errorMessage: allFriendsError.message
             })
-            
             return safeResponse(res, 200, [])
           }
         }
@@ -1143,6 +1114,35 @@ export async function fetchSpecificFriendRecipes(userId, friendId, limit = 3) {
     
     // Récupérer les recettes de l'ami
     const { data: recipes, error: recipesError } = await supabase
+      .from('recipes')
+      .select(`
+        id,
+        title,
+        description,
+        image,
+        category,
+        created_at
+      `)
+      .eq('user_id', friendId)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    
+    if (recipesError) {
+      throw recipesError;
+    }
+    
+    logInfo('Friend recipes fetched:', {
+      friendId,
+      count: recipes?.length || 0
+    });
+    
+    return recipes || [];
+    
+  } catch (error) {
+    logError('Error fetching specific friend recipes:', error);
+    return [];
+  }
+}
       .from('recipes')
       .select(`
         id,

@@ -33,14 +33,14 @@ export default function AddictiveFeed() {
     setLoading(true)
     try {
       if (user && user.id) {
-        logInfo('Loading recipes for authenticated user - STRICT FRIENDS ONLY', {
+        logInfo('Loading recipes for authenticated user - ALL FRIENDS', {
           userId: user.id,
           component: 'AddictiveFeed'
         })
         
-        // Utiliser l'API recipes avec le paramètre friendsOnly strict
+        // Utiliser l'API recipes sans restriction amis mutuels
         const timestamp = Date.now()
-        const apiUrl = `/api/recipes?friendsOnly=true&user_id=${user.id}&limit=20&_t=${timestamp}`
+        const apiUrl = `/api/recipes?friendsOnly=false&user_id=${user.id}&limit=20&_t=${timestamp}`
         const response = await fetch(apiUrl)
         
         if (!response.ok) {
@@ -49,15 +49,13 @@ export default function AddictiveFeed() {
         
         const recipesData = await response.json()
         
-        // Vérification côté client pour plus de sécurité
         if (recipesData && recipesData.length > 0) {
-          // Log pour debug - vérifier les auteurs des recettes
           const recipeAuthors = [...new Set(recipesData.map(r => r.user_id))]
-          logInfo('Strict friends recipes verification', {
+          logInfo('All friends recipes verification', {
             userId: user.id,
             recipesCount: recipesData.length,
             uniqueAuthors: recipeAuthors.length,
-            authorIds: recipeAuthors.slice(0, 3), // Premiers 3 pour debug
+            authorIds: recipeAuthors.slice(0, 3),
             component: 'AddictiveFeed'
           })
           
@@ -66,7 +64,7 @@ export default function AddictiveFeed() {
           setPage(1)
           setError(null)
           
-          logInfo('Strict mutual friends recipes loaded successfully', {
+          logInfo('All friends recipes loaded successfully', {
             userId: user.id,
             recipesCount: formattedRecipes.length,
             component: 'AddictiveFeed'
@@ -74,8 +72,7 @@ export default function AddictiveFeed() {
           return
         }
         
-        // Si pas de recettes d'amis mutuels, afficher l'état vide
-        logInfo('No mutual friends recipes found, showing empty state', {
+        logInfo('No friends recipes found, showing empty state', {
           userId: user.id,
           component: 'AddictiveFeed'
         })
@@ -474,11 +471,11 @@ export default function AddictiveFeed() {
       <div className={styles.emptyContainer}>
         <div className={styles.emptyIcon}>👥</div>
         <h3>
-          {user ? 'Aucune recette d\'amis mutuels à afficher' : 'Rejoignez COCO !'}
+          {user ? 'Aucune recette d\'amis à afficher' : 'Rejoignez COCO !'}
         </h3>
         <p>
           {user 
-            ? 'Vous n\'avez pas encore d\'amis mutuels qui ont partagé des recettes, ou vos amis n\'ont pas encore publié de contenu. Les recettes n\'apparaissent que lorsque vous et votre ami vous êtes ajoutés mutuellement !'
+            ? 'Vous n\'avez pas encore d\'amis qui ont partagé des recettes, ou vos amis n\'ont pas encore publié de contenu. Les recettes n\'apparaissent que lorsque vous et votre ami vous êtes ajoutés mutuellement !'
             : 'Connectez-vous pour découvrir les délicieuses recettes de vos amis sur COCO.'
           }
         </p>
@@ -489,7 +486,7 @@ export default function AddictiveFeed() {
                 onClick={() => router.push('/amis')} 
                 className={styles.primaryButton}
               >
-                👥 Gérer mes amis mutuels
+                👥 Gérer mes amis
               </button>
               <button 
                 onClick={() => router.push('/explorer')} 
@@ -531,8 +528,8 @@ export default function AddictiveFeed() {
       <div className={styles.feedInfo}>
         <div className={styles.feedInfoIcon}>👥</div>
         <div className={styles.feedInfoText}>
-          <strong>Feed de vos amis mutuels</strong>
-          <p>Recettes partagées uniquement par vos amis avec qui vous avez une relation mutuelle</p>
+          <strong>Feed de vos amis</strong>
+          <p>Recettes partagées par vos amis</p>
         </div>
         <button 
           onClick={() => router.push('/explorer')} 
@@ -545,10 +542,10 @@ export default function AddictiveFeed() {
       <div className={styles.recipesGrid}>
         {recipes.map((post) => (
           <div key={post.id} className={styles.recipeCard}>
-            {/* Ajout d'un badge "Ami mutuel" pour clarifier */}
+            {/* Ajout d'un badge "Ami" pour clarifier */}
             <div className={styles.friendBadge}>
               <span className={styles.friendIcon}>🤝</span>
-              <span className={styles.friendLabel}>Ami mutuel</span>
+              <span className={styles.friendLabel}>Ami</span>
             </div>
             
             {/* Image */}
@@ -591,7 +588,7 @@ export default function AddictiveFeed() {
                   <span className={styles.userName}>
                     {post.user.name}
                     {post.user.verified && <span className={styles.verified}>✅</span>}
-                    <span className={styles.friendIndicator} title="Votre ami mutuel">🤝</span>
+                    <span className={styles.friendIndicator} title="Votre ami">🤝</span>
                   </span>
                   <span className={styles.timeAgo}>{post.timeAgo}</span>
                 </div>
@@ -678,6 +675,9 @@ export default function AddictiveFeed() {
           }
         }
       `}</style>
+    </div>
+  )
+}
     </div>
   )
 }
