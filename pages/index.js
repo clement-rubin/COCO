@@ -38,57 +38,6 @@ export default function Home() {
     }
   }, [user, showWelcome])
 
-  const quickActions = [
-    {
-      id: 'share',
-      label: 'Partager',
-      description: 'Photo & recette',
-      icon: '📸',
-      gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-      shadow: 'rgba(16, 185, 129, 0.4)',
-      action: () => {
-        if (user) {
-          window.location.href = '/share-photo'
-        } else {
-          window.location.href = '/login?redirect=' + encodeURIComponent('/share-photo')
-        }
-      }
-    },
-    {
-      id: 'explore',
-      label: 'Explorer',
-      description: 'Découvrir',
-      icon: '🔍',
-      gradient: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-      shadow: 'rgba(59, 130, 246, 0.4)',
-      action: () => window.location.href = '/explorer'
-    },
-    {
-      id: 'friends',
-      label: 'Amis',
-      description: 'Mon réseau',
-      icon: '👥',
-      gradient: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-      shadow: 'rgba(239, 68, 68, 0.4)',
-      action: () => {
-        if (user) {
-          window.location.href = '/amis'
-        } else {
-          window.location.href = '/login?redirect=' + encodeURIComponent('/amis')
-        }
-      }
-    },
-    {
-      id: 'competitions',
-      title: 'Compétitions',
-      subtitle: 'Défis culinaires',
-      icon: '🏆',
-      action: () => router.push('/competitions'),
-      gradient: 'linear-gradient(135deg, #fbbf24, #f59e0b)',
-      color: '#92400e'
-    }
-  ]
-
   const categories = [
     { id: 'all', label: 'Tout', icon: '🍽️', color: '#6366f1' },
     { id: 'dessert', label: 'Desserts', icon: '🍰', color: '#ec4899' },
@@ -259,148 +208,6 @@ export default function Home() {
             </p>
           </div>
 
-          {/* Actions rapides améliorées */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '16px',
-            marginBottom: '32px',
-            perspective: '1000px'
-          }}>
-            {quickActions.map((action, index) => (
-              <button
-                key={action.id}
-                onClick={action.action}
-                style={{
-                  background: 'white',
-                  border: 'none',
-                  borderRadius: '20px',
-                  padding: '20px 12px',
-                  cursor: 'pointer',
-                  transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
-                  boxShadow: `0 8px 25px rgba(0,0,0,0.08), 0 4px 10px rgba(0,0,0,0.05)`,
-                  position: 'relative',
-                  overflow: 'hidden',
-                  transform: 'translateZ(0)',
-                  animationDelay: `${index * 100}ms`,
-                  animation: 'slideInUp 0.6s ease-out forwards',
-                  opacity: 0
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.transform = 'translateY(-8px) scale(1.05) rotateY(5deg)'
-                  e.target.style.boxShadow = `0 20px 40px ${action.shadow}, 0 10px 20px rgba(0,0,0,0.1)`
-                  
-                  // Vibration légère sur mobile seulement si l'utilisateur a déjà interagi
-                  try {
-                    if (navigator.vibrate && document.hasStoredAccess) {
-                      navigator.vibrate(10)
-                    }
-                  } catch (err) {
-                    // Ignorer silencieusement l'erreur de vibration
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.transform = 'translateY(0) scale(1) rotateY(0deg)'
-                  e.target.style.boxShadow = '0 8px 25px rgba(0,0,0,0.08), 0 4px 10px rgba(0,0,0,0.05)'
-                }}
-                onMouseDown={(e) => {
-                  e.target.style.transform = 'translateY(-4px) scale(0.98)'
-                }}
-                onMouseUp={(e) => {
-                  e.target.style.transform = 'translateY(-8px) scale(1.05)'
-                }}
-              >
-                {/* Effet de brillance au survol */}
-                <div style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: '-100%',
-                  width: '100%',
-                  height: '100%',
-                  background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)',
-                  transition: 'left 0.6s ease',
-                  pointerEvents: 'none'
-                }} className="shine-effect" />
-                
-                {/* Icône avec animation */}
-                <div style={{
-                  fontSize: '2.2rem',
-                  marginBottom: '8px',
-                  display: 'block',
-                  position: 'relative',
-                  animation: 'iconFloat 3s ease-in-out infinite',
-                  animationDelay: `${index * 0.5}s`
-                }}>
-                  {action.icon}
-                  
-                  {/* Effet de glow autour de l'icône */}
-                  <div style={{
-                    position: 'absolute',
-                    inset: '-4px',
-                    background: action.gradient,
-                    borderRadius: '50%',
-                    opacity: 0,
-                    filter: 'blur(8px)',
-                    transition: 'opacity 0.3s ease',
-                    zIndex: -1
-                  }} className="icon-glow" />
-                </div>
-                
-                {/* Texte avec meilleure hiérarchie */}
-                <div style={{
-                  fontSize: '0.9rem',
-                  fontWeight: '700',
-                  color: '#1f2937',
-                  marginBottom: '4px',
-                  letterSpacing: '-0.02em'
-                }}>
-                  {action.label}
-                </div>
-                
-                <div style={{
-                  fontSize: '0.7rem',
-                  color: '#6b7280',
-                  fontWeight: '500',
-                  letterSpacing: '0.01em'
-                }}>
-                  {action.description}
-                </div>
-                
-                {/* Indicateur de statut pour les actions nécessitant une connexion */}
-                {(action.id === 'share' || action.id === 'friends') && !user && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '8px',
-                    right: '8px',
-                    width: '8px',
-                    height: '8px',
-                    background: '#f59e0b',
-                    borderRadius: '50%',
-                    animation: 'pulse 2s infinite'
-                  }} />
-                )}
-                
-                {/* Badge de nouveauté */}
-                {action.id === 'explore' && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '8px',
-                    right: '8px',
-                    background: 'linear-gradient(135deg, #ff6b35, #f7931e)',
-                    color: 'white',
-                    fontSize: '0.6rem',
-                    fontWeight: '700',
-                    padding: '2px 6px',
-                    borderRadius: '8px',
-                    animation: 'bounce 2s infinite'
-                  }}>
-                    NEW
-                  </div>
-                )}
-              </button>
-            ))}
-          </div>
-
           {/* Filtres de catégories */}
           <div style={{
             display: 'flex',
@@ -452,6 +259,199 @@ export default function Home() {
         overflow: 'hidden'
       }}>
         {/* Recette de la semaine */}
+        <RecipeOfWeek />
+
+        {/* En-tête du feed */}
+        <div style={{
+          padding: '16px 20px 8px',
+          textAlign: 'center',
+          borderBottom: '1px solid #f3f4f6'
+        }}>
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            background: '#f0f9ff',
+            padding: '8px 16px',
+            borderRadius: '24px',
+            fontSize: '0.85rem',
+            fontWeight: '600',
+            color: '#0369a1',
+            border: '1px solid #e0f2fe'
+          }}>
+            👥 Recettes de mes amis
+            <span style={{
+              width: '6px',
+              height: '6px',
+              background: '#10b981',
+              borderRadius: '50%',
+              animation: 'pulse 2s infinite'
+            }} />
+          </div>
+          
+          {/* Options de navigation rapide */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            gap: '12px',
+            marginTop: '12px'
+          }}>
+            <button
+              onClick={() => router.push('/explorer')}
+              style={{
+                background: 'transparent',
+                border: '1px solid #e5e7eb',
+                color: '#6b7280',
+                padding: '6px 12px',
+                borderRadius: '16px',
+                fontSize: '0.75rem',
+                fontWeight: '500',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = '#f3f4f6'
+                e.target.style.color = '#374151'
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = 'transparent'
+                e.target.style.color = '#6b7280'
+              }}
+            >
+              🔍 Explorer tout
+            </button>
+            
+            <button
+              onClick={() => router.push('/amis')}
+              style={{
+                background: 'transparent',
+                border: '1px solid #e5e7eb',
+                color: '#6b7280',
+                padding: '6px 12px',
+                borderRadius: '16px',
+                fontSize: '0.75rem',
+                fontWeight: '500',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = '#f3f4f6'
+                e.target.style.color = '#374151'
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = 'transparent'
+                e.target.style.color = '#6b7280'
+              }}
+            >
+              ➕ Ajouter amis
+            </button>
+          </div>
+        </div>
+
+        {/* Contenu du feed */}
+        <div style={{ 
+          minHeight: '60vh',
+          padding: '0 8px 20px'
+        }}>
+          <div style={{
+            maxWidth: '100%',
+            overflow: 'hidden'
+          }}>
+            <div style={{
+              '--max-image-height': '250px',
+              '--max-image-width': '100%'
+            }}>
+              <AddictiveFeed />
+            </div>
+          </div>
+        </div>
+
+        {/* Message d'encouragement si peu d'amis */}
+        {user && (
+          <div style={{
+            textAlign: 'center',
+            padding: '20px',
+            background: 'linear-gradient(135deg, #fef3c7, #fde68a)',
+            margin: '20px',
+            borderRadius: '16px',
+            border: '1px solid #f59e0b'
+          }}>
+            <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>🍳</div>
+            <p style={{
+              margin: '0 0 12px 0',
+              fontSize: '0.9rem',
+              fontWeight: '600',
+              color: '#92400e'
+            }}>
+              Invitez vos amis à rejoindre COCO !
+            </p>
+            <p style={{
+              margin: '0 0 16px 0',
+              fontSize: '0.8rem',
+              color: '#b45309',
+              lineHeight: '1.4'
+            }}>
+              Plus vous avez d'amis, plus vous découvrirez de délicieuses recettes
+            </p>
+            <button
+              onClick={() => router.push('/amis')}
+              style={{
+                background: '#f59e0b',
+                color: 'white',
+                border: 'none',
+                padding: '8px 16px',
+                borderRadius: '8px',
+                fontSize: '0.8rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = '#d97706'
+                e.target.style.transform = 'translateY(-1px)'
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = '#f59e0b'
+                e.target.style.transform = 'translateY(0)'
+              }}
+            >
+              👥 Gérer mes amis
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Styles simplifiés */}
+      <style jsx>{`
+        @keyframes pulse {
+          0%, 100% { 
+            transform: scale(1);
+            opacity: 1;
+          }
+          50% { 
+            transform: scale(1.2);
+            opacity: 0.7;
+          }
+        }
+        
+        /* États de focus pour l'accessibilité */
+        button:focus {
+          outline: 3px solid rgba(59, 130, 246, 0.5);
+          outline-offset: 2px;
+        }
+        
+        /* Mode sombre automatique (si supporté) */
+        @media (prefers-color-scheme: dark) {
+          button {
+            background: rgba(255, 255, 255, 0.1) !important;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+          }
+        }
+      `}</style>
+    </div>
+  )
+}
         <RecipeOfWeek />
 
         {/* En-tête du feed */}
