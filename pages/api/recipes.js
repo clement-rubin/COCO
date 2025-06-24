@@ -1143,32 +1143,3 @@ export async function fetchSpecificFriendRecipes(userId, friendId, limit = 3) {
     return [];
   }
 }
-      .from('recipes')
-      .select(`
-        id,
-        title,
-        description,
-        image,
-        category,
-        created_at
-      `)
-      .eq('user_id', friendId)
-      .order('created_at', { ascending: false })
-      .limit(limit);
-    
-    if (recipesError) {
-      throw recipesError;
-    }
-    
-    logInfo('Friend recipes fetched:', {
-      friendId,
-      count: recipes?.length || 0
-    });
-    
-    return recipes || [];
-    
-  } catch (error) {
-    logError('Error fetching specific friend recipes:', error);
-    return [];
-  }
-}
