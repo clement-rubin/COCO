@@ -616,6 +616,37 @@ export const showNewFollowerNotification = (follower) => {
   )
 }
 
+export const showRecipeOfWeekVoteNotification = (recipe, fromUser) => {
+  return notificationManager.show(
+    NOTIFICATION_TYPES.RECIPE_LIKED,
+    'Vote pour votre recette !',
+    {
+      body: `${fromUser.display_name} a voté pour votre recette "${recipe.title}" comme recette de la semaine !`,
+      image: recipe.image,
+      data: { 
+        recipeId: recipe.id, 
+        userId: fromUser.user_id,
+        type: 'week_vote'
+      }
+    }
+  )
+}
+
+export const showRecipeOfWeekWinnerNotification = (recipe) => {
+  return notificationManager.show(
+    NOTIFICATION_TYPES.SYSTEM,
+    'Félicitations ! 🏆',
+    {
+      body: `Votre recette "${recipe.title}" a été élue recette de la semaine !`,
+      image: recipe.image,
+      data: { 
+        recipeId: recipe.id,
+        type: 'week_winner'
+      }
+    }
+  )
+}
+
 // Ajouter les styles CSS dynamiquement
 if (typeof document !== 'undefined') {
   const style = document.createElement('style')

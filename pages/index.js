@@ -4,6 +4,7 @@ import { useAuth } from '../components/AuthContext'
 import { useRouter } from 'next/router'
 import { logUserInteraction, logComponentEvent, logInfo } from '../utils/logger'
 import AddictiveFeed from '../components/AddictiveFeed'
+import RecipeOfWeek from '../components/RecipeOfWeek'
 
 export default function Home() {
   const { user, loading } = useAuth()
@@ -450,6 +451,9 @@ export default function Home() {
         boxShadow: '0 -4px 20px rgba(0,0,0,0.08)',
         overflow: 'hidden'
       }}>
+        {/* Recette de la semaine */}
+        <RecipeOfWeek />
+
         {/* En-tête du feed */}
         <div style={{
           padding: '16px 20px 8px',
