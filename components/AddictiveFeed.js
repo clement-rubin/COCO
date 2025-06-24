@@ -33,14 +33,14 @@ export default function AddictiveFeed() {
     setLoading(true)
     try {
       if (user && user.id) {
-        logInfo('Loading recipes for authenticated user - ALL FRIENDS', {
+        logInfo('Loading recipes for authenticated user', {
           userId: user.id,
           component: 'AddictiveFeed'
         })
         
-        // Utiliser l'API recipes sans restriction amis mutuels
+        // Charger TOUTES les recettes publiques d'abord
         const timestamp = Date.now()
-        const apiUrl = `/api/recipes?friendsOnly=false&user_id=${user.id}&limit=20&_t=${timestamp}`
+        const apiUrl = `/api/recipes?limit=20&_t=${timestamp}`
         const response = await fetch(apiUrl)
         
         if (!response.ok) {
@@ -50,12 +50,9 @@ export default function AddictiveFeed() {
         const recipesData = await response.json()
         
         if (recipesData && recipesData.length > 0) {
-          const recipeAuthors = [...new Set(recipesData.map(r => r.user_id))]
-          logInfo('All friends recipes verification', {
+          logInfo('Public recipes loaded successfully', {
             userId: user.id,
             recipesCount: recipesData.length,
-            uniqueAuthors: recipeAuthors.length,
-            authorIds: recipeAuthors.slice(0, 3),
             component: 'AddictiveFeed'
           })
           
@@ -63,16 +60,10 @@ export default function AddictiveFeed() {
           setRecipes(formattedRecipes)
           setPage(1)
           setError(null)
-          
-          logInfo('All friends recipes loaded successfully', {
-            userId: user.id,
-            recipesCount: formattedRecipes.length,
-            component: 'AddictiveFeed'
-          })
           return
         }
         
-        logInfo('No friends recipes found, showing empty state', {
+        logInfo('No recipes found', {
           userId: user.id,
           component: 'AddictiveFeed'
         })
@@ -526,16 +517,16 @@ export default function AddictiveFeed() {
     <div className={styles.feedContainer} ref={containerRef}>
       {/* Bannière d'information pour clarifier que c'est le feed des amis */}
       <div className={styles.feedInfo}>
-        <div className={styles.feedInfoIcon}>👥</div>
+        <div className={styles.feedInfoIcon}>🍳</div>
         <div className={styles.feedInfoText}>
-          <strong>Feed de vos amis</strong>
-          <p>Recettes partagées par vos amis</p>
+          <strong>Feed communautaire</strong>
+          <p>Découvrez toutes les recettes de COCO</p>
         </div>
         <button 
-          onClick={() => router.push('/explorer')} 
+          onClick={() => router.push('/amis')} 
           className={styles.exploreAllBtn}
         >
-          🔍 Explorer tout
+          👥 Mes amis
         </button>
       </div>
 
