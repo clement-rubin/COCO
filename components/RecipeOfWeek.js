@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { useAuth } from './AuthContext'
 import { logInfo, logError } from '../utils/logger'
 import { processImageData } from '../utils/imageUtils'
+import RecipeWeekParticipation from './RecipeWeekParticipation'
 
 export default function RecipeOfWeek({ isInCompetitionPage = false }) {
   const { user } = useAuth()

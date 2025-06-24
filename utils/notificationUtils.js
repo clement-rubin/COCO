@@ -662,6 +662,23 @@ export const showWeeklyVotingStartNotification = () => {
   )
 }
 
+export const showRecipeParticipationNotification = (recipe, action) => {
+  const isInscription = action === 'inscrite'
+  return notificationManager.show(
+    NOTIFICATION_TYPES.SUCCESS,
+    isInscription ? 'Recette inscrite au concours !' : 'Recette retirée du concours',
+    {
+      body: `"${recipe.title}" ${isInscription ? 'participe maintenant' : 'ne participe plus'} au concours de la semaine`,
+      image: recipe.image,
+      data: { 
+        recipeId: recipe.id,
+        type: isInscription ? 'contest_join' : 'contest_leave'
+      },
+      duration: isInscription ? 6000 : 4000
+    }
+  )
+}
+
 // Ajouter les styles CSS dynamiquement
 if (typeof document !== 'undefined') {
   const style = document.createElement('style')

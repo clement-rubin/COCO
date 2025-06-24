@@ -24,25 +24,29 @@ export default async function handler(req, res) {
       endOfWeek.setDate(endOfWeek.getDate() + 6)
       endOfWeek.setHours(23, 59, 59, 999)
 
-      // Récupérer les 5 recettes les plus récentes de la semaine
-      const { data: candidates, error: candidatesError } = await supabase
-        .from('recipes')
+      // Récupérer les recettes candidates (inscrites explicitement)
+      const { data: candidatesList, error: candidatesListError } = await supabase
+        .from('recipe_week_candidates')
         .select(`
-          id,
-          title,
-          description,
-          image,
-          author,
-          user_id,
-          created_at,
-          category
+          recipe_id,
+          recipes!inner(
+            id,
+            title,
+            description,
+            image,
+            author,
+            user_id,
+            created_at,
+            category
+          )
         `)
         .gte('created_at', startOfWeek.toISOString())
         .lte('created_at', endOfWeek.toISOString())
-        .order('created_at', { ascending: false })
-        .limit(5)
 
-      if (candidatesError) throw candidatesError
+      if (candidatesListError) throw candidatesListError
+
+      // Extraire les recettes des candidatures
+      const candidates = candidatesList?.map(c => c.recipes) || []
 
       // Récupérer les votes pour ces recettes
       const candidateIds = candidates.map(c => c.id)
