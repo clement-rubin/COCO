@@ -29,6 +29,10 @@ export default function SharePhoto() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
   const [showPreview, setShowPreview] = useState(false)
+  
+  // Nouveaux états pour le choix du mode
+  const [formMode, setFormMode] = useState(null) // 'quick' ou 'complete'
+  const [showModeSelector, setShowModeSelector] = useState(true)
 
   const categories = [
     'Entrée', 'Plat principal', 'Dessert', 'Apéritif', 'Petit-déjeuner',
@@ -84,21 +88,46 @@ export default function SharePhoto() {
     }
   }
 
-  // Validation du formulaire avec messages d'aide
+  // Validation du formulaire avec messages d'aide - adaptée selon le mode
   const validateStep = (step) => {
+    if (formMode === 'quick') {
+      // Mode rapide : seule la photo et le titre sont requis
+      switch (step) {
+        case 1:
+          return photos.length > 0
+        case 2:
+          return title.trim()
+        default:
+          return true
+      }
+    }
+    
+    // Mode complet (comportement original)
     switch (step) {
       case 1:
         return photos.length > 0
       case 2:
-        return title.trim() && description.trim() // Description maintenant obligatoire
+        return title.trim() && description.trim()
       case 3:
-        return true // Ingrédients et instructions optionnels
+        return true
       default:
         return true
     }
   }
 
   const getStepValidationMessage = (step) => {
+    if (formMode === 'quick') {
+      switch (step) {
+        case 1:
+          return photos.length === 0 ? "Ajoutez une photo pour continuer" : ""
+        case 2:
+          return !title.trim() ? "Donnez un nom à votre plat" : ""
+        default:
+          return ""
+      }
+    }
+    
+    // Mode complet (comportement original)
     switch (step) {
       case 1:
         return photos.length === 0 ? "Ajoutez au moins une photo pour continuer" : ""
@@ -107,14 +136,24 @@ export default function SharePhoto() {
         if (!description.trim()) return "La description est requise"
         return ""
       case 3:
-        return "" // Plus de validation obligatoire pour cette étape
+        return ""
       default:
         return ""
     }
   }
 
-  // Navigation avec animations
+  // Navigation avec animations - adaptée selon le mode
   const goToStep = (targetStep) => {
+    if (formMode === 'quick') {
+      // En mode rapide, on saute directement à l'étape 2 après les photos
+      if (targetStep > currentStep && !validateStep(currentStep)) {
+        return
+      }
+      setCurrentStep(targetStep)
+      return
+    }
+    
+    // Mode complet (comportement original)
     if (targetStep > currentStep && !validateStep(currentStep)) {
       return
     }
@@ -165,19 +204,21 @@ export default function SharePhoto() {
       // Préparer les données avec la première image uploadée comme image principale
       const recipeData = {
         title: title.trim(),
-        description: description.trim(),
-        category,
-        difficulty,
-        prepTime: prepTime || null,
-        cookTime: cookTime || null,
-        servings: servings ? servings.toString() : null,
-        ingredients: ingredients.filter(ing => ing.trim()),
-        instructions: instructions.filter(inst => inst.instruction.trim()),
-        tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag),
-        image: uploadedImageUrls.length > 0 ? uploadedImageUrls[0] : null, // <-- seule image principale
-        // photos: uploadedImageUrls, // <-- NE PAS ENVOYER ce champ à l'API
+        description: formMode === 'quick' 
+          ? (description.trim() || 'Partagé rapidement avec COCO ! 📸')
+          : description.trim(),
+        category: formMode === 'quick' ? 'Photo partagée' : category,
+        difficulty: formMode === 'quick' ? 'Facile' : difficulty,
+        prepTime: formMode === 'quick' ? null : (prepTime || null),
+        cookTime: formMode === 'quick' ? null : (cookTime || null),
+        servings: formMode === 'quick' ? null : (servings ? servings.toString() : null),
+        ingredients: formMode === 'quick' ? [] : ingredients.filter(ing => ing.trim()),
+        instructions: formMode === 'quick' ? [] : instructions.filter(inst => inst.instruction.trim()),
+        tags: formMode === 'quick' ? [] : tags.split(',').map(tag => tag.trim()).filter(tag => tag),
+        image: uploadedImageUrls.length > 0 ? uploadedImageUrls[0] : null,
         author: user.user_metadata?.display_name || user.email?.split('@')[0] || 'Chef Anonyme',
-        user_id: user.id
+        user_id: user.id,
+        formMode: formMode
       }
 
       logInfo('Données de recette préparées', {
@@ -242,365 +283,453 @@ export default function SharePhoto() {
     return null
   }
 
+  // Composant de sélection du mode
+  const ModeSelector = () => (
+    <div className={styles.modeSelector}>
+      <div className={styles.modeSelectorHeader}>
+        <h2>✨ Partager votre création</h2>
+        <p>Choisissez comment vous voulez partager</p>
+      </div>
+      
+      <div className={styles.modeOptions}>
+        {/* Mode rapide en premier et plus visible */}
+        <div 
+          className={`${styles.modeOption} ${styles.recommended}`}
+          onClick={() => {
+            setFormMode('quick')
+            setShowModeSelector(false)
+            setCurrentStep(1)
+            logUserInteraction('MODE_QUICK_SELECTED', 'share-photo')
+          }}
+        >
+          <div className={styles.modeIcon}>⚡</div>
+          <div className={styles.recommendedBadge}>RECOMMANDÉ</div>
+          <h3>Partage Express</h3>
+          <p>Photo + titre = c'est parti !</p>
+          <div className={styles.modeFeatures}>
+            <span>📸 Une belle photo</span>
+            <span>✏️ Un titre accrocheur</span>
+            <span>🚀 Partage en 30 secondes</span>
+          </div>
+          <div className={styles.modeButton}>Go ! ⚡</div>
+        </div>
+
+        <div 
+          className={styles.modeOption}
+          onClick={() => {
+            setFormMode('complete')
+            setShowModeSelector(false)
+            setCurrentStep(1)
+            logUserInteraction('MODE_COMPLETE_SELECTED', 'share-photo')
+          }}
+        >
+          <div className={styles.modeIcon}>📝</div>
+          <h3>Recette Complète</h3>
+          <p>Tous les détails pour les passionnés</p>
+          <div className={styles.modeFeatures}>
+            <span>🍳 Ingrédients détaillés</span>
+            <span>📋 Étapes complètes</span>
+            <span>⏱️ Temps de préparation</span>
+          </div>
+          <div className={styles.modeButton}>Partager en détail</div>
+        </div>
+      </div>
+    </div>
+  )
+
   return (
     <div className={styles.container}>
       <Head>
-        <title>Partager une recette - COCO</title>
+        <title>
+          {formMode === 'quick' ? 'Partager une photo - COCO' : 'Partager une recette - COCO'}
+        </title>
         <meta name="description" content="Partagez votre recette avec la communauté COCO" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
 
-      {/* Header */}
-      <div className={styles.header}>
-        <button onClick={() => router.back()} className={styles.backButton}>
-          ← Retour
-        </button>
-        <h1>✨ Partager ma recette</h1>
-        <button 
-          onClick={() => setShowPreview(!showPreview)} 
-          className={styles.previewButton}
-        >
-          {showPreview ? '✏️ Éditer' : '👁️ Aperçu'}
-        </button>
-      </div>
-
-      {/* Indicateur de progression */}
-      <div className={styles.progressBar}>
-        <div className={styles.progressSteps}>
-          { [
-            {
-              step: 1,
-              label: '📸',
-              title: 'Photos'
-            },
-            {
-              step: 2,
-              label: '📝',
-              title: 'Détails'
-            },
-            {
-              step: 3,
-              label: '🥘',
-              title: 'Recette'
-            }
-          ].map(({ step, label, title }) => (
-            <div 
-              key={step}
-              className={`${styles.progressStep} ${
-                currentStep >= step ? styles.active : ''
-              } ${validateStep(step) ? styles.completed : ''}`}
-              onClick={() => goToStep(step)}
-              style={{ cursor: step <= currentStep ? 'pointer' : 'default' }}
-              title={title}
+      {showModeSelector ? (
+        <ModeSelector />
+      ) : (
+        <>
+          {/* Header */}
+          <div className={styles.header}>
+            <button 
+              onClick={() => setShowModeSelector(true)} 
+              className={styles.backButton}
             >
-              {validateStep(step) ? '✓' : label}
-            </div>
-          ))}
-        </div>
-        <div 
-          className={styles.progressFill}
-          style={{ width: `${((currentStep - 1) / 2) * 100}%` }}
-        />
-      </div>
+              ← Changer le mode
+            </button>
+            <h1>
+              {formMode === 'quick' ? '📸 Partage Express' : '✨ Partager ma recette'}
+            </h1>
+            {formMode === 'complete' && (
+              <button 
+                onClick={() => setShowPreview(!showPreview)} 
+                className={styles.previewButton}
+              >
+                {showPreview ? '✏️ Éditer' : '👁️ Aperçu'}
+              </button>
+            )}
+          </div>
 
-      {/* Formulaire */}
-      <form className={styles.form} onSubmit={(e) => e.preventDefault()}>
-        {/* Étape 1: Photos */}
-        {currentStep === 1 && (
-          <div className={styles.step}>
-            <div className={styles.stepHeader}>
-              <h2>📸 Montrez-nous votre création</h2>
-              <p>Ajoutez des photos appétissantes de votre plat</p>
+          {/* Indicateur de progression - adapté au mode */}
+          <div className={styles.progressBar}>
+            <div className={styles.progressSteps}>
+              { (formMode === 'quick' ? [
+                { step: 1, label: '📸', title: 'Photo' },
+                { step: 2, label: '✏️', title: 'Titre' }
+              ] : [
+                { step: 1, label: '📸', title: 'Photos' },
+                { step: 2, label: '📝', title: 'Détails' },
+                { step: 3, label: '🥘', title: 'Recette' }
+              ]).map(({ step, label, title }) => (
+                <div 
+                  key={step}
+                  className={`${styles.progressStep} ${
+                    currentStep >= step ? styles.active : ''
+                  } ${validateStep(step) ? styles.completed : ''}`}
+                  onClick={() => goToStep(step)}
+                  style={{ cursor: step <= currentStep ? 'pointer' : 'default' }}
+                  title={title}
+                >
+                  {validateStep(step) ? '✓' : label}
+                </div>
+              ))}
             </div>
-            
-            <PhotoUpload 
-              onPhotoSelect={setPhotos}
-              maxFiles={5}
+            <div 
+              className={styles.progressFill}
+              style={{ 
+                width: formMode === 'quick' 
+                  ? `${((currentStep - 1) / 1) * 100}%`
+                  : `${((currentStep - 1) / 2) * 100}%`
+              }}
             />
-            
-            {photos.length > 0 && (
-              <div className={styles.photoTips}>
-                <p>🎉 Parfait ! {photos.length} photo{photos.length > 1 ? 's' : ''} ajoutée{photos.length > 1 ? 's' : ''}</p>
-                <p>💡 Conseil : La première photo sera votre image principale</p>
-                <p>✨ Astuce : Variez les angles pour inspirer votre communauté</p>
-              </div>
-            )}
-
-            {!validateStep(1) && (
-              <div className={styles.validationHint}>
-                <span className={styles.errorIcon}>📷</span>
-                {getStepValidationMessage(1)}
-              </div>
-            )}
           </div>
-        )}
 
-        {/* Étape 2: Informations de base */}
-        {currentStep === 2 && (
-          <div className={styles.step}>
-            <div className={styles.stepHeader}>
-              <h2>📝 Décrivez votre chef-d'œuvre</h2>
-              <p>Donnez envie avec un titre accrocheur et une description savoureuse</p>
-            </div>
-
-            <div className={styles.formGroup}>
-              <label>Titre de la recette *</label>
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Ex: Pasta Carbonara de ma grand-mère"
-                maxLength={100}
-                className={styles.input}
-              />
-              <span className={styles.charCount}>{title.length}/100</span>
-            </div>
-
-            <div className={styles.formGroup}>
-              <label>Description *</label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Racontez l'histoire de cette recette, son origine, ce qui la rend spéciale..."
-                maxLength={500}
-                rows={4}
-                className={styles.textarea}
-              />
-              <span className={styles.charCount}>{description.length}/500</span>
-            </div>
-
-            <div className={styles.formRow}>
-              <div className={styles.formGroup}>
-                <label>Catégorie *</label>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className={styles.select}
-                >
-                  <option value="">🍽️ Choisir une catégorie</option>
-                  {categories.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className={styles.formGroup}>
-                <label>Niveau de difficulté</label>
-                <select
-                  value={difficulty}
-                  onChange={(e) => setDifficulty(e.target.value)}
-                  className={styles.select}
-                >
-                  {difficulties.map(diff => (
-                    <option key={diff} value={diff}>
-                      {diff === 'Très facile' ? '🟢' : 
-                       diff === 'Facile' ? '🟡' : 
-                       diff === 'Moyen' ? '🟠' : 
-                       diff === 'Difficile' ? '🔴' : '🔴'} {diff}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className={styles.formRow}>
-              <div className={styles.formGroup}>
-                <label>⏱️ Temps de préparation</label>
-                <input
-                  type="text"
-                  value={prepTime}
-                  onChange={(e) => setPrepTime(e.target.value)}
-                  placeholder="Ex: 20 min"
-                  className={styles.input}
+          {/* Formulaire */}
+          <form className={styles.form} onSubmit={(e) => e.preventDefault()}>
+            {/* Étape 1: Photos */}
+            {currentStep === 1 && (
+              <div className={styles.step}>
+                <div className={styles.stepHeader}>
+                  <h2>📸 {formMode === 'quick' ? 'Votre belle photo' : 'Montrez-nous votre création'}</h2>
+                  <p>
+                    {formMode === 'quick' 
+                      ? 'Une photo qui donne envie, c\'est tout ce qu\'il faut !'
+                      : 'Ajoutez des photos appétissantes de votre plat'
+                    }
+                  </p>
+                </div>
+                
+                <PhotoUpload 
+                  onPhotoSelect={setPhotos}
+                  maxFiles={formMode === 'quick' ? 1 : 5}
                 />
-              </div>
+                
+                {photos.length > 0 && (
+                  <div className={styles.photoTips}>
+                    <p>🎉 Parfait ! {photos.length} photo{photos.length > 1 ? 's' : ''} ajoutée{photos.length > 1 ? 's' : ''}</p>
+                    {formMode === 'complete' && (
+                      <>
+                        <p>💡 Conseil : La première photo sera votre image principale</p>
+                        <p>✨ Astuce : Variez les angles pour inspirer votre communauté</p>
+                      </>
+                    )}
+                  </div>
+                )}
 
-              <div className={styles.formGroup}>
-                <label>🔥 Temps de cuisson</label>
-                <input
-                  type="text"
-                  value={cookTime}
-                  onChange={(e) => setCookTime(e.target.value)}
-                  placeholder="Ex: 30 min"
-                  className={styles.input}
-                />
-              </div>
-
-              <div className={styles.formGroup}>
-                <label>👥 Portions</label>
-                <input
-                  type="number"
-                  value={servings}
-                  onChange={(e) => setServings(e.target.value)}
-                  min="1"
-                  max="20"
-                  className={styles.input}
-                />
-              </div>
-            </div>
-
-            {!validateStep(2) && (
-              <div className={styles.validationHint}>
-                <span className={styles.errorIcon}>📝</span>
-                {getStepValidationMessage(2)}
+                {!validateStep(1) && (
+                  <div className={styles.validationHint}>
+                    <span className={styles.errorIcon}>📷</span>
+                    {getStepValidationMessage(1)}
+                  </div>
+                )}
               </div>
             )}
-          </div>
-        )}
 
-        {/* Étape 3: Ingrédients et Instructions */}
-        {currentStep === 3 && (
-          <div className={styles.step}>
-            <div className={styles.stepHeader}>
-              <h2>🥘 Détaillez votre recette</h2>
-              <p>Listez les ingrédients et décrivez chaque étape pour que tout le monde puisse la réaliser</p>
-            </div>
+            {/* Étape 2: Informations de base */}
+            {currentStep === 2 && (
+              <div className={styles.step}>
+                <div className={styles.stepHeader}>
+                  <h2>
+                    {formMode === 'quick' ? '✏️ Donnez-lui un nom' : '📝 Décrivez votre chef-d\'œuvre'}
+                  </h2>
+                  <p>
+                    {formMode === 'quick'
+                      ? 'Un titre qui fait saliver, et c\'est parti !'
+                      : 'Donnez envie avec un titre accrocheur et une description savoureuse'
+                    }
+                  </p>
+                </div>
 
-            {/* Ingrédients */}
-            <div className={styles.section}>
-              <h3>🛒 Liste des ingrédients</h3>
-              {ingredients.map((ingredient, index) => (
-                <div key={index} className={styles.ingredientRow}>
+                <div className={styles.formGroup}>
+                  <label>Titre de la recette *</label>
                   <input
                     type="text"
-                    value={ingredient}
-                    onChange={(e) => updateIngredient(index, e.target.value)}
-                    placeholder={`Ingrédient ${index + 1} (ex: 200g de pâtes fraîches)`}
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder={
+                      formMode === 'quick'
+                        ? "Ex: Mon délicieux plat du jour"
+                        : "Ex: Pasta Carbonara de ma grand-mère"
+                    }
+                    maxLength={100}
                     className={styles.input}
                   />
-                  {ingredients.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeIngredient(index)}
-                      className={styles.removeButton}
-                      title="Supprimer cet ingrédient"
-                    >
-                      ✕
-                    </button>
-                  )}
+                  <span className={styles.charCount}>{title.length}/100</span>
                 </div>
-              ))}
-              <button
-                type="button"
-                onClick={addIngredient}
-                className={styles.addButton}
-              >
-                ➕ Ajouter un ingrédient
-              </button>
-            </div>
 
-            {/* Instructions */}
-            <div className={styles.section}>
-              <h3>👨‍🍳 Étapes de préparation</h3>
-              {instructions.map((instruction, index) => (
-                <div key={index} className={styles.instructionRow}>
-                  <div className={styles.stepNumber}>{instruction.step}</div>
-                  <textarea
-                    value={instruction.instruction}
-                    onChange={(e) => updateInstruction(index, e.target.value)}
-                    placeholder={`Étape ${instruction.step}: Décrivez cette étape en détail (ex: Dans une grande casserole, faites bouillir l'eau salée...)`}
-                    rows={3}
-                    className={styles.textarea}
-                  />
-                  {instructions.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeInstruction(index)}
-                      className={styles.removeButton}
-                      title="Supprimer cette étape"
-                    >
-                      ✕
-                    </button>
-                  )}
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={addInstruction}
-                className={styles.addButton}
-              >
-                ➕ Ajouter une étape
-              </button>
-            </div>
+                {formMode === 'complete' && (
+                  <>
+                    <div className={styles.formGroup}>
+                      <label>Description *</label>
+                      <textarea
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        placeholder="Racontez l'histoire de cette recette, son origine, ce qui la rend spéciale..."
+                        maxLength={500}
+                        rows={4}
+                        className={styles.textarea}
+                      />
+                      <span className={styles.charCount}>{description.length}/500</span>
+                    </div>
 
-            {/* Tags optionnels */}
-            <div className={styles.formGroup}>
-              <label>🏷️ Tags (optionnel)</label>
-              <input
-                type="text"
-                value={tags}
-                onChange={(e) => setTags(e.target.value)}
-                placeholder="italien, fait-maison, rapide, végétarien (séparés par des virgules)"
-                className={styles.input}
-              />
-            </div>
+                    <div className={styles.formRow}>
+                      <div className={styles.formGroup}>
+                        <label>Catégorie *</label>
+                        <select
+                          value={category}
+                          onChange={(e) => setCategory(e.target.value)}
+                          className={styles.select}
+                        >
+                          <option value="">🍽️ Choisir une catégorie</option>
+                          {categories.map(cat => (
+                            <option key={cat} value={cat}>{cat}</option>
+                          ))}
+                        </select>
+                      </div>
 
-            {!validateStep(3) && (
-              <div className={styles.validationHint}>
-                <span className={styles.errorIcon}>🥘</span>
-                {getStepValidationMessage(3)}
+                      <div className={styles.formGroup}>
+                        <label>Niveau de difficulté</label>
+                        <select
+                          value={difficulty}
+                          onChange={(e) => setDifficulty(e.target.value)}
+                          className={styles.select}
+                        >
+                          {difficulties.map(diff => (
+                            <option key={diff} value={diff}>
+                              {diff === 'Très facile' ? '🟢' : 
+                               diff === 'Facile' ? '🟡' : 
+                               diff === 'Moyen' ? '🟠' : 
+                               diff === 'Difficile' ? '🔴' : '🔴'} {diff}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className={styles.formRow}>
+                      <div className={styles.formGroup}>
+                        <label>⏱️ Temps de préparation</label>
+                        <input
+                          type="text"
+                          value={prepTime}
+                          onChange={(e) => setPrepTime(e.target.value)}
+                          placeholder="Ex: 20 min"
+                          className={styles.input}
+                        />
+                      </div>
+
+                      <div className={styles.formGroup}>
+                        <label>🔥 Temps de cuisson</label>
+                        <input
+                          type="text"
+                          value={cookTime}
+                          onChange={(e) => setCookTime(e.target.value)}
+                          placeholder="Ex: 30 min"
+                          className={styles.input}
+                        />
+                      </div>
+
+                      <div className={styles.formGroup}>
+                        <label>👥 Portions</label>
+                        <input
+                          type="number"
+                          value={servings}
+                          onChange={(e) => setServings(e.target.value)}
+                          min="1"
+                          max="20"
+                          className={styles.input}
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {!validateStep(2) && (
+                  <div className={styles.validationHint}>
+                    <span className={styles.errorIcon}>📝</span>
+                    {getStepValidationMessage(2)}
+                  </div>
+                )}
               </div>
             )}
-          </div>
-        )}
 
-        {/* Erreur de soumission */}
-        {submitError && (
-          <div className={styles.errorMessage}>
-            <span className={styles.errorIcon}>⚠️</span>
-            <div>
-              <strong>Oups ! Une erreur s'est produite</strong>
-              <p>{submitError}</p>
-            </div>
-          </div>
-        )}
+            {/* Étape 3: Ingrédients et Instructions - seulement en mode complet */}
+            {currentStep === 3 && formMode === 'complete' && (
+              <div className={styles.step}>
+                <div className={styles.stepHeader}>
+                  <h2>🥘 Détaillez votre recette</h2>
+                  <p>Listez les ingrédients et décrivez chaque étape pour que tout le monde puisse la réaliser</p>
+                </div>
 
-        {/* Navigation */}
-        <div className={styles.navigation}>
-          {currentStep > 1 && (
-            <button
-              type="button"
-              onClick={() => setCurrentStep(currentStep - 1)}
-              className={styles.navButton}
-              disabled={isSubmitting}
-            >
-              ← Précédent
-            </button>
-          )}
-          
-          <div className={styles.navSpacer} />
-          
-          {currentStep < 3 ? (
-            <button
-              type="button"
-              onClick={() => setCurrentStep(currentStep + 1)}
-              className={styles.navButton}
-              disabled={!validateStep(currentStep)}
-              title={!validateStep(currentStep) ? getStepValidationMessage(currentStep) : ''}
-            >
-              Suivant →
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={handleSubmit}
-              className={styles.submitButton}
-              disabled={!validateStep(3) || isSubmitting}
-            >
-              {isSubmitting ? (
-                <>
-                  <div className={styles.spinner}></div>
-                  Publication en cours...
-                </>
-              ) : (
-                <>
-                  🚀 Publier ma recette
-                </>
+                {/* Ingrédients */}
+                <div className={styles.section}>
+                  <h3>🛒 Liste des ingrédients</h3>
+                  {ingredients.map((ingredient, index) => (
+                    <div key={index} className={styles.ingredientRow}>
+                      <input
+                        type="text"
+                        value={ingredient}
+                        onChange={(e) => updateIngredient(index, e.target.value)}
+                        placeholder={`Ingrédient ${index + 1} (ex: 200g de pâtes fraîches)`}
+                        className={styles.input}
+                      />
+                      {ingredients.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeIngredient(index)}
+                          className={styles.removeButton}
+                          title="Supprimer cet ingrédient"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={addIngredient}
+                    className={styles.addButton}
+                  >
+                    ➕ Ajouter un ingrédient
+                  </button>
+                </div>
+
+                {/* Instructions */}
+                <div className={styles.section}>
+                  <h3>👨‍🍳 Étapes de préparation</h3>
+                  {instructions.map((instruction, index) => (
+                    <div key={index} className={styles.instructionRow}>
+                      <div className={styles.stepNumber}>{instruction.step}</div>
+                      <textarea
+                        value={instruction.instruction}
+                        onChange={(e) => updateInstruction(index, e.target.value)}
+                        placeholder={`Étape ${instruction.step}: Décrivez cette étape en détail (ex: Dans une grande casserole, faites bouillir l'eau salée...)`}
+                        rows={3}
+                        className={styles.textarea}
+                      />
+                      {instructions.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeInstruction(index)}
+                          className={styles.removeButton}
+                          title="Supprimer cette étape"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={addInstruction}
+                    className={styles.addButton}
+                  >
+                    ➕ Ajouter une étape
+                  </button>
+                </div>
+
+                {/* Tags optionnels */}
+                <div className={styles.formGroup}>
+                  <label>🏷️ Tags (optionnel)</label>
+                  <input
+                    type="text"
+                    value={tags}
+                    onChange={(e) => setTags(e.target.value)}
+                    placeholder="italien, fait-maison, rapide, végétarien (séparés par des virgules)"
+                    className={styles.input}
+                  />
+                </div>
+
+                {!validateStep(3) && (
+                  <div className={styles.validationHint}>
+                    <span className={styles.errorIcon}>🥘</span>
+                    {getStepValidationMessage(3)}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Erreur de soumission */}
+            {submitError && (
+              <div className={styles.errorMessage}>
+                <span className={styles.errorIcon}>⚠️</span>
+                <div>
+                  <strong>Oups ! Une erreur s'est produite</strong>
+                  <p>{submitError}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Navigation - adaptée au mode */}
+            <div className={styles.navigation}>
+              {currentStep > 1 && (
+                <button
+                  type="button"
+                  onClick={() => setCurrentStep(currentStep - 1)}
+                  className={styles.navButton}
+                  disabled={isSubmitting}
+                >
+                  ← Précédent
+                </button>
               )}
-            </button>
-          )}
-        </div>
-      </form>
+              
+              <div className={styles.navSpacer} />
+              
+              {(formMode === 'quick' && currentStep === 2) || (formMode === 'complete' && currentStep === 3) ? (
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  className={styles.submitButton}
+                  disabled={!validateStep(currentStep) || isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className={styles.spinner}></div>
+                      Publication en cours...
+                    </>
+                  ) : (
+                    <>
+                      {formMode === 'quick' ? '⚡ Partager maintenant' : '🚀 Publier ma recette'}
+                    </>
+                  )}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setCurrentStep(currentStep + 1)}
+                  className={styles.navButton}
+                  disabled={!validateStep(currentStep)}
+                  title={!validateStep(currentStep) ? getStepValidationMessage(currentStep) : ''}
+                >
+                  Suivant →
+                </button>
+              )}
+            </div>
+          </form>
+        </>
+      )}
     </div>
   )
 }
