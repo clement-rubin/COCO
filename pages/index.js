@@ -76,6 +76,15 @@ export default function Home() {
           window.location.href = '/login?redirect=' + encodeURIComponent('/amis')
         }
       }
+    },
+    {
+      id: 'competitions',
+      title: 'Compétitions',
+      subtitle: 'Défis culinaires',
+      icon: '🏆',
+      action: () => router.push('/competitions'),
+      gradient: 'linear-gradient(135deg, #fbbf24, #f59e0b)',
+      color: '#92400e'
     }
   ]
 
