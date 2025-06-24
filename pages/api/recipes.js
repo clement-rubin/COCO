@@ -145,8 +145,7 @@ export default async function handler(req, res) {
           fetchLogs: fetchLogs,
           logsLimit: logsLimit,
           friendsOnly: friendsOnly,
-          userIdType: typeof user_id,
-          userIdLength: user_id?.length,
+          userId: user_id,
           timestamp: new Date().toISOString()
         })
         
@@ -479,37 +478,63 @@ export default async function handler(req, res) {
         logInfo('Creating new recipe', {
           reference: requestReference,
           hasTitle: !!data.title,
-          hasAuthor: !!data.author,
-          hasUserId: !!data.user_id,
-          category: data.category,
-          hasImage: !!data.image,
-          imageType: typeof data.image
+          formMode: data.formMode,
+          isQuickMode: data.formMode === 'quick'
         })
         
-        // Validation des champs obligatoires - SIMPLIFIÉ
+        // VALIDATION ULTRA-SIMPLIFIÉE pour mode rapide
         if (!data.title || typeof data.title !== 'string' || !data.title.trim()) {
-          logWarning('Recipe creation failed - missing or invalid title', { 
-            reference: requestReference,
-            receivedFields: Object.keys(data),
-            titleType: typeof data.title,
-            titleValue: data.title
-          })
           return safeResponse(res, 400, { 
             error: 'Le titre est obligatoire',
-            required: ['title (string non vide)'],
-            received: Object.keys(data),
+            required: ['title'],
             reference: requestReference
           })
         }
 
-        // Description optionnelle mais recommandée
-        if (!data.description || typeof data.description !== 'string' || !data.description.trim()) {
-          logInfo('Recipe created without description - using default', { 
+        // Mode rapide - traitement express
+        if (data.formMode === 'quick') {
+          // Pas de récupération de profil pour gagner du temps
+          const authorName = data.author || 'Chef Express'
+          
+          const quickRecipe = {
+            title: data.title.trim(),
+            description: data.description || 'Partagé rapidement avec COCO ! ⚡',
+            image: data.image || null,
+            author: authorName,
+            user_id: data.user_id?.trim() || null,
+            ingredients: [],
+            instructions: [],
+            category: 'Photo partagée',
+            difficulty: 'Facile',
+            form_mode: 'quick',
+            created_at: new Date().toISOString()
+          }
+
+          // Insertion directe sans validation supplémentaire
+          const { data: insertedData, error } = await supabase
+            .from('recipes')
+            .insert([quickRecipe])
+            .select()
+          
+          if (error) {
+            logError('Quick recipe insertion error', error, { reference: requestReference })
+            throw error
+          }
+          
+          logInfo('Quick recipe created successfully', {
             reference: requestReference,
-            title: data.title
+            recipeId: insertedData[0]?.id,
+            title: insertedData[0]?.title,
+            processingTime: Date.now() - startTime
+          })
+          
+          return safeResponse(res, 201, {
+            ...insertedData[0],
+            message: 'Recette partagée en mode express !'
           })
         }
         
+        // Mode complet - traitement existant...
         // Récupérer le nom d'utilisateur depuis le profil si user_id est fourni
         let authorName = data.author && typeof data.author === 'string' ? data.author.trim() : null
         

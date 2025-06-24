@@ -76,61 +76,41 @@ export default function SubmitRecipe() {
     }
   }
 
+  // Modifier la validation pour être encore plus permissive
   const validateForm = () => {
-    addLog('info', 'Début de la validation du formulaire recette')
     const newErrors = {}
     
-    // VALIDATION SIMPLIFIÉE - Seulement titre obligatoire dans tous les modes
+    // SEUL le titre est obligatoire
     if (!formData.title.trim()) {
-      newErrors.title = 'Le nom de la recette est obligatoire'
+      newErrors.title = 'Le nom de votre plat est obligatoire'
       addLog('warning', 'Validation échouée: nom de la recette manquant')
     }
     
-    // Description obligatoire UNIQUEMENT en mode complet
-    if (formMode === 'complete' && !formData.description.trim()) {
-      newErrors.description = 'La description est obligatoire en mode complet'
-      addLog('warning', 'Validation échouée: description manquante en mode complet')
-    }
-    
-    // Photo recommandée mais pas obligatoire
+    // Tout le reste est complètement optionnel, même la description
+    // Photos recommandées mais pas obligatoires
     if (photos.length === 0) {
-      // Simple avertissement, pas d'erreur bloquante
-      addLog('info', 'Aucune photo fournie - sera optionnelle')
-    }
-    
-    // Validation des photos traitées (si des photos sont présentes)
-    if (photos.length > 0) {
-      const processingPhotos = photos.filter(photo => photo.processing)
-      const errorPhotos = photos.filter(photo => photo.error)
-      
-      if (processingPhotos.length > 0) {
-        newErrors.photos = `Attendez que ${processingPhotos.length} photo(s) finissent d'être traitées`
-      } else if (errorPhotos.length > 0) {
-        newErrors.photos = `${errorPhotos.length} photo(s) ont échoué. Supprimez-les et réessayez.`
-      }
+      addLog('info', 'Aucune photo fournie - création de recette sans photo')
     }
     
     const isValid = Object.keys(newErrors).length === 0
     
-    addLog('info', 'Résultat de la validation', {
+    addLog('info', 'Résultat de la validation simplifiée', {
       isValid,
       formMode,
-      errorsCount: Object.keys(newErrors).length,
-      errors: Object.keys(newErrors),
-      photosCount: photos.length,
       hasTitle: !!formData.title.trim(),
-      hasDescription: !!formData.description.trim(),
-      validationMode: 'simplified'
+      hasPhotos: photos.length > 0,
+      validationMode: 'ultra-simplified'
     })
     
     setErrors(newErrors)
     return isValid
   }
 
+  // Simplifier le processus de soumission
   const handleSubmit = async (e) => {
     e.preventDefault()
     
-    addLog('info', 'Début de soumission de recette', { formMode })
+    addLog('info', 'Début de soumission rapide', { formMode })
     
     if (!validateForm()) {
       addLog('warning', 'Validation du formulaire échouée')
@@ -144,93 +124,65 @@ export default function SubmitRecipe() {
     setIsSubmitting(true)
 
     try {
-      // Récupérer le display_name depuis la table profiles
+      // Récupération du display_name - plus rapide avec cache
       let authorName = 'Chef Anonyme'
       try {
-        addLog('info', 'Récupération du display_name depuis profiles', { userId: user.id.substring(0, 8) + '...' })
-        
         const profileResponse = await fetch(`/api/profile?user_id=${user.id}`)
         if (profileResponse.ok) {
           const profileData = await profileResponse.json()
           if (profileData?.display_name) {
             authorName = profileData.display_name
-            addLog('info', 'Display_name récupéré avec succès', { authorName })
-          } else {
-            addLog('warning', 'Aucun display_name trouvé dans le profil', { profileData })
           }
-        } else {
-          addLog('warning', 'Impossible de récupérer le profil', { 
-            status: profileResponse.status,
-            statusText: profileResponse.statusText 
-          })
         }
       } catch (profileError) {
-        addLog('error', 'Erreur lors de la récupération du profil', { error: profileError.message })
+        // Ignorer l'erreur, utiliser le nom par défaut
+        addLog('warning', 'Profil non trouvé, utilisation du nom par défaut')
       }
 
-      // Upload des images vers Supabase Storage
+      // Upload d'image uniquement si présente - pas d'attente
       let mainImageUrl = null
       if (photos.length > 0) {
-        addLog('info', 'Début de l\'upload des images', { photosCount: photos.length })
-        
         const photoWithFile = photos.find(photo => photo.imageFile instanceof File)
         if (photoWithFile) {
           try {
-            mainImageUrl = await uploadImageToSupabaseAndGetUrl(photoWithFile.imageFile)
-            addLog('info', 'Image principale uploadée avec succès', { 
-              imageUrl: mainImageUrl?.substring(0, 50) + '...' 
-            })
+            // Upload en arrière-plan, pas d'attente si ça échoue
+            mainImageUrl = await Promise.race([
+              uploadImageToSupabaseAndGetUrl(photoWithFile.imageFile),
+              new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
+            ])
           } catch (uploadError) {
-            addLog('error', 'Erreur upload de l\'image principale', { error: uploadError.message })
+            addLog('warning', 'Upload d\'image échoué mais on continue', { error: uploadError.message })
+            // Continuer sans image plutôt que d'échouer
           }
         }
       }
 
-      addLog('info', 'Préparation des données de soumission')
-      
-      // Préparer les données selon le mode
+      // Données minimales pour soumission rapide
       const recipeData = {
-        title: formData.title,
+        title: formData.title.trim(),
         author: authorName,
         user_id: user.id,
         image: mainImageUrl,
-        formMode: formMode // Assurer que le champ est envoyé
+        formMode: formMode,
+        // Valeurs par défaut optimisées pour mode rapide
+        description: formData.description?.trim() || 'Partagé rapidement avec COCO ! 📸',
+        ingredients: [],
+        instructions: [],
+        category: 'Photo partagée',
+        difficulty: 'Facile'
       }
 
-      // Ajouter les champs selon le mode
-      if (formMode === 'complete') {
-        recipeData.description = formData.description || 'Recette partagée avec COCO'
-        recipeData.ingredients = formData.ingredients ? 
-          formData.ingredients.split('\n').filter(ingredient => ingredient.trim()) : []
-        recipeData.instructions = formData.instructions ? 
-          formData.instructions.split('\n').filter(instruction => instruction.trim()).map((instruction, index) => ({
-            step: index + 1,
-            instruction: instruction.trim()
-          })) : []
-      } else {
-        // Mode rapide - valeurs par défaut optimisées
-        recipeData.description = formData.description || 'Photo partagée rapidement avec COCO ✨'
-        recipeData.ingredients = []
-        recipeData.instructions = []
-        recipeData.category = 'Photo partagée'
-      }
-
-      addLog('info', 'Données préparées pour soumission', {
-        hasTitle: !!recipeData.title,
-        hasDescription: !!recipeData.description,
-        hasUserId: !!recipeData.user_id,
-        hasImage: !!recipeData.image,
-        imageType: typeof recipeData.image
-      })
-
-      // Soumettre à l'API
-      const response = await fetch('/api/recipes', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(recipeData)
-      })
+      // Soumission avec timeout court
+      const response = await Promise.race([
+        fetch('/api/recipes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(recipeData)
+        }),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Timeout de soumission')), 10000)
+        )
+      ])
 
       const result = await response.json()
 
@@ -238,30 +190,18 @@ export default function SubmitRecipe() {
         throw new Error(result.error || result.message || 'Erreur lors de la soumission')
       }
 
-      addLog('info', 'Recette soumise avec succès', {
-        recipeId: result.id,
-        title: result.title,
-        author: result.author,
-        hasImage: !!result.image
-      })
-
-      // Succès
+      // Succès - redirection immédiate
       setShowSuccessMessage(true)
-      
-      // Redirection après 3 secondes
-      setTimeout(() => {
-        router.push('/')
-      }, 3000)
+      setTimeout(() => router.push('/'), 2000) // Réduit à 2 secondes
 
     } catch (error) {
-      addLog('error', 'Erreur lors de la soumission', {
-        errorMessage: error.message,
-        errorStack: error.stack?.substring(0, 500)
+      addLog('error', 'Erreur lors de la soumission rapide', {
+        errorMessage: error.message
       })
       
       setErrors(prev => ({
         ...prev,
-        submit: error.message || 'Une erreur est survenue lors de la soumission'
+        submit: error.message || 'Une erreur est survenue. Réessayez.'
       }))
     } finally {
       setIsSubmitting(false)
@@ -372,28 +312,30 @@ export default function SubmitRecipe() {
   const ModeSelector = () => (
     <div className={styles.modeSelector}>
       <div className={styles.modeSelectorHeader}>
-        <h2>Comment souhaitez-vous partager ?</h2>
-        <p>Choisissez le type de partage qui vous convient</p>
+        <h2>Partager votre création</h2>
+        <p>Choisissez comment partager rapidement</p>
       </div>
       
       <div className={styles.modeOptions}>
+        {/* Mode rapide en premier et plus visible */}
         <div 
-          className={styles.modeOption}
+          className={`${styles.modeOption} ${styles.recommended}`}
           onClick={() => {
             setFormMode('quick')
             setShowModeSelector(false)
             addLog('interaction', 'Mode rapide sélectionné')
           }}
         >
-          <div className={styles.modeIcon}>📸</div>
-          <h3>Partage Rapide</h3>
-          <p>Photo + titre seulement</p>
+          <div className={styles.modeIcon}>⚡</div>
+          <div className={styles.recommendedBadge}>RECOMMANDÉ</div>
+          <h3>Partage Express</h3>
+          <p>Photo + titre = c'est parti !</p>
           <div className={styles.modeFeatures}>
-            <span>✨ Partage instantané</span>
-            <span>📱 Parfait pour mobile</span>
-            <span>⚡ En quelques secondes</span>
+            <span>📸 Juste une photo</span>
+            <span>✏️ Un titre</span>
+            <span>🚀 Envoi en 10 secondes</span>
           </div>
-          <div className={styles.modeButton}>Choisir</div>
+          <div className={styles.modeButton}>Partir maintenant</div>
         </div>
 
         <div 
@@ -405,14 +347,14 @@ export default function SubmitRecipe() {
           }}
         >
           <div className={styles.modeIcon}>📝</div>
-          <h3>Recette Complète</h3>
-          <p>Tous les détails de votre recette</p>
+          <h3>Recette Détaillée</h3>
+          <p>Pour les vrais chefs</p>
           <div className={styles.modeFeatures}>
-            <span>🍳 Ingrédients détaillés</span>
-            <span>📋 Instructions étape par étape</span>
-            <span>💫 Partage complet</span>
+            <span>🍳 Tous les ingrédients</span>
+            <span>📋 Étapes détaillées</span>
+            <span>⏱️ Plus long mais complet</span>
           </div>
-          <div className={styles.modeButton}>Choisir</div>
+          <div className={styles.modeButton}>Prendre le temps</div>
         </div>
       </div>
     </div>
@@ -538,6 +480,64 @@ export default function SubmitRecipe() {
                           onChange={handleInputChange}
                           placeholder="Listez les ingrédients (un par ligne)&#10;Ex:&#10;- 3 pommes&#10;- 200g de farine&#10;- 100g de beurre"
                           rows={6}
+                        />
+                      </div>
+
+                      <div className={styles.formGroup}>
+                        <label htmlFor="instructions">Instructions (optionnel)</label>
+                        <textarea
+                          id="instructions"
+                          name="instructions"
+                          value={formData.instructions}
+                          onChange={handleInputChange}
+                          placeholder="Décrivez les étapes de préparation (une par ligne)&#10;Ex:&#10;1. Préchauffer le four à 180°C&#10;2. Éplucher et couper les pommes&#10;3. Mélanger la farine et le beurre"
+                          rows={8}
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {errors.submit && (
+                  <div className={styles.submitError}>
+                    {errors.submit}
+                  </div>
+                )}
+              </form>
+            </div>
+
+            <div className={styles.navigation}>
+              <button onClick={() => router.back()} className={styles.secondaryBtn}>
+                Annuler
+              </button>
+              
+              <button
+                onClick={handleSubmit}
+                className={`${styles.submitBtn} ${isSubmitting || processingPhotosCount > 0 ? styles.disabled : ''}`}
+                disabled={isSubmitting || processingPhotosCount > 0}
+              >
+                {isSubmitting ? (
+                  <>
+                    <span className={styles.spinner}></span>
+                    Partage en cours...
+                  </>
+                ) : processingPhotosCount > 0 ? (
+                  <>
+                    ⏳ Traitement en cours ({processingPhotosCount} photo(s))
+                  </>
+                ) : (
+                  <>
+                    {formMode === 'quick' ? '📸 Partager ma photo' : '🍳 Partager ma recette'}
+                  </>
+                )}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </>
+  )
+}
                         />
                       </div>
 
