@@ -5,8 +5,9 @@ import { useAuth } from './AuthContext'
 import { logUserInteraction, logError, logInfo, logDebug } from '../utils/logger'
 import { showRecipeLikeInteractionNotification } from '../utils/notificationUtils'
 import styles from '../styles/AddictiveFeed.module.css'
-// Corriger l'import - utiliser le bon chemin
-import { supabase } from '../lib/supabaseClient'
+import { supabase } from '../lib/supabase'
+
+// ...existing code...
 
 export default function AddictiveFeed() {
   const router = useRouter()

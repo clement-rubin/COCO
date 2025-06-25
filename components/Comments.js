@@ -582,6 +582,12 @@ export default function Comments({
               )}
             </div>
           ))}
+
+          <div className={styles.loadMoreContainer}>
+            <button className={styles.loadMoreButton}>
+              📚 Charger plus de commentaires
+            </button>
+          </div>
         </div>
       ) : (
         <div className={styles.emptyComments}>

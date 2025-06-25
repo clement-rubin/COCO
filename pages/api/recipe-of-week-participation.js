@@ -1,204 +1,245 @@
 import { supabase } from '../../lib/supabase'
-import { logInfo, logError } from '../../utils/logger'
+import { logInfo, logError, logWarning } from '../../utils/logger'
 
 export default async function handler(req, res) {
-  const { method } = req
-
-  // CORS
+  // En-têtes CORS
   res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
 
-  if (method === 'OPTIONS') {
+  if (req.method === 'OPTIONS') {
     return res.status(204).end()
   }
 
+  const requestId = `participation-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`
+
   try {
-    if (method === 'GET') {
+    logInfo('Recipe of week participation API called', {
+      requestId,
+      method: req.method,
+      query: req.query,
+      hasBody: !!req.body
+    })
+
+    if (req.method === 'GET') {
       const { user_id } = req.query
 
       if (!user_id) {
-        return res.status(400).json({ error: 'user_id requis' })
+        return res.status(400).json({
+          error: 'user_id est requis',
+          message: 'L\'ID utilisateur est nécessaire pour vérifier la participation'
+        })
       }
 
-      // Calculer la période de la semaine courante
-      const startOfWeek = new Date()
-      startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay())
-      startOfWeek.setHours(0, 0, 0, 0)
+      try {
+        // Check if there's an active recipe of the week
+        const { data: activeRecipe, error: recipeError } = await supabase
+          .from('recipe_of_week')
+          .select('id, start_date, end_date')
+          .eq('is_active', true)
+          .single()
 
-      const endOfWeek = new Date(startOfWeek)
-      endOfWeek.setDate(endOfWeek.getDate() + 6)
-      endOfWeek.setHours(23, 59, 59, 999)
-
-      // Récupérer TOUTES les recettes de l'utilisateur (pas seulement cette semaine)
-      const { data: allRecipes, error: recipesError } = await supabase
-        .from('recipes')
-        .select('id, title, description, image, created_at, category')
-        .eq('user_id', user_id)
-        .order('created_at', { ascending: false })
-        .limit(50) // Limiter à 50 recettes max pour les performances
-
-      if (recipesError) throw recipesError
-
-      // Vérifier quelles recettes sont déjà candidates cette semaine
-      const { data: existingCandidates, error: candidatesError } = await supabase
-        .from('recipe_week_candidates')
-        .select('recipe_id')
-        .eq('user_id', user_id)
-        .gte('created_at', startOfWeek.toISOString())
-
-      if (candidatesError && candidatesError.code !== 'PGRST116') {
-        throw candidatesError
-      }
-
-      const candidateIds = existingCandidates?.map(c => c.recipe_id) || []
-
-      // Marquer les recettes selon leur statut
-      const recipesWithStatus = allRecipes.map(recipe => {
-        const isThisWeek = new Date(recipe.created_at) >= startOfWeek
-        const isCandidate = candidateIds.includes(recipe.id)
-        
-        return {
-          ...recipe,
-          isCandidate,
-          canParticipate: !isCandidate,
-          isThisWeek, // Indiquer si c'est une recette de cette semaine
-          createdThisWeek: isThisWeek
+        if (recipeError) {
+          if (recipeError.code === 'PGRST116') {
+            logWarning('Recipe of week table does not exist', { requestId, userId: user_id })
+            return res.status(200).json({
+              hasParticipated: false,
+              canParticipate: false,
+              message: 'Aucun concours actif pour le moment'
+            })
+          }
+          throw recipeError
         }
-      })
 
-      return res.status(200).json({
-        allRecipes: recipesWithStatus,
-        weekStart: startOfWeek.toISOString(),
-        weekEnd: endOfWeek.toISOString(),
-        maxCandidates: 5, // Augmenter la limite à 5 recettes par utilisateur
-        currentCandidates: candidateIds.length
-      })
+        if (!activeRecipe) {
+          return res.status(200).json({
+            hasParticipated: false,
+            canParticipate: false,
+            message: 'Aucun concours de la semaine actif'
+          })
+        }
+
+        // Check if user has already participated
+        const { data: participation, error: participationError } = await supabase
+          .from('recipe_of_week_participation')
+          .select('id, recipe_id, submitted_at')
+          .eq('user_id', user_id)
+          .eq('recipe_of_week_id', activeRecipe.id)
+          .single()
+
+        if (participationError && participationError.code !== 'PGRST116') {
+          if (participationError.code === 'PGRST116') {
+            // Table doesn't exist, create mock response
+            logWarning('Recipe of week participation table does not exist', { requestId, userId: user_id })
+            return res.status(200).json({
+              hasParticipated: false,
+              canParticipate: true,
+              activeRecipe: {
+                id: activeRecipe.id,
+                start_date: activeRecipe.start_date,
+                end_date: activeRecipe.end_date
+              }
+            })
+          }
+          throw participationError
+        }
+
+        const hasParticipated = !!participation
+        const now = new Date()
+        const endDate = new Date(activeRecipe.end_date)
+        const canParticipate = !hasParticipated && now <= endDate
+
+        logInfo('Participation status checked', {
+          requestId,
+          userId: user_id,
+          hasParticipated,
+          canParticipate,
+          activeRecipeId: activeRecipe.id
+        })
+
+        return res.status(200).json({
+          hasParticipated,
+          canParticipate,
+          activeRecipe: {
+            id: activeRecipe.id,
+            start_date: activeRecipe.start_date,
+            end_date: activeRecipe.end_date
+          },
+          participation: hasParticipated ? {
+            id: participation.id,
+            recipe_id: participation.recipe_id,
+            submitted_at: participation.submitted_at
+          } : null
+        })
+
+      } catch (error) {
+        logError('Error checking participation status', error, {
+          requestId,
+          userId: user_id,
+          errorCode: error.code,
+          errorMessage: error.message
+        })
+
+        // Return a safe fallback response instead of throwing
+        return res.status(200).json({
+          hasParticipated: false,
+          canParticipate: false,
+          message: 'Impossible de vérifier le statut de participation',
+          error: 'Service temporairement indisponible'
+        })
+      }
     }
 
-    if (method === 'POST') {
-      const { recipe_id, user_id } = req.body
+    if (req.method === 'POST') {
+      const { user_id, recipe_id } = req.body
 
-      if (!recipe_id || !user_id) {
-        return res.status(400).json({ error: 'recipe_id et user_id requis' })
-      }
-
-      // Vérifier que la recette appartient à l'utilisateur (peu importe quand elle a été créée)
-      const { data: recipe, error: recipeError } = await supabase
-        .from('recipes')
-        .select('id, title, user_id, created_at, image')
-        .eq('id', recipe_id)
-        .eq('user_id', user_id)
-        .single()
-
-      if (recipeError) {
-        return res.status(404).json({ error: 'Recette non trouvée' })
-      }
-
-      // Calculer la semaine courante pour les limites
-      const startOfWeek = new Date()
-      startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay())
-      startOfWeek.setHours(0, 0, 0, 0)
-
-      // Vérifier le nombre de candidatures existantes CETTE SEMAINE
-      const { data: existingCandidates, error: countError } = await supabase
-        .from('recipe_week_candidates')
-        .select('id')
-        .eq('user_id', user_id)
-        .gte('created_at', startOfWeek.toISOString())
-
-      if (countError && countError.code !== 'PGRST116') {
-        throw countError
-      }
-
-      if (existingCandidates && existingCandidates.length >= 5) {
-        return res.status(400).json({ 
-          error: 'Limite atteinte',
-          message: 'Vous pouvez inscrire maximum 5 recettes par semaine'
+      if (!user_id || !recipe_id) {
+        return res.status(400).json({
+          error: 'Données manquantes',
+          message: 'user_id et recipe_id sont requis'
         })
       }
 
-      // Vérifier si la recette n'est pas déjà candidate CETTE SEMAINE
-      const { data: existingCandidate, error: duplicateError } = await supabase
-        .from('recipe_week_candidates')
-        .select('id')
-        .eq('recipe_id', recipe_id)
-        .eq('user_id', user_id)
-        .gte('created_at', startOfWeek.toISOString())
-        .single()
+      try {
+        // Get active recipe of the week
+        const { data: activeRecipe, error: recipeError } = await supabase
+          .from('recipe_of_week')
+          .select('id, end_date')
+          .eq('is_active', true)
+          .single()
 
-      if (duplicateError && duplicateError.code !== 'PGRST116') {
-        throw duplicateError
-      }
+        if (recipeError || !activeRecipe) {
+          return res.status(400).json({
+            error: 'Aucun concours actif',
+            message: 'Il n\'y a pas de concours de la semaine en cours'
+          })
+        }
 
-      if (existingCandidate) {
-        return res.status(409).json({ 
-          error: 'Recette déjà candidate',
-          message: 'Cette recette participe déjà au concours cette semaine'
+        // Check if deadline has passed
+        const now = new Date()
+        const endDate = new Date(activeRecipe.end_date)
+        if (now > endDate) {
+          return res.status(400).json({
+            error: 'Concours terminé',
+            message: 'La période de participation pour ce concours est terminée'
+          })
+        }
+
+        // Check if user already participated
+        const { data: existingParticipation, error: checkError } = await supabase
+          .from('recipe_of_week_participation')
+          .select('id')
+          .eq('user_id', user_id)
+          .eq('recipe_of_week_id', activeRecipe.id)
+          .single()
+
+        if (existingParticipation) {
+          return res.status(409).json({
+            error: 'Déjà participé',
+            message: 'Vous avez déjà participé à ce concours'
+          })
+        }
+
+        // Create participation
+        const { data: newParticipation, error: createError } = await supabase
+          .from('recipe_of_week_participation')
+          .insert({
+            user_id,
+            recipe_id,
+            recipe_of_week_id: activeRecipe.id,
+            submitted_at: new Date().toISOString()
+          })
+          .select()
+          .single()
+
+        if (createError) {
+          throw createError
+        }
+
+        logInfo('New participation created', {
+          requestId,
+          participationId: newParticipation.id,
+          userId: user_id,
+          recipeId: recipe_id
+        })
+
+        return res.status(201).json({
+          success: true,
+          participation: newParticipation,
+          message: 'Participation enregistrée avec succès'
+        })
+
+      } catch (error) {
+        logError('Error creating participation', error, {
+          requestId,
+          userId: user_id,
+          recipeId: recipe_id
+        })
+
+        return res.status(500).json({
+          error: 'Erreur lors de l\'enregistrement',
+          message: 'Impossible d\'enregistrer votre participation'
         })
       }
-
-      // Inscrire la recette au concours de CETTE semaine
-      const { data: candidate, error: insertError } = await supabase
-        .from('recipe_week_candidates')
-        .insert([{
-          recipe_id,
-          user_id,
-          created_at: new Date().toISOString() // Date d'inscription, pas de création de la recette
-        }])
-        .select()
-        .single()
-
-      if (insertError) throw insertError
-
-      logInfo('Recette inscrite au concours', {
-        candidateId: candidate.id,
-        recipeId: recipe_id,
-        userId: user_id.substring(0, 8) + '...',
-        recipeTitle: recipe.title,
-        recipeCreatedAt: recipe.created_at,
-        inscriptionDate: candidate.created_at
-      })
-
-      return res.status(201).json({
-        message: 'Recette inscrite au concours avec succès',
-        candidate
-      })
     }
 
-    if (method === 'DELETE') {
-      const { recipe_id, user_id } = req.query
+    // Method not allowed
+    return res.status(405).json({
+      error: 'Méthode non autorisée',
+      allowedMethods: ['GET', 'POST']
+    })
 
-      if (!recipe_id || !user_id) {
-        return res.status(400).json({ error: 'recipe_id et user_id requis' })
-      }
-
-      // Supprimer la candidature
-      const { error: deleteError } = await supabase
-        .from('recipe_week_candidates')
-        .delete()
-        .eq('recipe_id', recipe_id)
-        .eq('user_id', user_id)
-
-      if (deleteError) throw deleteError
-
-      return res.status(200).json({
-        message: 'Candidature retirée avec succès'
-      })
-    }
-
-    return res.status(405).json({ error: 'Méthode non autorisée' })
-
-  } catch (error) {
-    logError('Recipe participation API error', error, {
-      method,
-      body: req.body,
+  } catch (globalError) {
+    logError('Global error in recipe-of-week-participation API', globalError, {
+      requestId,
+      method: req.method,
       query: req.query
     })
 
     return res.status(500).json({
-      error: 'Erreur serveur',
-      message: error.message
+      error: 'Erreur serveur interne',
+      message: 'Une erreur inattendue s\'est produite',
+      requestId
     })
   }
 }

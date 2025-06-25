@@ -564,7 +564,7 @@ export async function uploadFileImage(file) {
     const fileExt = file.name.split('.').pop()
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
     const filePath = `images/${fileName}`
-    
+
     // Upload to Supabase storage
     const { data, error } = await supabase.storage
       .from('images')
