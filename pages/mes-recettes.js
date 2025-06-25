@@ -55,8 +55,8 @@ export default function MesRecettes() {
         component: 'MesRecettes'
       })
 
-      // Construction de l'URL avec paramètres explicites
-      const apiUrl = `/api/recipes?user_id=${encodeURIComponent(user.id)}`
+      // Construction de l'URL avec paramètres explicites pour la table recipes
+      const apiUrl = `/api/recipes?user_id=${encodeURIComponent(user.id)}&include_user_only=true`
       
       logInfo('Making API request', {
         url: apiUrl,
@@ -67,7 +67,8 @@ export default function MesRecettes() {
       const response = await fetch(apiUrl, {
         method: 'GET',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user.access_token || ''}`
         }
       })
       
@@ -102,7 +103,9 @@ export default function MesRecettes() {
             id: recipesData[0]?.id,
             title: recipesData[0]?.title,
             user_id: recipesData[0]?.user_id,
-            user_id_match: recipesData[0]?.user_id === user.id
+            user_id_match: recipesData[0]?.user_id === user.id,
+            form_mode: recipesData[0]?.form_mode,
+            category: recipesData[0]?.category
           }
         } : 'No recipes'
       })
@@ -115,9 +118,12 @@ export default function MesRecettes() {
       // S'assurer que nous avons un tableau valide
       const recipes = Array.isArray(recipesData) ? recipesData : []
       
-      // Filtrage de sécurité - s'assurer qu'on a bien les recettes de l'utilisateur
+      // Filtrage de sécurité - s'assurer qu'on a bien les recettes de l'utilisateur depuis la table recipes
       const userRecipes = recipes.filter(recipe => 
-        recipe && recipe.user_id === user.id
+        recipe && 
+        recipe.user_id === user.id &&
+        recipe.title && // S'assurer que la recette a un titre
+        recipe.id // S'assurer que la recette a un ID
       )
       
       logInfo('Recipes filtered and validated', {
@@ -125,7 +131,9 @@ export default function MesRecettes() {
         userRecipesCount: userRecipes.length,
         userId: user.id?.substring(0, 8) + '...',
         allUserIdsInResponse: [...new Set(recipes.map(r => r?.user_id).filter(Boolean))],
-        expectedUserId: user.id
+        expectedUserId: user.id,
+        recipeCategories: [...new Set(userRecipes.map(r => r.category).filter(Boolean))],
+        formModes: [...new Set(userRecipes.map(r => r.form_mode).filter(Boolean))]
       })
       
       // Trier par date de création (plus récentes en premier)
@@ -140,7 +148,14 @@ export default function MesRecettes() {
       logInfo('User recipes loaded successfully', {
         userId: user.id?.substring(0, 8) + '...',
         finalCount: sortedRecipes.length,
-        component: 'MesRecettes'
+        component: 'MesRecettes',
+        recentRecipes: sortedRecipes.slice(0, 3).map(r => ({
+          id: r.id,
+          title: r.title,
+          category: r.category,
+          form_mode: r.form_mode,
+          created_at: r.created_at
+        }))
       })
       
     } catch (err) {
@@ -374,13 +389,13 @@ export default function MesRecettes() {
           className={filter === 'quick' ? styles.activeFilter : styles.filter}
           onClick={() => setFilter('quick')}
         >
-          📸 Express ({recipes.filter(r => r.form_mode === 'quick').length})
+          📸 Express ({recipes.filter(r => r.form_mode === 'quick' || r.category === 'Photo partagée').length})
         </button>
         <button 
           className={filter === 'complete' ? styles.activeFilter : styles.filter}
           onClick={() => setFilter('complete')}
         >
-          🍳 Complètes ({recipes.filter(r => r.form_mode === 'complete').length})
+          🍳 Complètes ({recipes.filter(r => r.form_mode === 'complete' || (r.form_mode !== 'quick' && r.category !== 'Photo partagée')).length})
         </button>
       </div>
 
