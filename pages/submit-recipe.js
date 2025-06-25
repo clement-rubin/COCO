@@ -361,9 +361,8 @@ export default function SubmitRecipe() {
           <p>Redirection en cours vers l'accueil...</p>
           <div className={styles.successSpinner}></div>
         </div>
-        </div>
-      )
-    }
+      </div>
+    )
   }
 
   // Logs component
@@ -756,3 +755,4 @@ export default function SubmitRecipe() {
       `}</style>
     </div>
   )
+}
