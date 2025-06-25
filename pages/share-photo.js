@@ -283,16 +283,16 @@ export default function SharePhoto() {
     return null
   }
 
-  // Composant de sélection du mode
+  // Composant de sélection du mode amélioré
   const ModeSelector = () => (
     <div className={styles.modeSelector}>
       <div className={styles.modeSelectorHeader}>
-        <h2>✨ Partager votre création</h2>
-        <p>Choisissez comment vous voulez partager</p>
+        <h2>Partager votre création</h2>
+        <p>Choisissez la méthode qui vous convient le mieux</p>
       </div>
       
       <div className={styles.modeOptions}>
-        {/* Mode rapide en premier et plus visible */}
+        {/* Mode rapide - Design premium */}
         <div 
           className={`${styles.modeOption} ${styles.recommended}`}
           onClick={() => {
@@ -305,15 +305,17 @@ export default function SharePhoto() {
           <div className={styles.modeIcon}>⚡</div>
           <div className={styles.recommendedBadge}>RECOMMANDÉ</div>
           <h3>Partage Express</h3>
-          <p>Photo + titre = c'est parti !</p>
+          <p>Partagez instantanément avec style</p>
           <div className={styles.modeFeatures}>
-            <span>📸 Une belle photo</span>
+            <span>📸 Une photo qui fait envie</span>
             <span>✏️ Un titre accrocheur</span>
-            <span>🚀 Partage en 30 secondes</span>
+            <span>🚀 Publié en 30 secondes</span>
+            <span>✨ Parfait pour l'inspiration</span>
           </div>
-          <div className={styles.modeButton}>Go ! ⚡</div>
+          <div className={styles.modeButton}>Partager maintenant ⚡</div>
         </div>
 
+        {/* Mode complet - Design cohérent */}
         <div 
           className={styles.modeOption}
           onClick={() => {
@@ -325,14 +327,29 @@ export default function SharePhoto() {
         >
           <div className={styles.modeIcon}>📝</div>
           <h3>Recette Complète</h3>
-          <p>Tous les détails pour les passionnés</p>
+          <p>Tous les détails pour reproduire</p>
           <div className={styles.modeFeatures}>
-            <span>🍳 Ingrédients détaillés</span>
-            <span>📋 Étapes complètes</span>
+            <span>🥘 Ingrédients détaillés</span>
+            <span>👨‍🍳 Étapes pas à pas</span>
             <span>⏱️ Temps de préparation</span>
+            <span>🎯 Guide complet</span>
           </div>
-          <div className={styles.modeButton}>Partager en détail</div>
+          <div className={styles.modeButton}>Créer la recette complète</div>
         </div>
+      </div>
+      
+      {/* Indication d'aide */}
+      <div className={styles.modeHelp} style={{
+        textAlign: 'center',
+        marginTop: '2rem',
+        padding: '1rem',
+        background: 'rgba(59, 130, 246, 0.05)',
+        borderRadius: '12px',
+        border: '1px solid rgba(59, 130, 246, 0.1)',
+        color: '#374151',
+        fontSize: '0.9rem'
+      }}>
+        💡 <strong>Astuce :</strong> Vous pouvez toujours modifier votre recette après publication
       </div>
     </div>
   )
@@ -408,14 +425,16 @@ export default function SharePhoto() {
 
           {/* Formulaire */}
           <form className={styles.form} onSubmit={(e) => e.preventDefault()}>
-            {/* Étape 1: Photos */}
+            {/* Étape 1: Photos - Style adapté selon le mode */}
             {currentStep === 1 && (
-              <div className={styles.step}>
+              <div className={`${styles.step} ${formMode === 'quick' ? styles.quickModeStep : ''}`}>
                 <div className={styles.stepHeader}>
-                  <h2>📸 {formMode === 'quick' ? 'Votre belle photo' : 'Montrez-nous votre création'}</h2>
+                  <h2>
+                    {formMode === 'quick' ? 'Votre belle photo' : 'Montrez-nous votre création'}
+                  </h2>
                   <p>
                     {formMode === 'quick' 
-                      ? 'Une photo qui donne envie, c\'est tout ce qu\'il faut !'
+                      ? 'Une image qui inspire, c\'est la magie du partage express !'
                       : 'Ajoutez des photos appétissantes de votre plat'
                     }
                   </p>
@@ -429,7 +448,12 @@ export default function SharePhoto() {
                 {photos.length > 0 && (
                   <div className={styles.photoTips}>
                     <p>🎉 Parfait ! {photos.length} photo{photos.length > 1 ? 's' : ''} ajoutée{photos.length > 1 ? 's' : ''}</p>
-                    {formMode === 'complete' && (
+                    {formMode === 'quick' ? (
+                      <>
+                        <p>⚡ Mode express activé - Vous êtes à un clic du partage !</p>
+                        <p>✨ Votre photo va inspirer la communauté</p>
+                      </>
+                    ) : (
                       <>
                         <p>💡 Conseil : La première photo sera votre image principale</p>
                         <p>✨ Astuce : Variez les angles pour inspirer votre communauté</p>
@@ -447,34 +471,40 @@ export default function SharePhoto() {
               </div>
             )}
 
-            {/* Étape 2: Informations de base */}
+            {/* Étape 2: Informations de base - Interface adaptée */}
             {currentStep === 2 && (
-              <div className={styles.step}>
+              <div className={`${styles.step} ${formMode === 'quick' ? styles.quickModeStep : ''}`}>
                 <div className={styles.stepHeader}>
                   <h2>
-                    {formMode === 'quick' ? '✏️ Donnez-lui un nom' : '📝 Décrivez votre chef-d\'œuvre'}
+                    {formMode === 'quick' ? 'Donnez-lui un nom' : 'Décrivez votre chef-d\'œuvre'}
                   </h2>
                   <p>
                     {formMode === 'quick'
-                      ? 'Un titre qui fait saliver, et c\'est parti !'
+                      ? 'Un titre qui fait saliver, et le tour est joué !'
                       : 'Donnez envie avec un titre accrocheur et une description savoureuse'
                     }
                   </p>
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label>Titre de la recette *</label>
+                  <label>
+                    {formMode === 'quick' ? '✨ Nom de votre création *' : 'Titre de la recette *'}
+                  </label>
                   <input
                     type="text"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder={
                       formMode === 'quick'
-                        ? "Ex: Mon délicieux plat du jour"
+                        ? "Ex: Mon plat du moment 😋"
                         : "Ex: Pasta Carbonara de ma grand-mère"
                     }
                     maxLength={100}
                     className={styles.input}
+                    style={formMode === 'quick' ? {
+                      borderColor: '#ff6b35',
+                      boxShadow: '0 0 0 3px rgba(255, 107, 53, 0.1)'
+                    } : {}}
                   />
                   <span className={styles.charCount}>{title.length}/100</span>
                 </div>

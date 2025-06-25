@@ -302,78 +302,90 @@ export default async function handler(req, res) {
         
         // Apply filters only if they have valid values
         if (user_id && !friendsOnly) {
-          logInfo('Fetching recipes for specific user', {
-            reference: requestReference,
-            userId: user_id,
-            limit: limit || 'no limit set',
-            offset
-          })
-          
-          // Construction de la requête utilisateur simplifiée
-          let userQuery = supabase
-            .from('recipes')
-            .select('*')
-            .eq('user_id', user_id)
-            .order('created_at', { ascending: false })
-          
-          // Ne pas appliquer de limite par défaut pour les recettes utilisateur
-          // Laisser l'utilisateur récupérer TOUTES ses recettes
-          
-          logDebug('Executing user recipes query', {
-            reference: requestReference,
-            userId: user_id,
-            queryDetails: 'SELECT * FROM recipes WHERE user_id = ? ORDER BY created_at DESC'
-          })
-          
-          const { data: userRecipes, error: userError } = await userQuery
-          
-          if (userError) {
-            logError('Error fetching user recipes', userError, {
+          try {
+            logInfo('Fetching recipes for specific user', {
               reference: requestReference,
               userId: user_id,
-              errorCode: userError.code,
-              errorMessage: userError.message
+              userIdType: typeof user_id,
+              userIdLength: user_id.length
             })
+            
+            // Requête simplifiée et directe
+            const { data: userRecipes, error: userError } = await supabase
+              .from('recipes')
+              .select('*')
+              .eq('user_id', user_id)
+              .order('created_at', { ascending: false })
+            
+            if (userError) {
+              logError('Error fetching user recipes', userError, {
+                reference: requestReference,
+                userId: user_id,
+                errorCode: userError.code,
+                errorMessage: userError.message,
+                errorDetails: userError.details
+              })
+              return safeResponse(res, 500, {
+                error: 'Erreur lors de la récupération des recettes utilisateur',
+                message: userError.message,
+                reference: requestReference
+              })
+            }
+            
+            // Validation des données retournées
+            const safeUserRecipes = (userRecipes || []).map(recipe => ({
+              id: recipe.id,
+              title: recipe.title || 'Sans titre',
+              description: recipe.description || '',
+              image: recipe.image || null,
+              category: recipe.category || 'Autre',
+              author: recipe.author || 'Chef Anonyme',
+              user_id: recipe.user_id,
+              created_at: recipe.created_at,
+              updated_at: recipe.updated_at,
+              ingredients: Array.isArray(recipe.ingredients) ? recipe.ingredients : [],
+              instructions: Array.isArray(recipe.instructions) ? recipe.instructions : [],
+              difficulty: recipe.difficulty || 'Facile',
+              prepTime: recipe.prepTime || null,
+              cookTime: recipe.cookTime || null,
+              servings: recipe.servings || null,
+              form_mode: recipe.form_mode || 'complete'
+            }))
+            
+            logInfo('User recipes fetched successfully', {
+              reference: requestReference,
+              userId: user_id,
+              totalCount: safeUserRecipes.length,
+              recipesPreview: safeUserRecipes.slice(0, 3).map(r => ({
+                id: r.id,
+                title: r.title,
+                category: r.category,
+                form_mode: r.form_mode,
+                created_at: r.created_at
+              })),
+              formModeBreakdown: {
+                quick: safeUserRecipes.filter(r => r.form_mode === 'quick').length,
+                complete: safeUserRecipes.filter(r => r.form_mode === 'complete').length,
+                unknown: safeUserRecipes.filter(r => !r.form_mode).length
+              }
+            })
+            
+            return safeResponse(res, 200, safeUserRecipes)
+            
+          } catch (userFetchError) {
+            logError('Exception in user recipes fetch', userFetchError, {
+              reference: requestReference,
+              userId: user_id,
+              errorMessage: userFetchError.message,
+              errorStack: userFetchError.stack?.substring(0, 500)
+            })
+            
             return safeResponse(res, 500, {
-              error: 'Erreur lors de la récupération des recettes utilisateur',
-              message: userError.message,
+              error: 'Erreur lors de la récupération des recettes',
+              message: userFetchError.message,
               reference: requestReference
             })
           }
-          
-          // Validation et nettoyage des données
-          const safeUserRecipes = (userRecipes || []).map(recipe => ({
-            ...recipe,
-            ingredients: Array.isArray(recipe.ingredients) ? recipe.ingredients : [],
-            instructions: Array.isArray(recipe.instructions) ? recipe.instructions : []
-          }))
-          
-          logInfo('User recipes fetched successfully', {
-            reference: requestReference,
-            totalCount: safeUserRecipes.length,
-            userId: user_id,
-            recipesBreakdown: {
-              total: safeUserRecipes.length,
-              withFormMode: safeUserRecipes.filter(r => r.form_mode).length,
-              quick: safeUserRecipes.filter(r => r.form_mode === 'quick').length,
-              complete: safeUserRecipes.filter(r => r.form_mode === 'complete').length,
-              withoutFormMode: safeUserRecipes.filter(r => !r.form_mode).length,
-              categories: safeUserRecipes.reduce((acc, r) => {
-                const cat = r.category || 'Uncategorized'
-                acc[cat] = (acc[cat] || 0) + 1
-                return acc
-              }, {})
-            },
-            sampleRecipes: safeUserRecipes.slice(0, 3).map(r => ({
-              id: r.id,
-              title: r.title,
-              created_at: r.created_at,
-              form_mode: r.form_mode,
-              category: r.category
-            }))
-          })
-          
-          return safeResponse(res, 200, safeUserRecipes)
         }
         
         // Filter by author if specified (fallback) and no user_id

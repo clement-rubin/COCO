@@ -37,46 +37,99 @@ export default function MesRecettes() {
       setLoading(true)
       setError(null)
 
+      // Vérification préalable de l'utilisateur
+      if (!user || !user.id) {
+        logError('No user or user ID available', new Error('User not authenticated'), {
+          user: !!user,
+          userId: user?.id,
+          component: 'MesRecettes'
+        })
+        setError('Utilisateur non authentifié')
+        return
+      }
+
       logInfo('Loading user recipes', {
         userId: user.id,
+        userIdType: typeof user.id,
         userIdLength: user.id?.length,
         component: 'MesRecettes'
       })
 
-      // Récupérer TOUTES les recettes de l'utilisateur (sans limite)
-      const response = await fetch(`/api/recipes?user_id=${encodeURIComponent(user.id)}`)
+      // Construction de l'URL avec paramètres explicites
+      const apiUrl = `/api/recipes?user_id=${encodeURIComponent(user.id)}`
+      
+      logInfo('Making API request', {
+        url: apiUrl,
+        userId: user.id?.substring(0, 8) + '...',
+        component: 'MesRecettes'
+      })
+
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+      
+      logInfo('API response received', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+        userId: user.id?.substring(0, 8) + '...'
+      })
       
       if (!response.ok) {
         const errorText = await response.text()
-        logError('Failed to fetch user recipes', new Error(`HTTP ${response.status}`), {
+        logError('API request failed', new Error(`HTTP ${response.status}`), {
           status: response.status,
           statusText: response.statusText,
-          responseText: errorText,
-          userId: user.id
+          responseText: errorText?.substring(0, 500),
+          userId: user.id?.substring(0, 8) + '...'
         })
         throw new Error(`Erreur ${response.status}: ${response.statusText}`)
       }
       
       const recipesData = await response.json()
       
-      logInfo('Raw recipes data received', {
+      logInfo('API response parsed', {
         dataType: typeof recipesData,
         isArray: Array.isArray(recipesData),
         length: recipesData?.length || 0,
         hasError: !!recipesData?.error,
-        userId: user.id
+        userId: user.id?.substring(0, 8) + '...',
+        sampleData: Array.isArray(recipesData) && recipesData.length > 0 ? {
+          firstRecipe: {
+            id: recipesData[0]?.id,
+            title: recipesData[0]?.title,
+            user_id: recipesData[0]?.user_id,
+            user_id_match: recipesData[0]?.user_id === user.id
+          }
+        } : 'No recipes'
       })
       
-      // Vérifier si c'est une réponse d'erreur
+      // Vérifier si c'est une réponse d'erreur de l'API
       if (recipesData?.error) {
         throw new Error(recipesData.message || recipesData.error)
       }
       
-      // S'assurer que nous avons un tableau
+      // S'assurer que nous avons un tableau valide
       const recipes = Array.isArray(recipesData) ? recipesData : []
       
+      // Filtrage de sécurité - s'assurer qu'on a bien les recettes de l'utilisateur
+      const userRecipes = recipes.filter(recipe => 
+        recipe && recipe.user_id === user.id
+      )
+      
+      logInfo('Recipes filtered and validated', {
+        totalReceived: recipes.length,
+        userRecipesCount: userRecipes.length,
+        userId: user.id?.substring(0, 8) + '...',
+        allUserIdsInResponse: [...new Set(recipes.map(r => r?.user_id).filter(Boolean))],
+        expectedUserId: user.id
+      })
+      
       // Trier par date de création (plus récentes en premier)
-      const sortedRecipes = recipes.sort((a, b) => {
+      const sortedRecipes = userRecipes.sort((a, b) => {
         const dateA = new Date(a.created_at || 0)
         const dateB = new Date(b.created_at || 0)
         return dateB - dateA
@@ -84,34 +137,18 @@ export default function MesRecettes() {
       
       setRecipes(sortedRecipes)
       
-      logInfo('User recipes loaded and sorted', {
-        userId: user.id,
-        totalRecipes: sortedRecipes.length,
-        recipesBreakdown: {
-          total: sortedRecipes.length,
-          quick: sortedRecipes.filter(r => r.form_mode === 'quick' || r.category === 'Photo partagée').length,
-          complete: sortedRecipes.filter(r => r.form_mode === 'complete' || (r.form_mode !== 'quick' && r.category !== 'Photo partagée')).length,
-          withImages: sortedRecipes.filter(r => r.image).length,
-          categories: sortedRecipes.reduce((acc, r) => {
-            const cat = r.category || 'Uncategorized'
-            acc[cat] = (acc[cat] || 0) + 1
-            return acc
-          }, {})
-        },
-        latestRecipes: sortedRecipes.slice(0, 3).map(r => ({
-          id: r.id,
-          title: r.title,
-          created_at: r.created_at,
-          category: r.category
-        }))
+      logInfo('User recipes loaded successfully', {
+        userId: user.id?.substring(0, 8) + '...',
+        finalCount: sortedRecipes.length,
+        component: 'MesRecettes'
       })
       
     } catch (err) {
       logError('Failed to load user recipes', err, {
-        userId: user?.id,
+        userId: user?.id?.substring(0, 8) + '...',
         component: 'MesRecettes',
         errorMessage: err.message,
-        errorStack: err.stack
+        errorName: err.name
       })
       setError(`Impossible de charger vos recettes: ${err.message}`)
     } finally {
