@@ -302,14 +302,58 @@ export default async function handler(req, res) {
         
         // Apply filters only if they have valid values
         if (user_id && !friendsOnly) {
-          logInfo('Applying user_id filter', { 
+          logInfo('Fetching recipes for specific user', {
             reference: requestReference,
-            user_id, 
-            userIdType: typeof user_id,
-            userIdLength: user_id.length,
-            filterType: 'user_id'
+            userId: user_id,
+            limit: limit || 'no limit',
+            offset
           })
-          query = query.eq('user_id', user_id)
+          
+          let userQuery = supabase
+            .from('recipes')
+            .select('*')
+            .eq('user_id', user_id)
+            .order('created_at', { ascending: false })
+          
+          // Appliquer la pagination seulement si spécifiée
+          if (limit && limit > 0) {
+            userQuery = userQuery.limit(parseInt(limit))
+          }
+          
+          if (offset && offset > 0) {
+            userQuery = userQuery.offset(parseInt(offset))
+          }
+          
+          const { data: userRecipes, error: userError } = await userQuery
+          
+          if (userError) {
+            logError('Error fetching user recipes', userError, {
+              reference: requestReference,
+              userId: user_id
+            })
+            return safeResponse(res, 500, {
+              error: 'Erreur lors de la récupération des recettes utilisateur',
+              reference: requestReference
+            })
+          }
+          
+          const safeUserRecipes = (userRecipes || []).map(recipe => ({
+            ...recipe,
+            ingredients: Array.isArray(recipe.ingredients) ? recipe.ingredients : [],
+            instructions: Array.isArray(recipe.instructions) ? recipe.instructions : []
+          }))
+          
+          logInfo('User recipes fetched successfully', {
+            reference: requestReference,
+            count: safeUserRecipes.length,
+            userId: user_id,
+            types: {
+              quick: safeUserRecipes.filter(r => r.form_mode === 'quick').length,
+              complete: safeUserRecipes.filter(r => r.form_mode === 'complete').length
+            }
+          })
+          
+          return safeResponse(res, 200, safeUserRecipes)
         }
         
         // Filter by author if specified (fallback) and no user_id

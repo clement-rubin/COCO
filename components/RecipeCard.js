@@ -10,13 +10,13 @@ import { canUserEditRecipe, deleteUserRecipe } from '../utils/profileUtils'
 import { showRecipeLikeInteractionNotification } from '../utils/notificationUtils'
 import styles from '../styles/RecipeCard.module.css'
 
-export default function RecipeCard({ recipe, isUserRecipe = true, isPhotoOnly = false, onRecipeDeleted, onEdit, onDelete }) {
+const RecipeCard = ({ recipe, isPhotoOnly = false, onEdit, onDelete, showActions = true }) => {
   const router = useRouter()
   const { user } = useAuth()
   const [isFavorite, setIsFavorite] = useState(false)
   const [imageError, setImageError] = useState(false)
   const [imageLoading, setImageLoading] = useState(true)
-  const [showActions, setShowActions] = useState(false)
+  const [showActionsState, setShowActions] = useState(showActions)
   const [isDeleting, setIsDeleting] = useState(false)
 
   // Defensive programming: ensure recipe exists and has required properties
@@ -149,6 +149,13 @@ export default function RecipeCard({ recipe, isUserRecipe = true, isPhotoOnly = 
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
     >
+      {/* Badge pour identifier le type de partage */}
+      {isQuickShare && (
+        <div className={styles.quickShareBadge}>
+          📸 Partage Express
+        </div>
+      )}
+      
       <div className={styles.imageContainer}>
         <Image
           src={imageError ? '/placeholder-recipe.jpg' : safeRecipe.image}
@@ -274,3 +281,5 @@ export default function RecipeCard({ recipe, isUserRecipe = true, isPhotoOnly = 
     </div>
   )
 }
+
+export default RecipeCard

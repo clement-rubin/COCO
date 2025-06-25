@@ -207,6 +207,10 @@ export default function Profil() {
   }
 
   const handleViewAllRecipes = () => {
+    logUserInteraction('VIEW_ALL_RECIPES', 'profile-recipes-button', {
+      userId: user.id,
+      totalRecipes: userRecipes.length
+    })
     router.push('/mes-recettes')
   }
 
@@ -681,15 +685,14 @@ export default function Profil() {
                       <span className={styles.sectionIcon}>🍳</span>
                       <h2>Mes créations ({userRecipes.length})</h2>
                     </div>
-                    {userRecipes.length > 0 && (
-                      <button
-                        onClick={handleViewAllRecipes}
-                        className={styles.actionButton}
-                      >
-                        <span className={styles.buttonIcon}>📋</span>
-                        <span>Voir toutes</span>
-                      </button>
-                    )}
+                    {/* Toujours afficher le bouton, même avec 0 recettes */}
+                    <button
+                      onClick={handleViewAllRecipes}
+                      className={styles.actionButton}
+                    >
+                      <span className={styles.buttonIcon}>📋</span>
+                      <span>Voir toutes</span>
+                    </button>
                   </div>
 
                   {userRecipes.length === 0 ? (
