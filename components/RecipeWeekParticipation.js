@@ -7,11 +7,13 @@ import { showRecipeParticipationNotification } from '../utils/notificationUtils'
 
 export default function RecipeWeekParticipation({ onParticipationChange }) {
   const { user } = useAuth()
-  const [eligibleRecipes, setEligibleRecipes] = useState([])
+  const [allRecipes, setAllRecipes] = useState([])
   const [loading, setLoading] = useState(true)
   const [participating, setParticipating] = useState(false)
   const [weekInfo, setWeekInfo] = useState(null)
   const [showModal, setShowModal] = useState(false)
+  const [searchFilter, setSearchFilter] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState('all')
 
   useEffect(() => {
     if (user) {
@@ -29,7 +31,7 @@ export default function RecipeWeekParticipation({ onParticipationChange }) {
       }
       
       const data = await response.json()
-      setEligibleRecipes(data.eligibleRecipes || [])
+      setAllRecipes(data.allRecipes || [])
       setWeekInfo({
         weekStart: data.weekStart,
         weekEnd: data.weekEnd,
@@ -68,7 +70,7 @@ export default function RecipeWeekParticipation({ onParticipationChange }) {
       }
 
       // Notification de succès
-      const recipe = eligibleRecipes.find(r => r.id === recipeId)
+      const recipe = allRecipes.find(r => r.id === recipeId)
       showRecipeParticipationNotification(recipe, 'inscrite')
 
       // Recharger les données
@@ -122,7 +124,7 @@ export default function RecipeWeekParticipation({ onParticipationChange }) {
       }
 
       // Notification de succès
-      const recipe = eligibleRecipes.find(r => r.id === recipeId)
+      const recipe = allRecipes.find(r => r.id === recipeId)
       showRecipeParticipationNotification(recipe, 'retirée')
 
       // Recharger les données
@@ -142,9 +144,19 @@ export default function RecipeWeekParticipation({ onParticipationChange }) {
 
   if (!user) return null
 
-  const candidateRecipes = eligibleRecipes.filter(r => r.isCandidate)
-  const availableRecipes = eligibleRecipes.filter(r => r.canParticipate)
+  const candidateRecipes = allRecipes.filter(r => r.isCandidate)
+  const availableRecipes = allRecipes.filter(r => r.canParticipate)
   const canAddMore = weekInfo && weekInfo.currentCandidates < weekInfo.maxCandidates
+
+  // Filtrer les recettes disponibles selon la recherche et catégorie
+  const filteredAvailableRecipes = availableRecipes.filter(recipe => {
+    const matchesSearch = recipe.title.toLowerCase().includes(searchFilter.toLowerCase())
+    const matchesCategory = categoryFilter === 'all' || recipe.category === categoryFilter
+    return matchesSearch && matchesCategory
+  })
+
+  // Obtenir les catégories uniques
+  const categories = [...new Set(availableRecipes.map(r => r.category).filter(Boolean))]
 
   return (
     <>
@@ -172,7 +184,7 @@ export default function RecipeWeekParticipation({ onParticipationChange }) {
             boxShadow: '0 4px 15px rgba(59, 130, 246, 0.3)'
           }}
         >
-          🏆 Participer au concours
+          🏆 Gérer mes participations
           {candidateRecipes.length > 0 && (
             <span style={{
               background: 'rgba(255, 255, 255, 0.2)',
@@ -204,17 +216,19 @@ export default function RecipeWeekParticipation({ onParticipationChange }) {
           <div style={{
             background: 'white',
             borderRadius: '20px',
-            maxWidth: '400px',
+            maxWidth: '500px',
             width: '100%',
-            maxHeight: '80vh',
-            overflow: 'auto',
-            position: 'relative'
+            maxHeight: '85vh',
+            overflow: 'hidden',
+            position: 'relative',
+            display: 'flex',
+            flexDirection: 'column'
           }}>
             {/* Header */}
             <div style={{
               padding: '20px 20px 0',
               borderBottom: '1px solid #f3f4f6',
-              marginBottom: '16px'
+              flexShrink: 0
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <h3 style={{
@@ -244,11 +258,15 @@ export default function RecipeWeekParticipation({ onParticipationChange }) {
                 fontSize: '0.85rem',
                 color: '#6b7280'
               }}>
-                Inscrivez vos recettes créées cette semaine ({weekInfo?.currentCandidates || 0}/{weekInfo?.maxCandidates || 3})
+                Gérez vos participations ({weekInfo?.currentCandidates || 0}/{weekInfo?.maxCandidates || 5})
               </p>
             </div>
 
-            <div style={{ padding: '0 20px 20px' }}>
+            <div style={{ 
+              padding: '20px', 
+              overflow: 'auto',
+              flex: 1
+            }}>
               {loading ? (
                 <div style={{ textAlign: 'center', padding: '40px 0' }}>
                   <div style={{
@@ -278,7 +296,7 @@ export default function RecipeWeekParticipation({ onParticipationChange }) {
                         alignItems: 'center',
                         gap: '6px'
                       }}>
-                        ✅ Vos recettes inscrites
+                        ✅ Vos recettes inscrites cette semaine
                       </h4>
                       {candidateRecipes.map(recipe => (
                         <div
@@ -325,7 +343,7 @@ export default function RecipeWeekParticipation({ onParticipationChange }) {
                               fontSize: '0.75rem',
                               color: '#059669'
                             }}>
-                              Inscrite au concours
+                              {recipe.isThisWeek ? '🆕 Créée cette semaine' : '📚 Recette archivée'} • Inscrite au concours
                             </p>
                           </div>
                           
@@ -363,76 +381,140 @@ export default function RecipeWeekParticipation({ onParticipationChange }) {
                         alignItems: 'center',
                         gap: '6px'
                       }}>
-                        🍽️ Vos recettes disponibles
+                        🍽️ Vos recettes disponibles ({availableRecipes.length})
                       </h4>
-                      {availableRecipes.map(recipe => (
-                        <div
-                          key={recipe.id}
+
+                      {/* Filtres de recherche */}
+                      <div style={{
+                        display: 'flex',
+                        gap: '8px',
+                        marginBottom: '16px',
+                        flexWrap: 'wrap'
+                      }}>
+                        <input
+                          type="text"
+                          placeholder="Rechercher une recette..."
+                          value={searchFilter}
+                          onChange={(e) => setSearchFilter(e.target.value)}
                           style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '12px',
-                            background: '#f8fafc',
-                            border: '1px solid #e2e8f0',
-                            borderRadius: '12px',
-                            padding: '12px',
-                            marginBottom: '8px'
+                            flex: 1,
+                            minWidth: '150px',
+                            padding: '8px 12px',
+                            border: '1px solid #d1d5db',
+                            borderRadius: '8px',
+                            fontSize: '0.85rem'
+                          }}
+                        />
+                        <select
+                          value={categoryFilter}
+                          onChange={(e) => setCategoryFilter(e.target.value)}
+                          style={{
+                            padding: '8px 12px',
+                            border: '1px solid #d1d5db',
+                            borderRadius: '8px',
+                            fontSize: '0.85rem',
+                            background: 'white'
                           }}
                         >
+                          <option value="all">Toutes catégories</option>
+                          {categories.map(category => (
+                            <option key={category} value={category}>
+                              {category}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Liste des recettes filtrées */}
+                      <div style={{
+                        maxHeight: '300px',
+                        overflow: 'auto',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '12px',
+                        padding: '8px'
+                      }}>
+                        {filteredAvailableRecipes.length > 0 ? (
+                          filteredAvailableRecipes.map(recipe => (
+                            <div
+                              key={recipe.id}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '12px',
+                                background: '#f8fafc',
+                                border: '1px solid #e2e8f0',
+                                borderRadius: '12px',
+                                padding: '12px',
+                                marginBottom: '8px'
+                              }}
+                            >
+                              <div style={{
+                                position: 'relative',
+                                width: '50px',
+                                height: '50px',
+                                borderRadius: '8px',
+                                overflow: 'hidden',
+                                flexShrink: 0
+                              }}>
+                                <Image
+                                  src={processImageData(recipe.image, '/placeholder-recipe.jpg')}
+                                  alt={recipe.title}
+                                  fill
+                                  className="object-cover"
+                                  unoptimized={recipe.image?.startsWith('data:')}
+                                />
+                              </div>
+                              
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <h5 style={{
+                                  margin: '0 0 4px 0',
+                                  fontSize: '0.9rem',
+                                  fontWeight: '600',
+                                  color: '#374151'
+                                }}>
+                                  {recipe.title}
+                                </h5>
+                                <p style={{
+                                  margin: 0,
+                                  fontSize: '0.75rem',
+                                  color: '#6b7280'
+                                }}>
+                                  {recipe.category} • {recipe.isThisWeek ? '🆕 Cette semaine' : `📅 ${new Date(recipe.created_at).toLocaleDateString('fr-FR')}`}
+                                </p>
+                              </div>
+                              
+                              <button
+                                onClick={() => handleParticipate(recipe.id)}
+                                disabled={participating}
+                                style={{
+                                  background: 'linear-gradient(135deg, #10b981, #059669)',
+                                  color: 'white',
+                                  border: 'none',
+                                  borderRadius: '6px',
+                                  padding: '6px 12px',
+                                  fontSize: '0.7rem',
+                                  fontWeight: '600',
+                                  cursor: participating ? 'not-allowed' : 'pointer',
+                                  opacity: participating ? 0.6 : 1
+                                }}
+                              >
+                                {participating ? '⏳' : '🏆 Inscrire'}
+                              </button>
+                            </div>
+                          ))
+                        ) : (
                           <div style={{
-                            position: 'relative',
-                            width: '50px',
-                            height: '50px',
-                            borderRadius: '8px',
-                            overflow: 'hidden',
-                            flexShrink: 0
+                            textAlign: 'center',
+                            padding: '20px',
+                            color: '#6b7280'
                           }}>
-                            <Image
-                              src={processImageData(recipe.image, '/placeholder-recipe.jpg')}
-                              alt={recipe.title}
-                              fill
-                              className="object-cover"
-                              unoptimized={recipe.image?.startsWith('data:')}
-                            />
+                            {searchFilter || categoryFilter !== 'all' ? 
+                              'Aucune recette trouvée avec ces filtres' : 
+                              'Aucune recette disponible'
+                            }
                           </div>
-                          
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <h5 style={{
-                              margin: '0 0 4px 0',
-                              fontSize: '0.9rem',
-                              fontWeight: '600',
-                              color: '#374151'
-                            }}>
-                              {recipe.title}
-                            </h5>
-                            <p style={{
-                              margin: 0,
-                              fontSize: '0.75rem',
-                              color: '#6b7280'
-                            }}>
-                              {recipe.category} • Cette semaine
-                            </p>
-                          </div>
-                          
-                          <button
-                            onClick={() => handleParticipate(recipe.id)}
-                            disabled={participating}
-                            style={{
-                              background: 'linear-gradient(135deg, #10b981, #059669)',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '6px',
-                              padding: '6px 12px',
-                              fontSize: '0.7rem',
-                              fontWeight: '600',
-                              cursor: participating ? 'not-allowed' : 'pointer',
-                              opacity: participating ? 0.6 : 1
-                            }}
-                          >
-                            {participating ? '⏳' : '🏆 Inscrire'}
-                          </button>
-                        </div>
-                      ))}
+                        )}
+                      </div>
                     </div>
                   )}
 
@@ -451,7 +533,7 @@ export default function RecipeWeekParticipation({ onParticipationChange }) {
                         color: '#92400e',
                         fontWeight: '600'
                       }}>
-                        🎯 Limite atteinte ({weekInfo?.maxCandidates} recettes max)
+                        🎯 Limite atteinte ({weekInfo?.maxCandidates} recettes max par semaine)
                       </p>
                     </div>
                   )}
@@ -467,13 +549,13 @@ export default function RecipeWeekParticipation({ onParticipationChange }) {
                         margin: '0 0 8px 0',
                         fontWeight: '600'
                       }}>
-                        Aucune recette éligible
+                        Aucune recette trouvée
                       </p>
                       <p style={{
                         margin: 0,
                         fontSize: '0.85rem'
                       }}>
-                        Créez une recette cette semaine pour participer !
+                        Créez une recette pour participer !
                       </p>
                     </div>
                   )}

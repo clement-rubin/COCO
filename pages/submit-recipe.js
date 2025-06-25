@@ -31,6 +31,11 @@ export default function SubmitRecipe() {
   const [formMode, setFormMode] = useState(null) // 'quick' ou 'complete'
   const [showModeSelector, setShowModeSelector] = useState(true)
 
+  // Nouveaux états pour le mode express
+  const [quickStep, setQuickStep] = useState(1) // 1: photo, 2: titre, 3: prêt
+  const [quickProgress, setQuickProgress] = useState(0)
+  const [isPublishing, setIsPublishing] = useState(false)
+
   // Logger hook to capture logs
   const addLog = (level, message, data = null) => {
     const timestamp = new Date().toLocaleTimeString()
@@ -208,6 +213,120 @@ export default function SubmitRecipe() {
     }
   }
 
+  // Calculer le progrès du mode express
+  useEffect(() => {
+    if (formMode === 'quick') {
+      let progress = 0
+      if (photos.length > 0) progress += 50
+      if (formData.title.trim()) progress += 50
+      setQuickProgress(progress)
+      
+      // Mettre à jour l'étape
+      if (photos.length > 0 && formData.title.trim()) {
+        setQuickStep(3)
+      } else if (photos.length > 0) {
+        setQuickStep(2)
+      } else {
+        setQuickStep(1)
+      }
+    }
+  }, [photos, formData.title, formMode])
+
+  // Gestion du drag & drop pour le mode express
+  const handleQuickDragOver = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  const handleQuickDrop = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    const files = Array.from(e.dataTransfer.files)
+    const imageFiles = files.filter(file => file.type.startsWith('image/'))
+    
+    if (imageFiles.length > 0) {
+      // Simuler le clic sur PhotoUpload pour le premier fichier
+      addLog('interaction', 'Photo déposée en mode express', { fileName: imageFiles[0].name })
+    }
+  }
+
+  // Version optimisée du handleSubmit pour le mode express
+  const handleQuickSubmit = async () => {
+    if (!formData.title.trim()) {
+      setErrors({ title: 'Un titre est requis pour partager votre photo' })
+      return
+    }
+
+    setIsPublishing(true)
+    addLog('info', 'Début de publication express')
+
+    try {
+      // Récupération rapide du profil
+      let authorName = 'Chef Anonyme'
+      try {
+        const profileResponse = await fetch(`/api/profile?user_id=${user.id}`)
+        if (profileResponse.ok) {
+          const profileData = await profileResponse.json()
+          authorName = profileData?.display_name || authorName
+        }
+      } catch {
+        // Ignorer les erreurs de profil
+      }
+
+      // Upload image si présente
+      let mainImageUrl = null
+      if (photos.length > 0) {
+        const photoWithFile = photos.find(photo => photo.imageFile instanceof File)
+        if (photoWithFile) {
+          try {
+            mainImageUrl = await uploadImageToSupabaseAndGetUrl(photoWithFile.imageFile)
+          } catch (uploadError) {
+            addLog('warning', 'Upload image échoué, continuation sans image')
+          }
+        }
+      }
+
+      // Données optimisées pour mode express
+      const recipeData = {
+        title: formData.title.trim(),
+        author: authorName,
+        user_id: user.id,
+        image: mainImageUrl,
+        description: `Partagé rapidement avec COCO ! 📸✨`,
+        ingredients: [],
+        instructions: [],
+        category: 'Partage Express',
+        difficulty: 'Facile',
+        formMode: 'quick'
+      }
+
+      const response = await fetch('/api/recipes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(recipeData)
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Erreur lors de la publication')
+      }
+
+      addLog('info', 'Publication express réussie')
+      setShowSuccessMessage(true)
+      
+      // Redirection après 3 secondes
+      setTimeout(() => router.push('/'), 3000)
+
+    } catch (error) {
+      addLog('error', 'Erreur publication express', { error: error.message })
+      setErrors({ submit: error.message })
+    } finally {
+      setIsPublishing(false)
+    }
+  }
+
   // Calculer l'état des uploads
   const processingPhotosCount = photos.filter(photo => photo.processing).length
   const allPhotosProcessed = photos.length > 0 && photos.every(photo => 
@@ -360,20 +479,213 @@ export default function SubmitRecipe() {
     </div>
   )
 
+  // Composant du mode express complètement refondu
+  const QuickModeInterface = () => {
+    if (isPublishing || showSuccessMessage) {
+      return (
+        <div className={styles.quickSuccessContainer}>
+          {isPublishing ? (
+            <div className={styles.quickLoadingContainer}>
+              <div className={styles.quickLoadingSpinner}></div>
+              <div className={styles.quickLoadingText}>Publication en cours...</div>
+              <div className={styles.quickLoadingSubtext}>
+                Votre délicieuse création sera bientôt partagée ! 🍳✨
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className={styles.quickSuccessIcon}>🎉</div>
+              <h1 className={styles.quickSuccessTitle}>Photo partagée !</h1>
+              <p className={styles.quickSuccessMessage}>
+                Votre délicieuse création
+                <span className={styles.quickSuccessRecipeTitle}>{formData.title}</span>
+                a été ajoutée à COCO avec succès !
+              </p>
+              <div className={styles.quickSuccessSpinner}></div>
+            </>
+          )}
+        </div>
+      )
+    }
+
+    return (
+      <div className={`${styles.quickModeContainer} ${styles.quickModeEnter}`}>
+        {/* Header avec progression */}
+        <div className={styles.quickHeader}>
+          <div className={styles.quickHeaderLeft}>
+            <button 
+              onClick={() => setShowModeSelector(true)}
+              className={styles.quickBackBtn}
+            >
+              ←
+            </button>
+            <h1 className={styles.quickHeaderTitle}>Partage Express</h1>
+          </div>
+          <div className={styles.quickProgressIndicator}>
+            {quickProgress}% ✨
+          </div>
+        </div>
+
+        {/* Indicateur de progression visuel */}
+        <div className={styles.quickProgressCard}>
+          <div className={styles.quickStepsContainer}>
+            <div 
+              className={styles.quickStepsProgress}
+              style={{ width: `${quickProgress}%` }}
+            ></div>
+            
+            <div className={`${styles.quickStep} ${quickStep >= 1 ? styles.active : ''} ${photos.length > 0 ? styles.completed : ''}`}>
+              <div className={styles.quickStepCircle}>
+                {photos.length > 0 ? '✓' : '1'}
+              </div>
+              <div className={styles.quickStepLabel}>Photo</div>
+            </div>
+            
+            <div className={`${styles.quickStep} ${quickStep >= 2 ? styles.active : ''} ${formData.title.trim() ? styles.completed : ''}`}>
+              <div className={styles.quickStepCircle}>
+                {formData.title.trim() ? '✓' : '2'}
+              </div>
+              <div className={styles.quickStepLabel}>Titre</div>
+            </div>
+            
+            <div className={`${styles.quickStep} ${quickStep >= 3 ? styles.active : ''}`}>
+              <div className={styles.quickStepCircle}>
+                {quickStep >= 3 ? '🚀' : '3'}
+              </div>
+              <div className={styles.quickStepLabel}>Publier</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Contenu principal */}
+        <div className={styles.quickContent}>
+          {/* Zone de photo */}
+          <div 
+            className={`${styles.quickPhotoZone} ${photos.length > 0 ? styles.hasPhoto : ''}`}
+            onDragOver={handleQuickDragOver}
+            onDrop={handleQuickDrop}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            {photos.length > 0 ? (
+              <div style={{ width: '100%' }}>
+                <img 
+                  src={photos[0].imageUrl} 
+                  alt="Votre plat"
+                  className={styles.quickPhotoPreview}
+                />
+                <p style={{ marginTop: '12px', color: '#059669', fontWeight: '600' }}>
+                  ✓ Photo ajoutée ! Cliquez pour changer
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className={styles.quickPhotoIcon}>📸</div>
+                <div className={styles.quickPhotoText}>Ajoutez une photo</div>
+                <div className={styles.quickPhotoSubtext}>
+                  Touchez ici ou glissez votre photo<br/>
+                  <strong>JPG, PNG, HEIC acceptés</strong>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Input titre */}
+          <div className={styles.quickTitleContainer}>
+            <label className={styles.quickTitleLabel}>
+              Quel est le nom de votre plat ? ✨
+            </label>
+            <input
+              type="text"
+              name="title"
+              value={formData.title}
+              onChange={handleInputChange}
+              placeholder="Ex: Mon délicieux plat du jour..."
+              className={`${styles.quickTitleInput} ${formData.title.trim() ? styles.hasContent : ''}`}
+              maxLength={100}
+            />
+            <div className={styles.quickTitleCounter}>
+              {formData.title.length}/100 caractères
+            </div>
+            {errors.title && (
+              <div style={{ color: '#ef4444', textAlign: 'center', marginTop: '8px', fontSize: '0.9rem' }}>
+                {errors.title}
+              </div>
+            )}
+          </div>
+
+          {/* Message d'encouragement */}
+          {quickProgress === 100 && (
+            <div style={{
+              background: 'rgba(16, 185, 129, 0.1)',
+              border: '2px solid rgba(16, 185, 129, 0.3)',
+              borderRadius: '16px',
+              padding: '16px',
+              textAlign: 'center',
+              animation: 'pulseReady 2s ease-in-out infinite alternate'
+            }}>
+              <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>🎉</div>
+              <div style={{ color: '#059669', fontWeight: '600' }}>
+                Parfait ! Prêt à partager votre création
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Navigation */}
+        <div className={styles.quickNavigation}>
+          <button 
+            onClick={() => router.back()}
+            className={styles.quickCancelBtn}
+          >
+            Annuler
+          </button>
+          
+          <button
+            onClick={handleQuickSubmit}
+            className={`${styles.quickPublishBtn} ${quickProgress < 100 ? styles.disabled : ''}`}
+            disabled={quickProgress < 100 || isPublishing}
+          >
+            {isPublishing ? (
+              <>
+                <span className={styles.spinner}></span>
+                Publication...
+              </>
+            ) : quickProgress < 100 ? (
+              `Étape ${quickStep}/3`
+            ) : (
+              '🚀 Publier maintenant'
+            )}
+          </button>
+        </div>
+
+        {/* Input file caché */}
+        <PhotoUpload 
+          onPhotoSelect={setPhotos}
+          maxFiles={1}
+          ref={fileInputRef}
+          style={{ display: 'none' }}
+        />
+      </div>
+    )
+  }
+
   return (
     <>
       <Head>
         <title>
-          {formMode === 'quick' ? 'Partager une photo - COCO' : 'Partager une recette - COCO'}
+          {formMode === 'quick' ? 'Partage Express - COCO' : 'Partager une recette - COCO'}
         </title>
-        <meta name="description" content="Partagez votre création culinaire avec la communauté COCO" />
+        <meta name="description" content="Partagez rapidement votre création culinaire avec COCO" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
       </Head>
       
       <div className={styles.container}>
         {showModeSelector ? (
           <ModeSelector />
+        ) : formMode === 'quick' ? (
+          <QuickModeInterface />
         ) : (
+          // Interface complète existante
           <>
             <div className={styles.header}>
               <div className={styles.headerTop}>

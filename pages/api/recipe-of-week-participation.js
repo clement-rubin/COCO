@@ -30,18 +30,17 @@ export default async function handler(req, res) {
       endOfWeek.setDate(endOfWeek.getDate() + 6)
       endOfWeek.setHours(23, 59, 59, 999)
 
-      // Récupérer les recettes de l'utilisateur créées cette semaine
-      const { data: eligibleRecipes, error: recipesError } = await supabase
+      // Récupérer TOUTES les recettes de l'utilisateur (pas seulement cette semaine)
+      const { data: allRecipes, error: recipesError } = await supabase
         .from('recipes')
         .select('id, title, description, image, created_at, category')
         .eq('user_id', user_id)
-        .gte('created_at', startOfWeek.toISOString())
-        .lte('created_at', endOfWeek.toISOString())
         .order('created_at', { ascending: false })
+        .limit(50) // Limiter à 50 recettes max pour les performances
 
       if (recipesError) throw recipesError
 
-      // Vérifier quelles recettes sont déjà candidates
+      // Vérifier quelles recettes sont déjà candidates cette semaine
       const { data: existingCandidates, error: candidatesError } = await supabase
         .from('recipe_week_candidates')
         .select('recipe_id')
@@ -54,18 +53,25 @@ export default async function handler(req, res) {
 
       const candidateIds = existingCandidates?.map(c => c.recipe_id) || []
 
-      // Marquer les recettes déjà candidates
-      const recipesWithStatus = eligibleRecipes.map(recipe => ({
-        ...recipe,
-        isCandidate: candidateIds.includes(recipe.id),
-        canParticipate: !candidateIds.includes(recipe.id)
-      }))
+      // Marquer les recettes selon leur statut
+      const recipesWithStatus = allRecipes.map(recipe => {
+        const isThisWeek = new Date(recipe.created_at) >= startOfWeek
+        const isCandidate = candidateIds.includes(recipe.id)
+        
+        return {
+          ...recipe,
+          isCandidate,
+          canParticipate: !isCandidate,
+          isThisWeek, // Indiquer si c'est une recette de cette semaine
+          createdThisWeek: isThisWeek
+        }
+      })
 
       return res.status(200).json({
-        eligibleRecipes: recipesWithStatus,
+        allRecipes: recipesWithStatus,
         weekStart: startOfWeek.toISOString(),
         weekEnd: endOfWeek.toISOString(),
-        maxCandidates: 3, // Limite de 3 recettes par utilisateur
+        maxCandidates: 5, // Augmenter la limite à 5 recettes par utilisateur
         currentCandidates: candidateIds.length
       })
     }
@@ -77,7 +83,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'recipe_id et user_id requis' })
       }
 
-      // Vérifier que la recette appartient à l'utilisateur
+      // Vérifier que la recette appartient à l'utilisateur (peu importe quand elle a été créée)
       const { data: recipe, error: recipeError } = await supabase
         .from('recipes')
         .select('id, title, user_id, created_at, image')
@@ -89,20 +95,12 @@ export default async function handler(req, res) {
         return res.status(404).json({ error: 'Recette non trouvée' })
       }
 
-      // Vérifier que la recette a été créée cette semaine
+      // Calculer la semaine courante pour les limites
       const startOfWeek = new Date()
       startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay())
       startOfWeek.setHours(0, 0, 0, 0)
 
-      const recipeDate = new Date(recipe.created_at)
-      if (recipeDate < startOfWeek) {
-        return res.status(400).json({ 
-          error: 'Recette non éligible',
-          message: 'Seules les recettes créées cette semaine peuvent participer'
-        })
-      }
-
-      // Vérifier le nombre de candidatures existantes
+      // Vérifier le nombre de candidatures existantes CETTE SEMAINE
       const { data: existingCandidates, error: countError } = await supabase
         .from('recipe_week_candidates')
         .select('id')
@@ -113,19 +111,20 @@ export default async function handler(req, res) {
         throw countError
       }
 
-      if (existingCandidates && existingCandidates.length >= 3) {
+      if (existingCandidates && existingCandidates.length >= 5) {
         return res.status(400).json({ 
           error: 'Limite atteinte',
-          message: 'Vous pouvez inscrire maximum 3 recettes par semaine'
+          message: 'Vous pouvez inscrire maximum 5 recettes par semaine'
         })
       }
 
-      // Vérifier si la recette n'est pas déjà candidate
+      // Vérifier si la recette n'est pas déjà candidate CETTE SEMAINE
       const { data: existingCandidate, error: duplicateError } = await supabase
         .from('recipe_week_candidates')
         .select('id')
         .eq('recipe_id', recipe_id)
         .eq('user_id', user_id)
+        .gte('created_at', startOfWeek.toISOString())
         .single()
 
       if (duplicateError && duplicateError.code !== 'PGRST116') {
@@ -135,17 +134,17 @@ export default async function handler(req, res) {
       if (existingCandidate) {
         return res.status(409).json({ 
           error: 'Recette déjà candidate',
-          message: 'Cette recette participe déjà au concours'
+          message: 'Cette recette participe déjà au concours cette semaine'
         })
       }
 
-      // Inscrire la recette
+      // Inscrire la recette au concours de CETTE semaine
       const { data: candidate, error: insertError } = await supabase
         .from('recipe_week_candidates')
         .insert([{
           recipe_id,
           user_id,
-          created_at: new Date().toISOString()
+          created_at: new Date().toISOString() // Date d'inscription, pas de création de la recette
         }])
         .select()
         .single()
@@ -156,7 +155,9 @@ export default async function handler(req, res) {
         candidateId: candidate.id,
         recipeId: recipe_id,
         userId: user_id.substring(0, 8) + '...',
-        recipeTitle: recipe.title
+        recipeTitle: recipe.title,
+        recipeCreatedAt: recipe.created_at,
+        inscriptionDate: candidate.created_at
       })
 
       return res.status(201).json({

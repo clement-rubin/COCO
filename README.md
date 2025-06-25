@@ -419,6 +419,29 @@ ALTER TABLE recipe_week_votes ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Voir tous les votes" ON recipe_week_votes FOR SELECT USING (true);
 CREATE POLICY "Voter pour recette de la semaine" ON recipe_week_votes FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Supprimer son vote" ON recipe_week_votes FOR DELETE USING (auth.uid() = user_id);
+
+-- Table pour les candidatures au concours de la semaine
+CREATE TABLE IF NOT EXISTS public.recipe_week_candidates (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  recipe_id UUID NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(recipe_id, DATE_TRUNC('week', created_at)),
+  CONSTRAINT one_recipe_per_week UNIQUE (recipe_id, DATE_TRUNC('week', created_at))
+);
+
+-- Index pour les candidatures
+CREATE INDEX IF NOT EXISTS idx_recipe_week_candidates_recipe_id ON recipe_week_candidates(recipe_id);
+CREATE INDEX IF NOT EXISTS idx_recipe_week_candidates_user_id ON recipe_week_candidates(user_id);
+CREATE INDEX IF NOT EXISTS idx_recipe_week_candidates_week ON recipe_week_candidates(DATE_TRUNC('week', created_at));
+
+-- Row Level Security pour recipe_week_candidates
+ALTER TABLE recipe_week_candidates ENABLE ROW LEVEL SECURITY;
+
+-- Politiques pour recipe_week_candidates
+CREATE POLICY "Voir toutes les candidatures" ON recipe_week_candidates FOR SELECT USING (true);
+CREATE POLICY "Inscrire sa recette au concours" ON recipe_week_candidates FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Retirer sa candidature" ON recipe_week_candidates FOR DELETE USING (auth.uid() = user_id);
 ```
 
 ## 👥 Gestion des amitiés
@@ -711,6 +734,29 @@ ALTER TABLE recipe_week_votes ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Voir tous les votes" ON recipe_week_votes FOR SELECT USING (true);
 CREATE POLICY "Voter pour recette de la semaine" ON recipe_week_votes FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Supprimer son vote" ON recipe_week_votes FOR DELETE USING (auth.uid() = user_id);
+
+-- Table pour les candidatures au concours de la semaine
+CREATE TABLE IF NOT EXISTS public.recipe_week_candidates (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  recipe_id UUID NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(recipe_id, DATE_TRUNC('week', created_at)),
+  CONSTRAINT one_recipe_per_week UNIQUE (recipe_id, DATE_TRUNC('week', created_at))
+);
+
+-- Index pour les candidatures
+CREATE INDEX IF NOT EXISTS idx_recipe_week_candidates_recipe_id ON recipe_week_candidates(recipe_id);
+CREATE INDEX IF NOT EXISTS idx_recipe_week_candidates_user_id ON recipe_week_candidates(user_id);
+CREATE INDEX IF NOT EXISTS idx_recipe_week_candidates_week ON recipe_week_candidates(DATE_TRUNC('week', created_at));
+
+-- Row Level Security pour recipe_week_candidates
+ALTER TABLE recipe_week_candidates ENABLE ROW LEVEL SECURITY;
+
+-- Politiques pour recipe_week_candidates
+CREATE POLICY "Voir toutes les candidatures" ON recipe_week_candidates FOR SELECT USING (true);
+CREATE POLICY "Inscrire sa recette au concours" ON recipe_week_candidates FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Retirer sa candidature" ON recipe_week_candidates FOR DELETE USING (auth.uid() = user_id);
 ```
 
 ## 👥 Gestion des amitiés
@@ -1003,6 +1049,29 @@ ALTER TABLE recipe_week_votes ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Voir tous les votes" ON recipe_week_votes FOR SELECT USING (true);
 CREATE POLICY "Voter pour recette de la semaine" ON recipe_week_votes FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Supprimer son vote" ON recipe_week_votes FOR DELETE USING (auth.uid() = user_id);
+
+-- Table pour les candidatures au concours de la semaine
+CREATE TABLE IF NOT EXISTS public.recipe_week_candidates (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  recipe_id UUID NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(recipe_id, DATE_TRUNC('week', created_at)),
+  CONSTRAINT one_recipe_per_week UNIQUE (recipe_id, DATE_TRUNC('week', created_at))
+);
+
+-- Index pour les candidatures
+CREATE INDEX IF NOT EXISTS idx_recipe_week_candidates_recipe_id ON recipe_week_candidates(recipe_id);
+CREATE INDEX IF NOT EXISTS idx_recipe_week_candidates_user_id ON recipe_week_candidates(user_id);
+CREATE INDEX IF NOT EXISTS idx_recipe_week_candidates_week ON recipe_week_candidates(DATE_TRUNC('week', created_at));
+
+-- Row Level Security pour recipe_week_candidates
+ALTER TABLE recipe_week_candidates ENABLE ROW LEVEL SECURITY;
+
+-- Politiques pour recipe_week_candidates
+CREATE POLICY "Voir toutes les candidatures" ON recipe_week_candidates FOR SELECT USING (true);
+CREATE POLICY "Inscrire sa recette au concours" ON recipe_week_candidates FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Retirer sa candidature" ON recipe_week_candidates FOR DELETE USING (auth.uid() = user_id);
 ```
 
 ## 👥 Gestion des amitiés
@@ -1295,6 +1364,29 @@ ALTER TABLE recipe_week_votes ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Voir tous les votes" ON recipe_week_votes FOR SELECT USING (true);
 CREATE POLICY "Voter pour recette de la semaine" ON recipe_week_votes FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Supprimer son vote" ON recipe_week_votes FOR DELETE USING (auth.uid() = user_id);
+
+-- Table pour les candidatures au concours de la semaine
+CREATE TABLE IF NOT EXISTS public.recipe_week_candidates (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  recipe_id UUID NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(recipe_id, DATE_TRUNC('week', created_at)),
+  CONSTRAINT one_recipe_per_week UNIQUE (recipe_id, DATE_TRUNC('week', created_at))
+);
+
+-- Index pour les candidatures
+CREATE INDEX IF NOT EXISTS idx_recipe_week_candidates_recipe_id ON recipe_week_candidates(recipe_id);
+CREATE INDEX IF NOT EXISTS idx_recipe_week_candidates_user_id ON recipe_week_candidates(user_id);
+CREATE INDEX IF NOT EXISTS idx_recipe_week_candidates_week ON recipe_week_candidates(DATE_TRUNC('week', created_at));
+
+-- Row Level Security pour recipe_week_candidates
+ALTER TABLE recipe_week_candidates ENABLE ROW LEVEL SECURITY;
+
+-- Politiques pour recipe_week_candidates
+CREATE POLICY "Voir toutes les candidatures" ON recipe_week_candidates FOR SELECT USING (true);
+CREATE POLICY "Inscrire sa recette au concours" ON recipe_week_candidates FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Retirer sa candidature" ON recipe_week_candidates FOR DELETE USING (auth.uid() = user_id);
 ```
 
 ## 👥 Gestion des amitiés
@@ -1587,6 +1679,29 @@ ALTER TABLE recipe_week_votes ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Voir tous les votes" ON recipe_week_votes FOR SELECT USING (true);
 CREATE POLICY "Voter pour recette de la semaine" ON recipe_week_votes FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Supprimer son vote" ON recipe_week_votes FOR DELETE USING (auth.uid() = user_id);
+
+-- Table pour les candidatures au concours de la semaine
+CREATE TABLE IF NOT EXISTS public.recipe_week_candidates (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  recipe_id UUID NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(recipe_id, DATE_TRUNC('week', created_at)),
+  CONSTRAINT one_recipe_per_week UNIQUE (recipe_id, DATE_TRUNC('week', created_at))
+);
+
+-- Index pour les candidatures
+CREATE INDEX IF NOT EXISTS idx_recipe_week_candidates_recipe_id ON recipe_week_candidates(recipe_id);
+CREATE INDEX IF NOT EXISTS idx_recipe_week_candidates_user_id ON recipe_week_candidates(user_id);
+CREATE INDEX IF NOT EXISTS idx_recipe_week_candidates_week ON recipe_week_candidates(DATE_TRUNC('week', created_at));
+
+-- Row Level Security pour recipe_week_candidates
+ALTER TABLE recipe_week_candidates ENABLE ROW LEVEL SECURITY;
+
+-- Politiques pour recipe_week_candidates
+CREATE POLICY "Voir toutes les candidatures" ON recipe_week_candidates FOR SELECT USING (true);
+CREATE POLICY "Inscrire sa recette au concours" ON recipe_week_candidates FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Retirer sa candidature" ON recipe_week_candidates FOR DELETE USING (auth.uid() = user_id);
 ```
 
 ## 👥 Gestion des amitiés
@@ -1643,4 +1758,1522 @@ Pour plus de détails, consultez les fichiers :
 - `/utils/profileUtils.js`
 - `/pages/api/friends.js`
 - `/pages/amis.js`
-- `/pages/test-friends.js
+- `/pages/test-friends.js`
+
+**COCO** - *Où chaque recette raconte une histoire* 🍴✨
+
+## 🌟 Fonctionnalités Principales
+
+### 👥 Système d'Amis Avancé ✅
+- **Recherche d'utilisateurs** par nom avec recherche floue
+- **Suggestions d'amis** basées sur les amis mutuels
+- **Profils utilisateur** complets avec statistiques
+- **Gestion des demandes d'amitié** (envoi, acceptation, refus)
+- **Paramètres de confidentialité** pour les profils
+- **Noms d'utilisateur personnalisés** avec validation
+
+### 🍽️ Partage de Recettes
+- Création et modification de recettes avec photos
+- Catégorisation et système de tags
+- Recherche avancée par ingrédients, catégorie, auteur
+- Attribution automatique des auteurs via les profils
+
+### 🔐 Authentification et Sécurité
+- Système d'authentification Supabase
+- Politiques de sécurité Row Level Security (RLS)
+- Validation des données côté client et serveur
+- Gestion des erreurs avec stratégies de récupération
+
+## 🚀 Installation et Configuration
+
+### Prérequis
+- Node.js 18+ et npm/yarn
+- Compte Supabase
+- Variables d'environnement configurées
+
+### Configuration de la Base de Données
+Exécutez le SQL suivant dans votre tableau de bord Supabase pour configurer les tables et fonctions :
+
+```sql
+-- Création de la table profiles pour les informations utilisateur
+CREATE TABLE IF NOT EXISTS public.profiles (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID UNIQUE NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  display_name TEXT,
+  bio TEXT,
+  avatar_url TEXT,
+  location TEXT,
+  website TEXT,
+  date_of_birth DATE,
+  phone TEXT,
+  is_private BOOLEAN DEFAULT false,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Index pour les performances
+CREATE INDEX IF NOT EXISTS idx_profiles_user_id ON profiles(user_id);
+CREATE INDEX IF NOT EXISTS idx_profiles_display_name ON profiles(display_name);
+
+-- Activer Row Level Security
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+
+-- Politiques pour la sécurité
+DROP POLICY IF EXISTS "Permettre lecture publique profils" ON profiles;
+DROP POLICY IF EXISTS "Permettre mise à jour profil utilisateur" ON profiles;
+DROP POLICY IF EXISTS "Permettre insertion profil utilisateur" ON profiles;
+DROP POLICY IF EXISTS "Permettre suppression profil utilisateur" ON profiles;
+
+CREATE POLICY "Permettre lecture publique profils" ON profiles FOR SELECT USING (NOT is_private OR auth.uid() = user_id);
+CREATE POLICY "Permettre mise à jour profil utilisateur" ON profiles FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Permettre insertion profil utilisateur" ON profiles FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Permettre suppression profil utilisateur" ON profiles FOR DELETE USING (auth.uid() = user_id);
+
+-- Contraintes pour les noms d'utilisateur
+ALTER TABLE profiles ADD CONSTRAINT display_name_length CHECK (length(display_name) >= 2 AND length(display_name) <= 30);
+ALTER TABLE profiles ADD CONSTRAINT display_name_format CHECK (display_name ~ '^[a-zA-ZÀ-ÿ0-9_\-\s]+$');
+
+-- Index pour les recherches d'amis
+CREATE INDEX IF NOT EXISTS idx_profiles_display_name_trgm ON profiles USING gin(display_name gin_trgm_ops);
+
+-- Table des amitiés (STRUCTURE COMPLÈTE)
+CREATE TABLE IF NOT EXISTS public.friendships (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  friend_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  status TEXT CHECK (status IN ('pending', 'accepted', 'rejected', 'blocked')) DEFAULT 'pending',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(user_id, friend_id),
+  CONSTRAINT no_self_friendship CHECK (user_id != friend_id),
+  -- Empêche les doublons inversés (user_id/friend_id et friend_id/user_id)
+  CONSTRAINT unique_friendship_pair UNIQUE (LEAST(user_id, friend_id), GREATEST(user_id, friend_id))
+);
+
+-- Index pour les amitiés
+CREATE INDEX IF NOT EXISTS idx_friendships_user_id ON friendships(user_id);
+CREATE INDEX IF NOT EXISTS idx_friendships_friend_id ON friendships(friend_id);
+CREATE INDEX IF NOT EXISTS idx_friendships_status ON friendships(status);
+CREATE INDEX IF NOT EXISTS idx_friendships_user_status ON friendships(user_id, status);
+
+-- Row Level Security pour friendships
+ALTER TABLE friendships ENABLE ROW LEVEL SECURITY;
+
+-- Politiques pour friendships
+CREATE POLICY "Voir ses amitiés" ON friendships FOR SELECT USING (auth.uid() = user_id OR auth.uid() = friend_id);
+CREATE POLICY "Créer demande amitié" ON friendships FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Modifier ses amitiés" ON friendships FOR UPDATE USING (auth.uid() = friend_id OR auth.uid() = user_id);
+CREATE POLICY "Supprimer ses amitiés" ON friendships FOR DELETE USING (auth.uid() = friend_id OR auth.uid() = user_id);
+
+-- Fonction pour la recherche floue de profils
+CREATE OR REPLACE FUNCTION search_profiles(search_term text, current_user_id uuid DEFAULT NULL)
+RETURNS TABLE (
+  user_id uuid,
+  display_name text,
+  bio text,
+  avatar_url text,
+  similarity_score real
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    p.user_id,
+    p.display_name,
+    p.bio,
+    p.avatar_url,
+    CASE 
+      WHEN pg_trgm.similarity(p.display_name, search_term) > 0 
+      THEN pg_trgm.similarity(p.display_name, search_term)
+      ELSE 0.1
+    END as similarity_score
+  FROM profiles p
+  WHERE 
+    p.is_private = false 
+    AND (current_user_id IS NULL OR p.user_id != current_user_id)
+    AND (
+      p.display_name ILIKE '%' || search_term || '%'
+      OR (pg_trgm.similarity(p.display_name, search_term) > 0.3)
+    )
+  ORDER BY similarity_score DESC, p.display_name ASC
+  LIMIT 20;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Fonction pour obtenir les suggestions d'amis
+CREATE OR REPLACE FUNCTION get_friend_suggestions(user_id_param uuid, limit_param integer DEFAULT 10)
+RETURNS TABLE (
+  user_id uuid,
+  display_name text,
+  bio text,
+  avatar_url text,
+  mutual_friends_count integer
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    p.user_id,
+    p.display_name,
+    p.bio,
+    p.avatar_url,
+    0 as mutual_friends_count
+  FROM profiles p
+  LEFT JOIN friendships existing ON (
+    (existing.user_id = user_id_param AND existing.friend_id = p.user_id) OR
+    (existing.friend_id = user_id_param AND existing.user_id = p.user_id)
+  )
+  WHERE 
+    p.user_id != user_id_param
+    AND p.is_private = false
+    AND existing.id IS NULL -- Pas déjà ami ou demande en cours
+  ORDER BY p.created_at DESC
+  LIMIT limit_param;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Fonction pour créer automatiquement un profil (CORRIGÉE)
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.profiles (user_id, display_name)
+  VALUES (NEW.id, COALESCE(NEW.raw_user_meta_data->>'display_name', split_part(NEW.email, '@', 1)))
+  ON CONFLICT (user_id) DO NOTHING;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger pour créer automatiquement un profil
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
+-- Table des commentaires (NOUVELLE)
+CREATE TABLE IF NOT EXISTS comments (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  recipe_id UUID NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  content TEXT NOT NULL CHECK (length(content) > 0 AND length(content) <= 500),
+  likes INTEGER DEFAULT 0 CHECK (likes >= 0),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Index pour les commentaires
+CREATE INDEX IF NOT EXISTS idx_comments_recipe_id ON comments(recipe_id);
+CREATE INDEX IF NOT EXISTS idx_comments_user_id ON comments(user_id);
+CREATE INDEX IF NOT EXISTS idx_comments_created_at ON comments(created_at DESC);
+
+-- Row Level Security pour comments
+ALTER TABLE comments ENABLE ROW LEVEL SECURITY;
+
+-- Politiques pour comments
+CREATE POLICY "Permettre lecture publique commentaires" ON comments FOR SELECT USING (true);
+CREATE POLICY "Permettre insertion commentaire utilisateur" ON comments FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Permettre mise à jour commentaire utilisateur" ON comments FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Permettre suppression commentaire utilisateur" ON comments FOR DELETE USING (auth.uid() = user_id);
+
+-- Table pour les votes de la recette de la semaine
+CREATE TABLE IF NOT EXISTS public.recipe_week_votes (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  recipe_id UUID NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(user_id, DATE_TRUNC('week', created_at)),
+  CONSTRAINT one_vote_per_user_per_week UNIQUE (user_id, DATE_TRUNC('week', created_at))
+);
+
+-- Index pour les votes de la semaine
+CREATE INDEX IF NOT EXISTS idx_recipe_week_votes_recipe_id ON recipe_week_votes(recipe_id);
+CREATE INDEX IF NOT EXISTS idx_recipe_week_votes_user_id ON recipe_week_votes(user_id);
+CREATE INDEX IF NOT EXISTS idx_recipe_week_votes_week ON recipe_week_votes(DATE_TRUNC('week', created_at));
+
+-- Row Level Security pour recipe_week_votes
+ALTER TABLE recipe_week_votes ENABLE ROW LEVEL SECURITY;
+
+-- Politiques pour recipe_week_votes
+CREATE POLICY "Voir tous les votes" ON recipe_week_votes FOR SELECT USING (true);
+CREATE POLICY "Voter pour recette de la semaine" ON recipe_week_votes FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Supprimer son vote" ON recipe_week_votes FOR DELETE USING (auth.uid() = user_id);
+
+-- Table pour les candidatures au concours de la semaine
+CREATE TABLE IF NOT EXISTS public.recipe_week_candidates (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  recipe_id UUID NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(recipe_id, DATE_TRUNC('week', created_at)),
+  CONSTRAINT one_recipe_per_week UNIQUE (recipe_id, DATE_TRUNC('week', created_at))
+);
+
+-- Index pour les candidatures
+CREATE INDEX IF NOT EXISTS idx_recipe_week_candidates_recipe_id ON recipe_week_candidates(recipe_id);
+CREATE INDEX IF NOT EXISTS idx_recipe_week_candidates_user_id ON recipe_week_candidates(user_id);
+CREATE INDEX IF NOT EXISTS idx_recipe_week_candidates_week ON recipe_week_candidates(DATE_TRUNC('week', created_at));
+
+-- Row Level Security pour recipe_week_candidates
+ALTER TABLE recipe_week_candidates ENABLE ROW LEVEL SECURITY;
+
+-- Politiques pour recipe_week_candidates
+CREATE POLICY "Voir toutes les candidatures" ON recipe_week_candidates FOR SELECT USING (true);
+CREATE POLICY "Inscrire sa recette au concours" ON recipe_week_candidates FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Retirer sa candidature" ON recipe_week_candidates FOR DELETE USING (auth.uid() = user_id);
+```
+
+## 👥 Gestion des amitiés
+
+Le système d'amis de COCO permet aux utilisateurs de rechercher, ajouter, accepter, refuser, bloquer et débloquer des amis, ainsi que de gérer des groupes d'amis et de recevoir des notifications.
+
+### Fonctionnalités principales
+
+- **Recherche d'utilisateurs** : via le nom d'affichage, avec recherche floue (`search_users_simple`)
+- **Suggestions d'amis** : basées sur les amis mutuels
+- **Profils utilisateur** complets avec statistiques
+- **Gestion des demandes d'amitié** (envoi, acceptation, refus)
+- **Paramètres de confidentialité** pour les profils
+- **Noms d'utilisateur personnalisés** avec validation
+
+### Endpoints API
+
+- `GET /api/friends?user_id=...` : Récupère la liste des amis et demandes en attente
+- `GET /api/friends?query=...` : Recherche d'utilisateurs par nom
+- `POST /api/friends` : Actions (`send_request`, `accept_request`, `reject_request`, `block_user`, `unblock_user`, `create_group`, etc.)
+
+### Fonctions utilitaires principales
+
+- `getUserFriends(userId)` : Récupère amis et demandes en attente
+- `sendFriendRequestCorrected(fromUserId, toUserId)` : Envoie une demande d'amitié
+- `blockUser(fromUserId, toUserId)` / `unblockUser(fromUserId, toUserId)` : Bloque/débloque un utilisateur
+- `getIntelligentFriendSuggestions(userId, limit)` : Suggestions avancées d'amis
+- `getUnreadNotifications(userId)` : Notifications non lues
+- `updateLastSeen(userId)` / `isUserOnline(userId)` : Statut en ligne
+
+### Tables et fonctions SQL
+
+- Table `friendships` : stocke les relations d'amitié (voir scripts SQL)
+- Table `profiles` : profils utilisateurs
+- Fonctions : `get_user_friends_simple`, `get_pending_friend_requests`, `check_friendship_status`, `get_friend_suggestions`, etc.
+
+### Exemples d'utilisation
+
+```js
+// Envoyer une demande d'amitié
+await sendFriendRequestCorrected(currentUserId, targetUserId);
+
+// Accepter une demande
+await supabase.from('friendships').update({ status: 'accepted' }).eq('id', requestId);
+
+// Bloquer un utilisateur
+await blockUser(currentUserId, targetUserId);
+
+// Suggestions d'amis
+const suggestions = await getIntelligentFriendSuggestions(currentUserId, 5);
+```
+
+Pour plus de détails, consultez les fichiers :
+- `/utils/profileUtils.js`
+- `/pages/api/friends.js`
+- `/pages/amis.js`
+- `/pages/test-friends.js`
+
+**COCO** - *Où chaque recette raconte une histoire* 🍴✨
+
+## 🌟 Fonctionnalités Principales
+
+### 👥 Système d'Amis Avancé ✅
+- **Recherche d'utilisateurs** par nom avec recherche floue
+- **Suggestions d'amis** basées sur les amis mutuels
+- **Profils utilisateur** complets avec statistiques
+- **Gestion des demandes d'amitié** (envoi, acceptation, refus)
+- **Paramètres de confidentialité** pour les profils
+- **Noms d'utilisateur personnalisés** avec validation
+
+### 🍽️ Partage de Recettes
+- Création et modification de recettes avec photos
+- Catégorisation et système de tags
+- Recherche avancée par ingrédients, catégorie, auteur
+- Attribution automatique des auteurs via les profils
+
+### 🔐 Authentification et Sécurité
+- Système d'authentification Supabase
+- Politiques de sécurité Row Level Security (RLS)
+- Validation des données côté client et serveur
+- Gestion des erreurs avec stratégies de récupération
+
+## 🚀 Installation et Configuration
+
+### Prérequis
+- Node.js 18+ et npm/yarn
+- Compte Supabase
+- Variables d'environnement configurées
+
+### Configuration de la Base de Données
+Exécutez le SQL suivant dans votre tableau de bord Supabase pour configurer les tables et fonctions :
+
+```sql
+-- Création de la table profiles pour les informations utilisateur
+CREATE TABLE IF NOT EXISTS public.profiles (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID UNIQUE NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  display_name TEXT,
+  bio TEXT,
+  avatar_url TEXT,
+  location TEXT,
+  website TEXT,
+  date_of_birth DATE,
+  phone TEXT,
+  is_private BOOLEAN DEFAULT false,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Index pour les performances
+CREATE INDEX IF NOT EXISTS idx_profiles_user_id ON profiles(user_id);
+CREATE INDEX IF NOT EXISTS idx_profiles_display_name ON profiles(display_name);
+
+-- Activer Row Level Security
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+
+-- Politiques pour la sécurité
+DROP POLICY IF EXISTS "Permettre lecture publique profils" ON profiles;
+DROP POLICY IF EXISTS "Permettre mise à jour profil utilisateur" ON profiles;
+DROP POLICY IF EXISTS "Permettre insertion profil utilisateur" ON profiles;
+DROP POLICY IF EXISTS "Permettre suppression profil utilisateur" ON profiles;
+
+CREATE POLICY "Permettre lecture publique profils" ON profiles FOR SELECT USING (NOT is_private OR auth.uid() = user_id);
+CREATE POLICY "Permettre mise à jour profil utilisateur" ON profiles FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Permettre insertion profil utilisateur" ON profiles FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Permettre suppression profil utilisateur" ON profiles FOR DELETE USING (auth.uid() = user_id);
+
+-- Contraintes pour les noms d'utilisateur
+ALTER TABLE profiles ADD CONSTRAINT display_name_length CHECK (length(display_name) >= 2 AND length(display_name) <= 30);
+ALTER TABLE profiles ADD CONSTRAINT display_name_format CHECK (display_name ~ '^[a-zA-ZÀ-ÿ0-9_\-\s]+$');
+
+-- Index pour les recherches d'amis
+CREATE INDEX IF NOT EXISTS idx_profiles_display_name_trgm ON profiles USING gin(display_name gin_trgm_ops);
+
+-- Table des amitiés (STRUCTURE COMPLÈTE)
+CREATE TABLE IF NOT EXISTS public.friendships (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  friend_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  status TEXT CHECK (status IN ('pending', 'accepted', 'rejected', 'blocked')) DEFAULT 'pending',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(user_id, friend_id),
+  CONSTRAINT no_self_friendship CHECK (user_id != friend_id),
+  -- Empêche les doublons inversés (user_id/friend_id et friend_id/user_id)
+  CONSTRAINT unique_friendship_pair UNIQUE (LEAST(user_id, friend_id), GREATEST(user_id, friend_id))
+);
+
+-- Index pour les amitiés
+CREATE INDEX IF NOT EXISTS idx_friendships_user_id ON friendships(user_id);
+CREATE INDEX IF NOT EXISTS idx_friendships_friend_id ON friendships(friend_id);
+CREATE INDEX IF NOT EXISTS idx_friendships_status ON friendships(status);
+CREATE INDEX IF NOT EXISTS idx_friendships_user_status ON friendships(user_id, status);
+
+-- Row Level Security pour friendships
+ALTER TABLE friendships ENABLE ROW LEVEL SECURITY;
+
+-- Politiques pour friendships
+CREATE POLICY "Voir ses amitiés" ON friendships FOR SELECT USING (auth.uid() = user_id OR auth.uid() = friend_id);
+CREATE POLICY "Créer demande amitié" ON friendships FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Modifier ses amitiés" ON friendships FOR UPDATE USING (auth.uid() = friend_id OR auth.uid() = user_id);
+CREATE POLICY "Supprimer ses amitiés" ON friendships FOR DELETE USING (auth.uid() = friend_id OR auth.uid() = user_id);
+
+-- Fonction pour la recherche floue de profils
+CREATE OR REPLACE FUNCTION search_profiles(search_term text, current_user_id uuid DEFAULT NULL)
+RETURNS TABLE (
+  user_id uuid,
+  display_name text,
+  bio text,
+  avatar_url text,
+  similarity_score real
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    p.user_id,
+    p.display_name,
+    p.bio,
+    p.avatar_url,
+    CASE 
+      WHEN pg_trgm.similarity(p.display_name, search_term) > 0 
+      THEN pg_trgm.similarity(p.display_name, search_term)
+      ELSE 0.1
+    END as similarity_score
+  FROM profiles p
+  WHERE 
+    p.is_private = false 
+    AND (current_user_id IS NULL OR p.user_id != current_user_id)
+    AND (
+      p.display_name ILIKE '%' || search_term || '%'
+      OR (pg_trgm.similarity(p.display_name, search_term) > 0.3)
+    )
+  ORDER BY similarity_score DESC, p.display_name ASC
+  LIMIT 20;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Fonction pour obtenir les suggestions d'amis
+CREATE OR REPLACE FUNCTION get_friend_suggestions(user_id_param uuid, limit_param integer DEFAULT 10)
+RETURNS TABLE (
+  user_id uuid,
+  display_name text,
+  bio text,
+  avatar_url text,
+  mutual_friends_count integer
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    p.user_id,
+    p.display_name,
+    p.bio,
+    p.avatar_url,
+    0 as mutual_friends_count
+  FROM profiles p
+  LEFT JOIN friendships existing ON (
+    (existing.user_id = user_id_param AND existing.friend_id = p.user_id) OR
+    (existing.friend_id = user_id_param AND existing.user_id = p.user_id)
+  )
+  WHERE 
+    p.user_id != user_id_param
+    AND p.is_private = false
+    AND existing.id IS NULL -- Pas déjà ami ou demande en cours
+  ORDER BY p.created_at DESC
+  LIMIT limit_param;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Fonction pour créer automatiquement un profil (CORRIGÉE)
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.profiles (user_id, display_name)
+  VALUES (NEW.id, COALESCE(NEW.raw_user_meta_data->>'display_name', split_part(NEW.email, '@', 1)))
+  ON CONFLICT (user_id) DO NOTHING;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger pour créer automatiquement un profil
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
+-- Table des commentaires (NOUVELLE)
+CREATE TABLE IF NOT EXISTS comments (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  recipe_id UUID NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  content TEXT NOT NULL CHECK (length(content) > 0 AND length(content) <= 500),
+  likes INTEGER DEFAULT 0 CHECK (likes >= 0),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Index pour les commentaires
+CREATE INDEX IF NOT EXISTS idx_comments_recipe_id ON comments(recipe_id);
+CREATE INDEX IF NOT EXISTS idx_comments_user_id ON comments(user_id);
+CREATE INDEX IF NOT EXISTS idx_comments_created_at ON comments(created_at DESC);
+
+-- Row Level Security pour comments
+ALTER TABLE comments ENABLE ROW LEVEL SECURITY;
+
+-- Politiques pour comments
+CREATE POLICY "Permettre lecture publique commentaires" ON comments FOR SELECT USING (true);
+CREATE POLICY "Permettre insertion commentaire utilisateur" ON comments FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Permettre mise à jour commentaire utilisateur" ON comments FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Permettre suppression commentaire utilisateur" ON comments FOR DELETE USING (auth.uid() = user_id);
+
+-- Table pour les votes de la recette de la semaine
+CREATE TABLE IF NOT EXISTS public.recipe_week_votes (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  recipe_id UUID NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(user_id, DATE_TRUNC('week', created_at)),
+  CONSTRAINT one_vote_per_user_per_week UNIQUE (user_id, DATE_TRUNC('week', created_at))
+);
+
+-- Index pour les votes de la semaine
+CREATE INDEX IF NOT EXISTS idx_recipe_week_votes_recipe_id ON recipe_week_votes(recipe_id);
+CREATE INDEX IF NOT EXISTS idx_recipe_week_votes_user_id ON recipe_week_votes(user_id);
+CREATE INDEX IF NOT EXISTS idx_recipe_week_votes_week ON recipe_week_votes(DATE_TRUNC('week', created_at));
+
+-- Row Level Security pour recipe_week_votes
+ALTER TABLE recipe_week_votes ENABLE ROW LEVEL SECURITY;
+
+-- Politiques pour recipe_week_votes
+CREATE POLICY "Voir tous les votes" ON recipe_week_votes FOR SELECT USING (true);
+CREATE POLICY "Voter pour recette de la semaine" ON recipe_week_votes FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Supprimer son vote" ON recipe_week_votes FOR DELETE USING (auth.uid() = user_id);
+
+-- Table pour les candidatures au concours de la semaine
+CREATE TABLE IF NOT EXISTS public.recipe_week_candidates (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  recipe_id UUID NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(recipe_id, DATE_TRUNC('week', created_at)),
+  CONSTRAINT one_recipe_per_week UNIQUE (recipe_id, DATE_TRUNC('week', created_at))
+);
+
+-- Index pour les candidatures
+CREATE INDEX IF NOT EXISTS idx_recipe_week_candidates_recipe_id ON recipe_week_candidates(recipe_id);
+CREATE INDEX IF NOT EXISTS idx_recipe_week_candidates_user_id ON recipe_week_candidates(user_id);
+CREATE INDEX IF NOT EXISTS idx_recipe_week_candidates_week ON recipe_week_candidates(DATE_TRUNC('week', created_at));
+
+-- Row Level Security pour recipe_week_candidates
+ALTER TABLE recipe_week_candidates ENABLE ROW LEVEL SECURITY;
+
+-- Politiques pour recipe_week_candidates
+CREATE POLICY "Voir toutes les candidatures" ON recipe_week_candidates FOR SELECT USING (true);
+CREATE POLICY "Inscrire sa recette au concours" ON recipe_week_candidates FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Retirer sa candidature" ON recipe_week_candidates FOR DELETE USING (auth.uid() = user_id);
+```
+
+## 👥 Gestion des amitiés
+
+Le système d'amis de COCO permet aux utilisateurs de rechercher, ajouter, accepter, refuser, bloquer et débloquer des amis, ainsi que de gérer des groupes d'amis et de recevoir des notifications.
+
+### Fonctionnalités principales
+
+- **Recherche d'utilisateurs** : via le nom d'affichage, avec recherche floue (`search_users_simple`)
+- **Suggestions d'amis** : basées sur les amis mutuels
+- **Profils utilisateur** complets avec statistiques
+- **Gestion des demandes d'amitié** (envoi, acceptation, refus)
+- **Paramètres de confidentialité** pour les profils
+- **Noms d'utilisateur personnalisés** avec validation
+
+### Endpoints API
+
+- `GET /api/friends?user_id=...` : Récupère la liste des amis et demandes en attente
+- `GET /api/friends?query=...` : Recherche d'utilisateurs par nom
+- `POST /api/friends` : Actions (`send_request`, `accept_request`, `reject_request`, `block_user`, `unblock_user`, `create_group`, etc.)
+
+### Fonctions utilitaires principales
+
+- `getUserFriends(userId)` : Récupère amis et demandes en attente
+- `sendFriendRequestCorrected(fromUserId, toUserId)` : Envoie une demande d'amitié
+- `blockUser(fromUserId, toUserId)` / `unblockUser(fromUserId, toUserId)` : Bloque/débloque un utilisateur
+- `getIntelligentFriendSuggestions(userId, limit)` : Suggestions avancées d'amis
+- `getUnreadNotifications(userId)` : Notifications non lues
+- `updateLastSeen(userId)` / `isUserOnline(userId)` : Statut en ligne
+
+### Tables et fonctions SQL
+
+- Table `friendships` : stocke les relations d'amitié (voir scripts SQL)
+- Table `profiles` : profils utilisateurs
+- Fonctions : `get_user_friends_simple`, `get_pending_friend_requests`, `check_friendship_status`, `get_friend_suggestions`, etc.
+
+### Exemples d'utilisation
+
+```js
+// Envoyer une demande d'amitié
+await sendFriendRequestCorrected(currentUserId, targetUserId);
+
+// Accepter une demande
+await supabase.from('friendships').update({ status: 'accepted' }).eq('id', requestId);
+
+// Bloquer un utilisateur
+await blockUser(currentUserId, targetUserId);
+
+// Suggestions d'amis
+const suggestions = await getIntelligentFriendSuggestions(currentUserId, 5);
+```
+
+Pour plus de détails, consultez les fichiers :
+- `/utils/profileUtils.js`
+- `/pages/api/friends.js`
+- `/pages/amis.js`
+- `/pages/test-friends.js`
+
+**COCO** - *Où chaque recette raconte une histoire* 🍴✨
+
+## 🌟 Fonctionnalités Principales
+
+### 👥 Système d'Amis Avancé ✅
+- **Recherche d'utilisateurs** par nom avec recherche floue
+- **Suggestions d'amis** basées sur les amis mutuels
+- **Profils utilisateur** complets avec statistiques
+- **Gestion des demandes d'amitié** (envoi, acceptation, refus)
+- **Paramètres de confidentialité** pour les profils
+- **Noms d'utilisateur personnalisés** avec validation
+
+### 🍽️ Partage de Recettes
+- Création et modification de recettes avec photos
+- Catégorisation et système de tags
+- Recherche avancée par ingrédients, catégorie, auteur
+- Attribution automatique des auteurs via les profils
+
+### 🔐 Authentification et Sécurité
+- Système d'authentification Supabase
+- Politiques de sécurité Row Level Security (RLS)
+- Validation des données côté client et serveur
+- Gestion des erreurs avec stratégies de récupération
+
+## 🚀 Installation et Configuration
+
+### Prérequis
+- Node.js 18+ et npm/yarn
+- Compte Supabase
+- Variables d'environnement configurées
+
+### Configuration de la Base de Données
+Exécutez le SQL suivant dans votre tableau de bord Supabase pour configurer les tables et fonctions :
+
+```sql
+-- Création de la table profiles pour les informations utilisateur
+CREATE TABLE IF NOT EXISTS public.profiles (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID UNIQUE NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  display_name TEXT,
+  bio TEXT,
+  avatar_url TEXT,
+  location TEXT,
+  website TEXT,
+  date_of_birth DATE,
+  phone TEXT,
+  is_private BOOLEAN DEFAULT false,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Index pour les performances
+CREATE INDEX IF NOT EXISTS idx_profiles_user_id ON profiles(user_id);
+CREATE INDEX IF NOT EXISTS idx_profiles_display_name ON profiles(display_name);
+
+-- Activer Row Level Security
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+
+-- Politiques pour la sécurité
+DROP POLICY IF EXISTS "Permettre lecture publique profils" ON profiles;
+DROP POLICY IF EXISTS "Permettre mise à jour profil utilisateur" ON profiles;
+DROP POLICY IF EXISTS "Permettre insertion profil utilisateur" ON profiles;
+DROP POLICY IF EXISTS "Permettre suppression profil utilisateur" ON profiles;
+
+CREATE POLICY "Permettre lecture publique profils" ON profiles FOR SELECT USING (NOT is_private OR auth.uid() = user_id);
+CREATE POLICY "Permettre mise à jour profil utilisateur" ON profiles FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Permettre insertion profil utilisateur" ON profiles FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Permettre suppression profil utilisateur" ON profiles FOR DELETE USING (auth.uid() = user_id);
+
+-- Contraintes pour les noms d'utilisateur
+ALTER TABLE profiles ADD CONSTRAINT display_name_length CHECK (length(display_name) >= 2 AND length(display_name) <= 30);
+ALTER TABLE profiles ADD CONSTRAINT display_name_format CHECK (display_name ~ '^[a-zA-ZÀ-ÿ0-9_\-\s]+$');
+
+-- Index pour les recherches d'amis
+CREATE INDEX IF NOT EXISTS idx_profiles_display_name_trgm ON profiles USING gin(display_name gin_trgm_ops);
+
+-- Table des amitiés (STRUCTURE COMPLÈTE)
+CREATE TABLE IF NOT EXISTS public.friendships (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  friend_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  status TEXT CHECK (status IN ('pending', 'accepted', 'rejected', 'blocked')) DEFAULT 'pending',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(user_id, friend_id),
+  CONSTRAINT no_self_friendship CHECK (user_id != friend_id),
+  -- Empêche les doublons inversés (user_id/friend_id et friend_id/user_id)
+  CONSTRAINT unique_friendship_pair UNIQUE (LEAST(user_id, friend_id), GREATEST(user_id, friend_id))
+);
+
+-- Index pour les amitiés
+CREATE INDEX IF NOT EXISTS idx_friendships_user_id ON friendships(user_id);
+CREATE INDEX IF NOT EXISTS idx_friendships_friend_id ON friendships(friend_id);
+CREATE INDEX IF NOT EXISTS idx_friendships_status ON friendships(status);
+CREATE INDEX IF NOT EXISTS idx_friendships_user_status ON friendships(user_id, status);
+
+-- Row Level Security pour friendships
+ALTER TABLE friendships ENABLE ROW LEVEL SECURITY;
+
+-- Politiques pour friendships
+CREATE POLICY "Voir ses amitiés" ON friendships FOR SELECT USING (auth.uid() = user_id OR auth.uid() = friend_id);
+CREATE POLICY "Créer demande amitié" ON friendships FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Modifier ses amitiés" ON friendships FOR UPDATE USING (auth.uid() = friend_id OR auth.uid() = user_id);
+CREATE POLICY "Supprimer ses amitiés" ON friendships FOR DELETE USING (auth.uid() = friend_id OR auth.uid() = user_id);
+
+-- Fonction pour la recherche floue de profils
+CREATE OR REPLACE FUNCTION search_profiles(search_term text, current_user_id uuid DEFAULT NULL)
+RETURNS TABLE (
+  user_id uuid,
+  display_name text,
+  bio text,
+  avatar_url text,
+  similarity_score real
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    p.user_id,
+    p.display_name,
+    p.bio,
+    p.avatar_url,
+    CASE 
+      WHEN pg_trgm.similarity(p.display_name, search_term) > 0 
+      THEN pg_trgm.similarity(p.display_name, search_term)
+      ELSE 0.1
+    END as similarity_score
+  FROM profiles p
+  WHERE 
+    p.is_private = false 
+    AND (current_user_id IS NULL OR p.user_id != current_user_id)
+    AND (
+      p.display_name ILIKE '%' || search_term || '%'
+      OR (pg_trgm.similarity(p.display_name, search_term) > 0.3)
+    )
+  ORDER BY similarity_score DESC, p.display_name ASC
+  LIMIT 20;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Fonction pour obtenir les suggestions d'amis
+CREATE OR REPLACE FUNCTION get_friend_suggestions(user_id_param uuid, limit_param integer DEFAULT 10)
+RETURNS TABLE (
+  user_id uuid,
+  display_name text,
+  bio text,
+  avatar_url text,
+  mutual_friends_count integer
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    p.user_id,
+    p.display_name,
+    p.bio,
+    p.avatar_url,
+    0 as mutual_friends_count
+  FROM profiles p
+  LEFT JOIN friendships existing ON (
+    (existing.user_id = user_id_param AND existing.friend_id = p.user_id) OR
+    (existing.friend_id = user_id_param AND existing.user_id = p.user_id)
+  )
+  WHERE 
+    p.user_id != user_id_param
+    AND p.is_private = false
+    AND existing.id IS NULL -- Pas déjà ami ou demande en cours
+  ORDER BY p.created_at DESC
+  LIMIT limit_param;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Fonction pour créer automatiquement un profil (CORRIGÉE)
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.profiles (user_id, display_name)
+  VALUES (NEW.id, COALESCE(NEW.raw_user_meta_data->>'display_name', split_part(NEW.email, '@', 1)))
+  ON CONFLICT (user_id) DO NOTHING;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger pour créer automatiquement un profil
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
+-- Table des commentaires (NOUVELLE)
+CREATE TABLE IF NOT EXISTS comments (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  recipe_id UUID NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  content TEXT NOT NULL CHECK (length(content) > 0 AND length(content) <= 500),
+  likes INTEGER DEFAULT 0 CHECK (likes >= 0),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Index pour les commentaires
+CREATE INDEX IF NOT EXISTS idx_comments_recipe_id ON comments(recipe_id);
+CREATE INDEX IF NOT EXISTS idx_comments_user_id ON comments(user_id);
+CREATE INDEX IF NOT EXISTS idx_comments_created_at ON comments(created_at DESC);
+
+-- Row Level Security pour comments
+ALTER TABLE comments ENABLE ROW LEVEL SECURITY;
+
+-- Politiques pour comments
+CREATE POLICY "Permettre lecture publique commentaires" ON comments FOR SELECT USING (true);
+CREATE POLICY "Permettre insertion commentaire utilisateur" ON comments FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Permettre mise à jour commentaire utilisateur" ON comments FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Permettre suppression commentaire utilisateur" ON comments FOR DELETE USING (auth.uid() = user_id);
+
+-- Table pour les votes de la recette de la semaine
+CREATE TABLE IF NOT EXISTS public.recipe_week_votes (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  recipe_id UUID NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(user_id, DATE_TRUNC('week', created_at)),
+  CONSTRAINT one_vote_per_user_per_week UNIQUE (user_id, DATE_TRUNC('week', created_at))
+);
+
+-- Index pour les votes de la semaine
+CREATE INDEX IF NOT EXISTS idx_recipe_week_votes_recipe_id ON recipe_week_votes(recipe_id);
+CREATE INDEX IF NOT EXISTS idx_recipe_week_votes_user_id ON recipe_week_votes(user_id);
+CREATE INDEX IF NOT EXISTS idx_recipe_week_votes_week ON recipe_week_votes(DATE_TRUNC('week', created_at));
+
+-- Row Level Security pour recipe_week_votes
+ALTER TABLE recipe_week_votes ENABLE ROW LEVEL SECURITY;
+
+-- Politiques pour recipe_week_votes
+CREATE POLICY "Voir tous les votes" ON recipe_week_votes FOR SELECT USING (true);
+CREATE POLICY "Voter pour recette de la semaine" ON recipe_week_votes FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Supprimer son vote" ON recipe_week_votes FOR DELETE USING (auth.uid() = user_id);
+
+-- Table pour les candidatures au concours de la semaine
+CREATE TABLE IF NOT EXISTS public.recipe_week_candidates (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  recipe_id UUID NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(recipe_id, DATE_TRUNC('week', created_at)),
+  CONSTRAINT one_recipe_per_week UNIQUE (recipe_id, DATE_TRUNC('week', created_at))
+);
+
+-- Index pour les candidatures
+CREATE INDEX IF NOT EXISTS idx_recipe_week_candidates_recipe_id ON recipe_week_candidates(recipe_id);
+CREATE INDEX IF NOT EXISTS idx_recipe_week_candidates_user_id ON recipe_week_candidates(user_id);
+CREATE INDEX IF NOT EXISTS idx_recipe_week_candidates_week ON recipe_week_candidates(DATE_TRUNC('week', created_at));
+
+-- Row Level Security pour recipe_week_candidates
+ALTER TABLE recipe_week_candidates ENABLE ROW LEVEL SECURITY;
+
+-- Politiques pour recipe_week_candidates
+CREATE POLICY "Voir toutes les candidatures" ON recipe_week_candidates FOR SELECT USING (true);
+CREATE POLICY "Inscrire sa recette au concours" ON recipe_week_candidates FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Retirer sa candidature" ON recipe_week_candidates FOR DELETE USING (auth.uid() = user_id);
+```
+
+## 👥 Gestion des amitiés
+
+Le système d'amis de COCO permet aux utilisateurs de rechercher, ajouter, accepter, refuser, bloquer et débloquer des amis, ainsi que de gérer des groupes d'amis et de recevoir des notifications.
+
+### Fonctionnalités principales
+
+- **Recherche d'utilisateurs** : via le nom d'affichage, avec recherche floue (`search_users_simple`)
+- **Suggestions d'amis** : basées sur les amis mutuels
+- **Profils utilisateur** complets avec statistiques
+- **Gestion des demandes d'amitié** (envoi, acceptation, refus)
+- **Paramètres de confidentialité** pour les profils
+- **Noms d'utilisateur personnalisés** avec validation
+
+### Endpoints API
+
+- `GET /api/friends?user_id=...` : Récupère la liste des amis et demandes en attente
+- `GET /api/friends?query=...` : Recherche d'utilisateurs par nom
+- `POST /api/friends` : Actions (`send_request`, `accept_request`, `reject_request`, `block_user`, `unblock_user`, `create_group`, etc.)
+
+### Fonctions utilitaires principales
+
+- `getUserFriends(userId)` : Récupère amis et demandes en attente
+- `sendFriendRequestCorrected(fromUserId, toUserId)` : Envoie une demande d'amitié
+- `blockUser(fromUserId, toUserId)` / `unblockUser(fromUserId, toUserId)` : Bloque/débloque un utilisateur
+- `getIntelligentFriendSuggestions(userId, limit)` : Suggestions avancées d'amis
+- `getUnreadNotifications(userId)` : Notifications non lues
+- `updateLastSeen(userId)` / `isUserOnline(userId)` : Statut en ligne
+
+### Tables et fonctions SQL
+
+- Table `friendships` : stocke les relations d'amitié (voir scripts SQL)
+- Table `profiles` : profils utilisateurs
+- Fonctions : `get_user_friends_simple`, `get_pending_friend_requests`, `check_friendship_status`, `get_friend_suggestions`, etc.
+
+### Exemples d'utilisation
+
+```js
+// Envoyer une demande d'amitié
+await sendFriendRequestCorrected(currentUserId, targetUserId);
+
+// Accepter une demande
+await supabase.from('friendships').update({ status: 'accepted' }).eq('id', requestId);
+
+// Bloquer un utilisateur
+await blockUser(currentUserId, targetUserId);
+
+// Suggestions d'amis
+const suggestions = await getIntelligentFriendSuggestions(currentUserId, 5);
+```
+
+Pour plus de détails, consultez les fichiers :
+- `/utils/profileUtils.js`
+- `/pages/api/friends.js`
+- `/pages/amis.js`
+- `/pages/test-friends.js`
+
+**COCO** - *Où chaque recette raconte une histoire* 🍴✨
+
+## 🌟 Fonctionnalités Principales
+
+### 👥 Système d'Amis Avancé ✅
+- **Recherche d'utilisateurs** par nom avec recherche floue
+- **Suggestions d'amis** basées sur les amis mutuels
+- **Profils utilisateur** complets avec statistiques
+- **Gestion des demandes d'amitié** (envoi, acceptation, refus)
+- **Paramètres de confidentialité** pour les profils
+- **Noms d'utilisateur personnalisés** avec validation
+
+### 🍽️ Partage de Recettes
+- Création et modification de recettes avec photos
+- Catégorisation et système de tags
+- Recherche avancée par ingrédients, catégorie, auteur
+- Attribution automatique des auteurs via les profils
+
+### 🔐 Authentification et Sécurité
+- Système d'authentification Supabase
+- Politiques de sécurité Row Level Security (RLS)
+- Validation des données côté client et serveur
+- Gestion des erreurs avec stratégies de récupération
+
+## 🚀 Installation et Configuration
+
+### Prérequis
+- Node.js 18+ et npm/yarn
+- Compte Supabase
+- Variables d'environnement configurées
+
+### Configuration de la Base de Données
+Exécutez le SQL suivant dans votre tableau de bord Supabase pour configurer les tables et fonctions :
+
+```sql
+-- Création de la table profiles pour les informations utilisateur
+CREATE TABLE IF NOT EXISTS public.profiles (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID UNIQUE NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  display_name TEXT,
+  bio TEXT,
+  avatar_url TEXT,
+  location TEXT,
+  website TEXT,
+  date_of_birth DATE,
+  phone TEXT,
+  is_private BOOLEAN DEFAULT false,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Index pour les performances
+CREATE INDEX IF NOT EXISTS idx_profiles_user_id ON profiles(user_id);
+CREATE INDEX IF NOT EXISTS idx_profiles_display_name ON profiles(display_name);
+
+-- Activer Row Level Security
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+
+-- Politiques pour la sécurité
+DROP POLICY IF EXISTS "Permettre lecture publique profils" ON profiles;
+DROP POLICY IF EXISTS "Permettre mise à jour profil utilisateur" ON profiles;
+DROP POLICY IF EXISTS "Permettre insertion profil utilisateur" ON profiles;
+DROP POLICY IF EXISTS "Permettre suppression profil utilisateur" ON profiles;
+
+CREATE POLICY "Permettre lecture publique profils" ON profiles FOR SELECT USING (NOT is_private OR auth.uid() = user_id);
+CREATE POLICY "Permettre mise à jour profil utilisateur" ON profiles FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Permettre insertion profil utilisateur" ON profiles FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Permettre suppression profil utilisateur" ON profiles FOR DELETE USING (auth.uid() = user_id);
+
+-- Contraintes pour les noms d'utilisateur
+ALTER TABLE profiles ADD CONSTRAINT display_name_length CHECK (length(display_name) >= 2 AND length(display_name) <= 30);
+ALTER TABLE profiles ADD CONSTRAINT display_name_format CHECK (display_name ~ '^[a-zA-ZÀ-ÿ0-9_\-\s]+$');
+
+-- Index pour les recherches d'amis
+CREATE INDEX IF NOT EXISTS idx_profiles_display_name_trgm ON profiles USING gin(display_name gin_trgm_ops);
+
+-- Table des amitiés (STRUCTURE COMPLÈTE)
+CREATE TABLE IF NOT EXISTS public.friendships (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  friend_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  status TEXT CHECK (status IN ('pending', 'accepted', 'rejected', 'blocked')) DEFAULT 'pending',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(user_id, friend_id),
+  CONSTRAINT no_self_friendship CHECK (user_id != friend_id),
+  -- Empêche les doublons inversés (user_id/friend_id et friend_id/user_id)
+  CONSTRAINT unique_friendship_pair UNIQUE (LEAST(user_id, friend_id), GREATEST(user_id, friend_id))
+);
+
+-- Index pour les amitiés
+CREATE INDEX IF NOT EXISTS idx_friendships_user_id ON friendships(user_id);
+CREATE INDEX IF NOT EXISTS idx_friendships_friend_id ON friendships(friend_id);
+CREATE INDEX IF NOT EXISTS idx_friendships_status ON friendships(status);
+CREATE INDEX IF NOT EXISTS idx_friendships_user_status ON friendships(user_id, status);
+
+-- Row Level Security pour friendships
+ALTER TABLE friendships ENABLE ROW LEVEL SECURITY;
+
+-- Politiques pour friendships
+CREATE POLICY "Voir ses amitiés" ON friendships FOR SELECT USING (auth.uid() = user_id OR auth.uid() = friend_id);
+CREATE POLICY "Créer demande amitié" ON friendships FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Modifier ses amitiés" ON friendships FOR UPDATE USING (auth.uid() = friend_id OR auth.uid() = user_id);
+CREATE POLICY "Supprimer ses amitiés" ON friendships FOR DELETE USING (auth.uid() = friend_id OR auth.uid() = user_id);
+
+-- Fonction pour la recherche floue de profils
+CREATE OR REPLACE FUNCTION search_profiles(search_term text, current_user_id uuid DEFAULT NULL)
+RETURNS TABLE (
+  user_id uuid,
+  display_name text,
+  bio text,
+  avatar_url text,
+  similarity_score real
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    p.user_id,
+    p.display_name,
+    p.bio,
+    p.avatar_url,
+    CASE 
+      WHEN pg_trgm.similarity(p.display_name, search_term) > 0 
+      THEN pg_trgm.similarity(p.display_name, search_term)
+      ELSE 0.1
+    END as similarity_score
+  FROM profiles p
+  WHERE 
+    p.is_private = false 
+    AND (current_user_id IS NULL OR p.user_id != current_user_id)
+    AND (
+      p.display_name ILIKE '%' || search_term || '%'
+      OR (pg_trgm.similarity(p.display_name, search_term) > 0.3)
+    )
+  ORDER BY similarity_score DESC, p.display_name ASC
+  LIMIT 20;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Fonction pour obtenir les suggestions d'amis
+CREATE OR REPLACE FUNCTION get_friend_suggestions(user_id_param uuid, limit_param integer DEFAULT 10)
+RETURNS TABLE (
+  user_id uuid,
+  display_name text,
+  bio text,
+  avatar_url text,
+  mutual_friends_count integer
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    p.user_id,
+    p.display_name,
+    p.bio,
+    p.avatar_url,
+    0 as mutual_friends_count
+  FROM profiles p
+  LEFT JOIN friendships existing ON (
+    (existing.user_id = user_id_param AND existing.friend_id = p.user_id) OR
+    (existing.friend_id = user_id_param AND existing.user_id = p.user_id)
+  )
+  WHERE 
+    p.user_id != user_id_param
+    AND p.is_private = false
+    AND existing.id IS NULL -- Pas déjà ami ou demande en cours
+  ORDER BY p.created_at DESC
+  LIMIT limit_param;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Fonction pour créer automatiquement un profil (CORRIGÉE)
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.profiles (user_id, display_name)
+  VALUES (NEW.id, COALESCE(NEW.raw_user_meta_data->>'display_name', split_part(NEW.email, '@', 1)))
+  ON CONFLICT (user_id) DO NOTHING;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger pour créer automatiquement un profil
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
+-- Table des commentaires (NOUVELLE)
+CREATE TABLE IF NOT EXISTS comments (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  recipe_id UUID NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  content TEXT NOT NULL CHECK (length(content) > 0 AND length(content) <= 500),
+  likes INTEGER DEFAULT 0 CHECK (likes >= 0),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Index pour les commentaires
+CREATE INDEX IF NOT EXISTS idx_comments_recipe_id ON comments(recipe_id);
+CREATE INDEX IF NOT EXISTS idx_comments_user_id ON comments(user_id);
+CREATE INDEX IF NOT EXISTS idx_comments_created_at ON comments(created_at DESC);
+
+-- Row Level Security pour comments
+ALTER TABLE comments ENABLE ROW LEVEL SECURITY;
+
+-- Politiques pour comments
+CREATE POLICY "Permettre lecture publique commentaires" ON comments FOR SELECT USING (true);
+CREATE POLICY "Permettre insertion commentaire utilisateur" ON comments FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Permettre mise à jour commentaire utilisateur" ON comments FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Permettre suppression commentaire utilisateur" ON comments FOR DELETE USING (auth.uid() = user_id);
+
+-- Table pour les votes de la recette de la semaine
+CREATE TABLE IF NOT EXISTS public.recipe_week_votes (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  recipe_id UUID NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(user_id, DATE_TRUNC('week', created_at)),
+  CONSTRAINT one_vote_per_user_per_week UNIQUE (user_id, DATE_TRUNC('week', created_at))
+);
+
+-- Index pour les votes de la semaine
+CREATE INDEX IF NOT EXISTS idx_recipe_week_votes_recipe_id ON recipe_week_votes(recipe_id);
+CREATE INDEX IF NOT EXISTS idx_recipe_week_votes_user_id ON recipe_week_votes(user_id);
+CREATE INDEX IF NOT EXISTS idx_recipe_week_votes_week ON recipe_week_votes(DATE_TRUNC('week', created_at));
+
+-- Row Level Security pour recipe_week_votes
+ALTER TABLE recipe_week_votes ENABLE ROW LEVEL SECURITY;
+
+-- Politiques pour recipe_week_votes
+CREATE POLICY "Voir tous les votes" ON recipe_week_votes FOR SELECT USING (true);
+CREATE POLICY "Voter pour recette de la semaine" ON recipe_week_votes FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Supprimer son vote" ON recipe_week_votes FOR DELETE USING (auth.uid() = user_id);
+
+-- Table pour les candidatures au concours de la semaine
+CREATE TABLE IF NOT EXISTS public.recipe_week_candidates (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  recipe_id UUID NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(recipe_id, DATE_TRUNC('week', created_at)),
+  CONSTRAINT one_recipe_per_week UNIQUE (recipe_id, DATE_TRUNC('week', created_at))
+);
+
+-- Index pour les candidatures
+CREATE INDEX IF NOT EXISTS idx_recipe_week_candidates_recipe_id ON recipe_week_candidates(recipe_id);
+CREATE INDEX IF NOT EXISTS idx_recipe_week_candidates_user_id ON recipe_week_candidates(user_id);
+CREATE INDEX IF NOT EXISTS idx_recipe_week_candidates_week ON recipe_week_candidates(DATE_TRUNC('week', created_at));
+
+-- Row Level Security pour recipe_week_candidates
+ALTER TABLE recipe_week_candidates ENABLE ROW LEVEL SECURITY;
+
+-- Politiques pour recipe_week_candidates
+CREATE POLICY "Voir toutes les candidatures" ON recipe_week_candidates FOR SELECT USING (true);
+CREATE POLICY "Inscrire sa recette au concours" ON recipe_week_candidates FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Retirer sa candidature" ON recipe_week_candidates FOR DELETE USING (auth.uid() = user_id);
+```
+
+## 👥 Gestion des amitiés
+
+Le système d'amis de COCO permet aux utilisateurs de rechercher, ajouter, accepter, refuser, bloquer et débloquer des amis, ainsi que de gérer des groupes d'amis et de recevoir des notifications.
+
+### Fonctionnalités principales
+
+- **Recherche d'utilisateurs** : via le nom d'affichage, avec recherche floue (`search_users_simple`)
+- **Suggestions d'amis** : basées sur les amis mutuels
+- **Profils utilisateur** complets avec statistiques
+- **Gestion des demandes d'amitié** (envoi, acceptation, refus)
+- **Paramètres de confidentialité** pour les profils
+- **Noms d'utilisateur personnalisés** avec validation
+
+### Endpoints API
+
+- `GET /api/friends?user_id=...` : Récupère la liste des amis et demandes en attente
+- `GET /api/friends?query=...` : Recherche d'utilisateurs par nom
+- `POST /api/friends` : Actions (`send_request`, `accept_request`, `reject_request`, `block_user`, `unblock_user`, `create_group`, etc.)
+
+### Fonctions utilitaires principales
+
+- `getUserFriends(userId)` : Récupère amis et demandes en attente
+- `sendFriendRequestCorrected(fromUserId, toUserId)` : Envoie une demande d'amitié
+- `blockUser(fromUserId, toUserId)` / `unblockUser(fromUserId, toUserId)` : Bloque/débloque un utilisateur
+- `getIntelligentFriendSuggestions(userId, limit)` : Suggestions avancées d'amis
+- `getUnreadNotifications(userId)` : Notifications non lues
+- `updateLastSeen(userId)` / `isUserOnline(userId)` : Statut en ligne
+
+### Tables et fonctions SQL
+
+- Table `friendships` : stocke les relations d'amitié (voir scripts SQL)
+- Table `profiles` : profils utilisateurs
+- Fonctions : `get_user_friends_simple`, `get_pending_friend_requests`, `check_friendship_status`, `get_friend_suggestions`, etc.
+
+### Exemples d'utilisation
+
+```js
+// Envoyer une demande d'amitié
+await sendFriendRequestCorrected(currentUserId, targetUserId);
+
+// Accepter une demande
+await supabase.from('friendships').update({ status: 'accepted' }).eq('id', requestId);
+
+// Bloquer un utilisateur
+await blockUser(currentUserId, targetUserId);
+
+// Suggestions d'amis
+const suggestions = await getIntelligentFriendSuggestions(currentUserId, 5);
+```
+
+Pour plus de détails, consultez les fichiers :
+- `/utils/profileUtils.js`
+- `/pages/api/friends.js`
+- `/pages/amis.js`
+- `/pages/test-friends.js`
+
+**COCO** - *Où chaque recette raconte une histoire* 🍴✨
+
+## 🌟 Fonctionnalités Principales
+
+### 👥 Système d'Amis Avancé ✅
+- **Recherche d'utilisateurs** par nom avec recherche floue
+- **Suggestions d'amis** basées sur les amis mutuels
+- **Profils utilisateur** complets avec statistiques
+- **Gestion des demandes d'amitié** (envoi, acceptation, refus)
+- **Paramètres de confidentialité** pour les profils
+- **Noms d'utilisateur personnalisés** avec validation
+
+### 🍽️ Partage de Recettes
+- Création et modification de recettes avec photos
+- Catégorisation et système de tags
+- Recherche avancée par ingrédients, catégorie, auteur
+- Attribution automatique des auteurs via les profils
+
+### 🔐 Authentification et Sécurité
+- Système d'authentification Supabase
+- Politiques de sécurité Row Level Security (RLS)
+- Validation des données côté client et serveur
+- Gestion des erreurs avec stratégies de récupération
+
+## 🚀 Installation et Configuration
+
+### Prérequis
+- Node.js 18+ et npm/yarn
+- Compte Supabase
+- Variables d'environnement configurées
+
+### Configuration de la Base de Données
+Exécutez le SQL suivant dans votre tableau de bord Supabase pour configurer les tables et fonctions :
+
+```sql
+-- Création de la table profiles pour les informations utilisateur
+CREATE TABLE IF NOT EXISTS public.profiles (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID UNIQUE NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  display_name TEXT,
+  bio TEXT,
+  avatar_url TEXT,
+  location TEXT,
+  website TEXT,
+  date_of_birth DATE,
+  phone TEXT,
+  is_private BOOLEAN DEFAULT false,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Index pour les performances
+CREATE INDEX IF NOT EXISTS idx_profiles_user_id ON profiles(user_id);
+CREATE INDEX IF NOT EXISTS idx_profiles_display_name ON profiles(display_name);
+
+-- Activer Row Level Security
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+
+-- Politiques pour la sécurité
+DROP POLICY IF EXISTS "Permettre lecture publique profils" ON profiles;
+DROP POLICY IF EXISTS "Permettre mise à jour profil utilisateur" ON profiles;
+DROP POLICY IF EXISTS "Permettre insertion profil utilisateur" ON profiles;
+DROP POLICY IF EXISTS "Permettre suppression profil utilisateur" ON profiles;
+
+CREATE POLICY "Permettre lecture publique profils" ON profiles FOR SELECT USING (NOT is_private OR auth.uid() = user_id);
+CREATE POLICY "Permettre mise à jour profil utilisateur" ON profiles FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Permettre insertion profil utilisateur" ON profiles FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Permettre suppression profil utilisateur" ON profiles FOR DELETE USING (auth.uid() = user_id);
+
+-- Contraintes pour les noms d'utilisateur
+ALTER TABLE profiles ADD CONSTRAINT display_name_length CHECK (length(display_name) >= 2 AND length(display_name) <= 30);
+ALTER TABLE profiles ADD CONSTRAINT display_name_format CHECK (display_name ~ '^[a-zA-ZÀ-ÿ0-9_\-\s]+$');
+
+-- Index pour les recherches d'amis
+CREATE INDEX IF NOT EXISTS idx_profiles_display_name_trgm ON profiles USING gin(display_name gin_trgm_ops);
+
+-- Table des amitiés (STRUCTURE COMPLÈTE)
+CREATE TABLE IF NOT EXISTS public.friendships (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  friend_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  status TEXT CHECK (status IN ('pending', 'accepted', 'rejected', 'blocked')) DEFAULT 'pending',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(user_id, friend_id),
+  CONSTRAINT no_self_friendship CHECK (user_id != friend_id),
+  -- Empêche les doublons inversés (user_id/friend_id et friend_id/user_id)
+  CONSTRAINT unique_friendship_pair UNIQUE (LEAST(user_id, friend_id), GREATEST(user_id, friend_id))
+);
+
+-- Index pour les amitiés
+CREATE INDEX IF NOT EXISTS idx_friendships_user_id ON friendships(user_id);
+CREATE INDEX IF NOT EXISTS idx_friendships_friend_id ON friendships(friend_id);
+CREATE INDEX IF NOT EXISTS idx_friendships_status ON friendships(status);
+CREATE INDEX IF NOT EXISTS idx_friendships_user_status ON friendships(user_id, status);
+
+-- Row Level Security pour friendships
+ALTER TABLE friendships ENABLE ROW LEVEL SECURITY;
+
+-- Politiques pour friendships
+CREATE POLICY "Voir ses amitiés" ON friendships FOR SELECT USING (auth.uid() = user_id OR auth.uid() = friend_id);
+CREATE POLICY "Créer demande amitié" ON friendships FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Modifier ses amitiés" ON friendships FOR UPDATE USING (auth.uid() = friend_id OR auth.uid() = user_id);
+CREATE POLICY "Supprimer ses amitiés" ON friendships FOR DELETE USING (auth.uid() = friend_id OR auth.uid() = user_id);
+
+-- Fonction pour la recherche floue de profils
+CREATE OR REPLACE FUNCTION search_profiles(search_term text, current_user_id uuid DEFAULT NULL)
+RETURNS TABLE (
+  user_id uuid,
+  display_name text,
+  bio text,
+  avatar_url text,
+  similarity_score real
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    p.user_id,
+    p.display_name,
+    p.bio,
+    p.avatar_url,
+    CASE 
+      WHEN pg_trgm.similarity(p.display_name, search_term) > 0 
+      THEN pg_trgm.similarity(p.display_name, search_term)
+      ELSE 0.1
+    END as similarity_score
+  FROM profiles p
+  WHERE 
+    p.is_private = false 
+    AND (current_user_id IS NULL OR p.user_id != current_user_id)
+    AND (
+      p.display_name ILIKE '%' || search_term || '%'
+      OR (pg_trgm.similarity(p.display_name, search_term) > 0.3)
+    )
+  ORDER BY similarity_score DESC, p.display_name ASC
+  LIMIT 20;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Fonction pour obtenir les suggestions d'amis
+CREATE OR REPLACE FUNCTION get_friend_suggestions(user_id_param uuid, limit_param integer DEFAULT 10)
+RETURNS TABLE (
+  user_id uuid,
+  display_name text,
+  bio text,
+  avatar_url text,
+  mutual_friends_count integer
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    p.user_id,
+    p.display_name,
+    p.bio,
+    p.avatar_url,
+    0 as mutual_friends_count
+  FROM profiles p
+  LEFT JOIN friendships existing ON (
+    (existing.user_id = user_id_param AND existing.friend_id = p.user_id) OR
+    (existing.friend_id = user_id_param AND existing.user_id = p.user_id)
+  )
+  WHERE 
+    p.user_id != user_id_param
+    AND p.is_private = false
+    AND existing.id IS NULL -- Pas déjà ami ou demande en cours
+  ORDER BY p.created_at DESC
+  LIMIT limit_param;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Fonction pour créer automatiquement un profil (CORRIGÉE)
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.profiles (user_id, display_name)
+  VALUES (NEW.id, COALESCE(NEW.raw_user_meta_data->>'display_name', split_part(NEW.email, '@', 1)))
+  ON CONFLICT (user_id) DO NOTHING;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger pour créer automatiquement un profil
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
+-- Table des commentaires (NOUVELLE)
+CREATE TABLE IF NOT EXISTS comments (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  recipe_id UUID NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  content TEXT NOT NULL CHECK (length(content) > 0 AND length(content) <= 500),
+  likes INTEGER DEFAULT 0 CHECK (likes >= 0),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Index pour les commentaires
+CREATE INDEX IF NOT EXISTS idx_comments_recipe_id ON comments(recipe_id);
+CREATE INDEX IF NOT EXISTS idx_comments_user_id ON comments(user_id);
+CREATE INDEX IF NOT EXISTS idx_comments_created_at ON comments(created_at DESC);
+
+-- Row Level Security pour comments
+ALTER TABLE comments ENABLE ROW LEVEL SECURITY;
+
+-- Politiques pour comments
+CREATE POLICY "Permettre lecture publique commentaires" ON comments FOR SELECT USING (true);
+CREATE POLICY "Permettre insertion commentaire utilisateur" ON comments FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Permettre mise à jour commentaire utilisateur" ON comments FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Permettre suppression commentaire utilisateur" ON comments FOR DELETE USING (auth.uid() = user_id);
+
+-- Table pour les votes de la recette de la semaine
+CREATE TABLE IF NOT EXISTS public.recipe_week_votes (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  recipe_id UUID NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(user_id, DATE_TRUNC('week', created_at)),
+  CONSTRAINT one_vote_per_user_per_week UNIQUE (user_id, DATE_TRUNC('week', created_at))
+);
+
+-- Index pour les votes de la semaine
+CREATE INDEX IF NOT EXISTS idx_recipe_week_votes_recipe_id ON recipe_week_votes(recipe_id);
+CREATE INDEX IF NOT EXISTS idx_recipe_week_votes_user_id ON recipe_week_votes(user_id);
+CREATE INDEX IF NOT EXISTS idx_recipe_week_votes_week ON recipe_week_votes(DATE_TRUNC('week', created_at));
+
+-- Row Level Security pour recipe_week_votes
+ALTER TABLE recipe_week_votes ENABLE ROW LEVEL SECURITY;
+
+-- Politiques pour recipe_week_votes
+CREATE POLICY "Voir tous les votes" ON recipe_week_votes FOR SELECT USING (true);
+CREATE POLICY "Voter pour recette de la semaine" ON recipe_week_votes FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Supprimer son vote" ON recipe_week_votes FOR DELETE USING (auth.uid() = user_id);
+
+-- Table pour les candidatures au concours de la semaine
+CREATE TABLE IF NOT EXISTS public.recipe_week_candidates (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  recipe_id UUID NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(recipe_id, DATE_TRUNC('week', created_at)),
+  CONSTRAINT one_recipe_per_week UNIQUE (recipe_id, DATE_TRUNC('week', created_at))
+);
+
+-- Index pour les candidatures
+CREATE INDEX IF NOT EXISTS idx_recipe_week_candidates_recipe_id ON recipe_week_candidates(recipe_id);
+CREATE INDEX IF NOT EXISTS idx_recipe_week_candidates_user_id ON recipe_week_candidates(user_id);
+CREATE INDEX IF NOT EXISTS idx_recipe_week_candidates_week ON recipe_week_candidates(DATE_TRUNC('week', created_at));
+
+-- Row Level Security pour recipe_week_candidates
+ALTER TABLE recipe_week_candidates ENABLE ROW LEVEL SECURITY;
+
+-- Politiques pour recipe_week_candidates
+CREATE POLICY "Voir toutes les candidatures" ON recipe_week_candidates FOR SELECT USING (true);
+CREATE POLICY "Inscrire sa recette au concours" ON recipe_week_candidates FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Retirer sa candidature

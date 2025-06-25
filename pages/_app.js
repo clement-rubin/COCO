@@ -7,7 +7,6 @@ import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { AuthProvider, useAuth } from '../components/AuthContext'
 import { logFrontendError, logComponentEvent, logUserInteraction, logInfo, logDebug } from '../utils/logger'
-import NotificationCenter from '../components/NotificationCenter'
 
 function AuthenticatedNav({ user, signOut }) {
   const [showUserMenu, setShowUserMenu] = useState(false)
@@ -406,8 +405,7 @@ function AppContent({ Component, pageProps }) {
   return (
     <>
       <div className="mobile-app">
-        {/* Notification Center */}
-        <NotificationCenter />
+        {/* Notification Center supprimé */}
         
         {/* Mobile Status Bar supprimée */}
         
