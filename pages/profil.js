@@ -261,31 +261,26 @@ export default function Profil() {
           <meta name="description" content="Gérez votre profil sur COCO" />
         </Head>
 
-        {/* Hero Section redesigné avec style COCO moderne */}
+        {/* Hero Section modernisée */}
         <section className={styles.heroSection}>
           <div className={styles.heroBackground}>
             <div className={styles.heroPattern}></div>
           </div>
-          
           <div className={styles.profileCard}>
-            {/* Avatar avec nouveau design */}
             <div className={styles.avatarContainer}>
               <div className={styles.avatar}>
                 {profile?.display_name?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || '👤'}
               </div>
               <div className={styles.statusIndicator}></div>
             </div>
-            
             <div className={styles.profileInfo}>
               <h1 className={styles.profileName}>
                 {profile?.display_name || user?.email || 'Utilisateur'}
                 {profile?.is_private && <span className={styles.privateBadge}>🔒</span>}
               </h1>
-              
               <p className={styles.profileBio}>
                 {profile?.bio || 'Passionné de cuisine et de partage 🍳'}
               </p>
-
               {profile?.location && (
                 <div className={styles.locationBadge}>
                   <span className={styles.locationIcon}>📍</span>
@@ -293,11 +288,9 @@ export default function Profil() {
                 </div>
               )}
             </div>
-
-            {/* Stats redesignées avec style moderne */}
             <div className={styles.statsContainer}>
               <div className={styles.statsGrid}>
-                {[{
+                {{
                   icon: '📝',
                   value: userStats.recipesCount,
                   label: 'Recette',
@@ -346,12 +339,11 @@ export default function Profil() {
           </div>
         </section>
 
-        {/* Content Section avec nouveau design */}
+        {/* Section principale avec onglets modernisés */}
         <section className={styles.contentSection}>
-          {/* Tab Navigation moderne */}
           <div className={styles.tabContainer}>
             <div className={styles.tabNavigation}>
-              {[{
+              {{
                 id: 'info',
                 label: 'Profil',
                 icon: '👤',
@@ -389,7 +381,6 @@ export default function Profil() {
             </div>
           </div>
 
-          {/* Tab Content avec meilleur style */}
           <div className={styles.tabContent}>
             {activeTab === 'info' && (
               <div className={styles.infoSection}>
@@ -409,10 +400,8 @@ export default function Profil() {
                       <span>{isEditing ? 'Annuler' : 'Modifier'}</span>
                     </button>
                   </div>
-
                   {isEditing ? (
                     <div className={styles.editForm}>
-                      {/* Profile Completeness avec nouveau design */}
                       <div className={styles.completenessCard}>
                         <div className={styles.completenessHeader}>
                           <span className={styles.completenessIcon}>📊</span>
@@ -441,16 +430,12 @@ export default function Profil() {
                           </div>
                         </div>
                       </div>
-
-                      {/* Success Message redesigné */}
                       {saveSuccess && (
                         <div className={styles.alertSuccess}>
                           <span className={styles.alertIcon}>✅</span>
                           <span className={styles.alertText}>Profil mis à jour avec succès !</span>
                         </div>
                       )}
-
-                      {/* Form fields avec nouveau style */}
                       <div className={styles.formGrid}>
                         {[{
                           key: 'display_name',
@@ -546,8 +531,6 @@ export default function Profil() {
                           </div>
                         ))}
                       </div>
-
-                      {/* Privacy toggle redesigné */}
                       <div className={styles.privacySection}>
                         <div className={styles.toggleCard}>
                           <div className={styles.toggleInfo}>
@@ -577,8 +560,6 @@ export default function Profil() {
                           </label>
                         </div>
                       </div>
-
-                      {/* Save button redesigné */}
                       <div className={styles.formActions}>
                         <button
                           onClick={handleSaveProfile}
@@ -676,7 +657,6 @@ export default function Profil() {
               </div>
             )}
 
-            {/* Autres onglets avec le même style amélioré */}
             {activeTab === 'recipes' && (
               <div className={styles.recipesSection}>
                 <div className={styles.sectionCard}>
@@ -685,7 +665,6 @@ export default function Profil() {
                       <span className={styles.sectionIcon}>🍳</span>
                       <h2>Mes créations ({userRecipes.length})</h2>
                     </div>
-                    {/* Toujours afficher le bouton, même avec 0 recettes */}
                     <button
                       onClick={handleViewAllRecipes}
                       className={styles.actionButton}
@@ -694,7 +673,6 @@ export default function Profil() {
                       <span>Voir toutes</span>
                     </button>
                   </div>
-
                   {userRecipes.length === 0 ? (
                     <div className={styles.emptyState}>
                       <div className={styles.emptyIcon}>👨‍🍳</div>
@@ -760,7 +738,6 @@ export default function Profil() {
                       <h2>Paramètres du compte</h2>
                     </div>
                   </div>
-                  
                   <div className={styles.constructionNotice}>
                     <div className={styles.constructionIcon}>🚧</div>
                     <h3 className={styles.constructionTitle}>Section en construction</h3>
@@ -772,6 +749,29 @@ export default function Profil() {
               </div>
             )}
           </div>
+        </section>
+
+        {/* Notification trophée modernisée */}
+        {showTrophyNotification && newTrophies.length > 0 && (
+          <div className={styles.trophyNotification}>
+            <div className={styles.notificationHeader}>
+              <span className={styles.notificationIcon}>🏆</span>
+              <span className={styles.notificationTitle}>Nouveau trophée débloqué !</span>
+            </div>
+            <div className={styles.notificationTrophies}>
+              {newTrophies.map(trophy => (
+                <div key={trophy.id} className={styles.notificationTrophy}>
+                  <span className={styles.trophyIcon}>{trophy.icon}</span>
+                  <span className={styles.trophyName}>{trophy.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </Layout>
+  )
+}
         </section>
 
         {/* Trophy Notification avec nouveau style */}
