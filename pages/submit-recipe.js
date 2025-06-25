@@ -367,6 +367,7 @@ export default function SubmitRecipe() {
           {formMode === 'quick' ? 'Partager une photo - COCO' : 'Partager une recette - COCO'}
         </title>
         <meta name="description" content="Partagez votre création culinaire avec la communauté COCO" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
       </Head>
       
       <div className={styles.container}>
@@ -375,22 +376,22 @@ export default function SubmitRecipe() {
         ) : (
           <>
             <div className={styles.header}>
-              <button 
-                onClick={() => setShowModeSelector(true)} 
-                className={styles.backBtn}
-              >
-                ← Changer le mode
-              </button>
               <div className={styles.headerTop}>
+                <button 
+                  onClick={() => setShowModeSelector(true)} 
+                  className={styles.backBtn}
+                >
+                  ← Changer
+                </button>
                 <h1>
                   {formMode === 'quick' ? '📸 Partage Rapide' : '🍳 Recette Complète'}
                 </h1>
                 <button 
                   onClick={() => setShowLogs(!showLogs)} 
                   className={styles.debugBtn}
-                  title="Afficher/Masquer les logs"
+                  title="Debug"
                 >
-                  {showLogs ? '📋' : '🔍'} Debug
+                  {showLogs ? '📋' : '🔍'}
                 </button>
               </div>
               <p className={styles.subtitle}>
@@ -404,7 +405,7 @@ export default function SubmitRecipe() {
             {showLogs && <LogsDisplay />}
 
             <div className={styles.content}>
-              <form onSubmit={handleSubmit} className={styles.form}>
+              <div className={styles.form}>
                 {/* Section Photos - toujours présente */}
                 <div className={styles.section}>
                   <h2>📷 Photo de votre {formMode === 'quick' ? 'plat' : 'recette'}</h2>
@@ -503,7 +504,7 @@ export default function SubmitRecipe() {
                     {errors.submit}
                   </div>
                 )}
-              </form>
+              </div>
             </div>
 
             <div className={styles.navigation}>
