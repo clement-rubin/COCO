@@ -155,6 +155,7 @@
   transition: color 0.3s ease;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -170,6 +171,7 @@
   margin: 0 0 16px 0;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   height: 2.7em;
@@ -332,6 +334,7 @@
   .recipeDescription {
     font-size: 0.85rem;
     -webkit-line-clamp: 1;
+    line-clamp: 1;
     height: 1.35em;
   }
   
@@ -455,13 +458,49 @@
   .card:hover .image {
     transform: none;
   }
-  
-  @keyframes cardPulse,
-  @keyframes tagBounce,
-  @keyframes heartBeat {
-    0%, 100% {
-      transform: none;
-      opacity: 1;
-    }
+}
+
+/* Reduced motion keyframes */
+@media (prefers-reduced-motion: reduce) {
+}
+
+@keyframes cardPulse {
+  0%, 100% {
+    opacity: 1;
+    transform: none;
+  }
+  50% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes tagBounce {
+  0%, 100% {
+    transform: none;
+    opacity: 1;
+  }
+  50% {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@keyframes heartBeat {
+  0%, 100% {
+    transform: none;
+    opacity: 1;
+  }
+  25% {
+    transform: none;
+    opacity: 1;
+  }
+  50% {
+    transform: none;
+    opacity: 1;
+  }
+  75% {
+    transform: none;
+    opacity: 1;
   }
 }

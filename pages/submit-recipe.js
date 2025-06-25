@@ -361,8 +361,9 @@ export default function SubmitRecipe() {
           <p>Redirection en cours vers l'accueil...</p>
           <div className={styles.successSpinner}></div>
         </div>
-      </div>
-    )
+        </div>
+      )
+    }
   }
 
   // Logs component
@@ -508,346 +509,250 @@ export default function SubmitRecipe() {
       )
     }
 
+    // Nouveau design du mode express
     return (
-      <div className={`${styles.quickModeContainer} ${styles.quickModeEnter}`}>
-        {/* Header avec progression */}
-        <div className={styles.quickHeader}>
-          <div className={styles.quickHeaderLeft}>
-            <button 
-              onClick={() => setShowModeSelector(true)}
-              className={styles.quickBackBtn}
-            >
-              ←
-            </button>
-            <h1 className={styles.quickHeaderTitle}>Partage Express</h1>
-          </div>
-          <div className={styles.quickProgressIndicator}>
-            {quickProgress}% ✨
-          </div>
+      <div className="quickModeContainer">
+        <StickyHeader />
+        <div className="quickProgressBar">
+          <div className="quickProgressFill" style={{ width: `${quickProgress}%` }} />
         </div>
-
-        {/* Indicateur de progression visuel */}
-        <div className={styles.quickProgressCard}>
-          <div className={styles.quickStepsContainer}>
-            <div 
-              className={styles.quickStepsProgress}
-              style={{ width: `${quickProgress}%` }}
-            ></div>
-            
-            <div className={`${styles.quickStep} ${quickStep >= 1 ? styles.active : ''} ${photos.length > 0 ? styles.completed : ''}`}>
-              <div className={styles.quickStepCircle}>
-                {photos.length > 0 ? '✓' : '1'}
-              </div>
-              <div className={styles.quickStepLabel}>Photo</div>
-            </div>
-            
-            <div className={`${styles.quickStep} ${quickStep >= 2 ? styles.active : ''} ${formData.title.trim() ? styles.completed : ''}`}>
-              <div className={styles.quickStepCircle}>
-                {formData.title.trim() ? '✓' : '2'}
-              </div>
-              <div className={styles.quickStepLabel}>Titre</div>
-            </div>
-            
-            <div className={`${styles.quickStep} ${quickStep >= 3 ? styles.active : ''}`}>
-              <div className={styles.quickStepCircle}>
-                {quickStep >= 3 ? '🚀' : '3'}
-              </div>
-              <div className={styles.quickStepLabel}>Publier</div>
-            </div>
-          </div>
+        <div className="quickSteps">
+          <div className={`quickStep ${quickStep >= 1 ? 'active' : ''}`}>1. Photo</div>
+          <div className={`quickStep ${quickStep >= 2 ? 'active' : ''}`}>2. Titre</div>
+          <div className={`quickStep ${quickStep >= 3 ? 'active' : ''}`}>3. Partager</div>
         </div>
-
-        {/* Contenu principal */}
-        <div className={styles.quickContent}>
-          {/* Zone de photo */}
-          <div 
-            className={`${styles.quickPhotoZone} ${photos.length > 0 ? styles.hasPhoto : ''}`}
-            onDragOver={handleQuickDragOver}
-            onDrop={handleQuickDrop}
+        <div className="quickFormZone">
+          {/* Zone photo */}
+          <div
+            className={`quickPhotoZone${photos.length > 0 ? ' hasPhoto' : ''}`}
             onClick={() => fileInputRef.current?.click()}
           >
-            {photos.length > 0 ? (
-              <div style={{ width: '100%' }}>
-                <img 
-                  src={photos[0].imageUrl} 
-                  alt="Votre plat"
-                  className={styles.quickPhotoPreview}
-                />
-                <p style={{ marginTop: '12px', color: '#059669', fontWeight: '600' }}>
-                  ✓ Photo ajoutée ! Cliquez pour changer
-                </p>
-              </div>
-            ) : (
-              <>
-                <div className={styles.quickPhotoIcon}>📸</div>
-                <div className={styles.quickPhotoText}>Ajoutez une photo</div>
-                <div className={styles.quickPhotoSubtext}>
-                  Touchez ici ou glissez votre photo<br/>
-                  <strong>JPG, PNG, HEIC acceptés</strong>
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* Input titre */}
-          <div className={styles.quickTitleContainer}>
-            <label className={styles.quickTitleLabel}>
-              Quel est le nom de votre plat ? ✨
-            </label>
             <input
-              type="text"
-              name="title"
-              value={formData.title}
-              onChange={handleInputChange}
-              placeholder="Ex: Mon délicieux plat du jour..."
-              className={`${styles.quickTitleInput} ${formData.title.trim() ? styles.hasContent : ''}`}
-              maxLength={100}
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={e => {
+                const file = e.target.files[0]
+                if (file) setPhotos([{ imageFile: file, processed: true }])
+              }}
             />
-            <div className={styles.quickTitleCounter}>
-              {formData.title.length}/100 caractères
-            </div>
-            {errors.title && (
-              <div style={{ color: '#ef4444', textAlign: 'center', marginTop: '8px', fontSize: '0.9rem' }}>
-                {errors.title}
+            {photos.length > 0 ? (
+              <img
+                src={URL.createObjectURL(photos[0].imageFile)}
+                alt="Aperçu"
+                className="quickPhotoPreview"
+              />
+            ) : (
+              <div className="quickPhotoPlaceholder">
+                <span className="quickPhotoIcon">📷</span>
+                <span>Ajouter une photo</span>
               </div>
             )}
           </div>
-
-          {/* Message d'encouragement */}
-          {quickProgress === 100 && (
-            <div style={{
-              background: 'rgba(16, 185, 129, 0.1)',
-              border: '2px solid rgba(16, 185, 129, 0.3)',
-              borderRadius: '16px',
-              padding: '16px',
-              textAlign: 'center',
-              animation: 'pulseReady 2s ease-in-out infinite alternate'
-            }}>
-              <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>🎉</div>
-              <div style={{ color: '#059669', fontWeight: '600' }}>
-                Parfait ! Prêt à partager votre création
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Navigation */}
-        <div className={styles.quickNavigation}>
-          <button 
-            onClick={() => router.back()}
-            className={styles.quickCancelBtn}
-          >
-            Annuler
-          </button>
-          
+          {/* Zone titre */}
+          <input
+            className="quickTitleInput"
+            type="text"
+            placeholder="Nom de votre plat..."
+            value={formData.title}
+            onChange={e => setFormData(prev => ({ ...prev, title: e.target.value }))}
+            maxLength={60}
+            autoFocus={quickStep === 2}
+          />
+          {/* Bouton publier */}
           <button
+            className="quickPublishBtn"
+            disabled={isPublishing || !formData.title.trim()}
             onClick={handleQuickSubmit}
-            className={`${styles.quickPublishBtn} ${quickProgress < 100 ? styles.disabled : ''}`}
-            disabled={quickProgress < 100 || isPublishing}
           >
-            {isPublishing ? (
-              <>
-                <span className={styles.spinner}></span>
-                Publication...
-              </>
-            ) : quickProgress < 100 ? (
-              `Étape ${quickStep}/3`
-            ) : (
-              '🚀 Publier maintenant'
-            )}
+            {isPublishing ? 'Envoi...' : '🚀 Partager maintenant'}
           </button>
         </div>
-
-        {/* Input file caché */}
-        <PhotoUpload 
-          onPhotoSelect={setPhotos}
-          maxFiles={1}
-          ref={fileInputRef}
-          style={{ display: 'none' }}
-        />
       </div>
     )
   }
 
-  return (
-    <>
-      <Head>
-        <title>
-          {formMode === 'quick' ? 'Partage Express - COCO' : 'Partager une recette - COCO'}
-        </title>
-        <meta name="description" content="Partagez rapidement votre création culinaire avec COCO" />
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-      </Head>
-      
-      <div className={styles.container}>
-        {showModeSelector ? (
-          <ModeSelector />
-        ) : formMode === 'quick' ? (
-          <QuickModeInterface />
-        ) : (
-          // Interface complète existante
-          <>
-            <div className={styles.header}>
-              <div className={styles.headerTop}>
-                <button 
-                  onClick={() => setShowModeSelector(true)} 
-                  className={styles.backBtn}
-                >
-                  ← Changer
-                </button>
-                <h1>
-                  {formMode === 'quick' ? '📸 Partage Rapide' : '🍳 Recette Complète'}
-                </h1>
-                <button 
-                  onClick={() => setShowLogs(!showLogs)} 
-                  className={styles.debugBtn}
-                  title="Debug"
-                >
-                  {showLogs ? '📋' : '🔍'}
-                </button>
-              </div>
-              <p className={styles.subtitle}>
-                {formMode === 'quick' 
-                  ? 'Partagez rapidement une photo de votre création'
-                  : 'Partagez votre recette complète avec la communauté'
-                }
-              </p>
-            </div>
-
-            {showLogs && <LogsDisplay />}
-
-            <div className={styles.content}>
-              <div className={styles.form}>
-                {/* Section Photos - toujours présente */}
-                <div className={styles.section}>
-                  <h2>📷 Photo de votre {formMode === 'quick' ? 'plat' : 'recette'}</h2>
-                  <PhotoUpload 
-                    onPhotoSelect={setPhotos}
-                    maxFiles={formMode === 'quick' ? 1 : 3}
-                  />
-                  {errors.photos && <span className={styles.error}>{errors.photos}</span>}
-                  
-                  {processingPhotosCount > 0 && (
-                    <div className={styles.uploadStatus}>
-                      ⏳ {processingPhotosCount} photo(s) en cours de traitement...
-                    </div>
-                  )}
-                  
-                  {allPhotosProcessed && photos.length > 0 && (
-                    <div className={styles.uploadSuccess}>
-                      ✅ Toutes les photos sont prêtes !
-                    </div>
-                  )}
-                </div>
-
-                {/* Titre - toujours obligatoire */}
-                <div className={styles.section}>
-                  <h2>✨ Titre</h2>
-                  
-                  <div className={styles.formGroup}>
-                    <label htmlFor="title">
-                      Nom de votre {formMode === 'quick' ? 'plat' : 'recette'} *
-                    </label>
-                    <input
-                      type="text"
-                      id="title"
-                      name="title"
-                      value={formData.title}
-                      onChange={handleInputChange}
-                      placeholder={formMode === 'quick' 
-                        ? "Ex: Mon délicieux plat du jour" 
-                        : "Ex: Tarte aux pommes de grand-mère"
-                      }
-                      className={errors.title ? styles.inputError : ''}
-                    />
-                    {errors.title && <span className={styles.error}>{errors.title}</span>}
-                  </div>
-                </div>
-
-                {/* Sections conditionnelles pour le mode complet */}
-                {formMode === 'complete' && (
-                  <>
-                    <div className={styles.section}>
-                      <h2>📝 Détails de la recette</h2>
-                      
-                      <div className={styles.formGroup}>
-                        <label htmlFor="description">Description *</label>
-                        <textarea
-                          id="description"
-                          name="description"
-                          value={formData.description}
-                          onChange={handleInputChange}
-                          placeholder="Décrivez votre recette, ce qui la rend spéciale..."
-                          rows={4}
-                          className={errors.description ? styles.inputError : ''}
-                        />
-                        {errors.description && <span className={styles.error}>{errors.description}</span>}
-                      </div>
-
-                      <div className={styles.formGroup}>
-                        <label htmlFor="ingredients">Ingrédients (optionnel)</label>
-                        <textarea
-                          id="ingredients"
-                          name="ingredients"
-                          value={formData.ingredients}
-                          onChange={handleInputChange}
-                          placeholder="Listez les ingrédients (un par ligne)&#10;Ex:&#10;- 3 pommes&#10;- 200g de farine&#10;- 100g de beurre"
-                          rows={6}
-                        />
-                      </div>
-
-                      <div className={styles.formGroup}>
-                        <label htmlFor="instructions">Instructions (optionnel)</label>
-                        <textarea
-                          id="instructions"
-                          name="instructions"
-                          value={formData.instructions}
-                          onChange={handleInputChange}
-                          placeholder="Décrivez les étapes de préparation (une par ligne)&#10;Ex:&#10;1. Préchauffer le four à 180°C&#10;2. Éplucher et couper les pommes&#10;3. Mélanger la farine et le beurre"
-                          rows={8}
-                        />
-                      </div>
-                    </div>
-                  </>
-                )}
-
-                {errors.submit && (
-                  <div className={styles.submitError}>
-                    {errors.submit}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className={styles.navigation}>
-              <button onClick={() => router.back()} className={styles.secondaryBtn}>
-                Annuler
-              </button>
-              
-              <button
-                onClick={handleSubmit}
-                className={`${styles.submitBtn} ${isSubmitting || processingPhotosCount > 0 ? styles.disabled : ''}`}
-                disabled={isSubmitting || processingPhotosCount > 0}
-              >
-                {isSubmitting ? (
-                  <>
-                    <span className={styles.spinner}></span>
-                    Partage en cours...
-                  </>
-                ) : processingPhotosCount > 0 ? (
-                  <>
-                    ⏳ Traitement en cours ({processingPhotosCount} photo(s))
-                  </>
-                ) : (
-                  <>
-                    {formMode === 'quick' ? '📸 Partager ma photo' : '🍳 Partager ma recette'}
-                  </>
-                )}
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-    </>
+  // Ajout d'un header sticky pour la page de publication
+  const StickyHeader = () => (
+    <header className="submitHeader">
+      <button className="backBtn" onClick={() => router.back()} aria-label="Retour">
+        ←
+      </button>
+      <h1 className="submitTitle">Partager une création</h1>
+    </header>
   )
-}
+
+  // Ajout d'un wrapper avec padding-top pour éviter la navbar
+  return (
+    <div className="submitRecipePage">
+      {showModeSelector ? <ModeSelector /> : (
+        formMode === 'quick' ? <QuickModeInterface /> : /* ...mode complet... */
+        <div className="completeModeContainer">
+          <StickyHeader />
+          {/* ...formulaire complet amélioré à styliser... */}
+        </div>
+      )}
+      {showLogs && <LogsDisplay />}
+      <style jsx>{`
+        .submitRecipePage {
+          min-height: 100vh;
+          background: linear-gradient(135deg, #fff7f0 0%, #f8fafc 100%);
+          padding-top: 72px; /* Pour la navbar sticky */
+        }
+        .submitHeader {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 56px;
+          background: #fff;
+          border-bottom: 1.5px solid #f1f5f9;
+          display: flex;
+          align-items: center;
+          z-index: 100;
+          padding: 0 18px;
+          box-shadow: 0 2px 12px rgba(255,107,53,0.05);
+        }
+        .backBtn {
+          background: none;
+          border: none;
+          font-size: 1.5rem;
+          color: #ff6b35;
+          margin-right: 12px;
+          cursor: pointer;
+        }
+        .submitTitle {
+          font-size: 1.2rem;
+          font-weight: 700;
+          color: #ff6b35;
+          margin: 0;
+        }
+        .quickModeContainer {
+          max-width: 420px;
+          margin: 0 auto;
+          background: #fff;
+          border-radius: 18px;
+          box-shadow: 0 4px 24px #ff6b3522;
+          padding: 32px 20px 24px 20px;
+          margin-top: 24px;
+          display: flex;
+          flex-direction: column;
+          gap: 24px;
+        }
+        .quickProgressBar {
+          width: 100%;
+          height: 8px;
+          background: #f1f5f9;
+          border-radius: 6px;
+          overflow: hidden;
+        }
+        .quickProgressFill {
+          height: 100%;
+          background: linear-gradient(90deg, #ff6b35, #f7931e);
+          transition: width 0.4s cubic-bezier(.4,1.4,.6,1);
+        }
+        .quickSteps {
+          display: flex;
+          justify-content: space-between;
+          gap: 8px;
+        }
+        .quickStep {
+          flex: 1;
+          text-align: center;
+          font-size: 0.98rem;
+          color: #bdbdbd;
+          font-weight: 600;
+          padding: 6px 0;
+          border-radius: 8px;
+          background: #f8fafc;
+          transition: color 0.2s, background 0.2s;
+        }
+        .quickStep.active {
+          color: #ff6b35;
+          background: #fff3e6;
+        }
+        .quickFormZone {
+          display: flex;
+          flex-direction: column;
+          gap: 18px;
+        }
+        .quickPhotoZone {
+          width: 100%;
+          aspect-ratio: 1.5/1;
+          background: #f8fafc;
+          border: 2.5px dashed #ff6b35;
+          border-radius: 14px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: border-color 0.2s;
+          position: relative;
+          overflow: hidden;
+        }
+        .quickPhotoZone.hasPhoto {
+          border-style: solid;
+          border-color: #f7931e;
+        }
+        .quickPhotoPlaceholder {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          color: #ff6b35;
+          font-size: 1.2rem;
+          gap: 6px;
+        }
+        .quickPhotoIcon {
+          font-size: 2.2rem;
+        }
+        .quickPhotoPreview {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          border-radius: 12px;
+        }
+        .quickTitleInput {
+          font-size: 1.1rem;
+          padding: 12px 14px;
+          border-radius: 10px;
+          border: 1.5px solid #f1f5f9;
+          background: #f8fafc;
+          outline: none;
+          font-weight: 600;
+          color: #333;
+          transition: border-color 0.2s;
+        }
+        .quickTitleInput:focus {
+          border-color: #ff6b35;
+        }
+        .quickPublishBtn {
+          width: 100%;
+          background: linear-gradient(90deg, #ff6b35, #f7931e);
+          color: #fff;
+          font-size: 1.15rem;
+          font-weight: 700;
+          border: none;
+          border-radius: 12px;
+          padding: 16px 0;
+          box-shadow: 0 2px 12px #ff6b3533;
+          cursor: pointer;
+          transition: background 0.2s, transform 0.1s;
+        }
+        .quickPublishBtn:active {
+          transform: scale(0.97);
+        }
+        @media (max-width: 600px) {
+          .quickModeContainer {
+            padding: 18px 6px 18px 6px;
+            margin-top: 8px;
+            border-radius: 0;
+            box-shadow: none;
+          }
+          .submitRecipePage {
+            padding-top: 56px;
+          }
+        }
+      `}</style>
+    </div>
+  )

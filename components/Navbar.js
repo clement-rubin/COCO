@@ -10,7 +10,7 @@ export default function Navbar() {
       boxShadow: '0 2px 12px rgba(255,107,53,0.05), 0 1.5px 6px rgba(0,0,0,0.04)',
       position: 'sticky',
       top: 0,
-      zIndex: 100,
+      zIndex: 1200, // z-index augmenté pour être au-dessus de tout
       width: '100%',
       backdropFilter: 'blur(18px) saturate(160%)',
       backdropFilter: 'blur(18px) saturate(160%)'
