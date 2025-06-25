@@ -37,34 +37,83 @@ export default function MesRecettes() {
       setLoading(true)
       setError(null)
 
-      // Récupérer TOUTES les recettes de l'utilisateur (pas de limite)
-      const response = await fetch(`/api/recipes?user_id=${user.id}&limit=100`)
+      logInfo('Loading user recipes', {
+        userId: user.id,
+        userIdLength: user.id?.length,
+        component: 'MesRecettes'
+      })
+
+      // Récupérer TOUTES les recettes de l'utilisateur (sans limite)
+      const response = await fetch(`/api/recipes?user_id=${encodeURIComponent(user.id)}`)
       
       if (!response.ok) {
+        const errorText = await response.text()
+        logError('Failed to fetch user recipes', new Error(`HTTP ${response.status}`), {
+          status: response.status,
+          statusText: response.statusText,
+          responseText: errorText,
+          userId: user.id
+        })
         throw new Error(`Erreur ${response.status}: ${response.statusText}`)
       }
       
       const recipesData = await response.json()
       
+      logInfo('Raw recipes data received', {
+        dataType: typeof recipesData,
+        isArray: Array.isArray(recipesData),
+        length: recipesData?.length || 0,
+        hasError: !!recipesData?.error,
+        userId: user.id
+      })
+      
+      // Vérifier si c'est une réponse d'erreur
+      if (recipesData?.error) {
+        throw new Error(recipesData.message || recipesData.error)
+      }
+      
+      // S'assurer que nous avons un tableau
+      const recipes = Array.isArray(recipesData) ? recipesData : []
+      
       // Trier par date de création (plus récentes en premier)
-      const sortedRecipes = Array.isArray(recipesData) 
-        ? recipesData.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-        : []
+      const sortedRecipes = recipes.sort((a, b) => {
+        const dateA = new Date(a.created_at || 0)
+        const dateB = new Date(b.created_at || 0)
+        return dateB - dateA
+      })
       
       setRecipes(sortedRecipes)
       
-      logInfo('User recipes loaded successfully', {
+      logInfo('User recipes loaded and sorted', {
         userId: user.id,
-        recipesCount: sortedRecipes.length,
-        hasQuickRecipes: sortedRecipes.some(r => r.category === 'Photo partagée'),
-        hasCompleteRecipes: sortedRecipes.some(r => r.category !== 'Photo partagée')
+        totalRecipes: sortedRecipes.length,
+        recipesBreakdown: {
+          total: sortedRecipes.length,
+          quick: sortedRecipes.filter(r => r.form_mode === 'quick' || r.category === 'Photo partagée').length,
+          complete: sortedRecipes.filter(r => r.form_mode === 'complete' || (r.form_mode !== 'quick' && r.category !== 'Photo partagée')).length,
+          withImages: sortedRecipes.filter(r => r.image).length,
+          categories: sortedRecipes.reduce((acc, r) => {
+            const cat = r.category || 'Uncategorized'
+            acc[cat] = (acc[cat] || 0) + 1
+            return acc
+          }, {})
+        },
+        latestRecipes: sortedRecipes.slice(0, 3).map(r => ({
+          id: r.id,
+          title: r.title,
+          created_at: r.created_at,
+          category: r.category
+        }))
       })
+      
     } catch (err) {
       logError('Failed to load user recipes', err, {
         userId: user?.id,
-        component: 'MesRecettes'
+        component: 'MesRecettes',
+        errorMessage: err.message,
+        errorStack: err.stack
       })
-      setError('Impossible de charger vos recettes. Veuillez réessayer.')
+      setError(`Impossible de charger vos recettes: ${err.message}`)
     } finally {
       setLoading(false)
     }

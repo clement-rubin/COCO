@@ -949,6 +949,703 @@
   border-color: #d1d5db;
 }
 
+/* ======== MODE EXPRESS - DESIGN AMÉLIORÉ ======== */
+
+/* Interface du mode express complètement repensée */
+.quickModeContainer {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 30%, #e2e8f0 100%);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow-x: hidden;
+  padding-bottom: 100px; /* Espace pour la navigation fixe */
+}
+
+.quickModeContainer::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(circle at 30% 20%, rgba(59, 130, 246, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 70% 80%, rgba(16, 185, 129, 0.06) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+  animation: backgroundFloat 15s ease-in-out infinite alternate;
+}
+
+@keyframes backgroundFloat {
+  0% { opacity: 0.3; transform: translateY(0px) scale(1); }
+  100% { opacity: 0.5; transform: translateY(-10px) scale(1.02); }
+}
+
+/* Header du mode express amélioré */
+.quickHeader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.6);
+  padding: 16px 20px;
+  z-index: 1000;
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.quickHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.quickBackBtn {
+  background: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+  border: 2px solid rgba(59, 130, 246, 0.2);
+  padding: 8px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.quickBackBtn:hover {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.4);
+  transform: translateX(-2px);
+}
+
+.quickHeaderTitle {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+}
+
+.quickProgressIndicator {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+/* Contenu principal avec espacement amélioré */
+.quickContent {
+  flex: 1;
+  padding: 100px 20px 20px; /* Top padding pour le header fixe */
+  max-width: 500px;
+  margin: 0 auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Carte de progression améliorée */
+.quickProgressCard {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  margin-bottom: 8px;
+}
+
+.quickStepsContainer {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 20px;
+}
+
+.quickStepsContainer::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50px;
+  right: 50px;
+  height: 3px;
+  background: #e5e7eb;
+  border-radius: 2px;
+  transform: translateY(-50%);
+  z-index: 0;
+}
+
+.quickStepsProgress {
+  position: absolute;
+  top: 50%;
+  left: 50px;
+  height: 3px;
+  background: linear-gradient(90deg, #10b981, #059669);
+  border-radius: 2px;
+  transform: translateY(-50%);
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 1;
+}
+
+.quickStep {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  z-index: 2;
+  transition: all 0.4s ease;
+}
+
+.quickStepCircle {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1rem;
+  border: 3px solid #e5e7eb;
+  transition: all 0.4s ease;
+}
+
+.quickStep.active .quickStepCircle {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  color: white;
+  border-color: #3b82f6;
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.quickStep.completed .quickStepCircle {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  border-color: #10b981;
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+.quickStepLabel {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #64748b;
+  transition: all 0.3s ease;
+}
+
+.quickStep.active .quickStepLabel,
+.quickStep.completed .quickStepLabel {
+  color: #10b981;
+  transform: scale(1.05);
+}
+
+/* Zone de photo optimisée et plus visible */
+.quickPhotoZone {
+  background: rgba(255, 255, 255, 0.95);
+  border: 3px dashed #cbd5e1;
+  border-radius: 24px;
+  padding: 40px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+}
+
+.quickPhotoZone::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(16, 185, 129, 0.05));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 0;
+}
+
+.quickPhotoZone:hover::before {
+  opacity: 1;
+}
+
+.quickPhotoZone:hover {
+  border-color: #3b82f6;
+  transform: translateY(-4px);
+  box-shadow: 0 8px 30px rgba(59, 130, 246, 0.2);
+}
+
+.quickPhotoZone.hasPhoto {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.05);
+  padding: 16px;
+  min-height: auto;
+}
+
+.quickPhotoIcon {
+  font-size: 3.5rem;
+  margin-bottom: 16px;
+  opacity: 0.8;
+  transition: all 0.3s ease;
+}
+
+.quickPhotoZone:hover .quickPhotoIcon {
+  transform: scale(1.1);
+  opacity: 1;
+}
+
+.quickPhotoText {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 8px;
+}
+
+.quickPhotoSubtext {
+  color: #6b7280;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.quickPhotoPreview {
+  width: 100%;
+  max-width: 100%;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.quickPhotoPreview img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Input titre moderne et plus visible */
+.quickTitleContainer {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.quickTitleLabel {
+  display: block;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 12px;
+}
+
+.quickTitleInput {
+  width: 100%;
+  font-size: 1.2rem;
+  font-weight: 600;
+  padding: 16px 20px;
+  border: 3px solid #e5e7eb;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.9);
+  transition: all 0.3s ease;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.quickTitleInput:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+  transform: scale(1.02);
+  background: white;
+}
+
+.quickTitleInput::placeholder {
+  color: #9ca3af;
+  font-weight: 400;
+}
+
+.quickTitleCounter {
+  text-align: right;
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin-top: 8px;
+}
+
+/* Navigation du mode express - CORRIGÉE ET VISIBLE */
+.quickNavigation {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(226, 232, 240, 0.8);
+  padding: 16px 20px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  z-index: 1001;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.quickCancelBtn {
+  background: rgba(107, 114, 128, 0.1);
+  color: #6b7280;
+  border: 2px solid rgba(107, 114, 128, 0.2);
+  padding: 12px 20px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+}
+
+.quickCancelBtn:hover {
+  background: rgba(107, 114, 128, 0.15);
+  border-color: rgba(107, 114, 128, 0.4);
+}
+
+.quickPublishBtn {
+  flex: 1;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  font-size: 1.1rem;
+  font-weight: 700;
+  padding: 16px 24px;
+  border-radius: 16px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  position: relative;
+  overflow: hidden;
+  min-height: 52px;
+}
+
+.quickPublishBtn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.6s ease;
+}
+
+.quickPublishBtn:hover:not(.disabled)::before {
+  left: 100%;
+}
+
+.quickPublishBtn:hover:not(.disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(16, 185, 129, 0.4);
+}
+
+.quickPublishBtn.disabled {
+  background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.quickPublishBtn.disabled::before {
+  display: none;
+}
+
+/* Animation de chargement du mode express */
+.quickLoadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.quickLoadingSpinner {
+  width: 60px;
+  height: 60px;
+  border: 4px solid rgba(16, 185, 129, 0.2);
+  border-top: 4px solid #10b981;
+  border-radius: 50%;
+  animation: quickSpin 1s linear infinite;
+  margin-bottom: 24px;
+}
+
+@keyframes quickSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.quickLoadingText {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 8px;
+}
+
+.quickLoadingSubtext {
+  color: #6b7280;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+/* Message de succès du mode express */
+.quickSuccessContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  text-align: center;
+  padding: 40px 20px;
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.quickSuccessContainer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(circle at 30% 30%, rgba(16, 185, 129, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 70% 70%, rgba(59, 130, 246, 0.08) 0%, transparent 50%);
+  animation: patternMove 20s ease-in-out infinite alternate;
+}
+
+@keyframes patternMove {
+  0% { opacity: 0.5; transform: scale(1) rotate(0deg); }
+  100% { opacity: 0.7; transform: scale(1.1) rotate(5deg); }
+}
+
+.quickSuccessIcon {
+  font-size: 5rem;
+  margin-bottom: 24px;
+  animation: successBounce 2s ease-out infinite alternate;
+}
+
+@keyframes successBounce {
+  0% { transform: translateY(0px) scale(1); }
+  100% { transform: translateY(-10px) scale(1.05); }
+}
+
+.quickSuccessTitle {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #065f46;
+  margin-bottom: 16px;
+}
+
+.quickSuccessMessage {
+  font-size: 1.1rem;
+  color: #374151;
+  line-height: 1.6;
+  margin-bottom: 8px;
+}
+
+.quickSuccessRecipeTitle {
+  font-weight: 600;
+  color: #059669;
+  display: block;
+  margin: 8px 0;
+}
+
+.quickSuccessSpinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid rgba(16, 185, 129, 0.3);
+  border-top: 2px solid #10b981;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 20px auto;
+}
+
+/* Responsive pour le mode express */
+@media (max-width: 768px) {
+  .quickModeContainer {
+    padding-bottom: 120px;
+  }
+  
+  .quickHeader {
+    padding: 12px 16px;
+  }
+  
+  .quickHeaderTitle {
+    font-size: 1.1rem;
+  }
+  
+  .quickBackBtn {
+    padding: 6px 10px;
+    font-size: 0.9rem;
+  }
+  
+  .quickContent {
+    padding: 80px 16px 20px;
+    gap: 20px;
+  }
+  
+  .quickProgressCard {
+    padding: 16px;
+  }
+  
+  .quickStepCircle {
+    width: 36px;
+    height: 36px;
+    font-size: 0.9rem;
+  }
+  
+  .quickStepLabel {
+    font-size: 0.75rem;
+  }
+  
+  .quickPhotoZone {
+    padding: 32px 20px;
+    min-height: 180px;
+  }
+  
+  .quickPhotoIcon {
+    font-size: 3rem;
+  }
+  
+  .quickTitleContainer {
+    padding: 16px;
+  }
+  
+  .quickTitleInput {
+    font-size: 1.1rem;
+    padding: 14px 16px;
+  }
+  
+  .quickNavigation {
+    padding: 16px;
+    gap: 10px;
+  }
+  
+  .quickCancelBtn {
+    padding: 10px 16px;
+    font-size: 0.9rem;
+  }
+  
+  .quickPublishBtn {
+    font-size: 1rem;
+    padding: 14px 20px;
+    min-height: 48px;
+  }
+}
+
+@media (max-width: 480px) {
+  .quickContent {
+    padding: 70px 12px 20px;
+    gap: 16px;
+  }
+  
+  .quickPhotoZone {
+    padding: 24px 16px;
+    min-height: 160px;
+  }
+  
+  .quickStepsContainer {
+    padding: 0 10px;
+  }
+  
+  .quickStepsContainer::before {
+    left: 30px;
+    right: 30px;
+  }
+  
+  .quickStepsProgress {
+    left: 30px;
+  }
+  
+  .quickNavigation {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .quickCancelBtn,
+  .quickPublishBtn {
+    width: 100%;
+  }
+}
+
+/* États d'interaction améliorés */
+.quickPhotoZone.dragOver {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+  transform: translateY(-2px);
+}
+
+.quickTitleInput.hasContent {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.02);
+}
+
+/* Animations d'entrée */
+.quickModeEnter {
+  animation: quickSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes quickSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Animation pour le feedback de progression */
+@keyframes pulseReady {
+  0% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(1.02); opacity: 1; }
+}
+
+/* Amélioration du spinner général */
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
 /* ...existing code... */
 
 .commentTextarea {
@@ -1645,7 +2342,7 @@
   width: 64px;
   height: 64px;
   border: 4px solid rgba(255, 255, 255, 0.3);
-  border-top: 4px solid white;
+  border-top: 4px solid #10b981;
   border-radius: 50%;
   animation: quickSpin 1s linear infinite;
   margin-bottom: 24px;
@@ -1722,7 +2419,7 @@
 }
 
 .quickSuccessMessage {
-  color: rgba(255, 255, 255, 0.9);
+   color: rgba(255, 255, 255, 0.9);
   font-size: 1.2rem;
   line-height: 1.5;
   margin-bottom: 32px;
@@ -1827,12 +2524,12 @@
 .quickPhotoZone.dragOver {
   border-color: #10b981;
   background: rgba(16, 185, 129, 0.1);
-  transform: scale(1.02);
+  transform: translateY(-2px);
 }
 
 .quickTitleInput.hasContent {
-  background: rgba(255, 255, 255, 1);
-  box-shadow: inset 0 2px 12px rgba(16, 185, 129, 0.08);
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.02);
 }
 
 /* Animations d'entrée */
@@ -1841,12 +2538,28 @@
 }
 
 @keyframes quickSlideUp {
-  0% {
+  from {
     opacity: 0;
-    transform: translateY(60px) scale(0.95);
+    transform: translateY(30px);
   }
-  100% {
+  to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0);
   }
+}
+
+/* Animation pour le feedback de progression */
+@keyframes pulseReady {
+  0% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(1.02); opacity: 1; }
+}
+
+/* Amélioration du spinner général */
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
 }

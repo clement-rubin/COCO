@@ -305,38 +305,43 @@ export default async function handler(req, res) {
           logInfo('Fetching recipes for specific user', {
             reference: requestReference,
             userId: user_id,
-            limit: limit || 'no limit',
+            limit: limit || 'no limit set',
             offset
           })
           
+          // Construction de la requête utilisateur simplifiée
           let userQuery = supabase
             .from('recipes')
             .select('*')
             .eq('user_id', user_id)
             .order('created_at', { ascending: false })
           
-          // Appliquer la pagination seulement si spécifiée
-          if (limit && limit > 0) {
-            userQuery = userQuery.limit(parseInt(limit))
-          }
+          // Ne pas appliquer de limite par défaut pour les recettes utilisateur
+          // Laisser l'utilisateur récupérer TOUTES ses recettes
           
-          if (offset && offset > 0) {
-            userQuery = userQuery.offset(parseInt(offset))
-          }
+          logDebug('Executing user recipes query', {
+            reference: requestReference,
+            userId: user_id,
+            queryDetails: 'SELECT * FROM recipes WHERE user_id = ? ORDER BY created_at DESC'
+          })
           
           const { data: userRecipes, error: userError } = await userQuery
           
           if (userError) {
             logError('Error fetching user recipes', userError, {
               reference: requestReference,
-              userId: user_id
+              userId: user_id,
+              errorCode: userError.code,
+              errorMessage: userError.message
             })
             return safeResponse(res, 500, {
               error: 'Erreur lors de la récupération des recettes utilisateur',
+              message: userError.message,
               reference: requestReference
             })
           }
           
+          // Validation et nettoyage des données
           const safeUserRecipes = (userRecipes || []).map(recipe => ({
             ...recipe,
             ingredients: Array.isArray(recipe.ingredients) ? recipe.ingredients : [],
@@ -345,12 +350,27 @@ export default async function handler(req, res) {
           
           logInfo('User recipes fetched successfully', {
             reference: requestReference,
-            count: safeUserRecipes.length,
+            totalCount: safeUserRecipes.length,
             userId: user_id,
-            types: {
+            recipesBreakdown: {
+              total: safeUserRecipes.length,
+              withFormMode: safeUserRecipes.filter(r => r.form_mode).length,
               quick: safeUserRecipes.filter(r => r.form_mode === 'quick').length,
-              complete: safeUserRecipes.filter(r => r.form_mode === 'complete').length
-            }
+              complete: safeUserRecipes.filter(r => r.form_mode === 'complete').length,
+              withoutFormMode: safeUserRecipes.filter(r => !r.form_mode).length,
+              categories: safeUserRecipes.reduce((acc, r) => {
+                const cat = r.category || 'Uncategorized'
+                acc[cat] = (acc[cat] || 0) + 1
+                return acc
+              }, {})
+            },
+            sampleRecipes: safeUserRecipes.slice(0, 3).map(r => ({
+              id: r.id,
+              title: r.title,
+              created_at: r.created_at,
+              form_mode: r.form_mode,
+              category: r.category
+            }))
           })
           
           return safeResponse(res, 200, safeUserRecipes)
