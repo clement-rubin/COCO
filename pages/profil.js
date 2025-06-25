@@ -290,36 +290,38 @@ export default function Profil() {
             </div>
             <div className={styles.statsContainer}>
               <div className={styles.statsGrid}>
-                {{
-                  icon: '📝',
-                  value: userStats.recipesCount,
-                  label: 'Recette',
-                  color: '#FF6B6B'
-                },
-                {
-                  icon: '❤️',
-                  value: userStats.likesReceived,
-                  label: 'Like',
-                  color: '#FF4757'
-                },
-                {
-                  icon: '👥',
-                  value: userStats.friendsCount,
-                  label: 'Ami',
-                  color: '#3742FA'
-                },
-                {
-                  icon: '🏆',
-                  value: userStats.trophiesUnlocked,
-                  label: 'Trophée',
-                  color: '#FFD700'
-                },
-                {
-                  icon: '⭐',
-                  value: userStats.trophyPoints,
-                  label: 'Point',
-                  color: '#FFA502'
-                }].map((stat, index) => (
+                {[
+                  {
+                    icon: '📝',
+                    value: userStats.recipesCount,
+                    label: 'Recette',
+                    color: '#FF6B6B'
+                  },
+                  {
+                    icon: '❤️',
+                    value: userStats.likesReceived,
+                    label: 'Like',
+                    color: '#FF4757'
+                  },
+                  {
+                    icon: '👥',
+                    value: userStats.friendsCount,
+                    label: 'Ami',
+                    color: '#3742FA'
+                  },
+                  {
+                    icon: '🏆',
+                    value: userStats.trophiesUnlocked,
+                    label: 'Trophée',
+                    color: '#FFD700'
+                  },
+                  {
+                    icon: '⭐',
+                    value: userStats.trophyPoints,
+                    label: 'Point',
+                    color: '#FFA502'
+                  }
+                ].map((stat, index) => (
                   <div 
                     key={index} 
                     className={styles.statCard}
@@ -343,30 +345,32 @@ export default function Profil() {
         <section className={styles.contentSection}>
           <div className={styles.tabContainer}>
             <div className={styles.tabNavigation}>
-              {{
-                id: 'info',
-                label: 'Profil',
-                icon: '👤',
-                color: '#3742FA'
-              },
-              {
-                id: 'recipes',
-                label: 'Recettes',
-                icon: '📝',
-                color: '#FF6B6B'
-              },
-              {
-                id: 'trophies',
-                label: 'Trophées',
-                icon: '🏆',
-                color: '#FFD700'
-              },
-              {
-                id: 'settings',
-                label: 'Paramètres',
-                icon: '⚙️',
-                color: '#2F3542'
-              }].map(tab => (
+              {[
+                {
+                  id: 'info',
+                  label: 'Profil',
+                  icon: '👤',
+                  color: '#3742FA'
+                },
+                {
+                  id: 'recipes',
+                  label: 'Recettes',
+                  icon: '📝',
+                  color: '#FF6B6B'
+                },
+                {
+                  id: 'trophies',
+                  label: 'Trophées',
+                  icon: '🏆',
+                  color: '#FFD700'
+                },
+                {
+                  id: 'settings',
+                  label: 'Paramètres',
+                  icon: '⚙️',
+                  color: '#2F3542'
+                }
+              ].map(tab => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
@@ -752,29 +756,6 @@ export default function Profil() {
         </section>
 
         {/* Notification trophée modernisée */}
-        {showTrophyNotification && newTrophies.length > 0 && (
-          <div className={styles.trophyNotification}>
-            <div className={styles.notificationHeader}>
-              <span className={styles.notificationIcon}>🏆</span>
-              <span className={styles.notificationTitle}>Nouveau trophée débloqué !</span>
-            </div>
-            <div className={styles.notificationTrophies}>
-              {newTrophies.map(trophy => (
-                <div key={trophy.id} className={styles.notificationTrophy}>
-                  <span className={styles.trophyIcon}>{trophy.icon}</span>
-                  <span className={styles.trophyName}>{trophy.name}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    </Layout>
-  )
-}
-        </section>
-
-        {/* Trophy Notification avec nouveau style */}
         {showTrophyNotification && newTrophies.length > 0 && (
           <div className={styles.trophyNotification}>
             <div className={styles.notificationHeader}>
