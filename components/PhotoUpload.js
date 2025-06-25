@@ -23,21 +23,23 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5, compact = fal
       
       setIsMobile(isMobileDevice)
       
-      // Vérifier le support de capture de caméra
-      const input = document.createElement('input')
-      input.type = 'file'
-      input.accept = 'image/*'
-      input.capture = 'environment'
-      
-      const hasFileCapture = 'capture' in input
-      const hasGetUserMedia = navigator.mediaDevices && navigator.mediaDevices.getUserMedia
-      
-      setSupportsCameraCapture(hasFileCapture || hasGetUserMedia)
-      
+      // Correction: toujours activer supportsCameraCapture sur Android/iOS
+      let hasCameraCapture = false
+      try {
+        const input = document.createElement('input')
+        input.type = 'file'
+        input.accept = 'image/*'
+        input.capture = 'environment'
+        hasCameraCapture = 'capture' in input || isAndroid || /iphone|ipad|ipod/i.test(userAgent.toLowerCase())
+      } catch {
+        hasCameraCapture = isAndroid // fallback
+      }
+      setSupportsCameraCapture(hasCameraCapture)
+
       logInfo('Mobile environment detected', {
         isMobile: isMobileDevice,
         isAndroid,
-        supportsCameraCapture: hasFileCapture || hasGetUserMedia,
+        supportsCameraCapture: hasCameraCapture,
         userAgent: userAgent.substring(0, 100)
       })
     }
@@ -290,6 +292,7 @@ export default function PhotoUpload({ onPhotoSelect, maxFiles = 5, compact = fal
               </div>
               
               <div className={styles.mobileButtons}>
+                {/* Toujours afficher le bouton caméra si supporté */}
                 {supportsCameraCapture && (
                   <button 
                     type="button"

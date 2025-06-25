@@ -81,7 +81,7 @@ export default function QuickRecipeForm() {
       // Données minimales
       const recipeData = {
         title: formData.title.trim(),
-        description: 'Partagé rapidement avec COCO ! ⚡',
+        description: '',
         author: authorName,
         user_id: user.id,
         image: imageUrl,
@@ -171,6 +171,7 @@ export default function QuickRecipeForm() {
             ref={fileInputRef}
             type="file"
             accept="image/*"
+            capture="environment"
             onChange={handleImageSelect}
             style={{ display: 'none' }}
           />

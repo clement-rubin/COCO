@@ -206,7 +206,7 @@ export default function SharePhoto() {
       const recipeData = {
         title: title.trim(),
         description: formMode === 'quick' 
-          ? (description.trim() || 'Partagé rapidement avec COCO ! 📸')
+          ? (description.trim() || '')
           : description.trim(),
         category: formMode === 'quick' ? 'Photo partagée' : category,
         difficulty: formMode === 'quick' ? 'Facile' : difficulty,

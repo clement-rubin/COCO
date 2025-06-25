@@ -574,7 +574,7 @@ export default async function handler(req, res) {
           
           const quickRecipe = {
             title: data.title.trim(),
-            description: data.description || 'Partagé rapidement avec COCO ! ⚡',
+            description: '',
             image: data.image || null,
             author: authorName,
             user_id: data.user_id?.trim() || null,
@@ -744,7 +744,7 @@ export default async function handler(req, res) {
         if (formMode === 'quick') {
           // Si c'est un partage rapide, ajuster les valeurs par défaut
           if (!newRecipe.description) {
-            newRecipe.description = 'Photo partagée rapidement avec COCO ✨'
+            newRecipe.description = ''
           }
           if (!newRecipe.category || newRecipe.category === 'Autre') {
             newRecipe.category = 'Photo partagée'

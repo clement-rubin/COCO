@@ -268,6 +268,7 @@ export default function RecipeForm({ initialData = {}, onSubmit, onCancel, isEdi
                 id="image"
                 type="file"
                 accept="image/*"
+                capture="environment"
                 onChange={handleImageChange}
                 className="image-input"
               />

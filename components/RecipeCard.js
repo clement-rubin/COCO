@@ -235,10 +235,7 @@ const RecipeCard = ({ recipe, isPhotoOnly = false, onEdit, onDelete, showActions
         
         {isQuickShare && (
           <p className={styles.recipeDescription}>
-            {safeRecipe.description === 'Photo partagée rapidement avec COCO ✨' 
-              ? 'Une délicieuse création partagée instantanément ✨'
-              : safeRecipe.description
-            }
+            {safeRecipe.description}
           </p>
         )}
         

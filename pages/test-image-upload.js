@@ -227,6 +227,7 @@ export default function TestImageUpload() {
               id="imageInput"
               type="file"
               accept="image/*"
+              capture="environment"
               onChange={handleFileSelect}
               style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
             />

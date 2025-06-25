@@ -170,7 +170,7 @@ export default function SubmitRecipe() {
         image: mainImageUrl,
         formMode: formMode,
         // Valeurs par défaut optimisées pour mode rapide
-        description: formData.description?.trim() || 'Partagé rapidement avec COCO ! 📸',
+        description: formData.description?.trim() || '',
         ingredients: [],
         instructions: [],
         category: 'Photo partagée',
@@ -293,7 +293,7 @@ export default function SubmitRecipe() {
         author: authorName,
         user_id: user.id,
         image: mainImageUrl,
-        description: `Partagé rapidement avec COCO ! 📸✨`,
+        description: '',
         ingredients: [],
         instructions: [],
         category: 'Partage Express',
@@ -530,6 +530,7 @@ export default function SubmitRecipe() {
               ref={fileInputRef}
               type="file"
               accept="image/*"
+              capture="environment"
               style={{ display: 'none' }}
               onChange={e => {
                 const file = e.target.files[0]
