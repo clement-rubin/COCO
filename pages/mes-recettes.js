@@ -3,7 +3,18 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { useAuth } from '../components/AuthContext'
 import RecipeCard from '../components/RecipeCard'
-import { logUserInteraction, logError, logInfo } from '../utils/logger'
+import { 
+  logUserInteraction, 
+  logError, 
+  logInfo, 
+  logApiCall,
+  logPerformance,
+  logComponentEvent,
+  logDatabaseOperation,
+  logSuccess,
+  logDebug,
+  logWarning
+} from '../utils/logger'
 import { canUserEditRecipe, deleteUserRecipe } from '../utils/profileUtils'
 import styles from '../styles/UserRecipes.module.css'
 
@@ -334,24 +345,68 @@ export default function MesRecettes() {
       })
       
       const apiUrl = `/api/weekly-contest-participation?user_id=${user.id}`
-      const response = await fetch(apiUrl)
       
       logApiCall('GET', apiUrl, {
         userId: user?.id?.substring(0, 8) + '...',
+        component: 'MesRecettes',
+        context: 'loadParticipationStatus'
+      })
+      
+      const response = await fetch(apiUrl)
+      
+      logInfo('Participation status API response received', {
         status: response.status,
-        component: 'MesRecettes'
+        statusText: response.statusText,
+        ok: response.ok,
+        userId: user?.id?.substring(0, 8) + '...',
+        url: apiUrl
       })
       
       if (!response.ok) {
-        logWarning('Participation status API call failed', {
-          status: response.status,
-          statusText: response.statusText,
-          userId: user?.id?.substring(0, 8) + '...'
-        })
+        let errorDetails = {}
+        try {
+          const errorData = await response.text()
+          errorDetails = {
+            status: response.status,
+            statusText: response.statusText,
+            responseText: errorData?.substring(0, 500),
+            userId: user?.id?.substring(0, 8) + '...'
+          }
+        } catch (parseError) {
+          errorDetails = {
+            status: response.status,
+            statusText: response.statusText,
+            parseError: parseError.message,
+            userId: user?.id?.substring(0, 8) + '...'
+          }
+        }
+        
+        logError('Participation status API call failed', new Error(`HTTP ${response.status}: ${response.statusText}`), errorDetails)
+        
+        // Don't throw error here, just return early to continue with recipe loading
         return
       }
 
-      const data = await response.json()
+      let data
+      try {
+        data = await response.json()
+        
+        logInfo('Participation status response parsed successfully', {
+          hasUserCandidates: !!data.userCandidates,
+          userCandidatesCount: data.userCandidates?.length || 0,
+          hasContest: !!data.contest,
+          contestId: data.contest?.id,
+          contestWeekStart: data.contest?.week_start,
+          contestWeekEnd: data.contest?.week_end,
+          userId: user?.id?.substring(0, 8) + '...'
+        })
+      } catch (parseError) {
+        logError('Failed to parse participation status response', parseError, {
+          userId: user?.id?.substring(0, 8) + '...',
+          responseStatus: response.status
+        })
+        return
+      }
       
       logDatabaseOperation('SELECT', 'weekly_contest_participation', {
         userId: user?.id?.substring(0, 8) + '...',
@@ -380,13 +435,27 @@ export default function MesRecettes() {
         success: true
       })
       
+      logSuccess('Participation status loaded successfully', {
+        userId: user?.id?.substring(0, 8) + '...',
+        participatingRecipesCount: participatingIds.length,
+        contestId: data.contest?.id,
+        weekStart: data.contest?.week_start,
+        weekEnd: data.contest?.week_end
+      })
+      
     } catch (error) {
       const endTime = performance.now()
       logError('Failed to load participation status', error, {
         userId: user?.id?.substring(0, 8) + '...',
         loadTime: `${(endTime - startTime).toFixed(2)}ms`,
-        component: 'MesRecettes'
+        component: 'MesRecettes',
+        errorMessage: error.message,
+        errorStack: error.stack?.substring(0, 500)
       })
+      
+      // Set default values to prevent UI errors
+      setParticipatingRecipes(new Set())
+      setWeekInfo(null)
     }
   }
 

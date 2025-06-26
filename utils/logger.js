@@ -22,7 +22,12 @@ const LOG_TYPES = {
   RECIPE_ACTION: 'RECIPE_ACTION',
   FRONTEND_ERROR: 'FRONTEND_ERROR',
   DATABASE: 'DATABASE',
-  AUTH: 'AUTH'
+  AUTH: 'AUTH',
+  DEBUG: 'DEBUG',
+  INFO: 'INFO',
+  WARNING: 'WARNING',
+  ERROR: 'ERROR',
+  SUCCESS: 'SUCCESS'
 }
 
 // Stockage des logs en mémoire (pour debug)
@@ -34,22 +39,26 @@ const generateLogId = () => {
   return `log_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`
 }
 
-// Fonction principale de logging
+// Fonction principale de logging avec safeguards
 const createLog = (level, type, message, data = {}, error = null) => {
   const timestamp = new Date().toISOString()
   const logId = generateLogId()
   
+  // Safeguard pour les types de logs
+  const safeType = type || 'GENERAL'
+  const safeLevel = typeof level === 'number' ? level : LOG_LEVELS.INFO
+  
   const logEntry = {
     id: logId,
     timestamp,
-    level: Object.keys(LOG_LEVELS)[level],
-    type,
-    message,
-    data: JSON.parse(JSON.stringify(data)), // Deep clone pour éviter les mutations
+    level: Object.keys(LOG_LEVELS)[safeLevel] || 'INFO',
+    type: safeType,
+    message: message || 'No message provided',
+    data: data ? JSON.parse(JSON.stringify(data)) : {}, // Deep clone pour éviter les mutations
     error: error ? {
-      name: error.name,
-      message: error.message,
-      stack: error.stack,
+      name: error.name || 'Unknown Error',
+      message: error.message || 'No error message',
+      stack: error.stack || 'No stack trace',
       cause: error.cause
     } : null,
     userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Server',
@@ -83,7 +92,7 @@ const createLog = (level, type, message, data = {}, error = null) => {
   return logEntry
 }
 
-// Fonctions de logging spécialisées
+// Fonctions de logging spécialisées avec safeguards
 export const logDebug = (message, data = {}) => {
   return createLog(LOG_LEVELS.DEBUG, LOG_TYPES.DEBUG, message, data)
 }
