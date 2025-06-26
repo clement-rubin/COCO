@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { logInfo, logError, logWarning } from '../../utils/logger'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -9,40 +10,80 @@ export default async function handler(req, res) {
   const requestId = `req_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`
   
   try {
-    console.log(`[${requestId}] Weekly contest participation API called`, {
+    logInfo('Weekly contest participation API called', {
+      requestId,
       method: req.method,
       query: req.query,
-      body: req.body,
-      timestamp: new Date().toISOString()
+      hasBody: !!req.body
     })
 
     if (req.method === 'GET') {
       const { user_id } = req.query
 
       if (!user_id) {
-        console.log(`[${requestId}] Missing user_id parameter`)
+        logWarning('Missing user_id parameter', { requestId })
         return res.status(400).json({ 
           error: 'user_id is required',
           requestId 
         })
       }
 
-      console.log(`[${requestId}] Getting weekly contest for user:`, user_id?.substring(0, 8) + '...')
-
-      // Obtenir ou créer le concours de la semaine actuelle
-      const { data: contest, error: contestError } = await supabase
-        .rpc('get_current_weekly_contest')
-
-      console.log(`[${requestId}] Weekly contest RPC result:`, {
-        hasData: !!contest,
-        dataLength: contest?.length || 0,
-        hasError: !!contestError,
-        errorMessage: contestError?.message,
-        errorCode: contestError?.code
+      logInfo('Getting weekly contest for user', { 
+        requestId, 
+        userId: user_id?.substring(0, 8) + '...' 
       })
 
-      if (contestError) {
-        console.error(`[${requestId}] Error getting current weekly contest:`, contestError)
+      // Get current week dates
+      const now = new Date()
+      const startOfWeek = new Date(now)
+      startOfWeek.setDate(now.getDate() - now.getDay())
+      startOfWeek.setHours(0, 0, 0, 0)
+
+      const endOfWeek = new Date(startOfWeek)
+      endOfWeek.setDate(startOfWeek.getDate() + 6)
+      endOfWeek.setHours(23, 59, 59, 999)
+
+      // Get or create current weekly contest
+      let { data: contest, error: contestError } = await supabase
+        .from('weekly_recipe_contest')
+        .select('*')
+        .eq('week_start', startOfWeek.toISOString().split('T')[0])
+        .single()
+
+      logInfo('Weekly contest query result', {
+        requestId,
+        hasData: !!contest,
+        hasError: !!contestError,
+        errorCode: contestError?.code,
+        errorMessage: contestError?.message
+      })
+
+      if (contestError && contestError.code === 'PGRST116') {
+        // Create new contest if it doesn't exist
+        logInfo('Creating new weekly contest', { requestId })
+        const { data: newContest, error: createError } = await supabase
+          .from('weekly_recipe_contest')
+          .insert({
+            week_start: startOfWeek.toISOString().split('T')[0],
+            week_end: endOfWeek.toISOString().split('T')[0],
+            status: 'active',
+            total_votes: 0,
+            total_candidates: 0
+          })
+          .select()
+          .single()
+
+        if (createError) {
+          logError('Error creating weekly contest', createError, { requestId })
+          return res.status(500).json({ 
+            error: 'Failed to create weekly contest',
+            details: createError.message,
+            requestId 
+          })
+        }
+        contest = newContest
+      } else if (contestError) {
+        logError('Error getting current weekly contest', contestError, { requestId })
         return res.status(500).json({ 
           error: 'Failed to get weekly contest',
           details: contestError.message,
@@ -50,13 +91,13 @@ export default async function handler(req, res) {
         })
       }
 
-      if (!contest || contest.length === 0) {
-        console.log(`[${requestId}] No weekly contest found, creating default response`)
+      if (!contest) {
+        logWarning('No weekly contest found', { requestId })
         return res.status(200).json({
           contest: {
             id: null,
-            week_start: new Date().toISOString(),
-            week_end: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+            week_start: startOfWeek.toISOString(),
+            week_end: endOfWeek.toISOString(),
             total_candidates: 0
           },
           userCandidates: [],
@@ -64,15 +105,15 @@ export default async function handler(req, res) {
         })
       }
 
-      const currentContest = contest[0]
-      console.log(`[${requestId}] Found contest:`, {
-        id: currentContest.id,
-        weekStart: currentContest.week_start,
-        weekEnd: currentContest.week_end,
-        totalCandidates: currentContest.total_candidates
+      logInfo('Found contest', {
+        requestId,
+        contestId: contest.id,
+        weekStart: contest.week_start,
+        weekEnd: contest.week_end,
+        totalCandidates: contest.total_candidates
       })
 
-      // Obtenir les candidatures de l'utilisateur pour cette semaine
+      // Get user's candidates for this week
       const { data: userCandidates, error: candidatesError } = await supabase
         .from('weekly_recipe_candidates')
         .select(`
@@ -89,10 +130,11 @@ export default async function handler(req, res) {
             created_at
           )
         `)
-        .eq('weekly_contest_id', currentContest.id)
+        .eq('weekly_contest_id', contest.id)
         .eq('user_id', user_id)
 
-      console.log(`[${requestId}] User candidates query result:`, {
+      logInfo('User candidates query result', {
+        requestId,
         hasData: !!userCandidates,
         candidatesCount: userCandidates?.length || 0,
         hasError: !!candidatesError,
@@ -100,7 +142,7 @@ export default async function handler(req, res) {
       })
 
       if (candidatesError) {
-        console.error(`[${requestId}] Error getting user candidates:`, candidatesError)
+        logError('Error getting user candidates', candidatesError, { requestId })
         return res.status(500).json({ 
           error: 'Failed to get user candidates',
           details: candidatesError.message,
@@ -108,10 +150,13 @@ export default async function handler(req, res) {
         })
       }
 
-      console.log(`[${requestId}] Returning successful response with ${userCandidates?.length || 0} candidates`)
+      logInfo('Returning successful response', { 
+        requestId, 
+        candidatesCount: userCandidates?.length || 0 
+      })
 
       return res.status(200).json({
-        contest: currentContest,
+        contest: contest,
         userCandidates: userCandidates || [],
         requestId
       })
@@ -120,44 +165,88 @@ export default async function handler(req, res) {
     if (req.method === 'POST') {
       const { recipe_id, user_id, is_manual_entry = true } = req.body
 
-      console.log(`[${requestId}] POST request to add recipe to contest:`, {
+      logInfo('POST request to add recipe to contest', {
+        requestId,
         recipeId: recipe_id,
         userId: user_id?.substring(0, 8) + '...',
         isManualEntry: is_manual_entry
       })
 
       if (!recipe_id || !user_id) {
-        console.log(`[${requestId}] Missing required parameters for POST`)
+        logWarning('Missing required parameters for POST', { requestId })
         return res.status(400).json({ 
           error: 'recipe_id and user_id are required',
           requestId 
         })
       }
 
-      // Obtenir le concours actuel
-      const { data: contest, error: contestError } = await supabase
-        .rpc('get_current_weekly_contest')
+      // Get current week dates
+      const now = new Date()
+      const startOfWeek = new Date(now)
+      startOfWeek.setDate(now.getDate() - now.getDay())
+      startOfWeek.setHours(0, 0, 0, 0)
 
-      if (contestError || !contest || contest.length === 0) {
-        console.error(`[${requestId}] Failed to get current weekly contest for POST:`, contestError)
+      const endOfWeek = new Date(startOfWeek)
+      endOfWeek.setDate(startOfWeek.getDate() + 6)
+      endOfWeek.setHours(23, 59, 59, 999)
+
+      // Get or create current weekly contest
+      let { data: contest, error: contestError } = await supabase
+        .from('weekly_recipe_contest')
+        .select('*')
+        .eq('week_start', startOfWeek.toISOString().split('T')[0])
+        .single()
+
+      if (contestError && contestError.code === 'PGRST116') {
+        // Create new contest if it doesn't exist
+        logInfo('Creating new weekly contest for POST', { requestId })
+        const { data: newContest, error: createError } = await supabase
+          .from('weekly_recipe_contest')
+          .insert({
+            week_start: startOfWeek.toISOString().split('T')[0],
+            week_end: endOfWeek.toISOString().split('T')[0],
+            status: 'active',
+            total_votes: 0,
+            total_candidates: 0
+          })
+          .select()
+          .single()
+
+        if (createError) {
+          logError('Error creating weekly contest', createError, { requestId })
+          return res.status(500).json({ 
+            error: 'Failed to create weekly contest',
+            details: createError.message,
+            requestId 
+          })
+        }
+        contest = newContest
+      } else if (contestError) {
+        logError('Error getting current weekly contest', contestError, { requestId })
         return res.status(500).json({ 
-          error: 'Failed to get current weekly contest',
-          details: contestError?.message,
+          error: 'Failed to get weekly contest',
+          details: contestError.message,
           requestId 
         })
       }
 
-      const currentContest = contest[0]
+      if (!contest) {
+        logWarning('No weekly contest found when adding recipe', { requestId })
+        return res.status(400).json({ 
+          error: 'No active weekly contest found',
+          requestId 
+        })
+      }
 
-      // Vérifier si l'utilisateur n'a pas déjà trop de candidatures
+      // Check if user already has max candidates
       const { data: existingCandidates, error: countError } = await supabase
         .from('weekly_recipe_candidates')
         .select('id')
-        .eq('weekly_contest_id', currentContest.id)
+        .eq('weekly_contest_id', contest.id)
         .eq('user_id', user_id)
 
       if (countError) {
-        console.error(`[${requestId}] Failed to check existing candidates:`, countError)
+        logError('Failed to check existing candidates', countError, { requestId })
         return res.status(500).json({ 
           error: 'Failed to check existing candidates',
           details: countError.message,
@@ -166,7 +255,11 @@ export default async function handler(req, res) {
       }
 
       if (existingCandidates.length >= 5) {
-        console.log(`[${requestId}] User has reached maximum candidates limit:`, existingCandidates.length)
+        logWarning('User has reached maximum candidates limit', { 
+          requestId, 
+          userId: user_id, 
+          candidatesCount: existingCandidates.length 
+        })
         return res.status(400).json({ 
           error: 'Maximum number of candidates reached',
           message: 'Vous ne pouvez pas inscrire plus de 5 recettes par semaine',
@@ -174,7 +267,7 @@ export default async function handler(req, res) {
         })
       }
 
-      // Vérifier que la recette appartient à l'utilisateur
+      // Check that recipe belongs to user
       const { data: recipe, error: recipeError } = await supabase
         .from('recipes')
         .select('id, user_id, title')
@@ -183,7 +276,7 @@ export default async function handler(req, res) {
         .single()
 
       if (recipeError || !recipe) {
-        console.error(`[${requestId}] Recipe validation failed:`, recipeError)
+        logError('Recipe validation failed', recipeError, { requestId })
         return res.status(403).json({ 
           error: 'Recipe not found or not owned by user',
           message: 'Cette recette ne vous appartient pas ou n\'existe pas',
@@ -191,11 +284,11 @@ export default async function handler(req, res) {
         })
       }
 
-      // Ajouter la candidature
+      // Add candidate
       const { data: candidate, error: insertError } = await supabase
         .from('weekly_recipe_candidates')
         .insert({
-          weekly_contest_id: currentContest.id,
+          weekly_contest_id: contest.id,
           recipe_id: recipe_id,
           user_id: user_id,
           is_manual_entry: is_manual_entry
@@ -205,14 +298,14 @@ export default async function handler(req, res) {
 
       if (insertError) {
         if (insertError.code === '23505') {
-          console.log(`[${requestId}] Recipe already registered:`, recipe_id)
+          logWarning('Recipe already registered', { requestId, recipeId: recipe_id })
           return res.status(400).json({ 
             error: 'Recipe already registered',
             message: 'Cette recette est déjà inscrite au concours',
             requestId
           })
         }
-        console.error(`[${requestId}] Error inserting candidate:`, insertError)
+        logError('Error inserting candidate', insertError, { requestId })
         return res.status(500).json({ 
           error: 'Failed to register recipe',
           details: insertError.message,
@@ -220,16 +313,20 @@ export default async function handler(req, res) {
         })
       }
 
-      // Mettre à jour le compteur dans le concours
+      // Update contest total_candidates
       await supabase
         .from('weekly_recipe_contest')
         .update({
           total_candidates: existingCandidates.length + 1,
           updated_at: new Date().toISOString()
         })
-        .eq('id', currentContest.id)
+        .eq('id', contest.id)
 
-      console.log(`[${requestId}] Recipe successfully registered for contest`)
+      logInfo('Recipe successfully registered for contest', {
+        requestId,
+        candidateId: candidate.id,
+        contestId: contest.id
+      })
 
       return res.status(201).json({
         message: 'Recipe registered successfully',
@@ -241,13 +338,14 @@ export default async function handler(req, res) {
     if (req.method === 'DELETE') {
       const { recipe_id, user_id } = req.body
 
-      console.log(`[${requestId}] DELETE request to remove recipe from contest:`, {
+      logInfo('DELETE request to remove recipe from contest', {
+        requestId,
         recipeId: recipe_id,
         userId: user_id?.substring(0, 8) + '...'
       })
 
       if (!recipe_id || !user_id) {
-        console.log(`[${requestId}] Missing required parameters for DELETE`)
+        logWarning('Missing required parameters for DELETE', { requestId })
         return res.status(400).json({ 
           error: 'recipe_id and user_id are required',
           requestId 
@@ -259,7 +357,7 @@ export default async function handler(req, res) {
         .rpc('get_current_weekly_contest')
 
       if (contestError || !contest || contest.length === 0) {
-        console.error(`[${requestId}] Failed to get current weekly contest for DELETE:`, contestError)
+        logError('Failed to get current weekly contest for DELETE', contestError, { requestId })
         return res.status(500).json({ 
           error: 'Failed to get current weekly contest',
           details: contestError?.message,
@@ -279,7 +377,7 @@ export default async function handler(req, res) {
         .select()
 
       if (deleteError) {
-        console.error(`[${requestId}] Error deleting candidate:`, deleteError)
+        logError('Error deleting candidate', deleteError, { requestId })
         return res.status(500).json({ 
           error: 'Failed to remove recipe from contest',
           details: deleteError.message,
@@ -288,7 +386,7 @@ export default async function handler(req, res) {
       }
 
       if (!deleted || deleted.length === 0) {
-        console.log(`[${requestId}] No candidate found to delete`)
+        logWarning('No candidate found to delete', { requestId })
         return res.status(404).json({ 
           error: 'Candidate not found',
           message: 'Cette recette n\'était pas inscrite au concours',
@@ -310,7 +408,11 @@ export default async function handler(req, res) {
         })
         .eq('id', currentContest.id)
 
-      console.log(`[${requestId}] Recipe successfully removed from contest`)
+      logInfo('Recipe successfully removed from contest', {
+        requestId,
+        recipeId: recipe_id,
+        contestId: currentContest.id
+      })
 
       return res.status(200).json({
         message: 'Recipe removed from contest successfully',
@@ -318,17 +420,17 @@ export default async function handler(req, res) {
       })
     }
 
-    console.log(`[${requestId}] Method not allowed:`, req.method)
+    logWarning('Method not allowed', { requestId, method: req.method })
     return res.status(405).json({ 
       error: 'Method not allowed',
       requestId 
     })
 
   } catch (error) {
-    console.error(`[${requestId}] API Error:`, {
-      message: error.message,
-      stack: error.stack,
-      name: error.name
+    logError('Weekly contest participation API error', error, { 
+      requestId, 
+      method: req.method, 
+      query: req.query 
     })
     
     return res.status(500).json({ 

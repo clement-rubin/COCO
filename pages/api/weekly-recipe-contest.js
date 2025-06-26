@@ -1,5 +1,5 @@
 import { supabase } from '../../lib/supabase'
-import { logInfo, logError } from '../../utils/logger'
+import { logInfo, logError, logWarning } from '../../utils/logger'
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -13,8 +13,22 @@ export default async function handler(req, res) {
   const requestId = `weekly-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`
 
   try {
+    logInfo('Weekly recipe contest API called', { 
+      requestId, 
+      method: req.method, 
+      query: req.query 
+    })
+
     if (req.method === 'GET') {
       const { user_id } = req.query
+
+      if (!user_id) {
+        logWarning('Weekly contest GET: missing user_id', { requestId })
+        return res.status(400).json({ 
+          error: 'user_id parameter is required',
+          requestId 
+        })
+      }
 
       // Obtenir la semaine courante
       const now = new Date()
@@ -26,6 +40,12 @@ export default async function handler(req, res) {
       endOfWeek.setDate(startOfWeek.getDate() + 6)
       endOfWeek.setHours(23, 59, 59, 999)
 
+      logInfo('Weekly contest: calculated week dates', {
+        requestId,
+        startOfWeek: startOfWeek.toISOString(),
+        endOfWeek: endOfWeek.toISOString()
+      })
+
       // Obtenir ou créer le concours de la semaine
       let { data: weeklyContest, error: contestError } = await supabase
         .from('weekly_recipe_contest')
@@ -33,24 +53,39 @@ export default async function handler(req, res) {
         .eq('week_start', startOfWeek.toISOString().split('T')[0])
         .single()
 
+      logInfo('Weekly contest query result', {
+        requestId,
+        hasData: !!weeklyContest,
+        hasError: !!contestError,
+        errorCode: contestError?.code,
+        errorMessage: contestError?.message
+      })
+
       if (contestError && contestError.code === 'PGRST116') {
+        logInfo('Creating new weekly contest', { requestId })
         // Créer un nouveau concours si il n'existe pas
         const { data: newContest, error: createError } = await supabase
           .from('weekly_recipe_contest')
           .insert({
             week_start: startOfWeek.toISOString().split('T')[0],
             week_end: endOfWeek.toISOString().split('T')[0],
-            status: 'active'
+            status: 'active',
+            total_votes: 0,
+            total_candidates: 0
           })
           .select()
           .single()
 
-        if (createError) throw createError
+        if (createError) {
+          logError('Error creating weekly contest', createError, { requestId })
+          throw createError
+        }
         weeklyContest = newContest
 
         // Sélectionner automatiquement les candidats de la semaine
-        await selectWeeklyCandiates(weeklyContest.id, startOfWeek, endOfWeek)
+        await selectWeeklyCandiates(weeklyContest.id, startOfWeek, endOfWeek, requestId)
       } else if (contestError) {
+        logError('Error fetching weekly contest', contestError, { requestId })
         throw contestError
       }
 
@@ -83,7 +118,10 @@ export default async function handler(req, res) {
         .eq('weekly_contest_id', weeklyContest.id)
         .order('votes_received', { ascending: false })
 
-      if (candidatesError) throw candidatesError
+      if (candidatesError) {
+        logError('Error fetching candidates', candidatesError, { requestId })
+        throw candidatesError
+      }
 
       // Vérifier si l'utilisateur a déjà voté
       let hasUserVoted = false
@@ -96,7 +134,7 @@ export default async function handler(req, res) {
           .single()
 
         if (voteError && voteError.code !== 'PGRST116') {
-          logError('Error checking user vote', voteError)
+          logError('Error checking user vote', voteError, { requestId })
         }
 
         hasUserVoted = !!userVote
@@ -110,13 +148,13 @@ export default async function handler(req, res) {
         hasUserVoted: hasUserVoted
       })) || []
 
-      logInfo('Weekly recipe contest data retrieved', {
+      logInfo('Weekly recipe contest data retrieved successfully', {
         requestId,
         contestId: weeklyContest.id,
         candidatesCount: enrichedCandidates.length,
         totalVotes: weeklyContest.total_votes,
         hasUserVoted,
-        userId: user_id
+        userId: user_id?.substring(0, 8) + '...'
       })
 
       return res.status(200).json({
@@ -125,7 +163,8 @@ export default async function handler(req, res) {
         weekStart: startOfWeek.toISOString(),
         weekEnd: endOfWeek.toISOString(),
         totalVotes: weeklyContest.total_votes || 0,
-        hasUserVoted
+        hasUserVoted,
+        requestId
       })
     }
 
@@ -289,21 +328,29 @@ export default async function handler(req, res) {
 
     return res.status(405).json({
       error: 'Méthode non autorisée',
-      allowedMethods: ['GET', 'POST']
+      allowedMethods: ['GET', 'POST'],
+      requestId
     })
 
   } catch (error) {
-    logError('Weekly recipe contest API error', error, { requestId })
+    logError('Weekly recipe contest API error', error, { 
+      requestId, 
+      method: req.method, 
+      query: req.query 
+    })
     return res.status(500).json({
       error: 'Erreur serveur',
-      message: error.message
+      message: error.message,
+      requestId
     })
   }
 }
 
 // Fonction pour sélectionner automatiquement les candidats de la semaine
-async function selectWeeklyCandiates(contestId, startOfWeek, endOfWeek) {
+async function selectWeeklyCandiates(contestId, startOfWeek, endOfWeek, requestId) {
   try {
+    logInfo('Selecting weekly candidates', { requestId, contestId })
+    
     // Sélectionner les 10 recettes les plus populaires de la semaine
     const { data: topRecipes, error: recipesError } = await supabase
       .from('recipes')
@@ -319,16 +366,22 @@ async function selectWeeklyCandiates(contestId, startOfWeek, endOfWeek) {
       .limit(10)
 
     if (recipesError) {
-      logError('Error selecting weekly candidates', recipesError)
+      logError('Error selecting weekly candidates', recipesError, { requestId })
       return
     }
+
+    logInfo('Found recipes for weekly selection', {
+      requestId,
+      recipesCount: topRecipes?.length || 0
+    })
 
     if (topRecipes && topRecipes.length > 0) {
       const candidates = topRecipes.map(recipe => ({
         weekly_contest_id: contestId,
         recipe_id: recipe.id,
         user_id: recipe.user_id,
-        is_manual_entry: false
+        is_manual_entry: false,
+        votes_received: 0
       }))
 
       const { error: insertError } = await supabase
@@ -336,9 +389,10 @@ async function selectWeeklyCandiates(contestId, startOfWeek, endOfWeek) {
         .insert(candidates)
 
       if (insertError) {
-        logError('Error inserting weekly candidates', insertError)
+        logError('Error inserting weekly candidates', insertError, { requestId })
       } else {
         logInfo('Weekly candidates selected automatically', {
+          requestId,
           contestId,
           candidatesCount: candidates.length
         })
@@ -351,6 +405,6 @@ async function selectWeeklyCandiates(contestId, startOfWeek, endOfWeek) {
       }
     }
   } catch (error) {
-    logError('Error in selectWeeklyCandiates', error)
+    logError('Error in selectWeeklyCandiates', error, { requestId })
   }
 }

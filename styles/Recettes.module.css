@@ -2,6 +2,7 @@
   min-height: 100vh;
   background: linear-gradient(135deg, #ffeaa7 0%, #fab1a0 100%);
   padding: 0;
+}
 
 .loading {
   display: flex;
@@ -378,7 +379,6 @@
   .statLabel {
     font-size: 0.75rem;
   }
-}
 }
 
 .debugSection h4 {

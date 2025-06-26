@@ -25,6 +25,9 @@ export default function MesRecettes() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [filter, setFilter] = useState('all') // all, quick, complete
+  // États pour les logs de debug
+  const [debugLogs, setDebugLogs] = useState([])
+  const [showLogs, setShowLogs] = useState(false)
   // Nouveaux états pour la participation au concours
   const [showParticipationModal, setShowParticipationModal] = useState(false)
   const [participatingRecipes, setParticipatingRecipes] = useState(new Set())
@@ -32,12 +35,19 @@ export default function MesRecettes() {
   const [weekInfo, setWeekInfo] = useState(null)
 
   useEffect(() => {
+    addDebugLog('INFO', 'Component mounted', {
+      authLoading,
+      user: user ? { id: user.id?.substring(0, 8) + '...', email: user.email } : null
+    })
+
     if (!authLoading && !user) {
+      addDebugLog('WARNING', 'No user found, redirecting to login')
       router.push('/login?redirect=' + encodeURIComponent('/mes-recettes'))
       return
     }
 
     if (user) {
+      addDebugLog('INFO', 'User authenticated, loading data')
       loadUserRecipes()
       loadParticipationStatus()
     }
@@ -52,6 +62,10 @@ export default function MesRecettes() {
 
       // Vérification préalable de l'utilisateur
       if (!user || !user.id) {
+        addDebugLog('ERROR', 'No user or user ID available during recipe loading', {
+          user: !!user,
+          userId: user?.id
+        })
         logError('No user or user ID available during recipe loading', new Error('User not authenticated'), {
           user: !!user,
           userId: user?.id,
@@ -60,6 +74,11 @@ export default function MesRecettes() {
         setError('Utilisateur non authentifié')
         return
       }
+
+      addDebugLog('INFO', 'Loading user recipes directly from database', {
+        userId: user.id?.substring(0, 8) + '...',
+        timestamp: new Date().toISOString()
+      })
 
       logInfo('Loading user recipes directly from database', {
         userId: user.id?.substring(0, 8) + '...',
@@ -70,6 +89,10 @@ export default function MesRecettes() {
       // Utilisation directe de Supabase comme dans test-recipes.js
       const { supabase } = await import('../lib/supabase')
       
+      addDebugLog('INFO', 'Supabase client imported successfully', {
+        userId: user.id?.substring(0, 8) + '...'
+      })
+
       logInfo('Supabase client imported successfully', {
         userId: user.id?.substring(0, 8) + '...',
         component: 'MesRecettes'
@@ -100,6 +123,13 @@ export default function MesRecettes() {
         .order('created_at', { ascending: false })
 
       if (supabaseError) {
+        addDebugLog('ERROR', 'Supabase query error for user recipes', {
+          userId: user.id?.substring(0, 8) + '...',
+          errorCode: supabaseError.code,
+          errorMessage: supabaseError.message,
+          errorDetails: supabaseError.details,
+          errorHint: supabaseError.hint
+        })
         logError('Supabase query error for user recipes', supabaseError, {
           userId: user.id?.substring(0, 8) + '...',
           errorCode: supabaseError.code,
@@ -109,6 +139,21 @@ export default function MesRecettes() {
         })
         throw new Error(`Erreur base de données: ${supabaseError.message}`)
       }
+
+      addDebugLog('INFO', 'Raw Supabase query results', {
+        userId: user.id?.substring(0, 8) + '...',
+        resultCount: userRecipes?.length || 0,
+        isArray: Array.isArray(userRecipes),
+        hasData: !!userRecipes,
+        firstRecipePreview: userRecipes?.[0] ? {
+          id: userRecipes[0].id,
+          title: userRecipes[0].title?.substring(0, 20) + '...',
+          user_id: userRecipes[0].user_id?.substring(0, 8) + '...',
+          category: userRecipes[0].category,
+          form_mode: userRecipes[0].form_mode,
+          created_at: userRecipes[0].created_at
+        } : 'No first recipe'
+      })
 
       logInfo('Raw Supabase query results', {
         userId: user.id?.substring(0, 8) + '...',
@@ -137,6 +182,14 @@ export default function MesRecettes() {
                          recipe.user_id === user.id
 
           if (!isValid) {
+            addDebugLog('WARNING', 'Recipe filtered out during validation', {
+              recipeId: recipe?.id,
+              hasTitle: !!recipe?.title,
+              hasId: !!recipe?.id,
+              userIdMatch: recipe?.user_id === user.id,
+              recipeUserId: recipe?.user_id?.substring(0, 8) + '...',
+              expectedUserId: user.id?.substring(0, 8) + '...'
+            })
             logWarning('Recipe filtered out during validation', {
               recipeId: recipe?.id,
               hasTitle: !!recipe?.title,
@@ -171,6 +224,23 @@ export default function MesRecettes() {
           form_mode: recipe.form_mode || 'complete'
         }))
 
+      addDebugLog('SUCCESS', 'Recipes validated and processed', {
+        userId: user.id?.substring(0, 8) + '...',
+        totalFromDB: safeRecipes.length,
+        validatedCount: validatedRecipes.length,
+        filteredOut: safeRecipes.length - validatedRecipes.length,
+        categories: [...new Set(validatedRecipes.map(r => r.category))],
+        formModes: [...new Set(validatedRecipes.map(r => r.form_mode))],
+        hasImages: validatedRecipes.filter(r => r.image).length,
+        recentRecipes: validatedRecipes.slice(0, 3).map(r => ({
+          id: r.id,
+          title: r.title?.substring(0, 25) + '...',
+          category: r.category,
+          form_mode: r.form_mode,
+          created_at: r.created_at
+        }))
+      })
+      
       logInfo('Recipes validated and processed', {
         userId: user.id?.substring(0, 8) + '...',
         totalFromDB: safeRecipes.length,
@@ -193,6 +263,14 @@ export default function MesRecettes() {
       const endTime = performance.now()
       const totalDuration = endTime - startTime
 
+      addDebugLog('SUCCESS', 'User recipes loaded successfully via direct Supabase query', {
+        userId: user.id?.substring(0, 8) + '...',
+        recipesCount: validatedRecipes.length,
+        loadTime: `${totalDuration.toFixed(2)}ms`,
+        method: 'direct_supabase',
+        success: true
+      })
+
       logSuccess('User recipes loaded successfully via direct Supabase query', {
         userId: user.id?.substring(0, 8) + '...',
         recipesCount: validatedRecipes.length,
@@ -205,6 +283,14 @@ export default function MesRecettes() {
     } catch (err) {
       const endTime = performance.now()
       const totalDuration = endTime - startTime
+
+      addDebugLog('ERROR', 'Failed to load user recipes via direct query', {
+        userId: user?.id?.substring(0, 8) + '...',
+        errorMessage: err.message,
+        errorName: err.name,
+        loadTime: `${totalDuration.toFixed(2)}ms`,
+        method: 'direct_supabase'
+      })
 
       logError('Failed to load user recipes via direct query', err, {
         userId: user?.id?.substring(0, 8) + '...',
@@ -226,12 +312,22 @@ export default function MesRecettes() {
     const startTime = performance.now()
     
     try {
+      addDebugLog('INFO', 'Starting participation status loading', {
+        userId: user?.id?.substring(0, 8) + '...'
+      })
+      
       logInfo('Starting participation status loading', {
         userId: user?.id?.substring(0, 8) + '...',
         component: 'MesRecettes'
       })
       
       const apiUrl = `/api/weekly-contest-participation?user_id=${user.id}`
+      
+      addDebugLog('INFO', 'Making API call for participation status', {
+        userId: user?.id?.substring(0, 8) + '...',
+        apiUrl: apiUrl,
+        context: 'loadParticipationStatus'
+      })
       
       logApiCall('GET', apiUrl, {
         userId: user?.id?.substring(0, 8) + '...',
@@ -240,6 +336,14 @@ export default function MesRecettes() {
       })
       
       const response = await fetch(apiUrl)
+      
+      addDebugLog('INFO', 'Participation status API response received', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+        userId: user?.id?.substring(0, 8) + '...',
+        url: apiUrl
+      })
       
       logInfo('Participation status API response received', {
         status: response.status,
@@ -268,6 +372,7 @@ export default function MesRecettes() {
           }
         }
         
+        addDebugLog('ERROR', 'Participation status API call failed', errorDetails)
         logError('Participation status API call failed', new Error(`HTTP ${response.status}: ${response.statusText}`), errorDetails)
         
         // Don't throw error here, just return early to continue with recipe loading
@@ -277,6 +382,16 @@ export default function MesRecettes() {
       let data
       try {
         data = await response.json()
+        
+        addDebugLog('SUCCESS', 'Participation status response parsed successfully', {
+          hasUserCandidates: !!data.userCandidates,
+          userCandidatesCount: data.userCandidates?.length || 0,
+          hasContest: !!data.contest,
+          contestId: data.contest?.id,
+          contestWeekStart: data.contest?.week_start,
+          contestWeekEnd: data.contest?.week_end,
+          userId: user?.id?.substring(0, 8) + '...'
+        })
         
         logInfo('Participation status response parsed successfully', {
           hasUserCandidates: !!data.userCandidates,
@@ -288,6 +403,11 @@ export default function MesRecettes() {
           userId: user?.id?.substring(0, 8) + '...'
         })
       } catch (parseError) {
+        addDebugLog('ERROR', 'Failed to parse participation status response', {
+          userId: user?.id?.substring(0, 8) + '...',
+          responseStatus: response.status,
+          parseError: parseError.message
+        })
         logError('Failed to parse participation status response', parseError, {
           userId: user?.id?.substring(0, 8) + '...',
           responseStatus: response.status
@@ -316,6 +436,16 @@ export default function MesRecettes() {
       })
       
       const endTime = performance.now()
+      
+      addDebugLog('SUCCESS', 'Participation status loaded successfully', {
+        userId: user?.id?.substring(0, 8) + '...',
+        participatingRecipesCount: participatingIds.length,
+        contestId: data.contest?.id,
+        weekStart: data.contest?.week_start,
+        weekEnd: data.contest?.week_end,
+        loadTime: `${(endTime - startTime).toFixed(2)}ms`
+      })
+      
       logPerformance('Participation status loading', endTime - startTime, {
         userId: user?.id?.substring(0, 8) + '...',
         participatingRecipesCount: participatingIds.length,
@@ -332,6 +462,14 @@ export default function MesRecettes() {
       
     } catch (error) {
       const endTime = performance.now()
+      
+      addDebugLog('ERROR', 'Failed to load participation status', {
+        userId: user?.id?.substring(0, 8) + '...',
+        loadTime: `${(endTime - startTime).toFixed(2)}ms`,
+        errorMessage: error.message,
+        errorStack: error.stack?.substring(0, 500)
+      })
+      
       logError('Failed to load participation status', error, {
         userId: user?.id?.substring(0, 8) + '...',
         loadTime: `${(endTime - startTime).toFixed(2)}ms`,
@@ -352,6 +490,13 @@ export default function MesRecettes() {
 
     const startTime = performance.now()
     
+    addDebugLog('INFO', 'Participation toggle initiated', {
+      recipeId,
+      shouldParticipate,
+      userId: user?.id?.substring(0, 8) + '...',
+      currentParticipatingCount: participatingRecipes.size
+    })
+    
     logUserInteraction(
       shouldParticipate ? 'PARTICIPATE_RECIPE_CONTEST' : 'WITHDRAW_RECIPE_CONTEST', 
       'participation-toggle',
@@ -369,6 +514,12 @@ export default function MesRecettes() {
       if (shouldParticipate) {
         // Vérifier la limite avec logs
         if (weekInfo && participatingRecipes.size >= weekInfo.maxCandidates) {
+          addDebugLog('WARNING', 'Recipe participation limit reached', {
+            currentCount: participatingRecipes.size,
+            maxAllowed: weekInfo.maxCandidates,
+            userId: user?.id?.substring(0, 8) + '...',
+            recipeId
+          })
           logWarning('Recipe participation limit reached', {
             currentCount: participatingRecipes.size,
             maxAllowed: weekInfo.maxCandidates,
@@ -380,6 +531,12 @@ export default function MesRecettes() {
         }
 
         // Inscrire la recette au concours hebdomadaire
+        addDebugLog('INFO', 'Registering recipe for contest', {
+          recipeId,
+          userId: user?.id?.substring(0, 8) + '...',
+          isManualEntry: true
+        })
+        
         const response = await fetch('/api/weekly-contest-participation', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -388,6 +545,15 @@ export default function MesRecettes() {
             user_id: user.id,
             is_manual_entry: true
           })
+        })
+
+        addDebugLog('INFO', 'Recipe participation API response', {
+          recipeId,
+          userId: user?.id?.substring(0, 8) + '...',
+          isManualEntry: true,
+          status: response.status,
+          statusText: response.statusText,
+          ok: response.ok
         })
 
         logApiCall('POST', '/api/weekly-contest-participation', {
@@ -399,6 +565,12 @@ export default function MesRecettes() {
 
         if (!response.ok) {
           const errorData = await response.json()
+          addDebugLog('ERROR', 'Recipe participation API call failed', {
+            recipeId,
+            userId: user?.id?.substring(0, 8) + '...',
+            status: response.status,
+            errorData
+          })
           logError('Recipe participation API call failed', new Error(errorData.message), {
             recipeId,
             userId: user?.id?.substring(0, 8) + '...',
@@ -412,6 +584,12 @@ export default function MesRecettes() {
         setParticipatingRecipes(prev => new Set([...prev, recipeId]))
         showSuccessNotification('🏆 Recette inscrite au concours de la semaine !')
         
+        addDebugLog('SUCCESS', 'Recipe successfully registered for contest', {
+          recipeId,
+          userId: user?.id?.substring(0, 8) + '...',
+          newParticipatingCount: participatingRecipes.size + 1
+        })
+        
         logSuccess('Recipe successfully registered for contest', {
           recipeId,
           userId: user?.id?.substring(0, 8) + '...',
@@ -420,6 +598,11 @@ export default function MesRecettes() {
 
       } else {
         // Retirer la recette du concours hebdomadaire
+        addDebugLog('INFO', 'Withdrawing recipe from contest', {
+          recipeId,
+          userId: user?.id?.substring(0, 8) + '...'
+        })
+        
         const response = await fetch('/api/weekly-contest-participation', {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
@@ -427,6 +610,14 @@ export default function MesRecettes() {
             recipe_id: recipeId,
             user_id: user.id
           })
+        })
+
+        addDebugLog('INFO', 'Recipe withdrawal API response', {
+          recipeId,
+          userId: user?.id?.substring(0, 8) + '...',
+          status: response.status,
+          statusText: response.statusText,
+          ok: response.ok
         })
 
         logApiCall('DELETE', '/api/weekly-contest-participation', {
@@ -437,6 +628,12 @@ export default function MesRecettes() {
 
         if (!response.ok) {
           const errorData = await response.json()
+          addDebugLog('ERROR', 'Recipe withdrawal API call failed', {
+            recipeId,
+            userId: user?.id?.substring(0, 8) + '...',
+            status: response.status,
+            errorData
+          })
           logError('Recipe withdrawal API call failed', new Error(errorData.message), {
             recipeId,
             userId: user?.id?.substring(0, 8) + '...',
@@ -454,6 +651,12 @@ export default function MesRecettes() {
         })
         showSuccessNotification('✅ Recette retirée du concours')
         
+        addDebugLog('SUCCESS', 'Recipe successfully withdrawn from contest', {
+          recipeId,
+          userId: user?.id?.substring(0, 8) + '...',
+          newParticipatingCount: participatingRecipes.size - 1
+        })
+        
         logSuccess('Recipe successfully withdrawn from contest', {
           recipeId,
           userId: user?.id?.substring(0, 8) + '...',
@@ -466,6 +669,13 @@ export default function MesRecettes() {
 
     } catch (error) {
       const endTime = performance.now()
+      addDebugLog('ERROR', 'Error toggling participation', {
+        recipeId,
+        shouldParticipate,
+        userId: user?.id?.substring(0, 8) + '...',
+        duration: `${(endTime - startTime).toFixed(2)}ms`,
+        errorMessage: error.message
+      })
       logError('Error toggling participation', error, {
         recipeId,
         shouldParticipate,
@@ -521,6 +731,12 @@ export default function MesRecettes() {
   const handleDeleteRecipe = async (recipeId) => {
     if (!user) return
     if (!window.confirm('Êtes-vous sûr de vouloir supprimer cette recette ?')) return
+    
+    addDebugLog('INFO', 'Delete recipe initiated', {
+      recipeId,
+      userId: user?.id?.substring(0, 8) + '...'
+    })
+    
     const success = await deleteUserRecipe(recipeId, user.id)
     if (success) {
       setRecipes(recipes => recipes.filter(r => r.id !== recipeId))
@@ -530,36 +746,63 @@ export default function MesRecettes() {
         newSet.delete(recipeId)
         return newSet
       })
+      
+      addDebugLog('SUCCESS', 'Recipe deleted successfully', {
+        recipeId,
+        userId: user?.id?.substring(0, 8) + '...'
+      })
     } else {
+      addDebugLog('ERROR', 'Failed to delete recipe', {
+        recipeId,
+        userId: user?.id?.substring(0, 8) + '...'
+      })
       alert('Erreur lors de la suppression de la recette.')
     }
   }
 
   // Handler pour édition d'une recette
   const handleEditRecipe = (recipeId) => {
+    addDebugLog('INFO', 'Edit recipe initiated', {
+      recipeId,
+      userId: user?.id?.substring(0, 8) + '...'
+    })
     router.push(`/edit-recipe/${recipeId}`)
   }
 
-  if (authLoading || loading) {
-    return (
-      <div className={styles.loadingContainer}>
-        <div className={styles.loadingSpinner}></div>
-        <p>Chargement de vos recettes...</p>
-      </div>
-    )
+  // Fonction pour vider les logs
+  const handleClearLogs = () => {
+    setDebugLogs([])
+    addDebugLog('INFO', 'Debug logs cleared by user')
   }
 
-  if (error) {
-    return (
-      <div className={styles.errorContainer}>
-        <div className={styles.errorIcon}>😓</div>
-        <h3>Erreur de chargement</h3>
-        <p>{error}</p>
-        <button onClick={loadUserRecipes} className={styles.retryButton}>
-          Réessayer
-        </button>
-      </div>
-    )
+  // Fonction pour copier les logs
+  const handleCopyLogs = () => {
+    const logsData = {
+      timestamp: new Date().toISOString(),
+      logs: debugLogs.slice(0, 20),
+      user: user ? { id: user.id?.substring(0, 8) + '...', email: user.email } : null,
+      recipes: recipes.length,
+      participatingRecipes: participatingRecipes.size
+    }
+    navigator.clipboard.writeText(JSON.stringify(logsData, null, 2))
+    alert('Logs copiés dans le presse-papiers !')
+  }
+
+  // Fonction pour ajouter des logs de debug
+  const addDebugLog = (level, message, data = null) => {
+    const timestamp = new Date().toISOString()
+    const logEntry = {
+      id: `${timestamp}-${Math.random().toString(36).substring(2, 8)}`,
+      timestamp,
+      level,
+      message,
+      data: data ? JSON.stringify(data, null, 2) : null
+    }
+    
+    setDebugLogs(prev => [logEntry, ...prev.slice(0, 49)]) // Garder les 50 derniers logs
+    
+    // Log aussi dans la console
+    console.log(`[MES-RECETTES-${level}] ${message}`, data)
   }
 
   return (
@@ -568,6 +811,66 @@ export default function MesRecettes() {
         <title>Mes Recettes - COCO</title>
         <meta name="description" content="Toutes mes recettes sur COCO" />
       </Head>
+
+      {/* Section Logs */}
+      <div className={styles.logsSection}>
+        <button 
+          onClick={() => setShowLogs(!showLogs)}
+          className={styles.logsToggle}
+        >
+          {showLogs ? '📋 Masquer Logs' : '📋 Afficher Logs'}
+          <span className={styles.logsBadge}>{debugLogs.length}</span>
+        </button>
+
+        {showLogs && (
+          <div className={styles.logsPanel}>
+            <div className={styles.logsHeader}>
+              <h3>📋 Logs de Debug</h3>
+              <div className={styles.logsStats}>
+                <span>Total: {debugLogs.length}</span>
+                <span>Recettes: {recipes.length}</span>
+                <span>En concours: {participatingRecipes.size}</span>
+              </div>
+            </div>
+            
+            <div className={styles.logsContent}>
+              <div className={styles.logsContainer}>
+                {debugLogs.slice(0, 15).map(log => (
+                  <div key={log.id} className={`${styles.logEntry} ${styles[log.level.toLowerCase()]}`}>
+                    <div className={styles.logHeader}>
+                      <span className={`${styles.logLevel} ${styles[log.level.toLowerCase()]}`}>
+                        {log.level}
+                      </span>
+                      <span className={styles.logTime}>
+                        {new Date(log.timestamp).toLocaleTimeString()}
+                      </span>
+                    </div>
+                    <div className={styles.logMessage}>{log.message}</div>
+                    {log.data && (
+                      <details className={styles.logDetails}>
+                        <summary>Détails</summary>
+                        <pre className={styles.logData}>{log.data}</pre>
+                      </details>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className={styles.logsActions}>
+              <button onClick={handleClearLogs} className={styles.clearLogsBtn}>
+                🗑️ Vider
+              </button>
+              <button onClick={handleCopyLogs} className={styles.copyLogsBtn}>
+                📋 Copier
+              </button>
+              <button onClick={() => {loadUserRecipes(); loadParticipationStatus();}} className={styles.refreshBtn}>
+                🔄 Actualiser
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
 
       <div className={styles.header}>
         <button onClick={() => router.back()} className={styles.backButton}>
@@ -1728,6 +2031,247 @@ export default function MesRecettes() {
           transform: translateY(-2px);
           box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
         }
+
+        /* Styles pour la section des logs */
+        .${styles.logsSection} {
+          margin-bottom: 40px;
+        }
+
+        .${styles.logsToggle} {
+          background: #1e293b;
+          color: white;
+          border: none;
+          padding: 12px 20px;
+          border-radius: 12px;
+          cursor: pointer;
+          font-weight: 600;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          transition: all 0.3s ease;
+          box-shadow: 0 2px 10px rgba(30, 41, 59, 0.3);
+          position: relative;
+        }
+
+        .${styles.logsToggle}:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 15px rgba(30, 41, 59, 0.4);
+        }
+
+        .${styles.logsBadge} {
+          background: #10b981;
+          color: white;
+          padding: 4px 8px;
+          border-radius: 10px;
+          font-size: 0.8rem;
+          font-weight: 700;
+          position: absolute;
+          top: 8px;
+          right: 8px;
+          box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+        }
+
+        .${styles.logsPanel} {
+          background: white;
+          border-radius: 16px;
+          padding: 20px;
+          margin-top: 10px;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .${styles.logsHeader} {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 15px;
+        }
+
+        .${styles.logsStats} {
+          display: flex;
+          gap: 15px;
+          font-size: 0.9rem;
+          color: #6b7280;
+        }
+
+        .${styles.logsContent} {
+          max-height: 300px;
+          overflow-y: auto;
+          padding-right: 8px;
+        }
+
+        .${styles.logsContainer} {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .${styles.logEntry} {
+          padding: 12px 16px;
+          border-radius: 10px;
+          background: #f9fafb;
+          border: 1px solid #e5e7eb;
+          transition: all 0.3s ease;
+        }
+
+        .${styles.logEntry}:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .${styles.logHeader} {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 6px;
+        }
+
+        .${styles.logLevel} {
+          padding: 4px 8px;
+          border-radius: 10px;
+          font-size: 0.8rem;
+          font-weight: 600;
+          text-transform: uppercase;
+        }
+
+        .${styles.information} {
+          background: #2563eb;
+          color: white;
+        }
+
+        .${styles.success} {
+          background: #10b981;
+          color: white;
+        }
+
+        .${styles.warning} {
+          background: #f59e0b;
+          color: white;
+        }
+
+        .${styles.error} {
+          background: #ef4444;
+          color: white;
+        }
+
+        .${styles.logTime} {
+          font-size: 0.75rem;
+          color: #6b7280;
+        }
+
+        .${styles.logMessage} {
+          margin: 0;
+          color: #1e293b;
+          font-size: 0.9rem;
+        }
+
+        .${styles.logDetails} {
+          margin-top: 8px;
+          padding: 10px;
+          border-radius: 8px;
+          background: #f3f4f6;
+          overflow-x: auto;
+        }
+
+        .${styles.logData} {
+          font-family: monospace;
+          font-size: 0.85rem;
+          color: #374151;
+          white-space: pre;
+        }
+
+        .${styles.logsActions} {
+          display: flex;
+          justify-content: flex-end;
+          gap: 10px;
+          margin-top: 10px;
+        }
+
+        .${styles.clearLogsBtn}, .${styles.copyLogsBtn}, .${styles.refreshBtn} {
+          background: #2563eb;
+          color: white;
+          border: none;
+          padding: 10px 16px;
+          border-radius: 10px;
+          cursor: pointer;
+          font-weight: 600;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          transition: all 0.3s ease;
+          box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+        }
+
+        .${styles.clearLogsBtn}:hover, .${styles.copyLogsBtn}:hover, .${styles.refreshBtn}:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+        }
+
+        /* Fin des styles pour la section des logs */
+
+        /* Styles globaux */
+        body {
+          margin: 0;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          background: #f3f4f6;
+          color: #1e293b;
+          line-height: 1.6;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+          margin: 0;
+          color: #1e293b;
+          font-weight: 700;
+        }
+
+        p {
+          margin: 0;
+          color: #475569;
+          font-size: 1rem;
+        }
+
+        a {
+          color: #2563eb;
+          text-decoration: none;
+          transition: color 0.3s ease;
+        }
+
+        a:hover {
+          color: #1d4ed8;
+        }
+
+        /* Boutons globaux */
+        .btn {
+          display: inline-block;
+          padding: 10px 20px;
+          border-radius: 8px;
+          font-weight: 600;
+          text-align: center;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+          background: linear-gradient(135deg, #10b981, #059669);
+          color: white;
+          border: none;
+        }
+
+        .btn-primary:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+        }
+
+        .btn-secondary {
+          background: #e2e8f0;
+          color: #1e293b;
+          border: none;
+        }
+
+        .btn-secondary:hover {
+          background: #d1d5db;
+        }
+
+        /* Fin des styles globaux */
       `}</style>
     </div>
   )
