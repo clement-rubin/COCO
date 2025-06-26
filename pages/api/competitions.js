@@ -13,8 +13,11 @@ export default async function handler(req, res) {
   const requestId = `comp-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`
 
   try {
+    // Fermer automatiquement les compétitions expirées
+    await closeExpiredCompetitions()
+
     if (req.method === 'GET') {
-      const { status } = req.query
+      const { status, type } = req.query
 
       let query = supabase
         .from('competitions')
@@ -25,14 +28,19 @@ export default async function handler(req, res) {
             user_id,
             recipe_id,
             votes_count,
+            rank,
+            is_winner,
+            submitted_at,
             recipes (
               id,
               title,
+              description,
               image,
               author,
-              created_at
+              created_at,
+              category
             ),
-            profiles (
+            profiles:user_id (
               display_name,
               avatar_url
             )
@@ -44,17 +52,37 @@ export default async function handler(req, res) {
         query = query.eq('status', status)
       }
 
+      if (type) {
+        query = query.eq('type', type)
+      }
+
       const { data: competitions, error } = await query
 
       if (error) throw error
 
-      logInfo('Competitions retrieved', {
-        requestId,
-        count: competitions?.length || 0,
-        status
+      // Enrichir les données avec des statistiques
+      const enrichedCompetitions = competitions?.map(comp => {
+        const entries = comp.competition_entries || []
+        const totalVotes = entries.reduce((sum, entry) => sum + (entry.votes_count || 0), 0)
+        const sortedEntries = entries.sort((a, b) => (b.votes_count || 0) - (a.votes_count || 0))
+        
+        return {
+          ...comp,
+          participants_count: entries.length,
+          total_votes: totalVotes,
+          competition_entries: sortedEntries,
+          is_full: entries.length >= comp.max_participants
+        }
       })
 
-      return res.status(200).json(competitions || [])
+      logInfo('Competitions retrieved', {
+        requestId,
+        count: enrichedCompetitions?.length || 0,
+        status,
+        type
+      })
+
+      return res.status(200).json(enrichedCompetitions || [])
     }
 
     if (req.method === 'POST') {
@@ -150,12 +178,9 @@ export default async function handler(req, res) {
         }
 
         // Mettre à jour le compteur de votes
-        const { error: updateError } = await supabase
-          .from('competition_entries')
-          .update({ 
-            votes_count: supabase.raw('votes_count + 1')
-          })
-          .eq('id', entry_id)
+        const { error: updateError } = await supabase.rpc('increment_competition_vote', {
+          p_entry_id: entry_id
+        })
 
         if (updateError) {
           logError('Error updating vote count', updateError)
@@ -180,5 +205,23 @@ export default async function handler(req, res) {
       error: 'Erreur serveur',
       message: error.message
     })
+  }
+}
+
+// Fonction pour fermer automatiquement les compétitions expirées
+async function closeExpiredCompetitions() {
+  try {
+    const now = new Date().toISOString()
+    const { error } = await supabase
+      .from('competitions')
+      .update({ status: 'completed' })
+      .eq('status', 'active')
+      .lt('end_date', now)
+    
+    if (error) {
+      logError('Error closing expired competitions', error)
+    }
+  } catch (error) {
+    logError('Error in closeExpiredCompetitions', error)
   }
 }

@@ -251,11 +251,11 @@ export default function FriendsFeed({ feedType = 'featured' }) {
   }
   
   const handleSeeAllClick = () => {
-    router.push('/explorer')
+    router.push('/competitions')
   }
   
   const handleCollectionClick = (collection) => {
-    router.push(`/explorer?category=${encodeURIComponent(collection.name)}`)
+    router.push(`/competitions?category=${encodeURIComponent(collection.name)}`)
   }
 
   if (loading) {

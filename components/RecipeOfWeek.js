@@ -23,8 +23,8 @@ export default function RecipeOfWeek({ isInCompetitionPage = false }) {
     try {
       setLoading(true)
       const url = user ? 
-        `/api/recipe-of-week?user_id=${user.id}` : 
-        '/api/recipe-of-week'
+        `/api/weekly-recipe-contest?user_id=${user.id}` : 
+        '/api/weekly-recipe-contest'
       
       const response = await fetch(url)
       
@@ -37,19 +37,17 @@ export default function RecipeOfWeek({ isInCompetitionPage = false }) {
       setWeekInfo({
         weekStart: data.weekStart,
         weekEnd: data.weekEnd,
-        totalVotes: data.totalVotes
+        totalVotes: data.totalVotes,
+        contest: data.contest
       })
       
       // Vérifier si l'utilisateur a déjà voté
-      if (user && data.candidates) {
-        const userHasVoted = data.candidates.some(c => c.hasUserVoted)
-        setHasVoted(userHasVoted)
-      }
+      setHasVoted(data.hasUserVoted || false)
 
       logInfo('Recipe of week candidates loaded', {
         candidatesCount: data.candidates?.length || 0,
         totalVotes: data.totalVotes || 0,
-        userHasVoted: hasVoted
+        userHasVoted: data.hasUserVoted || false
       })
 
     } catch (error) {
@@ -59,27 +57,28 @@ export default function RecipeOfWeek({ isInCompetitionPage = false }) {
     }
   }
 
-  const handleVote = async (recipeId) => {
+  const handleVote = async (candidateId) => {
     if (!user || hasVoted || voting) return
 
     try {
       setVoting(true)
       
-      const response = await fetch('/api/recipe-of-week', {
+      const response = await fetch('/api/weekly-recipe-contest', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          recipe_id: recipeId,
-          user_id: user.id
+          action: 'vote',
+          candidate_id: candidateId,
+          voter_id: user.id
         })
       })
 
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.message || 'Erreur lors du vote')
+        throw new Error(data.error || 'Erreur lors du vote')
       }
 
       // Recharger les données après le vote

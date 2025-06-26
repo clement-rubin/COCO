@@ -424,9 +424,9 @@ function AppContent({ Component, pageProps }) {
             <span className="nav-icon">🏠</span>
             <span className="nav-label">Accueil</span>
           </Link>
-          <Link href="/explorer" className={getNavItemClass('/explorer')}>
-            <span className="nav-icon">🔍</span>
-            <span className="nav-label">Explorer</span>
+          <Link href="/competitions" className={getNavItemClass('/competitions')}>
+            <span className="nav-icon">🏆</span>
+            <span className="nav-label">Compétitions</span>
           </Link>
           <button onClick={handleShare} className="nav-item add-button">
             <span className="nav-icon">📤</span>

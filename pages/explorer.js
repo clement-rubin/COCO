@@ -243,7 +243,7 @@ export default function Explorer() {
   // Routes principales pour la navigation par swipe
   const mainRoutes = [
     { path: '/', label: 'Accueil' },
-    { path: '/explorer', label: 'Explorer' },
+    { path: '/competitions', label: 'Compétitions' },
     { path: '/share-photo', label: 'Partager' },
     { path: '/amis', label: 'Amis' }
   ];
