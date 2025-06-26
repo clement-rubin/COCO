@@ -64,10 +64,10 @@ export default function Home() {
   // Rediriger vers la page de présentation si non connecté
   useEffect(() => {
     if (!loading && !user) {
-      // Au lieu de rediriger immédiatement, donner une chance de voir un aperçu
+      // Montrer un aperçu pendant 3 secondes avant de rediriger
       const timer = setTimeout(() => {
         router.push('/presentation')
-      }, 2000) // Attendre 2 secondes pour montrer un aperçu
+      }, 3000) // Augmenter à 3 secondes pour mieux voir l'aperçu
 
       return () => clearTimeout(timer)
     }
@@ -101,9 +101,215 @@ export default function Home() {
     )
   }
 
-  // Ne pas afficher le contenu si l'utilisateur n'est pas connecté
+  // Afficher un aperçu pour les utilisateurs non connectés
   if (!user) {
-    return null // Sera redirigé
+    return (
+      <div style={{
+        background: 'linear-gradient(180deg, #fff5f0 0%, #ffffff 40%)',
+        minHeight: '100vh',
+        position: 'relative',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '20px'
+      }}>
+        <Head>
+          <title>COCO - Aperçu de la communauté culinaire</title>
+          <meta name="description" content="Découvrez COCO, la communauté pour partager et découvrir des recettes" />
+          <link rel="icon" href="/favicon.ico" />
+        </Head>
+
+        {/* Aperçu du contenu */}
+        <div style={{
+          maxWidth: '400px',
+          width: '100%',
+          textAlign: 'center',
+          marginBottom: '40px'
+        }}>
+          {/* Logo et titre */}
+          <div style={{
+            background: 'linear-gradient(135deg, #ff6b35, #f7931e)',
+            width: '80px',
+            height: '80px',
+            borderRadius: '24px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '2.5rem',
+            margin: '0 auto 24px',
+            boxShadow: '0 12px 30px rgba(255, 107, 53, 0.3)',
+            animation: 'gentleBounce 3s ease-in-out infinite'
+          }}>
+            🥥
+          </div>
+
+          <h1 style={{
+            fontSize: '2.5rem',
+            fontWeight: '800',
+            margin: '0 0 16px 0',
+            background: 'linear-gradient(135deg, #ff6b35, #f7931e)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent'
+          }}>
+            COCO
+          </h1>
+
+          <p style={{
+            fontSize: '1.2rem',
+            color: '#6b7280',
+            margin: '0 0 32px 0',
+            lineHeight: '1.5'
+          }}>
+            La communauté culinaire qui vous inspire
+          </p>
+
+          {/* Aperçu des fonctionnalités */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: '16px',
+            marginBottom: '32px'
+          }}>
+            {[
+              { icon: '📸', text: 'Partagez vos recettes' },
+              { icon: '🔍', text: 'Découvrez de nouvelles saveurs' },
+              { icon: '👥', text: 'Connectez-vous avec des passionnés' },
+              { icon: '🏆', text: 'Participez à des défis' }
+            ].map((feature, index) => (
+              <div
+                key={index}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.8)',
+                  padding: '20px 16px',
+                  borderRadius: '16px',
+                  backdropFilter: 'blur(10px)',
+                  border: '1px solid rgba(255, 107, 53, 0.1)',
+                  transition: 'all 0.3s ease',
+                  animation: `fadeInUp 0.5s ease-out ${index * 0.1}s both`
+                }}
+              >
+                <div style={{ fontSize: '1.8rem', marginBottom: '8px' }}>
+                  {feature.icon}
+                </div>
+                <p style={{
+                  fontSize: '0.9rem',
+                  color: '#374151',
+                  margin: 0,
+                  fontWeight: '500'
+                }}>
+                  {feature.text}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          {/* Message de redirection */}
+          <div style={{
+            background: 'rgba(255, 107, 53, 0.1)',
+            border: '1px solid rgba(255, 107, 53, 0.2)',
+            borderRadius: '16px',
+            padding: '20px',
+            marginBottom: '24px'
+          }}>
+            <p style={{
+              margin: '0 0 12px 0',
+              color: '#ff6b35',
+              fontWeight: '600',
+              fontSize: '1rem'
+            }}>
+              ✨ Découvrez tout ce que COCO peut vous offrir
+            </p>
+            <p style={{
+              margin: 0,
+              color: '#9ca3af',
+              fontSize: '0.9rem'
+            }}>
+              Redirection en cours vers la présentation complète...
+            </p>
+          </div>
+
+          {/* Actions rapides */}
+          <div style={{
+            display: 'flex',
+            gap: '12px',
+            justifyContent: 'center',
+            flexWrap: 'wrap'
+          }}>
+            <button
+              onClick={() => router.push('/presentation')}
+              style={{
+                background: 'linear-gradient(135deg, #ff6b35, #f7931e)',
+                color: 'white',
+                border: 'none',
+                padding: '12px 24px',
+                borderRadius: '12px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                boxShadow: '0 4px 15px rgba(255, 107, 53, 0.3)'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.transform = 'translateY(-2px)'
+                e.target.style.boxShadow = '0 6px 20px rgba(255, 107, 53, 0.4)'
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'translateY(0)'
+                e.target.style.boxShadow = '0 4px 15px rgba(255, 107, 53, 0.3)'
+              }}
+            >
+              En savoir plus
+            </button>
+            <button
+              onClick={() => router.push('/signup')}
+              style={{
+                background: 'transparent',
+                color: '#ff6b35',
+                border: '2px solid #ff6b35',
+                padding: '12px 24px',
+                borderRadius: '12px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = '#ff6b35'
+                e.target.style.color = 'white'
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = 'transparent'
+                e.target.style.color = '#ff6b35'
+              }}
+            >
+              Rejoindre
+            </button>
+          </div>
+        </div>
+
+        <style jsx>{`
+          @keyframes gentleBounce {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+          }
+          
+          @keyframes fadeInUp {
+            from {
+              opacity: 0;
+              transform: translateY(20px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+          
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
+    )
   }
 
   return (
