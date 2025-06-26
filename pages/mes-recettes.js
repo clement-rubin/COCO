@@ -50,255 +50,136 @@ export default function MesRecettes() {
       setLoading(true)
       setError(null)
 
-      // Log début du chargement
-      logInfo('Starting user recipes loading process', {
-        userId: user?.id?.substring(0, 8) + '...',
-        component: 'MesRecettes',
-        timestamp: new Date().toISOString()
-      })
-
-      // Vérification préalable de l'utilisateur avec logs détaillés
+      // Vérification préalable de l'utilisateur
       if (!user || !user.id) {
         logError('No user or user ID available during recipe loading', new Error('User not authenticated'), {
           user: !!user,
           userId: user?.id,
-          userType: typeof user,
-          userKeys: user ? Object.keys(user) : [],
-          component: 'MesRecettes',
-          context: 'loadUserRecipes'
+          component: 'MesRecettes'
         })
         setError('Utilisateur non authentifié')
         return
       }
 
-      logInfo('User validation successful for recipe loading', {
+      logInfo('Loading user recipes directly from database', {
         userId: user.id?.substring(0, 8) + '...',
-        userIdType: typeof user.id,
-        userIdLength: user.id?.length,
-        userEmail: user.email?.substring(0, 3) + '***',
+        component: 'MesRecettes',
+        timestamp: new Date().toISOString()
+      })
+
+      // Utilisation directe de Supabase comme dans test-recipes.js
+      const { supabase } = await import('../lib/supabase')
+      
+      logInfo('Supabase client imported successfully', {
+        userId: user.id?.substring(0, 8) + '...',
         component: 'MesRecettes'
       })
 
-      // Construction de l'URL avec paramètres explicites pour la table recipes
-      const apiUrl = `/api/recipes?user_id=${encodeURIComponent(user.id)}&include_user_only=true&_t=${Date.now()}`
-      
-      logApiCall('GET', apiUrl, {
+      // Requête directe à la table recipes avec filtrage par user_id
+      const { data: userRecipes, error: supabaseError } = await supabase
+        .from('recipes')
+        .select(`
+          id,
+          title,
+          description,
+          image,
+          category,
+          author,
+          user_id,
+          created_at,
+          updated_at,
+          prepTime,
+          cookTime,
+          difficulty,
+          servings,
+          ingredients,
+          instructions,
+          form_mode
+        `)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+
+      if (supabaseError) {
+        logError('Supabase query error for user recipes', supabaseError, {
+          userId: user.id?.substring(0, 8) + '...',
+          errorCode: supabaseError.code,
+          errorMessage: supabaseError.message,
+          errorDetails: supabaseError.details,
+          errorHint: supabaseError.hint
+        })
+        throw new Error(`Erreur base de données: ${supabaseError.message}`)
+      }
+
+      logInfo('Raw Supabase query results', {
         userId: user.id?.substring(0, 8) + '...',
-        includeUserOnly: true,
-        timestamp: Date.now(),
-        component: 'MesRecettes'
+        resultCount: userRecipes?.length || 0,
+        isArray: Array.isArray(userRecipes),
+        hasData: !!userRecipes,
+        firstRecipePreview: userRecipes?.[0] ? {
+          id: userRecipes[0].id,
+          title: userRecipes[0].title?.substring(0, 20) + '...',
+          user_id: userRecipes[0].user_id?.substring(0, 8) + '...',
+          category: userRecipes[0].category,
+          form_mode: userRecipes[0].form_mode,
+          created_at: userRecipes[0].created_at
+        } : 'No first recipe'
       })
 
-      // Mesure du temps de requête
-      const requestStartTime = performance.now()
-      
-      const response = await fetch(apiUrl, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user.access_token || ''}`
-        }
-      })
-      
-      const requestEndTime = performance.now()
-      const requestDuration = requestEndTime - requestStartTime
-      
-      logPerformance('API request to /api/recipes', requestDuration, {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok,
-        userId: user.id?.substring(0, 8) + '...',
-        url: apiUrl
-      })
-      
-      logInfo('API response received from recipes endpoint', {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok,
-        userId: user.id?.substring(0, 8) + '...',
-        requestDuration: `${requestDuration.toFixed(2)}ms`,
-        responseHeaders: {
-          contentType: response.headers.get('content-type'),
-          contentLength: response.headers.get('content-length')
-        }
-      })
-      
-      if (!response.ok) {
-        const errorText = await response.text()
-        
-        logError('API request to recipes endpoint failed', new Error(`HTTP ${response.status}: ${response.statusText}`), {
-          status: response.status,
-          statusText: response.statusText,
-          responseText: errorText?.substring(0, 500),
-          userId: user.id?.substring(0, 8) + '...',
-          url: apiUrl,
-          requestDuration: `${requestDuration.toFixed(2)}ms`
+      // S'assurer que nous avons un tableau valide
+      const safeRecipes = Array.isArray(userRecipes) ? userRecipes : []
+
+      // Validation et nettoyage des données
+      const validatedRecipes = safeRecipes
+        .filter(recipe => {
+          const isValid = recipe && 
+                         recipe.id && 
+                         recipe.title && 
+                         recipe.user_id === user.id
+
+          if (!isValid) {
+            logWarning('Recipe filtered out during validation', {
+              recipeId: recipe?.id,
+              hasTitle: !!recipe?.title,
+              hasId: !!recipe?.id,
+              userIdMatch: recipe?.user_id === user.id,
+              recipeUserId: recipe?.user_id?.substring(0, 8) + '...',
+              expectedUserId: user.id?.substring(0, 8) + '...'
+            })
+          }
+
+          return isValid
         })
-        
-        throw new Error(`Erreur ${response.status}: ${response.statusText}`)
-      }
-      
-      // Parse de la réponse avec logs détaillés
-      let recipesData
-      try {
-        recipesData = await response.json()
-        
-        logInfo('API response successfully parsed', {
-          dataType: typeof recipesData,
-          isArray: Array.isArray(recipesData),
-          length: recipesData?.length || 0,
-          hasError: !!recipesData?.error,
-          userId: user.id?.substring(0, 8) + '...',
-          dataKeys: recipesData && typeof recipesData === 'object' ? Object.keys(recipesData) : [],
-          sampleDataStructure: Array.isArray(recipesData) && recipesData.length > 0 ? {
-            firstRecipe: {
-              id: recipesData[0]?.id,
-              title: recipesData[0]?.title?.substring(0, 20) + '...',
-              user_id: recipesData[0]?.user_id?.substring(0, 8) + '...',
-              user_id_match: recipesData[0]?.user_id === user.id,
-              form_mode: recipesData[0]?.form_mode,
-              category: recipesData[0]?.category,
-              created_at: recipesData[0]?.created_at,
-              hasImage: !!recipesData[0]?.image,
-              imageType: typeof recipesData[0]?.image
-            }
-          } : 'No recipes available'
-        })
-      } catch (parseError) {
-        logError('Failed to parse API response as JSON', parseError, {
-          userId: user.id?.substring(0, 8) + '...',
-          responseStatus: response.status,
-          contentType: response.headers.get('content-type')
-        })
-        throw new Error('Réponse API invalide')
-      }
-      
-      // Vérifier si c'est une réponse d'erreur de l'API
-      if (recipesData?.error) {
-        logError('API returned error response', new Error(recipesData.error), {
-          apiError: recipesData.error,
-          apiMessage: recipesData.message,
-          userId: user.id?.substring(0, 8) + '...'
-        })
-        throw new Error(recipesData.message || recipesData.error)
-      }
-      
-      // S'assurer que nous avons un tableau valide avec logs détaillés
-      const recipes = Array.isArray(recipesData) ? recipesData : []
-      
-      logDatabaseOperation('SELECT', 'recipes', {
-        query: 'user recipes retrieval',
-        resultCount: recipes.length,
+        .map(recipe => ({
+          // S'assurer que tous les champs nécessaires sont présents
+          id: recipe.id,
+          title: recipe.title || 'Sans titre',
+          description: recipe.description || '',
+          image: recipe.image || null,
+          category: recipe.category || 'Autre',
+          author: recipe.author || 'Chef Anonyme',
+          user_id: recipe.user_id,
+          created_at: recipe.created_at,
+          updated_at: recipe.updated_at,
+          prepTime: recipe.prepTime || null,
+          cookTime: recipe.cookTime || null,
+          difficulty: recipe.difficulty || 'Facile',
+          servings: recipe.servings || null,
+          ingredients: Array.isArray(recipe.ingredients) ? recipe.ingredients : 
+                      typeof recipe.ingredients === 'string' ? JSON.parse(recipe.ingredients || '[]') : [],
+          instructions: Array.isArray(recipe.instructions) ? recipe.instructions :
+                       typeof recipe.instructions === 'string' ? JSON.parse(recipe.instructions || '[]') : [],
+          form_mode: recipe.form_mode || 'complete'
+        }))
+
+      logInfo('Recipes validated and processed', {
         userId: user.id?.substring(0, 8) + '...',
-        isArray: Array.isArray(recipesData),
-        originalDataType: typeof recipesData
-      })
-      
-      // Filtrage de sécurité - s'assurer qu'on a bien les recettes de l'utilisateur depuis la table recipes
-      const userRecipes = recipes.filter(recipe => {
-        const isValid = recipe && 
-                       recipe.user_id === user.id &&
-                       recipe.title && // S'assurer que la recette a un titre
-                       recipe.id // S'assurer que la recette a un ID
-        
-        if (!isValid) {
-          logWarning('Recipe filtered out during validation', {
-            recipeId: recipe?.id,
-            hasTitle: !!recipe?.title,
-            hasId: !!recipe?.id,
-            userIdMatch: recipe?.user_id === user.id,
-            recipeUserId: recipe?.user_id?.substring(0, 8) + '...',
-            expectedUserId: user.id?.substring(0, 8) + '...',
-            reason: !recipe ? 'null recipe' :
-                   !recipe.user_id ? 'no user_id' :
-                   recipe.user_id !== user.id ? 'user_id mismatch' :
-                   !recipe.title ? 'no title' :
-                   !recipe.id ? 'no id' : 'unknown'
-          })
-        }
-        
-        return isValid
-      })
-      
-      logInfo('Recipes filtered and validated successfully', {
-        totalReceived: recipes.length,
-        userRecipesCount: userRecipes.length,
-        filteredOut: recipes.length - userRecipes.length,
-        userId: user.id?.substring(0, 8) + '...',
-        allUserIdsInResponse: [...new Set(recipes.map(r => r?.user_id?.substring(0, 8) + '...').filter(Boolean))],
-        expectedUserId: user.id?.substring(0, 8) + '...',
-        recipeCategories: [...new Set(userRecipes.map(r => r.category).filter(Boolean))],
-        formModes: [...new Set(userRecipes.map(r => r.form_mode).filter(Boolean))],
-        recipesWithImages: userRecipes.filter(r => r.image).length,
-        recipesWithoutImages: userRecipes.filter(r => !r.image).length
-      })
-      
-      // Validation approfondie des données de recettes
-      userRecipes.forEach((recipe, index) => {
-        if (index < 3) { // Log détaillé des 3 premières recettes seulement
-          logDebug(`Recipe ${index + 1} detailed validation`, {
-            recipeId: recipe.id,
-            title: recipe.title?.substring(0, 30) + '...',
-            category: recipe.category,
-            formMode: recipe.form_mode,
-            hasImage: !!recipe.image,
-            imageType: typeof recipe.image,
-            imageSize: Array.isArray(recipe.image) ? recipe.image.length : (typeof recipe.image === 'string' ? recipe.image.length : 0),
-            hasIngredients: !!recipe.ingredients,
-            ingredientsCount: Array.isArray(recipe.ingredients) ? recipe.ingredients.length : 0,
-            hasInstructions: !!recipe.instructions,
-            instructionsCount: Array.isArray(recipe.instructions) ? recipe.instructions.length : 0,
-            createdAt: recipe.created_at,
-            userId: recipe.user_id?.substring(0, 8) + '...'
-          })
-        }
-      })
-      
-      // Trier par date de création (plus récentes en premier) avec logs
-      const sortedRecipes = userRecipes.sort((a, b) => {
-        const dateA = new Date(a.created_at || 0)
-        const dateB = new Date(b.created_at || 0)
-        return dateB - dateA
-      })
-      
-      logInfo('Recipes sorted by creation date', {
-        totalRecipes: sortedRecipes.length,
-        oldestRecipe: sortedRecipes.length > 0 ? {
-          id: sortedRecipes[sortedRecipes.length - 1]?.id,
-          title: sortedRecipes[sortedRecipes.length - 1]?.title?.substring(0, 20) + '...',
-          createdAt: sortedRecipes[sortedRecipes.length - 1]?.created_at
-        } : null,
-        newestRecipe: sortedRecipes.length > 0 ? {
-          id: sortedRecipes[0]?.id,
-          title: sortedRecipes[0]?.title?.substring(0, 20) + '...',
-          createdAt: sortedRecipes[0]?.created_at
-        } : null
-      })
-      
-      setRecipes(sortedRecipes)
-      
-      const endTime = performance.now()
-      const totalDuration = endTime - startTime
-      
-      logPerformance('Complete user recipes loading', totalDuration, {
-        userId: user.id?.substring(0, 8) + '...',
-        finalCount: sortedRecipes.length,
-        component: 'MesRecettes',
-        phases: {
-          apiRequest: `${requestDuration.toFixed(2)}ms`,
-          total: `${totalDuration.toFixed(2)}ms`
-        },
-        success: true
-      })
-      
-      logSuccess('User recipes loaded successfully', {
-        userId: user.id?.substring(0, 8) + '...',
-        recipesCount: sortedRecipes.length,
-        component: 'MesRecettes',
-        loadTime: `${totalDuration.toFixed(2)}ms`,
-        categoriesFound: [...new Set(sortedRecipes.map(r => r.category).filter(Boolean))],
-        formModesFound: [...new Set(sortedRecipes.map(r => r.form_mode).filter(Boolean))],
-        recentRecipes: sortedRecipes.slice(0, 3).map(r => ({
+        totalFromDB: safeRecipes.length,
+        validatedCount: validatedRecipes.length,
+        filteredOut: safeRecipes.length - validatedRecipes.length,
+        categories: [...new Set(validatedRecipes.map(r => r.category))],
+        formModes: [...new Set(validatedRecipes.map(r => r.form_mode))],
+        hasImages: validatedRecipes.filter(r => r.image).length,
+        recentRecipes: validatedRecipes.slice(0, 3).map(r => ({
           id: r.id,
           title: r.title?.substring(0, 25) + '...',
           category: r.category,
@@ -306,31 +187,37 @@ export default function MesRecettes() {
           created_at: r.created_at
         }))
       })
-      
+
+      setRecipes(validatedRecipes)
+
+      const endTime = performance.now()
+      const totalDuration = endTime - startTime
+
+      logSuccess('User recipes loaded successfully via direct Supabase query', {
+        userId: user.id?.substring(0, 8) + '...',
+        recipesCount: validatedRecipes.length,
+        loadTime: `${totalDuration.toFixed(2)}ms`,
+        component: 'MesRecettes',
+        method: 'direct_supabase',
+        success: true
+      })
+
     } catch (err) {
       const endTime = performance.now()
       const totalDuration = endTime - startTime
-      
-      logError('Failed to load user recipes', err, {
+
+      logError('Failed to load user recipes via direct query', err, {
         userId: user?.id?.substring(0, 8) + '...',
         component: 'MesRecettes',
         errorMessage: err.message,
         errorName: err.name,
-        errorStack: err.stack?.substring(0, 500) + '...',
         loadTime: `${totalDuration.toFixed(2)}ms`,
-        context: 'loadUserRecipes',
-        timestamp: new Date().toISOString()
+        method: 'direct_supabase'
       })
-      
+
       setError(`Impossible de charger vos recettes: ${err.message}`)
     } finally {
       setLoading(false)
-      
-      logComponentEvent('MesRecettes', 'LOADING_COMPLETED', {
-        userId: user?.id?.substring(0, 8) + '...',
-        hasError: !!error,
-        recipesLoaded: recipes.length
-      })
     }
   }
 

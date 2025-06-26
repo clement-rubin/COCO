@@ -303,79 +303,133 @@ export default async function handler(req, res) {
         // Apply filters only if they have valid values
         if (user_id && !friendsOnly) {
           try {
-            logInfo('Fetching recipes for specific user', {
+            logInfo('Fetching recipes for specific user via API', {
               reference: requestReference,
-              userId: user_id,
+              userId: user_id?.substring(0, 8) + '...',
               userIdType: typeof user_id,
               userIdLength: user_id.length
             })
             
-            // Requête simplifiée et directe
+            // Requête simplifiée et directe comme dans test-recipes
             const { data: userRecipes, error: userError } = await supabase
               .from('recipes')
-              .select('*')
+              .select(`
+                id,
+                title,
+                description,
+                image,
+                category,
+                author,
+                user_id,
+                created_at,
+                updated_at,
+                prepTime,
+                cookTime,
+                difficulty,
+                servings,
+                ingredients,
+                instructions,
+                form_mode
+              `)
               .eq('user_id', user_id)
               .order('created_at', { ascending: false })
             
             if (userError) {
-              logError('Error fetching user recipes', userError, {
+              logError('Error fetching user recipes from database', userError, {
                 reference: requestReference,
-                userId: user_id,
+                userId: user_id?.substring(0, 8) + '...',
                 errorCode: userError.code,
                 errorMessage: userError.message,
-                errorDetails: userError.details
+                errorDetails: userError.details,
+                errorHint: userError.hint,
+                table: 'recipes',
+                operation: 'SELECT'
               })
+              
               return safeResponse(res, 500, {
                 error: 'Erreur lors de la récupération des recettes utilisateur',
                 message: userError.message,
-                reference: requestReference
+                reference: requestReference,
+                table: 'recipes',
+                operation: 'user_recipes_query'
               })
             }
             
-            // Validation des données retournées
-            const safeUserRecipes = (userRecipes || []).map(recipe => ({
-              id: recipe.id,
-              title: recipe.title || 'Sans titre',
-              description: recipe.description || '',
-              image: recipe.image || null,
-              category: recipe.category || 'Autre',
-              author: recipe.author || 'Chef Anonyme',
-              user_id: recipe.user_id,
-              created_at: recipe.created_at,
-              updated_at: recipe.updated_at,
-              ingredients: Array.isArray(recipe.ingredients) ? recipe.ingredients : [],
-              instructions: Array.isArray(recipe.instructions) ? recipe.instructions : [],
-              difficulty: recipe.difficulty || 'Facile',
-              prepTime: recipe.prepTime || null,
-              cookTime: recipe.cookTime || null,
-              servings: recipe.servings || null,
-              form_mode: recipe.form_mode || 'complete'
-            }))
+            // Validation et nettoyage des données comme dans test-recipes
+            const safeUserRecipes = (userRecipes || []).map(recipe => {
+              try {
+                return {
+                  id: recipe.id,
+                  title: recipe.title || 'Sans titre',
+                  description: recipe.description || '',
+                  image: recipe.image || null,
+                  category: recipe.category || 'Autre',
+                  author: recipe.author || 'Chef Anonyme',
+                  user_id: recipe.user_id,
+                  created_at: recipe.created_at,
+                  updated_at: recipe.updated_at,
+                  prepTime: recipe.prepTime || null,
+                  cookTime: recipe.cookTime || null,
+                  difficulty: recipe.difficulty || 'Facile',
+                  servings: recipe.servings || null,
+                  ingredients: Array.isArray(recipe.ingredients) ? recipe.ingredients :
+                              typeof recipe.ingredients === 'string' ? JSON.parse(recipe.ingredients || '[]') :
+                              [],
+                  instructions: Array.isArray(recipe.instructions) ? recipe.instructions :
+                               typeof recipe.instructions === 'string' ? JSON.parse(recipe.instructions || '[]') :
+                               [],
+                  form_mode: recipe.form_mode || 'complete'
+                }
+              } catch (parseError) {
+                logWarning('Error parsing recipe data, using fallback', {
+                  recipeId: recipe?.id,
+                  parseError: parseError.message,
+                  originalIngredients: typeof recipe?.ingredients,
+                  originalInstructions: typeof recipe?.instructions
+                })
+                
+                return {
+                  ...recipe,
+                  ingredients: [],
+                  instructions: [],
+                  form_mode: recipe.form_mode || 'complete'
+                }
+              }
+            })
             
-            logInfo('User recipes fetched successfully', {
+            // Filtrage final de sécurité
+            const validRecipes = safeUserRecipes.filter(recipe => 
+              recipe && recipe.id && recipe.title && recipe.user_id === user_id
+            )
+            
+            logInfo('User recipes processed successfully via API', {
               reference: requestReference,
-              userId: user_id,
-              totalCount: safeUserRecipes.length,
-              recipesPreview: safeUserRecipes.slice(0, 3).map(r => ({
+              userId: user_id?.substring(0, 8) + '...',
+              totalFromDB: userRecipes?.length || 0,
+              afterProcessing: safeUserRecipes.length,
+              afterValidation: validRecipes.length,
+              recipesPreview: validRecipes.slice(0, 3).map(r => ({
                 id: r.id,
-                title: r.title,
+                title: r.title?.substring(0, 20) + '...',
                 category: r.category,
                 form_mode: r.form_mode,
                 created_at: r.created_at
               })),
               formModeBreakdown: {
-                quick: safeUserRecipes.filter(r => r.form_mode === 'quick').length,
-                complete: safeUserRecipes.filter(r => r.form_mode === 'complete').length,
-                unknown: safeUserRecipes.filter(r => !r.form_mode).length
-              }
+                quick: validRecipes.filter(r => r.form_mode === 'quick').length,
+                complete: validRecipes.filter(r => r.form_mode === 'complete').length,
+                unknown: validRecipes.filter(r => !r.form_mode || r.form_mode === '').length
+              },
+              categoriesFound: [...new Set(validRecipes.map(r => r.category))],
+              hasImages: validRecipes.filter(r => r.image).length
             })
             
-            return safeResponse(res, 200, safeUserRecipes)
+            return safeResponse(res, 200, validRecipes)
             
           } catch (userFetchError) {
-            logError('Exception in user recipes fetch', userFetchError, {
+            logError('Exception in user recipes fetch via API', userFetchError, {
               reference: requestReference,
-              userId: user_id,
+              userId: user_id?.substring(0, 8) + '...',
               errorMessage: userFetchError.message,
               errorStack: userFetchError.stack?.substring(0, 500)
             })
@@ -383,7 +437,8 @@ export default async function handler(req, res) {
             return safeResponse(res, 500, {
               error: 'Erreur lors de la récupération des recettes',
               message: userFetchError.message,
-              reference: requestReference
+              reference: requestReference,
+              method: 'api_direct_query'
             })
           }
         }
