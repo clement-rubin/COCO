@@ -503,7 +503,7 @@ export default function Home() {
             marginTop: '12px'
           }}>
             <button
-              onClick={() => router.push('/competitions')}
+              onClick={() => router.push('/explorer')}
               style={{
                 background: 'transparent',
                 border: '1px solid #e5e7eb',
@@ -524,7 +524,7 @@ export default function Home() {
                 e.target.style.color = '#6b7280'
               }}
             >
-              🏆 Compétitions
+              🔍 Explorer
             </button>
             
             <button

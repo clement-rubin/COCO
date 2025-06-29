@@ -165,7 +165,7 @@ async function searchUsers(req, res, requestId, query) {
 }
 
 async function handlePostRequest(req, res, requestId) {
-  const { action, user_id, friend_id, request_id, target_user_id, group_name, notification_id } = req.body
+  const { action, user_id, friend_id, request_id, target_user_id, group_name, notification_id, search_options } = req.body
   
   logInfo('Traitement requête POST friends', {
     requestId,
@@ -197,6 +197,14 @@ async function handlePostRequest(req, res, requestId) {
         return await markNotificationRead(req, res, requestId, notification_id)
       case 'update_online_status':
         return await updateOnlineStatus(req, res, requestId, user_id)
+      case 'get_suggestions':
+        return await getIntelligentSuggestions(req, res, requestId, user_id)
+      case 'search_advanced':
+        return await searchUsersAdvanced(req, res, requestId, user_id, search_options)
+      case 'get_mutual_friends':
+        return await getMutualFriendsAPI(req, res, requestId, user_id, target_user_id)
+      case 'get_activity':
+        return await getFriendsActivity(req, res, requestId, user_id)
       default:
         return res.status(400).json({ error: 'Invalid action' })
     }
@@ -461,5 +469,162 @@ async function getFriendshipStatsAPI(req, res, requestId, user_id) {
   } catch (error) {
     logError('Erreur dans getFriendshipStatsAPI', error, { requestId })
     return res.status(500).json({ error: 'Erreur lors de la récupération des statistiques' })
+  }
+}
+
+async function getIntelligentSuggestions(req, res, requestId, user_id) {
+  try {
+    if (!user_id) {
+      return res.status(400).json({ error: 'user_id is required' })
+    }
+    
+    const { data: suggestions, error } = await supabase
+      .rpc('get_intelligent_friend_suggestions', {
+        target_user_id: user_id,
+        limit_param: 5
+      });
+    
+    if (error) {
+      logError('Error getting intelligent suggestions:', error);
+      // Fallback vers une requête simple
+      const { data: fallbackSuggestions, error: fallbackError } = await supabase
+        .from('profiles')
+        .select('user_id, display_name, bio, avatar_url')
+        .neq('user_id', user_id)
+        .eq('is_private', false)
+        .limit(5);
+      
+      if (fallbackError) {
+        throw fallbackError;
+      }
+      
+      return res.status(200).json({ 
+        success: true, 
+        suggestions: fallbackSuggestions || [],
+        fallback: true
+      });
+    }
+    
+    return res.status(200).json({ 
+      success: true, 
+      suggestions: suggestions || []
+    });
+    
+  } catch (error) {
+    logError('Error in getIntelligentSuggestions:', error);
+    return res.status(500).json({ error: 'Erreur lors de la récupération des suggestions' });
+  }
+}
+
+async function getMutualFriendsAPI(req, res, requestId, user_id, target_user_id) {
+  try {
+    if (!user_id || !target_user_id) {
+      return res.status(400).json({ error: 'user_id and target_user_id are required' })
+    }
+    
+    const { data: mutualCount, error } = await supabase
+      .rpc('get_mutual_friends_count', {
+        user_id1: user_id,
+        user_id2: target_user_id
+      });
+    
+    if (error) {
+      throw error;
+    }
+    
+    return res.status(200).json({ 
+      success: true, 
+      mutualFriendsCount: mutualCount || 0
+    });
+    
+  } catch (error) {
+    logError('Error in getMutualFriendsAPI:', error);
+    return res.status(200).json({ 
+      success: true, 
+      mutualFriendsCount: 0
+    });
+  }
+}
+
+async function getFriendsActivity(req, res, requestId, user_id) {
+  try {
+    if (!user_id) {
+      return res.status(400).json({ error: 'user_id is required' })
+    }
+    
+    const { data: activity, error } = await supabase
+      .rpc('get_friends_recent_activity', {
+        target_user_id: user_id,
+        limit_param: 10
+      });
+    
+    if (error) {
+      logError('Error getting friends activity:', error);
+      return res.status(200).json({ 
+        success: true, 
+        activity: []
+      });
+    }
+    
+    return res.status(200).json({ 
+      success: true, 
+      activity: activity || []
+    });
+    
+  } catch (error) {
+    logError('Error in getFriendsActivity:', error);
+    return res.status(200).json({ 
+      success: true, 
+      activity: []
+    });
+  }
+}
+
+async function searchUsersAdvanced(req, res, requestId, user_id, search_options) {
+  try {
+    if (!search_options?.query || search_options.query.length < 2) {
+      return res.status(400).json({ error: 'Search query must be at least 2 characters' })
+    }
+    
+    const { data: results, error } = await supabase
+      .rpc('search_users_advanced', {
+        search_term: search_options.query,
+        current_user_id: user_id,
+        has_avatar: search_options.hasAvatar,
+        exclude_blocked: search_options.excludeBlocked !== false,
+        sort_by: search_options.sortBy || 'display_name',
+        result_limit: search_options.limit || 20
+      });
+    
+    if (error) {
+      logError('Error in advanced search:', error);
+      // Fallback vers recherche simple
+      const { data: fallbackResults, error: fallbackError } = await supabase
+        .from('profiles')
+        .select('user_id, display_name, bio, avatar_url')
+        .neq('user_id', user_id || '')
+        .eq('is_private', false)
+        .ilike('display_name', `%${search_options.query}%`)
+        .limit(search_options.limit || 20);
+      
+      if (fallbackError) {
+        throw fallbackError;
+      }
+      
+      return res.status(200).json({ 
+        success: true, 
+        results: fallbackResults || [],
+        fallback: true
+      });
+    }
+    
+    return res.status(200).json({ 
+      success: true, 
+      results: results || []
+    });
+    
+  } catch (error) {
+    logError('Error in searchUsersAdvanced:', error);
+    return res.status(500).json({ error: 'Erreur lors de la recherche avancée' });
   }
 }

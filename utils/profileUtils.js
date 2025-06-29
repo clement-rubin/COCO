@@ -1,6 +1,5 @@
-import { supabase } from '../lib/supabase'
-import { logInfo, logWarning, logError, logDebug } from './logger'
-import { checkAndUnlockTrophies, triggerTrophyCheck, checkTrophiesAfterProfileUpdate, getTrophyStats, syncTrophiesAfterAction } from './trophyUtils'
+import { supabase } from '../lib/supabase';
+import { logError, logInfo, logWarning } from './logger';
 
 /**
  * Récupère le nom d'affichage d'un utilisateur depuis son profil
@@ -1033,3 +1032,356 @@ export async function getMutualFriendsCount(userId1, userId2) {
     return 0;
   }
 }
+
+/**
+ * Fonction pour obtenir l'ID de profil depuis l'ID utilisateur
+ */
+export async function getProfileIdFromUserId(userId) {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('user_id', userId)
+      .single();
+
+    if (error) {
+      logError('Error getting profile ID:', error);
+      return null;
+    }
+
+    return data?.id || null;
+  } catch (error) {
+    logError('Error in getProfileIdFromUserId:', error);
+    return null;
+  }
+}
+
+/**
+ * Fonction corrigée pour envoyer une demande d'amitié
+ */
+export async function sendFriendRequestCorrected(userId, friendId) {
+  try {
+    logInfo('Sending friend request:', { userId, friendId });
+
+    // Vérifier si une relation existe déjà
+    const { data: existing, error: checkError } = await supabase
+      .rpc('check_friendship_status', {
+        user1_id: userId,
+        user2_id: friendId
+      });
+
+    if (existing && existing.length > 0) {
+      return {
+        success: false,
+        error: 'Une relation d\'amitié existe déjà'
+      };
+    }
+
+    // Créer la demande d'amitié
+    const { data: friendship, error } = await supabase
+      .from('friendships')
+      .insert({
+        user_id: userId,
+        friend_id: friendId,
+        status: 'pending'
+      })
+      .select()
+      .single();
+
+    if (error) {
+      logError('Error creating friendship:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+
+    return {
+      success: true,
+      friendship
+    };
+  } catch (error) {
+    logError('Error in sendFriendRequestCorrected:', error);
+    return {
+      success: false,
+      error: 'Erreur lors de l\'envoi de la demande'
+    };
+  }
+}
+
+/**
+ * Fonction pour supprimer un ami
+ */
+export async function removeFriend(userId, friendId) {
+  try {
+    const { data, error } = await supabase
+      .rpc('remove_friendship', {
+        user1_id: userId,
+        user2_id: friendId
+      });
+
+    if (error) {
+      logError('Error removing friend:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+
+    return {
+      success: true,
+      message: 'Ami supprimé avec succès'
+    };
+  } catch (error) {
+    logError('Error in removeFriend:', error);
+    return {
+      success: false,
+      error: 'Erreur lors de la suppression'
+    };
+  }
+}
+
+/**
+ * Fonction pour bloquer un utilisateur
+ */
+export async function blockUser(userId, targetUserId) {
+  try {
+    // Supprimer d'abord toute amitié existante
+    await supabase
+      .from('friendships')
+      .delete()
+      .or(`and(user_id.eq.${userId},friend_id.eq.${targetUserId}),and(user_id.eq.${targetUserId},friend_id.eq.${userId})`);
+
+    // Créer un blocage
+    const { data, error } = await supabase
+      .from('friendships')
+      .insert({
+        user_id: userId,
+        friend_id: targetUserId,
+        status: 'blocked'
+      })
+      .select()
+      .single();
+
+    if (error) {
+      logError('Error blocking user:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+
+    return {
+      success: true,
+      message: 'Utilisateur bloqué'
+    };
+  } catch (error) {
+    logError('Error in blockUser:', error);
+    return {
+      success: false,
+      error: 'Erreur lors du blocage'
+    };
+  }
+}
+
+/**
+ * Fonction pour débloquer un utilisateur
+ */
+export async function unblockUser(userId, targetUserId) {
+  try {
+    const { error } = await supabase
+      .from('friendships')
+      .delete()
+      .eq('user_id', userId)
+      .eq('friend_id', targetUserId)
+      .eq('status', 'blocked');
+
+    if (error) {
+      logError('Error unblocking user:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+
+    return {
+      success: true,
+      message: 'Utilisateur débloqué'
+    };
+  } catch (error) {
+    logError('Error in unblockUser:', error);
+    return {
+      success: false,
+      error: 'Erreur lors du déblocage'
+    };
+  }
+}
+
+/**
+ * Fonction pour obtenir le statut d'amitié
+ */
+export async function getFriendshipStatus(userId, targetUserId) {
+  try {
+    const { data, error } = await supabase
+      .rpc('check_friendship_status', {
+        user1_id: userId,
+        user2_id: targetUserId
+      });
+
+    if (error) {
+      logError('Error checking friendship status:', error);
+      return { status: 'error', loading: false };
+    }
+
+    if (!data || data.length === 0) {
+      return { 
+        status: 'none', 
+        canSendRequest: true,
+        loading: false 
+      };
+    }
+
+    const friendship = data[0];
+    return {
+      status: friendship.status,
+      isRequester: friendship.is_requester,
+      canSendRequest: friendship.status === 'rejected',
+      loading: false
+    };
+  } catch (error) {
+    logError('Error in getFriendshipStatus:', error);
+    return { status: 'error', loading: false };
+  }
+}
+
+/**
+ * Fonction pour obtenir les statistiques d'amitié
+ */
+export async function getFriendshipStats(userId) {
+  try {
+    const { data, error } = await supabase
+      .rpc('get_friendship_statistics', {
+        target_user_id: userId
+      });
+
+    if (error) {
+      logError('Error getting friendship stats:', error);
+      return {
+        friends: 0,
+        pending: 0,
+        blocked: 0,
+        sent: 0
+      };
+    }
+
+    const stats = data[0] || {};
+    return {
+      friends: stats.total_friends || 0,
+      pending: stats.pending_requests || 0,
+      blocked: stats.blocked_users || 0,
+      sent: stats.sent_requests || 0
+    };
+  } catch (error) {
+    logError('Error in getFriendshipStats:', error);
+    return {
+      friends: 0,
+      pending: 0,
+      blocked: 0,
+      sent: 0
+    };
+  }
+}
+
+/**
+ * Fonction pour recherche avancée
+ */
+export async function searchUsersAdvanced(searchTerm, options = {}) {
+  try {
+    const { data, error } = await supabase
+      .rpc('search_users_advanced', {
+        search_term: searchTerm,
+        current_user_id: options.currentUserId,
+        has_avatar: options.hasAvatar,
+        exclude_blocked: options.excludeBlocked !== false,
+        sort_by: options.sortBy || 'display_name',
+        result_limit: options.limit || 20
+      });
+
+    if (error) {
+      logError('Error in advanced search:', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    logError('Error in searchUsersAdvanced:', error);
+    return [];
+  }
+}
+
+/**
+ * Fonction pour obtenir des suggestions intelligentes
+ */
+export async function getIntelligentFriendSuggestions(userId, limit = 5) {
+  try {
+    // Fallback simple si la fonction RPC n'existe pas
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('user_id, display_name, bio, avatar_url, created_at')
+      .neq('user_id', userId)
+      .eq('is_private', false)
+      .limit(limit);
+
+    if (error) {
+      logError('Error getting suggestions:', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    logError('Error in getIntelligentFriendSuggestions:', error);
+    return [];
+  }
+}
+
+/**
+ * Fonction pour obtenir les notifications non lues
+ */
+export async function getUnreadNotifications(userId) {
+  try {
+    // Pour l'instant, retourner un tableau vide
+    // Dans une vraie implémentation, on interrogerait la table notifications
+    return [];
+  } catch (error) {
+    logError('Error in getUnreadNotifications:', error);
+    return [];
+  }
+}
+
+/**
+ * Fonction pour marquer une notification comme lue
+ */
+export async function markNotificationAsRead(notificationId) {
+  try {
+    // Implémentation future
+    return { success: true };
+  } catch (error) {
+    logError('Error in markNotificationAsRead:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Fonction pour mettre à jour la dernière activité
+ */
+export async function updateLastSeen(userId) {
+  try {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ 
+        last_seen: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .eq('user_id', userId);
+
+    if
