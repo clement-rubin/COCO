@@ -127,11 +127,6 @@ const RecipeCard = ({ recipe, isPhotoOnly = false, onEdit, onDelete, showActions
     isPlaceholder: safeRecipe.image === '/placeholder-recipe.jpg'
   })
   
-  // Déterminez le lien en fonction du type de recette
-  const recipeLink = isUserRecipe
-    ? `/recipes/user/${safeRecipe.id}`
-    : `/recipes/${safeRecipe.id}`
-
   // Détecter automatiquement si c'est un partage rapide
   const isQuickShare = recipe.form_mode === 'quick' || 
                       recipe.category === 'Photo partagée' ||
