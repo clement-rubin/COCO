@@ -787,12 +787,27 @@ export default async function handler(req, res) {
           cookTime: data.cookTime && typeof data.cookTime === 'string' ? data.cookTime.trim() : null,
           category: data.category && typeof data.category === 'string' ? data.category.trim() : 'Autre',
           author: authorName,
-          user_id: data.user_id && typeof data.user_id === 'string' ? data.user_id.trim() : null,
+          user_id: data.user_id && typeof data.user_id === 'string' && data.user_id.trim() ? data.user_id.trim() : null,
           ingredients: ingredients,
           instructions: instructions,
           difficulty: data.difficulty && typeof data.difficulty === 'string' ? data.difficulty.trim() : 'Facile',
           created_at: new Date().toISOString(),
           form_mode: formMode
+        }
+
+        // IMPORTANT: Vérifier que user_id n'est pas null pour éviter les problèmes de contraintes
+        if (!newRecipe.user_id) {
+          logWarning('Attempting to create recipe without valid user_id', {
+            reference: requestReference,
+            providedUserId: data.user_id,
+            authorName: authorName
+          })
+          
+          return safeResponse(res, 400, {
+            error: 'ID utilisateur requis',
+            message: 'Un utilisateur valide est requis pour créer une recette',
+            reference: requestReference
+          })
         }
 
         // Valeurs par défaut intelligentes pour les partages rapides

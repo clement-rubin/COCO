@@ -829,39 +829,33 @@ export function canUserEditRecipe(recipeUserId, currentUserId) {
  */
 export async function deleteUserRecipe(recipeId, userId) {
   if (!recipeId || !userId) {
-    logWarning('deleteUserRecipe called with missing parameters', { recipeId, userId })
     return false
   }
-
+  
   try {
-    const { error } = await supabase
-      .from('recipes')
-      .delete()
-      .eq('id', recipeId)
-      .eq('user_id', userId)
-
-    if (error) {
-      logError('Error deleting user recipe', error, {
-        recipeId,
-        userId: userId.substring(0, 8) + '...'
-      })
+    // Vérifier que la recette appartient à l'utilisateur
+    if (!canUserEditRecipe(recipeId, userId)) {
       return false
     }
-
-    logInfo('User recipe deleted successfully', {
-      recipeId,
-      userId: userId.substring(0, 8) + '...'
+    
+    const response = await fetch(`/api/recipes?id=${recipeId}&user_id=${userId}`, {
+      method: 'DELETE'
     })
-
-    return true
-
+    
+    return response.ok
   } catch (error) {
-    logError('Exception while deleting user recipe', error, {
-      recipeId,
-      userId: userId.substring(0, 8) + '...'
-    })
+    console.error('Erreur lors de la suppression de la recette:', error)
     return false
   }
+}
+
+/**
+ * Vérifie si un utilisateur peut participer aux concours
+ * @param {string} userId - L'ID de l'utilisateur
+ * @returns {boolean} True si l'utilisateur peut participer
+ */
+export function canUserParticipateInContests(userId) {
+  return !!(userId && typeof userId === 'string' && userId.trim().length > 0)
 }
 
 /**

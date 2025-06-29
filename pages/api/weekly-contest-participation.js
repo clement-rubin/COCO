@@ -273,6 +273,7 @@ export default async function handler(req, res) {
         .select('id, user_id, title')
         .eq('id', recipe_id)
         .eq('user_id', user_id)
+        .not('user_id', 'is', null)  // Vérification supplémentaire
         .single()
 
       if (recipeError || !recipe) {
@@ -280,6 +281,16 @@ export default async function handler(req, res) {
         return res.status(403).json({ 
           error: 'Recipe not found or not owned by user',
           message: 'Cette recette ne vous appartient pas ou n\'existe pas',
+          requestId
+        })
+      }
+
+      // Vérification finale que user_id n'est pas null
+      if (!recipe.user_id) {
+        logError('Recipe has null user_id', null, { requestId, recipeId: recipe_id })
+        return res.status(400).json({
+          error: 'Invalid recipe data',
+          message: 'Cette recette ne peut pas être inscrite au concours (données incomplètes)',
           requestId
         })
       }

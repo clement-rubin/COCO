@@ -352,6 +352,7 @@ async function selectWeeklyCandiates(contestId, startOfWeek, endOfWeek, requestI
     logInfo('Selecting weekly candidates', { requestId, contestId })
     
     // Sélectionner les 10 recettes les plus populaires de la semaine
+    // IMPORTANT: Exclure les recettes sans user_id
     const { data: topRecipes, error: recipesError } = await supabase
       .from('recipes')
       .select(`
@@ -362,6 +363,7 @@ async function selectWeeklyCandiates(contestId, startOfWeek, endOfWeek, requestI
       `)
       .gte('created_at', startOfWeek.toISOString())
       .lt('created_at', endOfWeek.toISOString())
+      .not('user_id', 'is', null)  // Exclure les recettes sans user_id
       .order('likes_count', { ascending: false })
       .limit(10)
 
@@ -376,7 +378,10 @@ async function selectWeeklyCandiates(contestId, startOfWeek, endOfWeek, requestI
     })
 
     if (topRecipes && topRecipes.length > 0) {
-      const candidates = topRecipes.map(recipe => ({
+      // Filtrer encore une fois côté JavaScript pour être sûr
+      const validRecipes = topRecipes.filter(recipe => recipe.user_id !== null)
+      
+      const candidates = validRecipes.map(recipe => ({
         weekly_contest_id: contestId,
         recipe_id: recipe.id,
         user_id: recipe.user_id,
