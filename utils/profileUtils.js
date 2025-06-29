@@ -1384,4 +1384,14 @@ export async function updateLastSeen(userId) {
       })
       .eq('user_id', userId);
 
-    if
+    if (error) {
+      logError('Error updating last seen:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (error) {
+    logError('Error in updateLastSeen:', error);
+    return { success: false, error: error.message };
+  }
+}

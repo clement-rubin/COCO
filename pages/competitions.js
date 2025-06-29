@@ -337,12 +337,12 @@ export default function Competitions() {
       {/* Tabs */}
       <div className={styles.tabsContainer}>
         <div className={styles.tabs}>
-          {{
-            id: 'week', label: 'Recette de la semaine', icon: '🏆' },
+          {[
+            { id: 'week', label: 'Recette de la semaine', icon: '🏆' },
             { id: 'active', label: 'En cours', icon: '🔥' },
             { id: 'upcoming', label: 'Bientôt', icon: '⏰' },
             { id: 'completed', label: 'Terminées', icon: '🏅' }
-          }.map(tab => (
+          ].map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
