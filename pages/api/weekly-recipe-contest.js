@@ -30,75 +30,47 @@ export default async function handler(req, res) {
         })
       }
 
-      // Obtenir la semaine courante
-      const now = new Date()
-      const startOfWeek = new Date(now)
-      startOfWeek.setDate(now.getDate() - now.getDay())
-      startOfWeek.setHours(0, 0, 0, 0)
-
-      const endOfWeek = new Date(startOfWeek)
-      endOfWeek.setDate(startOfWeek.getDate() + 6)
-      endOfWeek.setHours(23, 59, 59, 999)
-
-      logInfo('Weekly contest: calculated week dates', {
-        requestId,
-        startOfWeek: startOfWeek.toISOString(),
-        endOfWeek: endOfWeek.toISOString()
-      })
-
       try {
-        // Obtenir ou créer le concours de la semaine
-        let { data: weeklyContest, error: contestError } = await supabase
-          .from('weekly_recipe_contest')
-          .select('*')
-          .eq('week_start', startOfWeek.toISOString().split('T')[0])
-          .single()
+        // Utiliser la fonction PostgreSQL pour obtenir le concours courant
+        const { data: contest, error: contestError } = await supabase
+          .rpc('get_current_weekly_contest')
 
-        logInfo('Weekly contest query result', {
-          requestId,
-          hasData: !!weeklyContest,
-          hasError: !!contestError,
-          errorCode: contestError?.code,
-          errorMessage: contestError?.message
-        })
-
-        if (contestError && contestError.code === 'PGRST116') {
-          logInfo('Creating new weekly contest', { requestId })
-          // Créer un nouveau concours si il n'existe pas
-          const { data: newContest, error: createError } = await supabase
-            .from('weekly_recipe_contest')
-            .insert({
-              week_start: startOfWeek.toISOString().split('T')[0],
-              week_end: endOfWeek.toISOString().split('T')[0],
-              status: 'active',
-              total_votes: 0,
-              total_candidates: 0
-            })
-            .select()
-            .single()
-
-          if (createError) {
-            logError('Error creating weekly contest', createError, { requestId })
-            return res.status(500).json({
-              error: 'Failed to create weekly contest',
-              details: createError.message,
-              requestId
-            })
-          }
-          weeklyContest = newContest
-
-          // Sélectionner automatiquement les candidats de la semaine
-          await selectWeeklyCandiates(weeklyContest.id, startOfWeek, endOfWeek, requestId)
-        } else if (contestError) {
-          logError('Error fetching weekly contest', contestError, { requestId })
+        if (contestError) {
+          logError('Error calling get_current_weekly_contest function', contestError, { requestId })
           return res.status(500).json({
-            error: 'Failed to fetch weekly contest',
+            error: 'Failed to get current weekly contest',
             details: contestError.message,
             requestId
           })
         }
 
-        // Récupérer les candidats avec leurs votes - avec gestion d'erreur améliorée
+        let weeklyContest = null
+        if (contest && contest.length > 0) {
+          weeklyContest = contest[0]
+        }
+
+        if (!weeklyContest) {
+          logWarning('No weekly contest returned from function', { requestId })
+          return res.status(200).json({
+            contest: null,
+            candidates: [],
+            weekStart: new Date().toISOString(),
+            weekEnd: new Date().toISOString(),
+            totalVotes: 0,
+            hasUserVoted: false,
+            requestId
+          })
+        }
+
+        logInfo('Weekly contest retrieved successfully', {
+          requestId,
+          contestId: weeklyContest.id,
+          weekStart: weeklyContest.week_start,
+          weekEnd: weeklyContest.week_end,
+          status: weeklyContest.status
+        })
+
+        // Récupérer les candidats avec leurs recettes
         const { data: candidates, error: candidatesError } = await supabase
           .from('weekly_recipe_candidates')
           .select(`
@@ -116,21 +88,20 @@ export default async function handler(req, res) {
               author,
               user_id,
               created_at,
-              category,
-              difficulty_level
+              category
             )
           `)
           .eq('weekly_contest_id', weeklyContest.id)
           .order('votes_received', { ascending: false })
 
         if (candidatesError) {
-          logError('Error fetching candidates', candidatesError, { requestId })
-          // Retourner une réponse partielle au lieu d'échouer complètement
+          logError('Error fetching candidates with recipes', candidatesError, { requestId })
+          // Return partial response instead of failing completely
           return res.status(200).json({
             contest: weeklyContest,
             candidates: [],
-            weekStart: startOfWeek.toISOString(),
-            weekEnd: endOfWeek.toISOString(),
+            weekStart: weeklyContest.week_start,
+            weekEnd: weeklyContest.week_end,
             totalVotes: weeklyContest.total_votes || 0,
             hasUserVoted: false,
             error: 'Could not load candidates',
@@ -149,17 +120,16 @@ export default async function handler(req, res) {
             .single()
 
           if (voteError && voteError.code !== 'PGRST116') {
-            logError('Error checking user vote', voteError, { requestId })
+            logWarning('Error checking user vote', voteError, { requestId })
           }
 
           hasUserVoted = !!userVote
         }
 
-        // Enrichir les candidats avec des informations supplémentaires
+        // Enrichir les candidats
         const enrichedCandidates = candidates?.map(candidate => ({
           ...candidate,
-          recipe: candidate.recipes,
-          hasUserVoted: hasUserVoted
+          recipe: candidate.recipes
         })) || []
 
         logInfo('Weekly recipe contest data retrieved successfully', {
@@ -174,15 +144,15 @@ export default async function handler(req, res) {
         return res.status(200).json({
           contest: weeklyContest,
           candidates: enrichedCandidates,
-          weekStart: startOfWeek.toISOString(),
-          weekEnd: endOfWeek.toISOString(),
+          weekStart: weeklyContest.week_start,
+          weekEnd: weeklyContest.week_end,
           totalVotes: weeklyContest.total_votes || 0,
           hasUserVoted,
           requestId
         })
 
       } catch (dbError) {
-        logError('Database error in weekly contest', dbError, { requestId })
+        logError('Database error in weekly contest GET', dbError, { requestId })
         return res.status(500).json({
           error: 'Database error',
           details: dbError.message,
@@ -375,20 +345,22 @@ async function selectWeeklyCandiates(contestId, startOfWeek, endOfWeek, requestI
   try {
     logInfo('Selecting weekly candidates', { requestId, contestId })
     
-    // Sélectionner les 10 recettes les plus populaires de la semaine
-    // IMPORTANT: Exclure les recettes sans user_id
+    // Calculer les dates correctement
+    const startDate = new Date(startOfWeek)
+    startDate.setDate(startDate.getDate() - 7) // Recettes de la semaine précédente
+    
+    // Sélectionner les recettes récentes avec user_id valide
     const { data: topRecipes, error: recipesError } = await supabase
       .from('recipes')
       .select(`
         id,
         user_id,
         created_at,
-        likes_count
+        title
       `)
-      .gte('created_at', startOfWeek.toISOString())
-      .lt('created_at', endOfWeek.toISOString())
-      .not('user_id', 'is', null)  // Exclure les recettes sans user_id
-      .order('likes_count', { ascending: false })
+      .gte('created_at', startDate.toISOString())
+      .not('user_id', 'is', null)
+      .order('created_at', { ascending: false })
       .limit(10)
 
     if (recipesError) {
@@ -402,37 +374,27 @@ async function selectWeeklyCandiates(contestId, startOfWeek, endOfWeek, requestI
     })
 
     if (topRecipes && topRecipes.length > 0) {
-      // Filtrer encore une fois côté JavaScript pour être sûr
-      const validRecipes = topRecipes.filter(recipe => recipe.user_id !== null && recipe.user_id !== undefined)
-      
-      if (validRecipes.length > 0) {
-        const candidates = validRecipes.map(recipe => ({
-          weekly_contest_id: contestId,
-          recipe_id: recipe.id,
-          user_id: recipe.user_id,
-          is_manual_entry: false,
-          votes_received: 0
-        }))
+      const candidates = topRecipes.map(recipe => ({
+        weekly_contest_id: contestId,
+        recipe_id: recipe.id,
+        user_id: recipe.user_id,
+        is_manual_entry: false,
+        votes_received: 0
+      }))
 
-        const { error: insertError } = await supabase
-          .from('weekly_recipe_candidates')
-          .insert(candidates)
+      const { data: insertedCandidates, error: insertError } = await supabase
+        .from('weekly_recipe_candidates')
+        .insert(candidates)
+        .select()
 
-        if (insertError) {
-          logError('Error inserting weekly candidates', insertError, { requestId })
-        } else {
-          logInfo('Weekly candidates selected automatically', {
-            requestId,
-            contestId,
-            candidatesCount: candidates.length
-          })
-
-          // Mettre à jour le compteur
-          await supabase
-            .from('weekly_recipe_contest')
-            .update({ total_candidates: candidates.length })
-            .eq('id', contestId)
-        }
+      if (insertError) {
+        logError('Error inserting weekly candidates', insertError, { requestId })
+      } else {
+        logInfo('Weekly candidates selected automatically', {
+          requestId,
+          contestId,
+          candidatesCount: insertedCandidates?.length || 0
+        })
       }
     }
   } catch (error) {
