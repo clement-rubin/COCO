@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { logError, logInfo } from '../utils/logger';
 import styles from '../styles/Amis.module.css';
 import { useRouter } from 'next/router';
-import { blockUser, unblockUser, getFriendshipStatus, removeFriend, getFriendshipStats } from '../utils/profileUtils';
+import { blockUser, unblockUser, getFriendshipStatus, removeFriend, getFriendshipStats, getUserStats } from '../utils/profileUtils';
 
 export default function Amis() {
   const [user, setUser] = useState(null);
@@ -31,6 +31,7 @@ export default function Amis() {
   const [friendSort, setFriendSort] = useState('name'); // 'name', 'recent', 'active'
   const [friendshipTrophies, setFriendshipTrophies] = useState(0);
   const [mutualFriendsData, setMutualFriendsData] = useState({});
+  const [userStats, setUserStats] = useState({ recipesCount: 0, friendsCount: 0, profileCompleteness: 0 });
   const router = useRouter();
 
   useEffect(() => {
@@ -42,8 +43,21 @@ export default function Amis() {
       loadFriendshipStats();
       // Chargement du nombre de trophées d'amitié
       loadFriendshipTrophies();
+      // Charger les vraies stats utilisateur
+      loadUserStats();
     }
   }, [user]);
+
+  // Nouvelle fonction pour charger les vraies stats utilisateur
+  const loadUserStats = async () => {
+    if (!user) return;
+    try {
+      const stats = await getUserStats(user.id);
+      setUserStats(stats);
+    } catch (error) {
+      logError('Error loading user stats:', error);
+    }
+  };
 
   // Nouvelle fonction pour charger les trophées liés à l'amitié
   const loadFriendshipTrophies = async () => {
@@ -1009,7 +1023,7 @@ export default function Amis() {
                 background: 'linear-gradient(135deg, #ff6b35, #f7931e)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent'
-              }}>{friendshipStats.friends}</div>
+              }}>{userStats.friendsCount}</div>
               <div style={{
                 fontSize: '0.9rem',
                 color: '#64748b',
@@ -1077,12 +1091,12 @@ export default function Amis() {
                 background: 'linear-gradient(135deg, #10b981, #059669)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent'
-              }}>{friendshipTrophies}</div>
+              }}>{userStats.recipesCount}</div>
               <div style={{
                 fontSize: '0.9rem',
                 color: '#10b981',
                 fontWeight: 600
-              }}>Trophées</div>
+              }}>Recettes</div>
             </div>
           </div>
         </div>

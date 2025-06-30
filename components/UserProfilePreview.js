@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import styles from '../styles/UserProfilePreview.module.css'
+import { getUserStats } from '../utils/profileUtils'
 
 export default function UserProfilePreview({ user, isVisible, onClose, position }) {
   const router = useRouter()
@@ -20,16 +21,23 @@ export default function UserProfilePreview({ user, isVisible, onClose, position 
   const loadUserStats = async () => {
     setLoading(true)
     try {
-      // Simuler le chargement des statistiques utilisateur
-      // Dans une vraie app, vous feriez un appel API
-      setTimeout(() => {
+      // Charger les vraies stats utilisateur si user.user_id existe
+      if (user?.user_id) {
+        const stats = await getUserStats(user.user_id)
+        setUserStats({
+          recipesCount: stats.recipesCount || 0,
+          likesReceived: stats.likesReceived || 0,
+          friendsCount: stats.friendsCount || 0
+        })
+      } else {
+        // fallback mock
         setUserStats({
           recipesCount: Math.floor(Math.random() * 50) + 5,
           likesReceived: Math.floor(Math.random() * 500) + 50,
           friendsCount: Math.floor(Math.random() * 100) + 10
         })
-        setLoading(false)
-      }, 300)
+      }
+      setLoading(false)
     } catch (error) {
       console.error('Error loading user stats:', error)
       setLoading(false)
