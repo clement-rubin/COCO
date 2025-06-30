@@ -21,11 +21,13 @@ export default function Competitions() {
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
+    logInfo('Competitions page mounted', { user: user?.id });
     if (!user) {
+      logInfo('User not authenticated, redirecting to login');
       router.push('/login?redirect=' + encodeURIComponent('/competitions'))
       return
     }
-    
+    logInfo('Active tab changed', { activeTab });
     if (activeTab !== 'week') {
       loadCompetitions()
     }
@@ -35,7 +37,7 @@ export default function Competitions() {
   const loadCompetitions = async () => {
     try {
       setLoading(true)
-      
+      logInfo('Loading competitions from supabase');
       const { data, error } = await supabase
         .from('competitions')
         .select(`
@@ -62,7 +64,7 @@ export default function Competitions() {
       if (error) throw error
 
       setCompetitions(data || [])
-      logInfo('Competitions loaded', { count: data?.length || 0 })
+      logInfo('Competitions loaded', { count: data?.length || 0, competitions: data })
     } catch (error) {
       logError('Error loading competitions', error)
     } finally {
@@ -72,7 +74,7 @@ export default function Competitions() {
 
   const loadUserRecipes = async () => {
     if (!user) return
-
+    logInfo('Loading user recipes', { userId: user.id });
     try {
       const { data, error } = await supabase
         .from('recipes')
@@ -84,6 +86,7 @@ export default function Competitions() {
       if (error) throw error
 
       setUserRecipes(data || [])
+      logInfo('User recipes loaded', { count: data?.length || 0, recipes: data });
     } catch (error) {
       logError('Error loading user recipes', error)
     }
@@ -93,6 +96,7 @@ export default function Competitions() {
     if (!user) return
 
     setSubmitting(true)
+    logInfo('Submitting recipe to competition', { competitionId, recipeId, userId: user.id });
     try {
       const { error } = await supabase
         .from('competition_entries')
@@ -106,7 +110,7 @@ export default function Competitions() {
 
       setShowSubmitModal(false)
       await loadCompetitions()
-      
+      logInfo('Recipe submitted successfully', { competitionId, recipeId, userId: user.id });
       // Show success message
       alert('Recette soumise avec succès !')
       
@@ -121,6 +125,7 @@ export default function Competitions() {
   const voteForEntry = async (competitionId, entryId) => {
     if (!user) return
 
+    logInfo('Voting for entry', { competitionId, entryId, userId: user.id });
     try {
       const { error } = await supabase
         .from('competition_votes')
@@ -132,6 +137,7 @@ export default function Competitions() {
 
       if (error) {
         if (error.code === '23505') {
+          logInfo('User already voted for this competition', { competitionId, entryId, userId: user.id });
           alert('Vous avez déjà voté pour cette compétition')
         } else {
           throw error
@@ -145,6 +151,7 @@ export default function Competitions() {
         .update({ votes_count: supabase.rpc('increment_votes', { entry_id: entryId }) })
         .eq('id', entryId)
 
+      logInfo('Vote registered', { competitionId, entryId, userId: user.id });
       await loadCompetitions()
       
     } catch (error) {
@@ -185,6 +192,7 @@ export default function Competitions() {
   })
 
   if (loading && activeTab !== 'week') {
+    logInfo('Loading competitions, showing spinner');
     return (
       <div className={styles.container}>
         <div className={styles.loading}>
@@ -346,7 +354,10 @@ export default function Competitions() {
                             <p>Par {entry.profiles?.display_name || recipe.author || 'Auteur inconnu'}</p>
                             <div className={styles.entryActions}>
                               <button
-                                onClick={() => voteForEntry(competition.id, entry.id)}
+                                onClick={() => {
+                                  logInfo('Vote button clicked', { competitionId: competition.id, entryId: entry.id, userId: user?.id });
+                                  voteForEntry(competition.id, entry.id)
+                                }}
                                 className={styles.voteButton}
                                 disabled={entry.user_id === user?.id}
                               >
@@ -367,6 +378,7 @@ export default function Competitions() {
                 {activeTab === 'active' && (
                   <button
                     onClick={() => {
+                      logInfo('Open submit modal', { competitionId: competition.id, userId: user?.id });
                       setSelectedCompetition(competition)
                       setShowSubmitModal(true)
                     }}
@@ -400,7 +412,10 @@ export default function Competitions() {
             <div className={styles.modalHeader}>
               <h3>Participer à "{selectedCompetition.title}"</h3>
               <button 
-                onClick={() => setShowSubmitModal(false)}
+                onClick={() => {
+                  logInfo('Close submit modal');
+                  setShowSubmitModal(false)
+                }}
                 className={styles.closeButton}
               >
                 ×
@@ -435,7 +450,10 @@ export default function Competitions() {
                       <div className={styles.recipeInfo}>
                         <h4>{recipe.title}</h4>
                         <button
-                          onClick={() => submitToCompetition(selectedCompetition.id, recipe.id)}
+                          onClick={() => {
+                            logInfo('Submit recipe from modal', { competitionId: selectedCompetition.id, recipeId: recipe.id, userId: user?.id });
+                            submitToCompetition(selectedCompetition.id, recipe.id)
+                          }}
                           className={styles.selectButton}
                           disabled={submitting}
                         >
@@ -451,7 +469,10 @@ export default function Competitions() {
                 <div className={styles.noRecipes}>
                   <p>Vous n'avez pas encore de recettes.</p>
                   <button 
-                    onClick={() => router.push('/submit-recipe')}
+                    onClick={() => {
+                      logInfo('Redirect to create recipe');
+                      router.push('/submit-recipe')
+                    }}
                     className={styles.createRecipeButton}
                   >
                     Créer une recette
