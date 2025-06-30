@@ -362,7 +362,6 @@ export default function Competitions() {
                   <p className={styles.noEntries}>Aucune participation pour le moment</p>
                 )}
               </div>
-
               {/* Actions */}
               <div className={styles.cardActions}>
                 {activeTab === 'active' && (
