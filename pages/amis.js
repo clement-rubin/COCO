@@ -911,36 +911,182 @@ export default function Amis() {
   }
 
   return (
-    <div className={styles.container}>
-      {/* Header moderne avec statistiques */}
-      <header className={styles.header}>
-        <h1>👥 Mes amis COCO</h1>
-        <p>Retrouvez, ajoutez et gérez vos amis culinaires pour partager vos meilleures recettes !</p>
-        <div className={styles.statsBar}>
-          <div className={styles.stat}>
-            <span className={styles.statNumber}>{friendshipStats.friends}</span>
-            <span className={styles.statLabel}>Amis</span>
+    <div className={styles.container} style={{
+      background: 'linear-gradient(135deg, #fff5f0 0%, #f8fafc 100%)',
+      minHeight: '100vh',
+      position: 'relative'
+    }}>
+      {/* Fond décoratif */}
+      <div style={{
+        position: 'fixed',
+        top: 0, left: 0, right: 0, bottom: 0,
+        background: 'radial-gradient(circle at 20% 10%, #ff6b35 0%, transparent 60%), radial-gradient(circle at 80% 90%, #3b82f6 0%, transparent 60%)',
+        opacity: 0.04,
+        zIndex: 0,
+        pointerEvents: 'none'
+      }} />
+
+      {/* Hero section */}
+      <section
+        style={{
+          width: '100%',
+          background: 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)',
+          padding: '48px 0 32px 0',
+          position: 'relative',
+          overflow: 'hidden',
+          marginBottom: 32,
+          boxShadow: '0 8px 32px rgba(255, 107, 53, 0.07)'
+        }}
+      >
+        <div style={{
+          position: 'absolute',
+          top: -40,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: 320,
+          height: 320,
+          background: 'radial-gradient(circle at 60% 40%, #ff6b35 0%, transparent 70%)',
+          opacity: 0.08,
+          zIndex: 0
+        }} />
+        <div style={{
+          maxWidth: 700,
+          margin: '0 auto',
+          position: 'relative',
+          zIndex: 1,
+          textAlign: 'center'
+        }}>
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 16,
+            marginBottom: 16
+          }}>
+            <span style={{
+              fontSize: '2.5rem',
+              background: 'linear-gradient(135deg, #ff6b35, #f7931e)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              fontWeight: 900
+            }}>👥</span>
+            <h1 style={{
+              fontSize: '2.2rem',
+              fontWeight: 800,
+              margin: 0,
+              background: 'linear-gradient(135deg, #ff6b35, #f7931e)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent'
+            }}>
+              Mes amis COCO
+            </h1>
           </div>
-          <div 
-            className={`${styles.stat} ${friendshipStats.pending > 0 ? styles.clickable : ''} ${friendshipStats.pending > 0 ? styles.pending : ''}`}
-            onClick={friendshipStats.pending > 0 ? handlePendingClick : undefined}
-            title={friendshipStats.pending > 0 ? 'Cliquer pour voir les demandes en attente' : 'Aucune demande en attente'}
-          >
-            <span className={styles.statNumber}>{friendshipStats.pending}</span>
-            <span className={styles.statLabel}>En attente</span>
-            {friendshipStats.pending > 0 && (
-              <div className={`${styles.tabBadge} ${friendshipStats.pending > 3 ? styles.urgent : ''}`}>
-                {friendshipStats.pending}
-              </div>
-            )}
-          </div>
-          {/* Nouvelle statistique: trophées d'amitié */}
-          <div className={styles.stat}>
-            <span className={styles.statNumber}>{friendshipTrophies}</span>
-            <span className={styles.statLabel}>Trophées d'amitié</span>
+          <p style={{
+            color: '#475569',
+            fontSize: '1.15rem',
+            fontWeight: 500,
+            margin: '0 0 12px 0'
+          }}>
+            Retrouvez, ajoutez et gérez vos amis culinaires pour partager vos meilleures recettes !
+          </p>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            gap: 32,
+            marginTop: 24,
+            flexWrap: 'wrap'
+          }}>
+            <div style={{
+              background: 'white',
+              borderRadius: 16,
+              boxShadow: '0 2px 12px rgba(255,107,53,0.07)',
+              padding: '18px 28px',
+              minWidth: 120,
+              textAlign: 'center'
+            }}>
+              <div style={{
+                fontSize: '1.5rem',
+                fontWeight: 700,
+                background: 'linear-gradient(135deg, #ff6b35, #f7931e)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent'
+              }}>{friendshipStats.friends}</div>
+              <div style={{
+                fontSize: '0.9rem',
+                color: '#64748b',
+                fontWeight: 600
+              }}>Amis</div>
+            </div>
+            <div style={{
+              background: 'white',
+              borderRadius: 16,
+              boxShadow: '0 2px 12px rgba(255,107,53,0.07)',
+              padding: '18px 28px',
+              minWidth: 120,
+              textAlign: 'center',
+              position: 'relative',
+              cursor: friendshipStats.pending > 0 ? 'pointer' : 'default',
+              border: friendshipStats.pending > 0 ? '2px solid #f59e0b' : 'none'
+            }}
+              onClick={friendshipStats.pending > 0 ? handlePendingClick : undefined}
+              title={friendshipStats.pending > 0 ? 'Voir les demandes en attente' : ''}
+            >
+              <div style={{
+                fontSize: '1.5rem',
+                fontWeight: 700,
+                background: 'linear-gradient(135deg, #f59e0b, #f7931e)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent'
+              }}>{friendshipStats.pending}</div>
+              <div style={{
+                fontSize: '0.9rem',
+                color: '#f59e0b',
+                fontWeight: 600
+              }}>En attente</div>
+              {friendshipStats.pending > 0 && (
+                <span style={{
+                  position: 'absolute',
+                  top: 8,
+                  right: 12,
+                  background: '#f59e0b',
+                  color: 'white',
+                  borderRadius: '50%',
+                  width: 22,
+                  height: 22,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  boxShadow: '0 2px 6px rgba(245,158,11,0.18)'
+                }}>
+                  {friendshipStats.pending}
+                </span>
+              )}
+            </div>
+            <div style={{
+              background: 'white',
+              borderRadius: 16,
+              boxShadow: '0 2px 12px rgba(255,107,53,0.07)',
+              padding: '18px 28px',
+              minWidth: 120,
+              textAlign: 'center'
+            }}>
+              <div style={{
+                fontSize: '1.5rem',
+                fontWeight: 700,
+                background: 'linear-gradient(135deg, #10b981, #059669)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent'
+              }}>{friendshipTrophies}</div>
+              <div style={{
+                fontSize: '0.9rem',
+                color: '#10b981',
+                fontWeight: 600
+              }}>Trophées</div>
+            </div>
           </div>
         </div>
-      </header>
+      </section>
 
       {/* Toast notification */}
       {toastMessage && (
@@ -957,11 +1103,18 @@ export default function Amis() {
       )}
 
       {/* Barre de recherche d'utilisateurs */}
-      {searchSection}
+      <div style={{
+        maxWidth: 540,
+        margin: '0 auto 32px auto',
+        position: 'relative',
+        zIndex: 2
+      }}>
+        {searchSection}
+      </div>
 
       {/* Résultats de recherche d'utilisateurs */}
       {searchTerm.length >= 2 && (
-        <div className={styles.searchSection}>
+        <div className={styles.searchSection} style={{ maxWidth: 540, margin: '0 auto 32px auto' }}>
           <div className={styles.searchResults}>
             <h3>Résultats de recherche</h3>
             {renderSearchResults()}
@@ -969,8 +1122,16 @@ export default function Amis() {
         </div>
       )}
 
-      {/* Onglets de navigation */}
-      <nav className={styles.tabs} style={{ marginTop: 24, marginBottom: 24 }}>
+      {/* Navigation sticky */}
+      <nav className={styles.tabs} style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 10,
+        background: 'rgba(255,255,255,0.95)',
+        boxShadow: '0 2px 12px rgba(0,0,0,0.03)',
+        marginBottom: 24,
+        borderRadius: '0 0 18px 18px'
+      }}>
         <button
           className={activeTab === 'friends' ? styles.activeTab : ''}
           onClick={() => setActiveTab('friends')}
@@ -1008,9 +1169,19 @@ export default function Amis() {
       </nav>
 
       {/* Affichage conditionnel selon l'onglet */}
-      <main style={{ maxWidth: 900, margin: '0 auto' }}>
+      <main style={{
+        maxWidth: 900,
+        margin: '0 auto',
+        padding: '0 12px'
+      }}>
         {activeTab === 'friends' && (
-          <section className={`${styles.friendsSection} ${getSectionAnimationClass()}`}>
+          <section className={`${styles.friendsSection} ${getSectionAnimationClass()}`} style={{
+            background: 'white',
+            borderRadius: 18,
+            boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
+            padding: '32px 24px',
+            marginBottom: 32
+          }}>
             <div className={styles.sectionHeader}>
               <h2>Mes amis ({friends.length})</h2>
               
@@ -1227,7 +1398,13 @@ export default function Amis() {
         )}
 
         {activeTab === 'requests' && (
-          <section className={`${styles.requestsSection} ${getSectionAnimationClass()}`} data-tab="requests">
+          <section className={`${styles.requestsSection} ${getSectionAnimationClass()}`} data-tab="requests" style={{
+            background: 'white',
+            borderRadius: 18,
+            boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
+            padding: '32px 24px',
+            marginBottom: 32
+          }}>
             <h2>Demandes d'amitié ({friendRequests.length})</h2>
             {friendRequests.map((request, idx) => (
               <div key={request.id} className={`${styles.requestCard} ${getCardAnimationClass(idx)}`} style={{ animation: 'cardSlideIn 0.7s cubic-bezier(0.68,-0.55,0.265,1.55)' }}>
@@ -1273,7 +1450,13 @@ export default function Amis() {
         )}
 
         {activeTab === 'suggestions' && (
-          <section className={`${styles.suggestionsSection} ${getSectionAnimationClass()}`}>
+          <section className={`${styles.suggestionsSection} ${getSectionAnimationClass()}`} style={{
+            background: 'white',
+            borderRadius: 18,
+            boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
+            padding: '32px 24px',
+            marginBottom: 32
+          }}>
             <h2>Suggestions d'amis</h2>
             <div className={styles.suggestionsGrid}>
               {suggestions.map((suggestion, idx) => {
@@ -1324,7 +1507,13 @@ export default function Amis() {
         )}
 
         {activeTab === 'friendsRecipes' && (
-          <section className={`${styles.friendsRecipesSection} ${getSectionAnimationClass()}`}>
+          <section className={`${styles.friendsRecipesSection} ${getSectionAnimationClass()}`} style={{
+            background: 'white',
+            borderRadius: 18,
+            boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
+            padding: '32px 24px',
+            marginBottom: 32
+          }}>
             <h2>Recettes de mes amis</h2>
             {friends.length === 0 ? (
               <div className={styles.emptyState}>
@@ -1480,6 +1669,17 @@ export default function Amis() {
           </div>
         </div>
       )}
+
+      {/* Ajout d'un style global pour l'animation des cartes */}
+      <style jsx global>{`
+        .${styles.cardAnimated} {
+          animation: cardSlideIn 0.7s cubic-bezier(0.68,-0.55,0.265,1.55);
+        }
+        @keyframes cardSlideIn {
+          from { opacity: 0; transform: translateY(30px) scale(0.98);}
+          to { opacity: 1; transform: translateY(0) scale(1);}
+        }
+      `}</style>
     </div>
   );
 }

@@ -38,13 +38,6 @@ export default function Home() {
     }
   }, [user, showWelcome])
 
-  const categories = [
-    { id: 'all', label: 'Tout', icon: '🍽️', color: '#6366f1' },
-    { id: 'dessert', label: 'Desserts', icon: '🍰', color: '#ec4899' },
-    { id: 'plat', label: 'Plats', icon: '🍝', color: '#f59e0b' },
-    { id: 'apero', label: 'Apéro', icon: '🥂', color: '#10b981' }
-  ]
-
   // Check for welcome message
   useEffect(() => {
     if (user && !showWelcome) {
@@ -415,6 +408,7 @@ export default function Home() {
           </div>
 
           {/* Filtres de catégories */}
+          {/* 
           <div style={{
             display: 'flex',
             gap: '8px',
@@ -449,6 +443,7 @@ export default function Home() {
               </button>
             ))}
           </div>
+          */}
         </div>
       </div>
 
@@ -630,3 +625,4 @@ export default function Home() {
     </div>
   )
 }
+       

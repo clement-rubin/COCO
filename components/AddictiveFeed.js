@@ -436,11 +436,163 @@ export default function AddictiveFeed() {
   if (loading) {
     return (
       <div className={styles.loadingContainer}>
-        <div className={styles.cookingLoader}>
-          <div className={styles.chef}>👨‍🍳</div>
-          <div className={styles.sparkles}>✨✨✨</div>
+        {/* Nouveau loader festif */}
+        <div className={styles.festinLoader}>
+          <div className={styles.festinTable}>
+            <div className={styles.chefAvatar}>👨‍🍳</div>
+            <div className={styles.tableCloth}></div>
+            <div className={styles.dishes}>
+              <span className={styles.dish} style={{ left: '10%' }}>🍲</span>
+              <span className={styles.dish} style={{ left: '35%' }}>🥗</span>
+              <span className={styles.dish} style={{ left: '60%' }}>🍰</span>
+              <span className={styles.dish} style={{ left: '80%' }}>🍕</span>
+            </div>
+            <div className={styles.steam}>
+              <span className={styles.steam1}></span>
+              <span className={styles.steam2}></span>
+              <span className={styles.steam3}></span>
+            </div>
+            <div className={styles.sparklesFestin}>
+              <span>✨</span>
+              <span>✨</span>
+              <span>✨</span>
+            </div>
+          </div>
+          <div className={styles.festinText}>
+            <span>Préparation du festin culinaire...</span>
+          </div>
         </div>
-        <p>Préparation du festin culinaire...</p>
+        <style jsx>{`
+          .${styles.festinLoader} {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 320px;
+            position: relative;
+            animation: fadeInFestin 0.7s;
+          }
+          .${styles.festinTable} {
+            position: relative;
+            width: 220px;
+            height: 120px;
+            margin-bottom: 18px;
+            background: none;
+          }
+          .${styles.chefAvatar} {
+            position: absolute;
+            top: -38px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 2.8rem;
+            z-index: 3;
+            animation: chefBounce 2.2s infinite;
+            filter: drop-shadow(0 2px 8px #f59e0b55);
+          }
+          .${styles.tableCloth} {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 48px;
+            background: linear-gradient(135deg, #fff7ed 60%, #fde68a 100%);
+            border-radius: 0 0 40px 40px;
+            border: 2px solid #f59e0b;
+            z-index: 1;
+            box-shadow: 0 8px 24px #f59e0b22;
+          }
+          .${styles.dishes} {
+            position: absolute;
+            bottom: 28px;
+            left: 0;
+            width: 100%;
+            height: 40px;
+            z-index: 2;
+          }
+          .${styles.dish} {
+            position: absolute;
+            font-size: 1.7rem;
+            animation: dishPop 1.8s infinite alternate;
+          }
+          .${styles.dish}:nth-child(1) { animation-delay: 0s; }
+          .${styles.dish}:nth-child(2) { animation-delay: 0.3s; }
+          .${styles.dish}:nth-child(3) { animation-delay: 0.6s; }
+          .${styles.dish}:nth-child(4) { animation-delay: 0.9s; }
+          .${styles.steam} {
+            position: absolute;
+            left: 50%;
+            top: 18px;
+            width: 60px;
+            height: 40px;
+            pointer-events: none;
+            z-index: 4;
+          }
+          .${styles.steam1}, .${styles.steam2}, .${styles.steam3} {
+            position: absolute;
+            width: 16px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(180deg, #fffbe9 60%, transparent 100%);
+            opacity: 0.7;
+            animation: steamRise 2.2s infinite;
+          }
+          .${styles.steam1} { left: 10px; animation-delay: 0s; }
+          .${styles.steam2} { left: 28px; animation-delay: 0.5s; }
+          .${styles.steam3} { left: 46px; animation-delay: 1s; }
+          .${styles.sparklesFestin} {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            pointer-events: none;
+            z-index: 5;
+          }
+          .${styles.sparklesFestin} span {
+            font-size: 1.2rem;
+            opacity: 0.7;
+            animation: sparkleFestin 2.2s infinite;
+          }
+          .${styles.sparklesFestin} span:nth-child(2) { animation-delay: 0.7s; }
+          .${styles.sparklesFestin} span:nth-child(3) { animation-delay: 1.3s; }
+          .${styles.festinText} {
+            color: #f59e0b;
+            font-weight: 700;
+            font-size: 1.1rem;
+            letter-spacing: 0.01em;
+            text-shadow: 0 2px 8px #fde68a;
+            margin-top: 8px;
+            text-align: center;
+            animation: fadeInText 1.2s;
+          }
+          @keyframes chefBounce {
+            0%, 100% { transform: translateX(-50%) translateY(0); }
+            50% { transform: translateX(-50%) translateY(-8px); }
+          }
+          @keyframes dishPop {
+            0% { transform: translateY(0) scale(1); }
+            60% { transform: translateY(-8px) scale(1.08); }
+            100% { transform: translateY(0) scale(1); }
+          }
+          @keyframes steamRise {
+            0% { opacity: 0.7; transform: translateY(0) scaleX(1); }
+            50% { opacity: 1; transform: translateY(-18px) scaleX(1.1); }
+            100% { opacity: 0; transform: translateY(-36px) scaleX(0.9); }
+          }
+          @keyframes sparkleFestin {
+            0%, 100% { opacity: 0.7; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.2); }
+          }
+          @keyframes fadeInFestin {
+            from { opacity: 0; transform: scale(0.95);}
+            to { opacity: 1; transform: scale(1);}
+          }
+          @keyframes fadeInText {
+            from { opacity: 0; }
+            to { opacity: 1; }
+          }
+        `}</style>
       </div>
     )
   }

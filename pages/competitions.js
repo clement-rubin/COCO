@@ -315,12 +315,30 @@ export default function Competitions() {
                       const recipe = entry.recipes || entry.recipe || {};
                       // Correction de l'affichage de l'image
                       const recipeImage = processImageData(recipe.image, '/placeholder-recipe.jpg');
+                      // LOG pour debug image
+                      logInfo('Affichage image participation', {
+                        entryId: entry.id,
+                        recipeId: recipe.id,
+                        recipeTitle: recipe.title,
+                        recipeImageRaw: recipe.image,
+                        recipeImageProcessed: recipeImage,
+                        entryUserId: entry.user_id,
+                        profile: entry.profiles
+                      });
                       return (
                         <div key={entry.id} className={styles.entryCard}>
                           <div className={styles.entryImage}>
                             <img 
                               src={recipeImage} 
                               alt={recipe.title || 'Recette'}
+                              onError={e => {
+                                logError('Erreur chargement image participation', {
+                                  entryId: entry.id,
+                                  recipeId: recipe.id,
+                                  recipeImage
+                                });
+                                e.target.src = '/placeholder-recipe.jpg';
+                              }}
                             />
                           </div>
                           <div className={styles.entryInfo}>
@@ -393,24 +411,41 @@ export default function Competitions() {
             <div className={styles.modalBody}>
               <p>Choisissez une recette à soumettre :</p>
               <div className={styles.recipesGrid}>
-                {userRecipes.map(recipe => (
-                  <div key={recipe.id} className={styles.recipeOption}>
-                    <img 
-                      src={processImageData(recipe.image, '/placeholder-recipe.jpg')} 
-                      alt={recipe.title}
-                    />
-                    <div className={styles.recipeInfo}>
-                      <h4>{recipe.title}</h4>
-                      <button
-                        onClick={() => submitToCompetition(selectedCompetition.id, recipe.id)}
-                        className={styles.selectButton}
-                        disabled={submitting}
-                      >
-                        {submitting ? 'Soumission...' : 'Choisir cette recette'}
-                      </button>
+                {userRecipes.map(recipe => {
+                  const recipeImage = processImageData(recipe.image, '/placeholder-recipe.jpg');
+                  // LOG pour debug image dans la modale
+                  logInfo('Affichage image recette utilisateur dans modale', {
+                    recipeId: recipe.id,
+                    recipeTitle: recipe.title,
+                    recipeImageRaw: recipe.image,
+                    recipeImageProcessed: recipeImage
+                  });
+                  return (
+                    <div key={recipe.id} className={styles.recipeOption}>
+                      <img 
+                        src={recipeImage} 
+                        alt={recipe.title}
+                        onError={e => {
+                          logError('Erreur chargement image recette utilisateur (modale)', {
+                            recipeId: recipe.id,
+                            recipeImage
+                          });
+                          e.target.src = '/placeholder-recipe.jpg';
+                        }}
+                      />
+                      <div className={styles.recipeInfo}>
+                        <h4>{recipe.title}</h4>
+                        <button
+                          onClick={() => submitToCompetition(selectedCompetition.id, recipe.id)}
+                          className={styles.selectButton}
+                          disabled={submitting}
+                        >
+                          {submitting ? 'Soumission...' : 'Choisir cette recette'}
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
               
               {userRecipes.length === 0 && (
