@@ -792,6 +792,16 @@ export default function Amis() {
     init();
   }, []);
 
+  // Ajout d'une classe d'animation sur les sections lors du changement d'onglet
+  const getSectionAnimationClass = () => {
+    return styles.sectionAnimated;
+  };
+
+  // Ajout d'une classe d'animation sur les cartes
+  const getCardAnimationClass = (index = 0) => {
+    return `${styles.cardAnimated} ${styles[`cardDelay${index % 5}`]}`;
+  };
+
   const searchSection = (
     <div className={styles.searchSection}>
       <div className={styles.searchBox}>
@@ -819,21 +829,20 @@ export default function Amis() {
       return <div style={{ color: '#888', padding: 12 }}>Aucun utilisateur trouvé</div>;
     }
 
-    return searchResults.map(user => {
+    return searchResults.map((user, index) => {
       const isRequestSent = sentRequests.has(user.user_id);
       const isSuccess = successCards.has(user.user_id);
       const isLoading = buttonStates[`add-${user.user_id}`]?.loading;
-      
+
       return (
         <div
           key={user.user_id}
-          className={`${styles.userCard} ${isRequestSent ? styles.requestSent : ''} ${isSuccess ? styles.success : ''}`}
+          className={`${styles.userCard} ${getCardAnimationClass(index)} ${isRequestSent ? styles.requestSent : ''} ${isSuccess ? styles.success : ''}`}
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: 16,
             marginBottom: 8,
-            animation: 'cardSlideIn 0.7s cubic-bezier(0.68,-0.55,0.265,1.55)'
           }}
         >
           {isRequestSent && (
@@ -841,7 +850,7 @@ export default function Amis() {
               Demande envoyée
             </div>
           )}
-          
+
           <div className={styles.avatar}>
             {user.avatar_url ? (
               <img src={user.avatar_url} alt={user.display_name} />
@@ -935,7 +944,7 @@ export default function Amis() {
 
       {/* Toast notification */}
       {toastMessage && (
-        <div className={`${styles.toastNotification} ${toastMessage.isError ? styles.error : ''}`}>
+        <div className={`${styles.toastNotification} ${styles.toastAnimated} ${toastMessage.isError ? styles.error : ''}`}>
           {toastMessage.message}
         </div>
       )}
@@ -1001,7 +1010,7 @@ export default function Amis() {
       {/* Affichage conditionnel selon l'onglet */}
       <main style={{ maxWidth: 900, margin: '0 auto' }}>
         {activeTab === 'friends' && (
-          <section className={styles.friendsSection}>
+          <section className={`${styles.friendsSection} ${getSectionAnimationClass()}`}>
             <div className={styles.sectionHeader}>
               <h2>Mes amis ({friends.length})</h2>
               
@@ -1023,9 +1032,9 @@ export default function Amis() {
             
             {friends.length > 0 ? (
               <div className={styles.friendsGrid}>
-                {getFilteredFriends().map((friendship) => {
-                  const isOnline = Math.random() > 0.7; // Simulation de statut en ligne
-                  const lastActive = Math.floor(Math.random() * 72); // Simulation d'heures depuis dernière activité
+                {getFilteredFriends().map((friendship, idx) => {
+                  const isOnline = Math.random() > 0.7;
+                  const lastActive = Math.floor(Math.random() * 72);
                   
                   // Charger les amis communs si pas déjà chargés
                   if (!mutualFriendsData[friendship.friend_id] && friendship.friend_id) {
@@ -1035,7 +1044,7 @@ export default function Amis() {
                   return (
                     <div
                       key={friendship.id}
-                      className={styles.friendCard}
+                      className={`${styles.friendCard} ${getCardAnimationClass(idx)}`}
                       onMouseEnter={() => {
                         setHoveredFriendId(friendship.friend_id);
                         fetchFriendRecipes(friendship.friend_id);
@@ -1218,10 +1227,10 @@ export default function Amis() {
         )}
 
         {activeTab === 'requests' && (
-          <section className={styles.requestsSection} data-tab="requests">
+          <section className={`${styles.requestsSection} ${getSectionAnimationClass()}`} data-tab="requests">
             <h2>Demandes d'amitié ({friendRequests.length})</h2>
-            {friendRequests.map((request) => (
-              <div key={request.id} className={styles.requestCard} style={{ animation: 'cardSlideIn 0.7s cubic-bezier(0.68,-0.55,0.265,1.55)' }}>
+            {friendRequests.map((request, idx) => (
+              <div key={request.id} className={`${styles.requestCard} ${getCardAnimationClass(idx)}`} style={{ animation: 'cardSlideIn 0.7s cubic-bezier(0.68,-0.55,0.265,1.55)' }}>
                 <div className={styles.userInfo}>
                   <div className={styles.avatar}>
                     {request.profiles?.avatar_url ? (
@@ -1264,18 +1273,18 @@ export default function Amis() {
         )}
 
         {activeTab === 'suggestions' && (
-          <section className={styles.suggestionsSection}>
+          <section className={`${styles.suggestionsSection} ${getSectionAnimationClass()}`}>
             <h2>Suggestions d'amis</h2>
             <div className={styles.suggestionsGrid}>
-              {suggestions.map((suggestion) => {
+              {suggestions.map((suggestion, idx) => {
                 const isRequestSent = sentRequests.has(suggestion.user_id);
                 const isSuccess = successCards.has(suggestion.user_id);
                 const isLoading = buttonStates[`add-${suggestion.user_id}`]?.loading;
                 
                 return (
-                  <div 
-                    key={suggestion.user_id} 
-                    className={`${styles.suggestionCard} ${isRequestSent ? styles.requestSent : ''} ${isSuccess ? styles.success : ''}`}
+                  <div
+                    key={suggestion.user_id}
+                    className={`${styles.suggestionCard} ${getCardAnimationClass(idx)} ${isRequestSent ? styles.requestSent : ''} ${isSuccess ? styles.success : ''}`}
                     style={{ animation: 'cardSlideIn 0.7s cubic-bezier(0.68,-0.55,0.265,1.55)' }}
                   >
                     {isRequestSent && (
@@ -1315,7 +1324,7 @@ export default function Amis() {
         )}
 
         {activeTab === 'friendsRecipes' && (
-          <section className={styles.friendsRecipesSection}>
+          <section className={`${styles.friendsRecipesSection} ${getSectionAnimationClass()}`}>
             <h2>Recettes de mes amis</h2>
             {friends.length === 0 ? (
               <div className={styles.emptyState}>
@@ -1414,7 +1423,7 @@ export default function Amis() {
 
       {/* Modal de confirmation amélioré */}
       {showConfirmDialog && (
-        <div className={styles.modalOverlay} onClick={() => setShowConfirmDialog(null)}>
+        <div className={`${styles.modalOverlay} ${styles.modalAnimated}`} onClick={() => setShowConfirmDialog(null)}>
           <div className={styles.confirmDialog} onClick={e => e.stopPropagation()}>
             <div className={styles.confirmHeader}>
               <div className={styles.confirmIcon}>

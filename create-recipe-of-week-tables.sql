@@ -41,8 +41,25 @@ ALTER TABLE recipe_of_week ENABLE ROW LEVEL SECURITY;
 ALTER TABLE recipe_of_week_participation ENABLE ROW LEVEL SECURITY;
 
 -- 5. Politiques RLS pour recipe_of_week
+
+-- Drop the existing policy
+DROP POLICY IF EXISTS "Allow public read access to recipe_of_week" ON recipe_of_week;
+
+-- Recreate the policy
 CREATE POLICY "Allow public read access to recipe_of_week" ON recipe_of_week
 FOR SELECT USING (true);
+
+-- Autoriser les utilisateurs authentifiés à insérer une participation si le concours est actif
+CREATE POLICY "Allow users to insert participation if contest is active" ON recipe_of_week_participation
+FOR INSERT WITH CHECK (
+  auth.uid() = user_id
+  AND EXISTS (
+    SELECT 1 FROM recipe_of_week
+    WHERE id = recipe_of_week_id
+      AND is_active = true
+      AND NOW() BETWEEN start_date AND end_date
+  )
+);
 
 CREATE POLICY "Allow admin insert on recipe_of_week" ON recipe_of_week
 FOR INSERT WITH CHECK (false); -- Only admins can create contests
@@ -147,3 +164,10 @@ BEGIN
   RAISE NOTICE '🎯 Concours d''exemple ajouté';
   RAISE NOTICE '⚡ Index optimisés pour les performances';
 END $$;
+
+-- Ajouter une recette à la semaine courante
+INSERT INTO weekly_recipe_candidates (weekly_contest_id, recipe_id, user_id)
+SELECT id, 'RECIPE_ID', 'USER_ID'
+FROM weekly_recipe_contest
+WHERE week_start = DATE_TRUNC('week', CURRENT_DATE)
+ON CONFLICT DO NOTHING;

@@ -143,7 +143,7 @@ FOR SELECT USING (true);
 CREATE POLICY "Allow users to submit their own entries" ON competition_entries
 FOR INSERT WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY "Allow users to update their own entries" ON competition_entries
+CREATE POLICY "Allow users to update leur propres participations" ON competition_entries
 FOR UPDATE USING (auth.uid() = user_id);
 
 CREATE POLICY "Allow users to delete their own entries" ON competition_entries
@@ -678,4 +678,68 @@ BEGIN
   RAISE NOTICE '📊 Index optimisés pour les performances';
   RAISE NOTICE '🆕 Compétitions d''exemple ajoutées';
   RAISE NOTICE '⏰ Sélection automatique des candidats hebdomadaires';
+END $$;
+
+-- Make sure public read is allowed
+CREATE POLICY IF NOT EXISTS "Allow public read access to weekly contests" ON weekly_recipe_contest
+FOR SELECT USING (true);
+
+-- Make sure the function is SECURITY DEFINER and owned by postgres
+ALTER FUNCTION get_current_weekly_contest() OWNER TO postgres;
+ALTER FUNCTION get_current_weekly_contest() SECURITY DEFINER;
+
+-- Exemple de modifications SQL à appliquer sur les tables existantes :
+
+-- 1. Ajouter une colonne pour rendre une recette publique si elle n'existe pas déjà
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name='recipes' AND column_name='is_public'
+  ) THEN
+    ALTER TABLE recipes ADD COLUMN is_public BOOLEAN DEFAULT TRUE;
+  END IF;
+END $$;
+
+-- 2. Ajouter un index sur recipes.created_at et recipes.is_public pour accélérer la sélection des candidats hebdomadaires
+CREATE INDEX IF NOT EXISTS idx_recipes_created_at_public ON recipes(created_at, is_public);
+
+-- 3. S'assurer que la colonne likes_count existe sur recipes (pour le tri des candidats)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name='recipes' AND column_name='likes_count'
+  ) THEN
+    ALTER TABLE recipes ADD COLUMN likes_count INTEGER DEFAULT 0;
+  END IF;
+END $$;
+
+-- 4. S'assurer que la colonne user_id sur recipes n'est pas NULL (pour la cohérence des participations)
+ALTER TABLE recipes ALTER COLUMN user_id SET NOT NULL;
+
+-- 5. Ajouter une contrainte d'unicité sur weekly_recipe_candidates (weekly_contest_id, recipe_id) si elle n'existe pas
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints 
+    WHERE table_name='weekly_recipe_candidates' 
+      AND constraint_type='UNIQUE'
+      AND constraint_name='weekly_recipe_candidates_weekly_contest_id_recipe_id_key'
+  ) THEN
+    ALTER TABLE weekly_recipe_candidates
+      ADD CONSTRAINT weekly_recipe_candidates_weekly_contest_id_recipe_id_key
+      UNIQUE (weekly_contest_id, recipe_id);
+  END IF;
+END $$;
+
+-- 6. S'assurer que la colonne is_manual_entry existe sur weekly_recipe_candidates
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name='weekly_recipe_candidates' AND column_name='is_manual_entry'
+  ) THEN
+    ALTER TABLE weekly_recipe_candidates ADD COLUMN is_manual_entry BOOLEAN DEFAULT FALSE;
+  END IF;
 END $$;

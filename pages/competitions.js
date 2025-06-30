@@ -309,29 +309,33 @@ export default function Competitions() {
                 <h4>Participations</h4>
                 {competition.competition_entries?.length > 0 ? (
                   <div className={styles.entriesGrid}>
-                    {competition.competition_entries.slice(0, 6).map(entry => (
-                      <div key={entry.id} className={styles.entryCard}>
-                        <div className={styles.entryImage}>
-                          <img 
-                            src={entry.recipes?.image || '/placeholder-recipe.jpg'} 
-                            alt={entry.recipes?.title}
-                          />
-                        </div>
-                        <div className={styles.entryInfo}>
-                          <h5>{entry.recipes?.title}</h5>
-                          <p>Par {entry.profiles?.display_name || entry.recipes?.author}</p>
-                          <div className={styles.entryActions}>
-                            <button
-                              onClick={() => voteForEntry(competition.id, entry.id)}
-                              className={styles.voteButton}
-                              disabled={entry.user_id === user?.id}
-                            >
-                              👍 {entry.votes_count || 0}
-                            </button>
+                    {competition.competition_entries.slice(0, 6).map(entry => {
+                      // Correction : utiliser entry.recipes ou entry.recipe selon la structure
+                      const recipe = entry.recipes || entry.recipe || {};
+                      return (
+                        <div key={entry.id} className={styles.entryCard}>
+                          <div className={styles.entryImage}>
+                            <img 
+                              src={recipe.image || '/placeholder-recipe.jpg'} 
+                              alt={recipe.title || 'Recette'}
+                            />
+                          </div>
+                          <div className={styles.entryInfo}>
+                            <h5>{recipe.title || 'Sans titre'}</h5>
+                            <p>Par {entry.profiles?.display_name || recipe.author || 'Auteur inconnu'}</p>
+                            <div className={styles.entryActions}>
+                              <button
+                                onClick={() => voteForEntry(competition.id, entry.id)}
+                                className={styles.voteButton}
+                                disabled={entry.user_id === user?.id}
+                              >
+                                👍 {entry.votes_count || 0}
+                              </button>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 ) : (
                   <p className={styles.noEntries}>Aucune participation pour le moment</p>

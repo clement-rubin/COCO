@@ -464,9 +464,6 @@ export default function Home() {
         boxShadow: '0 -4px 20px rgba(0,0,0,0.08)',
         overflow: 'hidden'
       }}>
-        {/* Recette de la semaine */}
-        <RecipeOfWeek />
-
         {/* En-tête du feed */}
         <div style={{
           padding: '16px 20px 8px',
@@ -502,31 +499,6 @@ export default function Home() {
             gap: '12px',
             marginTop: '12px'
           }}>
-            <button
-              onClick={() => router.push('/competitions')}
-              style={{
-                background: 'transparent',
-                border: '1px solid #e5e7eb',
-                color: '#6b7280',
-                padding: '6px 12px',
-                borderRadius: '16px',
-                fontSize: '0.75rem',
-                fontWeight: '500',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.background = '#f3f4f6'
-                e.target.style.color = '#374151'
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.background = 'transparent'
-                e.target.style.color = '#6b7280'
-              }}
-            >
-              🏆 Compétitions
-            </button>
-            
             <button
               onClick={() => router.push('/amis')}
               style={{
