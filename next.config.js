@@ -2,7 +2,12 @@
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    domains: ['images.unsplash.com'],
+    domains: [
+      'images.unsplash.com',
+      'localhost',
+      'c0c0r.netlify.app', // Add your Netlify domain
+      // Add more domains if you serve images from other places
+    ],
   },
   swcMinify: true,
   poweredByHeader: false,

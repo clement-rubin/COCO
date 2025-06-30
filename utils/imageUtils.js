@@ -20,7 +20,7 @@ export function processImageData(imageData, fallbackUrl = '/placeholder-recipe.j
     // Cas 1: Données nulles ou undefined
     if (!imageData) {
       logDebug('No image data provided, using fallback')
-      return fallbackUrl
+      return '/placeholder-recipe.jpg'
     }
 
     // Cas 2: String (URL ou base64)
@@ -30,7 +30,7 @@ export function processImageData(imageData, fallbackUrl = '/placeholder-recipe.j
       // chaîne vide
       if (!val) {
         logDebug('Empty string provided, using fallback')
-        return fallbackUrl
+        return '/placeholder-recipe.jpg'
       }
       
       // URL HTTP(S) standard
@@ -71,7 +71,7 @@ export function processImageData(imageData, fallbackUrl = '/placeholder-recipe.j
         start: val.substring(0, 20),
         length: val.length 
       })
-      return fallbackUrl
+      return '/placeholder-recipe.jpg'
     }
 
     // Cas 3: Array (bytea from PostgreSQL)
@@ -80,7 +80,7 @@ export function processImageData(imageData, fallbackUrl = '/placeholder-recipe.j
       
       if (imageData.length === 0) {
         logWarning('Empty array provided')
-        return fallbackUrl
+        return '/placeholder-recipe.jpg'
       }
       
       try {
@@ -100,7 +100,7 @@ export function processImageData(imageData, fallbackUrl = '/placeholder-recipe.j
           arrayLength: imageData.length,
           firstFewBytes: imageData.slice(0, 10)
         })
-        return fallbackUrl
+        return '/placeholder-recipe.jpg'
       }
     }
 
@@ -125,21 +125,21 @@ export function processImageData(imageData, fallbackUrl = '/placeholder-recipe.j
       logWarning('Object without recognizable image properties', {
         keys: Object.keys(imageData)
       })
-      return fallbackUrl
+      return '/placeholder-recipe.jpg'
     }
 
     logWarning('Unhandled image data type', {
       type: typeof imageData,
       constructor: imageData?.constructor?.name
     })
-    return fallbackUrl
+    return '/placeholder-recipe.jpg'
 
   } catch (error) {
     logError('Error processing image data', error, {
       dataType: typeof imageData,
       hasData: !!imageData
     })
-    return fallbackUrl
+    return '/placeholder-recipe.jpg'
   }
 }
 
