@@ -6,6 +6,7 @@ import { useAuth } from '../components/AuthContext'
 import { logInfo, logError } from '../utils/logger'
 import RecipeOfWeek from '../components/RecipeOfWeek'
 import styles from '../styles/Competitions.module.css'
+import { processImageData } from '../utils/imageUtils'
 
 export default function Competitions() {
   const { user } = useAuth()
@@ -312,11 +313,13 @@ export default function Competitions() {
                     {competition.competition_entries.slice(0, 6).map(entry => {
                       // Correction : utiliser entry.recipes ou entry.recipe selon la structure
                       const recipe = entry.recipes || entry.recipe || {};
+                      // Correction de l'affichage de l'image
+                      const recipeImage = processImageData(recipe.image, '/placeholder-recipe.jpg');
                       return (
                         <div key={entry.id} className={styles.entryCard}>
                           <div className={styles.entryImage}>
                             <img 
-                              src={recipe.image || '/placeholder-recipe.jpg'} 
+                              src={recipeImage} 
                               alt={recipe.title || 'Recette'}
                             />
                           </div>
@@ -393,7 +396,7 @@ export default function Competitions() {
                 {userRecipes.map(recipe => (
                   <div key={recipe.id} className={styles.recipeOption}>
                     <img 
-                      src={recipe.image || '/placeholder-recipe.jpg'} 
+                      src={processImageData(recipe.image, '/placeholder-recipe.jpg')} 
                       alt={recipe.title}
                     />
                     <div className={styles.recipeInfo}>
