@@ -22,14 +22,18 @@ export default function RecipeOfWeek({ isInCompetitionPage = false }) {
   const loadCandidates = async () => {
     try {
       setLoading(true)
-      const url = user ? 
-        `/api/weekly-recipe-contest?user_id=${user.id}` : 
-        '/api/weekly-recipe-contest'
+      
+      // Build URL with optional user_id parameter
+      let url = '/api/weekly-recipe-contest'
+      if (user?.id) {
+        url += `?user_id=${user.id}`
+      }
       
       const response = await fetch(url)
       
       if (!response.ok) {
-        throw new Error('Erreur lors du chargement')
+        const errorText = await response.text()
+        throw new Error(`Erreur ${response.status}: ${errorText}`)
       }
       
       const data = await response.json()
@@ -41,13 +45,14 @@ export default function RecipeOfWeek({ isInCompetitionPage = false }) {
         contest: data.contest
       })
       
-      // Vérifier si l'utilisateur a déjà voté
-      setHasVoted(data.hasUserVoted || false)
+      // Vérifier si l'utilisateur a déjà voté (only if logged in)
+      setHasVoted(user?.id ? (data.hasUserVoted || false) : false)
 
       logInfo('Recipe of week candidates loaded', {
         candidatesCount: data.candidates?.length || 0,
         totalVotes: data.totalVotes || 0,
-        userHasVoted: data.hasUserVoted || false
+        userHasVoted: data.hasUserVoted || false,
+        isAuthenticated: !!user?.id
       })
 
     } catch (error) {

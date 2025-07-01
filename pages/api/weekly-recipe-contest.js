@@ -22,13 +22,14 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
       const { user_id } = req.query
 
-      if (!user_id) {
-        logWarning('Weekly contest GET: missing user_id', { requestId })
-        return res.status(400).json({ 
-          error: 'user_id parameter is required',
-          requestId 
-        })
-      }
+      // Remove the user_id requirement check - make it optional
+      // if (!user_id) {
+      //   logWarning('Weekly contest GET: missing user_id', { requestId })
+      //   return res.status(400).json({ 
+      //     error: 'user_id parameter is required',
+      //     requestId 
+      //   })
+      // }
 
       try {
         // Utiliser la fonction PostgreSQL pour obtenir le concours courant
@@ -109,7 +110,7 @@ export default async function handler(req, res) {
           })
         }
 
-        // Vérifier si l'utilisateur a déjà voté
+        // Vérifier si l'utilisateur a déjà voté - only if user_id is provided
         let hasUserVoted = false
         if (user_id) {
           const { data: userVote, error: voteError } = await supabase
@@ -129,8 +130,27 @@ export default async function handler(req, res) {
         // Enrichir les candidats
         const enrichedCandidates = candidates?.map(candidate => ({
           ...candidate,
-          recipe: candidate.recipes
+          recipe: candidate.recipes,
+          // Mark if this candidate received a vote from the current user
+          hasUserVoted: user_id ? false : false // Will be set correctly below if user voted
         })) || []
+
+        // If user is logged in, check which candidates they voted for
+        if (user_id && enrichedCandidates.length > 0) {
+          const candidateIds = enrichedCandidates.map(c => c.id)
+          const { data: userVotes } = await supabase
+            .from('weekly_recipe_votes')
+            .select('candidate_id')
+            .eq('weekly_contest_id', weeklyContest.id)
+            .eq('voter_id', user_id)
+            .in('candidate_id', candidateIds)
+
+          const votedCandidateIds = new Set(userVotes?.map(v => v.candidate_id) || [])
+          
+          enrichedCandidates.forEach(candidate => {
+            candidate.hasUserVoted = votedCandidateIds.has(candidate.id)
+          })
+        }
 
         logInfo('Weekly recipe contest data retrieved successfully', {
           requestId,
@@ -138,7 +158,7 @@ export default async function handler(req, res) {
           candidatesCount: enrichedCandidates.length,
           totalVotes: weeklyContest.total_votes,
           hasUserVoted,
-          userId: user_id?.substring(0, 8) + '...'
+          userId: user_id ? user_id.substring(0, 8) + '...' : 'anonymous'
         })
 
         return res.status(200).json({

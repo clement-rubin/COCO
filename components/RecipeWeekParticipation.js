@@ -22,6 +22,11 @@ export default function RecipeWeekParticipation({ onParticipationChange }) {
   }, [user])
 
   const loadEligibleRecipes = async () => {
+    if (!user?.id) {
+      setLoading(false)
+      return
+    }
+    
     try {
       setLoading(true)
       const response = await fetch(`/api/recipe-of-week-participation?user_id=${user.id}`)

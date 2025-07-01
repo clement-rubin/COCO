@@ -3,14 +3,31 @@
 
 BEGIN;
 
--- 1. Nettoyer les données problématiques d'abord
-UPDATE recipes 
-SET user_id = (
-  SELECT id FROM auth.users 
-  WHERE email = 'anonymous@coco.app' 
-  LIMIT 1
-)
-WHERE user_id IS NULL;
+-- 1. Nettoyer les données problématiques d'abord - IMPROVED VERSION
+-- First, let's create a system user for orphaned recipes if needed
+DO $$
+DECLARE
+    system_user_id uuid;
+BEGIN
+    -- Try to find an existing system user
+    SELECT id INTO system_user_id 
+    FROM auth.users 
+    WHERE email = 'system@coco.app' 
+    LIMIT 1;
+    
+    -- If no system user exists, handle orphaned recipes differently
+    IF system_user_id IS NULL THEN
+        -- Instead of updating to a non-existent user, just delete orphaned recipes
+        DELETE FROM recipes WHERE user_id IS NULL;
+        RAISE NOTICE 'Deleted % orphaned recipes without user_id', ROW_COUNT;
+    ELSE
+        -- Update orphaned recipes to belong to system user
+        UPDATE recipes 
+        SET user_id = system_user_id
+        WHERE user_id IS NULL;
+        RAISE NOTICE 'Updated % orphaned recipes to system user', ROW_COUNT;
+    END IF;
+END $$;
 
 -- Si pas d'utilisateur anonyme, en créer un virtuel ou supprimer les recettes orphelines
 DELETE FROM recipes WHERE user_id IS NULL;

@@ -23,10 +23,12 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
       const { user_id } = req.query
 
+      // Make user_id optional for GET requests
       if (!user_id) {
-        logWarning('Participation GET: missing user_id', { requestId })
-        return res.status(400).json({ 
-          error: 'user_id parameter is required',
+        logInfo('Participation GET without user_id - returning empty results', { requestId })
+        return res.status(200).json({ 
+          contest: null,
+          userCandidates: [],
           requestId 
         })
       }
