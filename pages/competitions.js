@@ -323,7 +323,8 @@ export default function Competitions() {
                       const recipe = entry.recipes || entry.recipe || {};
                       // Correction de l'affichage de l'image
                       const recipeImage = processImageData(recipe.image, '/placeholder-recipe.jpg');
-                      // LOG pour debug image
+
+                      // LOG DÉTAILLÉ : état de l'image à chaque étape
                       logInfo('Affichage image participation', {
                         entryId: entry.id,
                         recipeId: recipe.id,
@@ -331,8 +332,14 @@ export default function Competitions() {
                         recipeImageRaw: recipe.image,
                         recipeImageProcessed: recipeImage,
                         entryUserId: entry.user_id,
-                        profile: entry.profiles
+                        profile: entry.profiles,
+                        typeofRecipeImageRaw: typeof recipe.image,
+                        isRecipeImageRawEmpty: !recipe.image,
+                        isRecipeImageProcessedEmpty: !recipeImage,
+                        isRecipeImageProcessedDataUrl: recipeImage?.startsWith?.('data:image/'),
+                        isRecipeImageProcessedHttp: recipeImage?.startsWith?.('http'),
                       });
+
                       return (
                         <div key={entry.id} className={styles.entryCard}>
                           <div className={styles.entryImage}>
@@ -343,7 +350,14 @@ export default function Competitions() {
                                 logError('Erreur chargement image participation', {
                                   entryId: entry.id,
                                   recipeId: recipe.id,
-                                  recipeImage
+                                  recipeImage,
+                                  recipeImageRaw: recipe.image,
+                                  typeofRecipeImageRaw: typeof recipe.image,
+                                  isRecipeImageRawEmpty: !recipe.image,
+                                  isRecipeImageProcessedEmpty: !recipeImage,
+                                  isRecipeImageProcessedDataUrl: recipeImage?.startsWith?.('data:image/'),
+                                  isRecipeImageProcessedHttp: recipeImage?.startsWith?.('http'),
+                                  errorEvent: e?.nativeEvent || e,
                                 });
                                 e.target.src = '/placeholder-recipe.jpg';
                               }}
