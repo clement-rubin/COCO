@@ -6,7 +6,7 @@ import { useAuth } from '../components/AuthContext'
 import { logInfo as baseLogInfo, logError as baseLogError } from '../utils/logger'
 import RecipeOfWeek from '../components/RecipeOfWeek'
 import styles from '../styles/Competitions.module.css'
-import { processImageData } from '../utils/imageUtils'
+import { processImageData, createSafeImageUrl } from '../utils/imageUtils'
 
 export default function Competitions() {
   const { user } = useAuth()
@@ -93,8 +93,27 @@ export default function Competitions() {
 
       if (error) throw error
 
+      // Log détaillé des images chargées
+      if (data) {
+        data.forEach(competition => {
+          competition.competition_entries?.forEach(entry => {
+            const recipe = entry.recipes || entry.recipe || {};
+            logInfo('Competition entry image data', {
+              competitionId: competition.id,
+              entryId: entry.id,
+              recipeId: recipe.id,
+              recipeTitle: recipe.title,
+              imageData: recipe.image,
+              imageType: typeof recipe.image,
+              imageLength: recipe.image?.length,
+              imageSample: typeof recipe.image === 'string' ? recipe.image.substring(0, 100) : null
+            });
+          });
+        });
+      }
+
       setCompetitions(data || [])
-      logInfo('Competitions loaded', { count: data?.length || 0, competitions: data })
+      logInfo('Competitions loaded', { count: data?.length || 0 })
     } catch (error) {
       logError('Error loading competitions', error)
     } finally {
@@ -465,8 +484,8 @@ export default function Competitions() {
                     {competition.competition_entries.slice(0, 6).map(entry => {
                       // Correction : utiliser entry.recipes ou entry.recipe selon la structure
                       const recipe = entry.recipes || entry.recipe || {};
-                      // Correction de l'affichage de l'image
-                      const recipeImage = processImageData(recipe.image, '/placeholder-recipe.jpg');
+                      // Utiliser la nouvelle fonction createSafeImageUrl
+                      const recipeImage = createSafeImageUrl(recipe.image, '/placeholder-recipe.jpg');
 
                       // LOG DÉTAILLÉ : état de l'image à chaque étape
                       logInfo('Affichage image participation', {
@@ -474,14 +493,13 @@ export default function Competitions() {
                         recipeId: recipe.id,
                         recipeTitle: recipe.title,
                         recipeImageRaw: recipe.image,
+                        recipeImageRawType: typeof recipe.image,
+                        recipeImageRawSample: typeof recipe.image === 'string' ? recipe.image.substring(0, 100) : null,
                         recipeImageProcessed: recipeImage,
-                        entryUserId: entry.user_id,
-                        profile: entry.profiles,
-                        typeofRecipeImageRaw: typeof recipe.image,
-                        isRecipeImageRawEmpty: !recipe.image,
-                        isRecipeImageProcessedEmpty: !recipeImage,
-                        isRecipeImageProcessedDataUrl: recipeImage?.startsWith?.('data:image/'),
-                        isRecipeImageProcessedHttp: recipeImage?.startsWith?.('http'),
+                        isProcessedDataUrl: recipeImage?.startsWith?.('data:image/'),
+                        isProcessedHttp: recipeImage?.startsWith?.('http'),
+                        isProcessedRelative: recipeImage?.startsWith?.('/'),
+                        isFallback: recipeImage === '/placeholder-recipe.jpg'
                       });
 
                       return (
@@ -490,18 +508,24 @@ export default function Competitions() {
                             <img 
                               src={recipeImage} 
                               alt={recipe.title || 'Recette'}
-                              onError={e => {
+                              onLoad={() => {
+                                logInfo('Image loaded successfully', {
+                                  entryId: entry.id,
+                                  recipeId: recipe.id,
+                                  imageUrl: recipeImage
+                                });
+                              }}
+                              onError={(e) => {
                                 logError('Erreur chargement image participation', {
                                   entryId: entry.id,
                                   recipeId: recipe.id,
-                                  recipeImage,
-                                  recipeImageRaw: recipe.image,
-                                  typeofRecipeImageRaw: typeof recipe.image,
-                                  isRecipeImageRawEmpty: !recipe.image,
-                                  isRecipeImageProcessedEmpty: !recipeImage,
-                                  isRecipeImageProcessedDataUrl: recipeImage?.startsWith?.('data:image/'),
-                                  isRecipeImageProcessedHttp: recipeImage?.startsWith?.('http'),
-                                  errorEvent: e?.nativeEvent || e,
+                                  recipeTitle: recipe.title,
+                                  originalImageData: recipe.image,
+                                  processedImageUrl: recipeImage,
+                                  errorTarget: e.target.src,
+                                  naturalWidth: e.target.naturalWidth,
+                                  naturalHeight: e.target.naturalHeight,
+                                  complete: e.target.complete
                                 });
                                 e.target.src = '/placeholder-recipe.jpg';
                               }}
@@ -584,23 +608,34 @@ export default function Competitions() {
               <p>Choisissez une recette à soumettre :</p>
               <div className={styles.recipesGrid}>
                 {userRecipes.map(recipe => {
-                  const recipeImage = processImageData(recipe.image, '/placeholder-recipe.jpg');
+                  const recipeImage = createSafeImageUrl(recipe.image, '/placeholder-recipe.jpg');
                   // LOG pour debug image dans la modale
                   logInfo('Affichage image recette utilisateur dans modale', {
                     recipeId: recipe.id,
                     recipeTitle: recipe.title,
                     recipeImageRaw: recipe.image,
-                    recipeImageProcessed: recipeImage
+                    recipeImageRawType: typeof recipe.image,
+                    recipeImageProcessed: recipeImage,
+                    isFallback: recipeImage === '/placeholder-recipe.jpg'
                   });
                   return (
                     <div key={recipe.id} className={styles.recipeOption}>
                       <img 
                         src={recipeImage} 
                         alt={recipe.title}
-                        onError={e => {
+                        onLoad={() => {
+                          logInfo('Modal recipe image loaded successfully', {
+                            recipeId: recipe.id,
+                            imageUrl: recipeImage
+                          });
+                        }}
+                        onError={(e) => {
                           logError('Erreur chargement image recette utilisateur (modale)', {
                             recipeId: recipe.id,
-                            recipeImage
+                            recipeTitle: recipe.title,
+                            originalImageData: recipe.image,
+                            processedImageUrl: recipeImage,
+                            errorTarget: e.target.src
                           });
                           e.target.src = '/placeholder-recipe.jpg';
                         }}

@@ -166,6 +166,17 @@ export const logAuth = (action, data = {}) => {
   return createLog(LOG_LEVELS.INFO, LOG_TYPES.AUTH, `Auth: ${action}`, data)
 }
 
+// Fonction spécialisée pour les logs d'images
+export const logImageProcessing = (action, imageData, processedUrl, data = {}) => {
+  return createLog(LOG_LEVELS.DEBUG, 'IMAGE_PROCESSING', `Image ${action}`, {
+    action,
+    originalData: typeof imageData === 'string' ? imageData.substring(0, 100) : imageData,
+    originalDataType: typeof imageData,
+    processedUrl: processedUrl?.substring(0, 100),
+    ...data
+  })
+}
+
 // Fonctions utilitaires
 export const getLogs = (filter = {}) => {
   let filteredLogs = [...logHistory]
@@ -228,6 +239,7 @@ export default {
   frontendError: logFrontendError,
   database: logDatabaseOperation,
   auth: logAuth,
+  imageProcessing: logImageProcessing,
   getLogs,
   clearLogs,
   exportLogs,

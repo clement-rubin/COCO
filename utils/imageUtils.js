@@ -14,13 +14,14 @@ export function processImageData(imageData, fallbackUrl = '/placeholder-recipe.j
       isArray: Array.isArray(imageData),
       hasData: !!imageData,
       dataLength: imageData?.length,
-      isString: typeof imageData === 'string'
+      isString: typeof imageData === 'string',
+      imageDataSample: typeof imageData === 'string' ? imageData.substring(0, 100) : null
     })
 
     // Cas 1: Données nulles ou undefined
     if (!imageData) {
       logDebug('No image data provided, using fallback')
-      return '/placeholder-recipe.jpg'
+      return fallbackUrl
     }
 
     // Cas 2: String (URL ou base64)
@@ -30,12 +31,12 @@ export function processImageData(imageData, fallbackUrl = '/placeholder-recipe.j
       // chaîne vide
       if (!val) {
         logDebug('Empty string provided, using fallback')
-        return '/placeholder-recipe.jpg'
+        return fallbackUrl
       }
       
-      // URL HTTP(S) standard
+      // URL HTTP(S) standard (y compris Supabase)
       if (val.startsWith('http://') || val.startsWith('https://')) {
-        logDebug('HTTP URL detected', { url: val.substring(0, 50) + '...' })
+        logDebug('HTTP URL detected', { url: val.substring(0, 80) + '...' })
         return val
       }
       
@@ -61,17 +62,41 @@ export function processImageData(imageData, fallbackUrl = '/placeholder-recipe.j
         return val
       }
 
+      // URL Supabase storage (format: bucket/path)
+      if (val.includes('supabase') || val.includes('storage') || val.match(/^[\w-]+\/[\w-]+\.(jpg|jpeg|png|webp|gif)$/i)) {
+        logDebug('Supabase storage path detected', { path: val })
+        // Si c'est déjà une URL complète Supabase, la retourner
+        if (val.includes('supabase.co') || val.includes('supabase.com')) {
+          return val
+        }
+        // Sinon, construire l'URL complète (à adapter selon votre configuration)
+        return val.startsWith('/') ? val : `/${val}`
+      }
+
+      // Chemin relatif commençant par /
+      if (val.startsWith('/')) {
+        logDebug('Relative path detected', { path: val })
+        return val
+      }
+
       // Si c'est un nom de fichier (ex: "image.jpg"), retourner comme /images/image.jpg
       if (!val.includes('/') && (val.endsWith('.jpg') || val.endsWith('.jpeg') || val.endsWith('.png') || val.endsWith('.webp') || val.endsWith('.gif'))) {
         logDebug('Filename detected, constructing image URL', { fileName: val })
         return `/images/${val}`
       }
 
+      // Chemins relatifs sans / initial
+      if (val.match(/^[\w-]+\/[\w.-]+$/)) {
+        logDebug('Relative path without leading slash detected', { path: val })
+        return `/${val}`
+      }
+
       logWarning('Unknown string format for image data', { 
-        start: val.substring(0, 20),
-        length: val.length 
+        start: val.substring(0, 50),
+        length: val.length,
+        fullValue: val
       })
-      return '/placeholder-recipe.jpg'
+      return fallbackUrl
     }
 
     // Cas 3: Array (bytea from PostgreSQL)
@@ -137,9 +162,10 @@ export function processImageData(imageData, fallbackUrl = '/placeholder-recipe.j
   } catch (error) {
     logError('Error processing image data', error, {
       dataType: typeof imageData,
-      hasData: !!imageData
+      hasData: !!imageData,
+      imageDataSample: typeof imageData === 'string' ? imageData.substring(0, 100) : imageData
     })
-    return '/placeholder-recipe.jpg'
+    return fallbackUrl
   }
 }
 
@@ -838,4 +864,29 @@ export function validateImageUrl(url) {
   }
   
   return false
+}
+
+/**
+ * Create a safe image URL with better error handling and fallback
+ * @param {*} imageData - Raw image data
+ * @param {string} fallback - Fallback URL
+ * @returns {string} Safe image URL
+ */
+export function createSafeImageUrl(imageData, fallback = '/placeholder-recipe.jpg') {
+  try {
+    const processedUrl = processImageData(imageData, fallback)
+    
+    logDebug('Created safe image URL', {
+      originalData: typeof imageData === 'string' ? imageData.substring(0, 100) : imageData,
+      processedUrl: processedUrl.substring(0, 100),
+      isFallback: processedUrl === fallback
+    })
+    
+    return processedUrl
+  } catch (error) {
+    logError('Error creating safe image URL', error, {
+      imageData: typeof imageData === 'string' ? imageData.substring(0, 100) : imageData
+    })
+    return fallback
+  }
 }
