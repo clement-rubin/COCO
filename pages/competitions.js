@@ -481,7 +481,7 @@ export default function Competitions() {
                 <h4>Participations</h4>
                 {competition.competition_entries?.length > 0 ? (
                   <div className={styles.entriesGrid}>
-                    {competition.competition_entries.slice(0, 6).map(entry => {
+                    {competition.competition_entries.slice(0, 6).map((entry, entryIndex) => {
                       // Correction : utiliser entry.recipes ou entry.recipe selon la structure
                       const recipe = entry.recipes || entry.recipe || {};
                       // Utiliser la nouvelle fonction createSafeImageUrl
@@ -504,46 +504,79 @@ export default function Competitions() {
 
                       return (
                         <div key={entry.id} className={styles.entryCard}>
-                          <div className={styles.entryImage}>
-                            <img 
-                              src={recipeImage} 
-                              alt={recipe.title || 'Recette'}
-                              onLoad={() => {
-                                logInfo('Image loaded successfully', {
-                                  entryId: entry.id,
-                                  recipeId: recipe.id,
-                                  imageUrl: recipeImage
-                                });
-                              }}
-                              onError={(e) => {
-                                logError('Erreur chargement image participation', {
-                                  entryId: entry.id,
-                                  recipeId: recipe.id,
-                                  recipeTitle: recipe.title,
-                                  originalImageData: recipe.image,
-                                  processedImageUrl: recipeImage,
-                                  errorTarget: e.target.src,
-                                  naturalWidth: e.target.naturalWidth,
-                                  naturalHeight: e.target.naturalHeight,
-                                  complete: e.target.complete
-                                });
-                                e.target.src = '/placeholder-recipe.jpg';
-                              }}
-                            />
+                          {/* Badge de position */}
+                          {entry.votes_count > 0 && (
+                            <div className={`${styles.positionBadge} ${
+                              entryIndex === 0 ? styles.first : 
+                              entryIndex === 1 ? styles.second : ''
+                            }`}>
+                              {entryIndex === 0 ? '🥇' : entryIndex === 1 ? '🥈' : '🥉'} 
+                              {entry.votes_count}
+                            </div>
+                          )}
+                          
+                          <div className={styles.entryImageContainer}>
+                            <div className={styles.entryImage}>
+                              <img 
+                                src={recipeImage} 
+                                alt={recipe.title || 'Recette'}
+                                onLoad={() => {
+                                  logInfo('Image loaded successfully', {
+                                    entryId: entry.id,
+                                    recipeId: recipe.id,
+                                    imageUrl: recipeImage
+                                  });
+                                }}
+                                onError={(e) => {
+                                  logError('Erreur chargement image participation', {
+                                    entryId: entry.id,
+                                    recipeId: recipe.id,
+                                    recipeTitle: recipe.title,
+                                    originalImageData: recipe.image,
+                                    processedImageUrl: recipeImage,
+                                    errorTarget: e.target.src,
+                                    naturalWidth: e.target.naturalWidth,
+                                    naturalHeight: e.target.naturalHeight,
+                                    complete: e.target.complete
+                                  });
+                                  e.target.src = '/placeholder-recipe.jpg';
+                                }}
+                              />
+                            </div>
                           </div>
-                          <div className={styles.entryInfo}>
-                            <h5>{recipe.title || 'Sans titre'}</h5>
-                            <p>Par {entry.profiles?.display_name || recipe.author || 'Auteur inconnu'}</p>
-                            <div className={styles.entryActions}>
+                          
+                          <div className={styles.entryContent}>
+                            <h5 className={styles.entryTitle}>
+                              {recipe.title || 'Sans titre'}
+                            </h5>
+                            <p className={styles.entryAuthor}>
+                              👤 {entry.profiles?.display_name || recipe.author || 'Auteur inconnu'}
+                            </p>
+                            
+                            <div className={styles.entryMeta}>
+                              <div className={styles.voteCount}>
+                                👍 {entry.votes_count || 0} vote{(entry.votes_count || 0) !== 1 ? 's' : ''}
+                              </div>
+                              
                               <button
                                 onClick={() => {
                                   logInfo('Vote button clicked', { competitionId: competition.id, entryId: entry.id, userId: user?.id });
                                   voteForEntry(competition.id, entry.id)
                                 }}
-                                className={styles.voteButton}
+                                className={`${styles.voteButton} ${
+                                  entry.user_id === user?.id ? styles.ownRecipe : ''
+                                }`}
                                 disabled={entry.user_id === user?.id}
+                                title={entry.user_id === user?.id ? 
+                                  'Vous ne pouvez pas voter pour votre propre recette' : 
+                                  'Voter pour cette recette'
+                                }
                               >
-                                👍 {entry.votes_count || 0}
+                                {entry.user_id === user?.id ? (
+                                  <>👤 Votre recette</>
+                                ) : (
+                                  <>🗳️ Voter</>
+                                )}
                               </button>
                             </div>
                           </div>
@@ -555,6 +588,7 @@ export default function Competitions() {
                   <p className={styles.noEntries}>Aucune participation pour le moment</p>
                 )}
               </div>
+
               {/* Actions */}
               <div className={styles.cardActions}>
                 {activeTab === 'active' && (

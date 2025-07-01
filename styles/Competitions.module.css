@@ -239,458 +239,282 @@
 .entriesGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 16px;
-  margin-bottom: 20px;
+  gap: 20px;
+  margin-bottom: 24px;
 }
 
 .entryCard {
+  background: linear-gradient(145deg, #ffffff 0%, #fafbfc 100%);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  transform-origin: center;
   display: flex;
-  gap: 12px;
-  padding: 12px;
-  background: #f9fafb;
-  border-radius: 12px;
-  border: 1px solid #e5e7eb;
-  transition: all 0.2s ease;
+  flex-direction: column;
+  min-height: 280px;
 }
 
 .entryCard:hover {
-  background: #f3f4f6;
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+}
+
+.entryImageContainer {
+  position: relative;
+  width: 100%;
+  height: 180px;
+  overflow: hidden;
+  border-radius: 16px 16px 0 0;
 }
 
 .entryImage {
-  width: 60px;
-  height: 60px;
-  border-radius: 8px;
-  overflow: hidden;
-  flex-shrink: 0;
+  position: relative;
+  width: 100%;
+  height: 100%;
 }
 
 .entryImage img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.4s ease;
 }
 
-.entryInfo {
+.entryCard:hover .entryImage img {
+  transform: scale(1.05);
+}
+
+.entryContent {
+  padding: 16px;
   flex: 1;
-  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
-.entryInfo h5 {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #111827;
-  margin: 0 0 4px 0;
-  white-space: nowrap;
+.entryTitle {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 8px 0;
+  line-height: 1.3;
   overflow: hidden;
   text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
-.entryInfo p {
-  font-size: 0.8rem;
+.entryAuthor {
+  font-size: 0.85rem;
   color: #6b7280;
-  margin: 0 0 8px 0;
+  margin: 0 0 12px 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.entryActions {
+.entryMeta {
   display: flex;
-  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+}
+
+.voteCount {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
 }
 
 .voteButton {
-  padding: 4px 8px;
-  background: #f3f4f6;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 0.8rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.voteButton:hover:not(:disabled) {
-  background: #ff6b35;
-  color: white;
-  border-color: #ff6b35;
-}
-
-.voteButton:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.noEntries {
-  text-align: center;
-  color: #6b7280;
-  font-style: italic;
-  padding: 20px;
-}
-
-.cardActions {
-  display: flex;
-  gap: 12px;
-  margin-top: 20px;
-}
-
-.submitButton {
-  flex: 1;
-  padding: 12px 24px;
-  background: linear-gradient(135deg, #ff6b35, #f7931e);
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
   color: white;
   border: none;
   border-radius: 12px;
+  padding: 8px 16px;
+  font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.submitButton:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(255, 107, 53, 0.3);
+.voteButton:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.3);
 }
 
-.submitButton:disabled {
-  background: #e5e7eb;
-  color: #9ca3af;
+.voteButton:disabled {
+  background: #9ca3af;
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
 }
 
-.emptyState {
-  text-align: center;
-  padding: 60px 20px;
+.voteButton.voted {
+  background: linear-gradient(135deg, #10b981, #059669);
 }
 
-.emptyIcon {
-  font-size: 4rem;
-  margin-bottom: 16px;
-  display: block;
-}
-
-.emptyState h3 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #111827;
-  margin: 0 0 8px 0;
-}
-
-.emptyState p {
-  color: #6b7280;
-  margin: 0;
-}
-
-/* Modal */
-.modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 20px;
-}
-
-.modalContent {
-  background: white;
-  border-radius: 16px;
-  width: 100%;
-  max-width: 600px;
-  max-height: 80vh;
-  overflow-y: auto;
-}
-
-.modalHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 24px 24px 0;
-  border-bottom: 1px solid #f3f4f6;
-  margin-bottom: 24px;
-}
-
-.modalHeader h3 {
-  font-size: 1.3rem;
-  font-weight: 600;
-  color: #111827;
-  margin: 0;
-}
-
-.closeButton {
-  background: none;
-  border: none;
-  font-size: 24px;
-  color: #6b7280;
-  cursor: pointer;
-  padding: 4px;
-}
-
-.modalBody {
-  padding: 0 24px 24px;
-}
-
-.modalBody p {
-  margin: 0 0 20px 0;
-  color: #374151;
-  font-weight: 500;
-}
-
-.recipesGrid {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.recipeOption {
-  display: flex;
-  gap: 16px;
-  padding: 16px;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  transition: all 0.2s ease;
-}
-
-.recipeOption:hover {
-  border-color: #ff6b35;
-  background: #fff5f0;
-}
-
-.recipeOption img {
-  width: 80px;
-  height: 80px;
-  object-fit: cover;
-  border-radius: 8px;
-}
-
-.recipeInfo {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-
-.recipeInfo h4 {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #111827;
-  margin: 0 0 8px 0;
-}
-
-.selectButton {
-  padding: 8px 16px;
-  background: #ff6b35;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-weight: 500;
-  cursor: pointer;
-  align-self: flex-start;
-  transition: all 0.2s ease;
-}
-
-.selectButton:hover:not(:disabled) {
-  background: #e55a2b;
-}
-
-.selectButton:disabled {
-  opacity: 0.5;
+.voteButton.ownRecipe {
+  background: #6b7280;
   cursor: not-allowed;
 }
 
-.noRecipes {
-  text-align: center;
-  padding: 40px 20px;
+/* Grille des participations - harmonisée */
+.entriesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+  margin-bottom: 24px;
 }
 
-.createRecipeButton {
-  padding: 12px 24px;
-  background: linear-gradient(135deg, #ff6b35, #f7931e);
+/* Ajustements pour les modales */
+.recipeOption {
+  background: linear-gradient(145deg, #ffffff 0%, #fafbfc 100%);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  display: flex;
+  flex-direction: column;
+}
+
+.recipeOption:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+}
+
+.recipeOption img {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+}
+
+.recipeInfo {
+  padding: 12px;
+}
+
+.recipeInfo h4 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 8px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.selectButton {
+  background: linear-gradient(135deg, #10b981, #059669);
   color: white;
   border: none;
-  border-radius: 12px;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
-  margin-top: 16px;
-}
-
-/* Styles pour l'onglet Recipe of the Week */
-.weekContainer {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 0 20px;
-}
-
-.weekHeader {
-  text-align: center;
-  margin-bottom: 2rem;
-  padding: 2rem;
-  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-  border-radius: 20px;
-  border: 2px solid #f59e0b;
-  position: relative;
-  overflow: hidden;
-}
-
-.weekHeader::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-  animation: shimmer 3s infinite;
-}
-
-@keyframes shimmer {
-  0% { left: -100%; }
-  100% { left: 100%; }
-}
-
-.weekHeader h2 {
-  margin: 0 0 0.5rem 0;
-  font-size: 2rem;
-  font-weight: 800;
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.weekHeader p {
-  margin: 0;
-  font-size: 1.1rem;
-  color: #92400e;
-  font-weight: 500;
-}
-
-.weekInfo {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 2rem;
-  margin-top: 3rem;
-}
-
-.infoCard {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(20px);
-  border-radius: 20px;
-  padding: 2rem;
-  border: 1px solid rgba(226, 232, 240, 0.6);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
   transition: all 0.3s ease;
+  width: 100%;
 }
 
-.infoCard:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+.selectButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
 }
 
-.infoCard h3 {
-  margin: 0 0 1.5rem 0;
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: #1e293b;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+.selectButton:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
-.infoCard ul {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.infoCard li {
-  padding: 0.75rem 0;
-  border-bottom: 1px solid rgba(226, 232, 240, 0.4);
-  color: #475569;
-  font-weight: 500;
-  line-height: 1.5;
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-}
-
-.infoCard li:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-/* Responsiveness pour l'onglet week */
-@media (max-width: 768px) {
-  .weekContainer {
-    padding: 0 1rem;
-  }
-
-  .weekHeader {
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-  }
-
-  .weekHeader h2 {
-    font-size: 1.5rem;
-  }
-
-  .weekHeader p {
-    font-size: 1rem;
-  }
-
-  .weekInfo {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
-    margin-top: 2rem;
-  }
-
-  .infoCard {
-    padding: 1.5rem;
-  }
-
-  .infoCard h3 {
-    font-size: 1.1rem;
-  }
-}
-
-/* Amélioration des onglets pour inclure le nouvel onglet */
-.tab[data-id="week"] {
-  background: linear-gradient(135deg, #fef3c7, #fde68a);
-  border-color: #f59e0b;
-  color: #92400e;
-}
-
-.tab[data-id="week"].active {
+/* Styles pour les badges de position */
+.positionBadge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
   background: linear-gradient(135deg, #f59e0b, #d97706);
   color: white;
-  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+  border-radius: 20px;
+  padding: 4px 10px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
 }
 
-/* Responsive tabs */
+.positionBadge.first {
+  background: linear-gradient(135deg, #10b981, #059669);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.positionBadge.second {
+  background: linear-gradient(135deg, #6b7280, #4b5563);
+  box-shadow: 0 2px 8px rgba(107, 114, 128, 0.3);
+}
+
+/* Animation pour les cartes */
+@keyframes cardEntrance {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.entryCard {
+  animation: cardEntrance 0.6s ease-out;
+}
+
+/* Responsive Design pour les cartes */
 @media (max-width: 768px) {
-  .tabs {
-    flex-wrap: wrap;
-    gap: 0.5rem;
+  .entriesGrid {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 16px;
   }
   
-  .tab {
-    min-width: auto;
-    flex: 1;
-    font-size: 0.8rem;
-    padding: 0.75rem 0.5rem;
+  .entryCard {
+    min-height: 260px;
   }
   
-  .tabIcon {
-    display: block;
-    margin-bottom: 0.25rem;
+  .entryImageContainer {
+    height: 160px;
   }
 }
 
 @media (max-width: 480px) {
-  .tab {
-    font-size: 0.7rem;
-    padding: 0.5rem 0.25rem;
+  .entriesGrid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .entryCard {
+    min-height: 240px;
+  }
+  
+  .entryImageContainer {
+    height: 140px;
   }
 }
