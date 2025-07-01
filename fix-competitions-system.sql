@@ -180,7 +180,7 @@ FOR SELECT USING (true);
 CREATE POLICY "Allow users to vote weekly" ON weekly_recipe_votes
 FOR INSERT WITH CHECK (auth.uid() = voter_id);
 
-CREATE POLICY "Allow users to delete their weekly vote" ON weekly_recipe_votes
+CREATE POLICY "Allow users to delete leur vote hebdomadaire" ON weekly_recipe_votes
 FOR DELETE USING (auth.uid() = voter_id);
 
 -- 16. Trigger pour updated_at

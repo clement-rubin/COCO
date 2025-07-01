@@ -117,7 +117,7 @@ export default async function handler(req, res) {
             .select('id')
             .eq('weekly_contest_id', weeklyContest.id)
             .eq('voter_id', user_id)
-            .single()
+            .maybeSingle() // Use maybeSingle instead of single to avoid 406 error
 
           if (voteError && voteError.code !== 'PGRST116') {
             logWarning('Error checking user vote', voteError, { requestId })

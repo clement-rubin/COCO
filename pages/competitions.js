@@ -6,7 +6,7 @@ import { useAuth } from '../components/AuthContext'
 import { logInfo as baseLogInfo, logError as baseLogError } from '../utils/logger'
 import RecipeOfWeek from '../components/RecipeOfWeek'
 import styles from '../styles/Competitions.module.css'
-import { processImageData, createSafeImageUrl } from '../utils/imageUtils'
+import { createSafeImageUrl } from '../utils/imageUtils'
 
 export default function Competitions() {
   const { user } = useAuth()
