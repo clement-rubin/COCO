@@ -172,11 +172,43 @@ export default function Competitions() {
   }
 
   const voteForEntry = async (competitionId, entryId) => {
-    if (!user) return
+    if (!user) {
+      alert('Vous devez être connecté pour voter')
+      return
+    }
 
     logInfo('Voting for entry', { competitionId, entryId, userId: user.id });
+    
+    // Ajouter une protection contre les votes multiples rapides
+    if (submitting) {
+      logInfo('Vote already in progress, ignoring duplicate request');
+      return
+    }
+    
+    setSubmitting(true)
+    
     try {
-      const { error } = await supabase
+      // Vérifier d'abord si l'utilisateur a déjà voté pour cette compétition
+      const { data: existingVotes, error: checkError } = await supabase
+        .from('competition_votes')
+        .select('id')
+        .eq('competition_id', competitionId)
+        .eq('voter_id', user.id)
+        .limit(1)
+
+      if (checkError) {
+        logError('Error checking existing votes', checkError)
+        throw new Error('Impossible de vérifier les votes existants')
+      }
+
+      if (existingVotes && existingVotes.length > 0) {
+        logInfo('User already voted for this competition', { competitionId, entryId, userId: user.id });
+        alert('Vous avez déjà voté pour cette compétition')
+        return
+      }
+
+      // Procéder au vote
+      const { error: voteError } = await supabase
         .from('competition_votes')
         .insert({
           competition_id: competitionId,
@@ -184,28 +216,76 @@ export default function Competitions() {
           voter_id: user.id
         })
 
-      if (error) {
-        if (error.code === '23505') {
-          logInfo('User already voted for this competition', { competitionId, entryId, userId: user.id });
+      if (voteError) {
+        logError('Error inserting vote', voteError)
+        
+        if (voteError.code === '23505') {
+          logInfo('Duplicate vote attempt detected', { competitionId, entryId, userId: user.id });
           alert('Vous avez déjà voté pour cette compétition')
-        } else {
-          throw error
+          return
         }
-        return
+        
+        throw new Error(voteError.message || 'Erreur lors de l\'enregistrement du vote')
       }
 
-      // Update votes count
+      // Mettre à jour le compteur de votes
       const { error: updateError } = await supabase
         .from('competition_entries')
-        .update({ votes_count: supabase.rpc('increment_votes', { entry_id: entryId }) })
+        .update({ 
+          votes_count: supabase.sql`votes_count + 1`
+        })
         .eq('id', entryId)
 
-      logInfo('Vote registered', { competitionId, entryId, userId: user.id });
+      if (updateError) {
+        logError('Error updating vote count', updateError)
+        // Le vote a été enregistré mais le compteur n'a pas pu être mis à jour
+        // On continue quand même car le vote est valide
+      }
+
+      logInfo('Vote registered successfully', { competitionId, entryId, userId: user.id });
+      
+      // Recharger les données pour refléter les changements
       await loadCompetitions()
+      
+      // Afficher un message de succès
+      const successMessage = document.createElement('div')
+      successMessage.textContent = '🎉 Vote enregistré avec succès !'
+      successMessage.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+        padding: 16px 24px;
+        border-radius: 12px;
+        z-index: 10000;
+        font-weight: 600;
+        box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
+        animation: successPulse 0.5s ease-out;
+      `
+      document.body.appendChild(successMessage)
+      setTimeout(() => successMessage.remove(), 3000)
       
     } catch (error) {
       logError('Error voting', error)
-      alert('Erreur lors du vote: ' + error.message)
+      
+      // Messages d'erreur plus spécifiques
+      let errorMessage = 'Erreur lors du vote: '
+      
+      if (error.message.includes('not authenticated')) {
+        errorMessage += 'Vous devez être connecté pour voter.'
+      } else if (error.message.includes('row-level security')) {
+        errorMessage += 'Vous n\'avez pas l\'autorisation de voter.'
+      } else if (error.message.includes('foreign key')) {
+        errorMessage += 'La compétition ou l\'entrée n\'existe plus.'
+      } else {
+        errorMessage += error.message || 'Veuillez réessayer dans quelques instants.'
+      }
+      
+      alert(errorMessage)
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -565,15 +645,18 @@ export default function Competitions() {
                                 }}
                                 className={`${styles.voteButton} ${
                                   entry.user_id === user?.id ? styles.ownRecipe : ''
-                                }`}
-                                disabled={entry.user_id === user?.id}
+                                } ${submitting ? styles.voting : ''}`}
+                                disabled={entry.user_id === user?.id || submitting}
                                 title={entry.user_id === user?.id ? 
                                   'Vous ne pouvez pas voter pour votre propre recette' : 
+                                  submitting ? 'Vote en cours...' :
                                   'Voter pour cette recette'
                                 }
                               >
                                 {entry.user_id === user?.id ? (
                                   <>👤 Votre recette</>
+                                ) : submitting ? (
+                                  <>⏳ Vote...</>
                                 ) : (
                                   <>🗳️ Voter</>
                                 )}
@@ -640,56 +723,60 @@ export default function Competitions() {
             
             <div className={styles.modalBody}>
               <p>Choisissez une recette à soumettre :</p>
-              <div className={styles.recipesGrid}>
-                {userRecipes.map(recipe => {
-                  const recipeImage = createSafeImageUrl(recipe.image, '/placeholder-recipe.jpg');
-                  // LOG pour debug image dans la modale
-                  logInfo('Affichage image recette utilisateur dans modale', {
-                    recipeId: recipe.id,
-                    recipeTitle: recipe.title,
-                    recipeImageRaw: recipe.image,
-                    recipeImageRawType: typeof recipe.image,
-                    recipeImageProcessed: recipeImage,
-                    isFallback: recipeImage === '/placeholder-recipe.jpg'
-                  });
-                  return (
-                    <div key={recipe.id} className={styles.recipeOption}>
-                      <img 
-                        src={recipeImage} 
-                        alt={recipe.title}
-                        onLoad={() => {
-                          logInfo('Modal recipe image loaded successfully', {
-                            recipeId: recipe.id,
-                            imageUrl: recipeImage
-                          });
-                        }}
-                        onError={(e) => {
-                          logError('Erreur chargement image recette utilisateur (modale)', {
-                            recipeId: recipe.id,
-                            recipeTitle: recipe.title,
-                            originalImageData: recipe.image,
-                            processedImageUrl: recipeImage,
-                            errorTarget: e.target.src
-                          });
-                          e.target.src = '/placeholder-recipe.jpg';
-                        }}
-                      />
-                      <div className={styles.recipeInfo}>
-                        <h4>{recipe.title}</h4>
-                        <button
-                          onClick={() => {
-                            logInfo('Submit recipe from modal', { competitionId: selectedCompetition.id, recipeId: recipe.id, userId: user?.id });
-                            submitToCompetition(selectedCompetition.id, recipe.id)
-                          }}
-                          className={styles.selectButton}
-                          disabled={submitting}
-                        >
-                          {submitting ? 'Soumission...' : 'Choisir cette recette'}
-                        </button>
-                      </div>
-                    </div>
-                  )
-                })}
+<div className={styles.recipesGrid}>
+  {userRecipes.map(recipe => {
+    const recipeImage = createSafeImageUrl(recipe.image, '/placeholder-recipe.jpg');
+    // LOG pour debug image dans la modale
+    logInfo('Affichage image recette utilisateur dans modale', {
+      recipeId: recipe.id,
+      recipeTitle: recipe.title,
+      recipeImageRaw: recipe.image,
+      recipeImageRawType: typeof recipe.image,
+      recipeImageRawSample: typeof recipe.image === 'string' ? recipe.image.substring(0, 100) : null,
+      recipeImageProcessed: recipeImage,
+      isProcessedDataUrl: recipeImage?.startsWith?.('data:image/'),
+      isProcessedHttp: recipeImage?.startsWith?.('http'),
+      isProcessedRelative: recipeImage?.startsWith?.('/'),
+      isFallback: recipeImage === '/placeholder-recipe.jpg'
+    });
+    return (
+      <div key={recipe.id} className={styles.recipeOption}>
+        <img 
+          src={recipeImage} 
+          alt={recipe.title}
+          onLoad={() => {
+            logInfo('Modal recipe image loaded successfully', {
+              recipeId: recipe.id,
+              imageUrl: recipeImage
+            });
+          }}
+          onError={(e) => {
+            logError('Erreur chargement image recette utilisateur (modale)', {
+              recipeId: recipe.id,
+              recipeTitle: recipe.title,
+              originalImageData: recipe.image,
+              processedImageUrl: recipeImage,
+              errorTarget: e.target.src
+            });
+            e.target.src = '/placeholder-recipe.jpg';
+          }}
+        />
+        <div className={styles.recipeInfo}>
+          <h4>{recipe.title}</h4>
+          <button
+            onClick={() => {
+              logInfo('Submit recipe from modal', { competitionId: selectedCompetition.id, recipeId: recipe.id, userId: user?.id });
+              submitToCompetition(selectedCompetition.id, recipe.id)
+            }}
+            className={styles.selectButton}
+            disabled={submitting}
+          >
+            {submitting ? 'Soumission...' : 'Choisir cette recette'}
+          </button>
+        </div>
+      </div>
+    )
+  })}
               </div>
               
               {userRecipes.length === 0 && (
