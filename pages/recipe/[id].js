@@ -533,8 +533,8 @@ export default function RecipeDetail() {
         <div className={styles.errorIcon}>🔍</div>
         <h3>Recette introuvable</h3>
         <p>Cette recette n'existe pas ou a été supprimée.</p>
-        <button onClick={() => router.push('/competitions')} className={styles.backButton}>
-          Voir les compétitions
+        <button onClick={() => router.push('/explorer')} className={styles.backButton}>
+          Voir l'explorateur
         </button>
       </div>
     )

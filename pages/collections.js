@@ -59,6 +59,18 @@ export default function Collections() {
       loadUserRecipes()
       loadUserLikes()
     }
+    
+    // Animation progressive des cartes
+    const cards = document.querySelectorAll(`.${styles.collectionCard}`)
+    cards.forEach((card, index) => {
+      card.style.opacity = '0'
+      card.style.transform = 'translateY(20px)'
+      setTimeout(() => {
+        card.style.transition = 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)'
+        card.style.opacity = '1'
+        card.style.transform = 'translateY(0)'
+      }, index * 100)
+    })
   }, [user, activeTab])
 
   const loadCollections = async () => {
@@ -360,7 +372,7 @@ export default function Collections() {
                     )}
                   </div>
                 ))
-              )}
+              }
             </div>
             <div style={{ padding: 16, borderTop: '1px solid #e5e7eb', textAlign: 'right' }}>
               <button
@@ -421,10 +433,13 @@ export default function Collections() {
 
       {/* Collections Grid */}
       <div className={styles.collectionsGrid}>
-        {collections.map(collection => (
+        {collections.map((collection, index) => (
           <div 
             key={collection.id} 
             className={`${styles.collectionCard} ${collection.type === 'weekly' ? styles.weeklyCollection : ''}`}
+            style={{
+              animationDelay: `${index * 0.1}s`
+            }}
           >
             {collection.featured && (
               <div className={styles.featuredBadge}>
@@ -510,7 +525,7 @@ export default function Collections() {
                 onClick={() => router.push(`/collection/${collection.id}`)}
                 className={styles.viewButton}
               >
-                Voir la collection →
+                Voir →
               </button>
               
               {user && (
@@ -522,7 +537,7 @@ export default function Collections() {
                   className={styles.addRecipeButton}
                   disabled={submitting}
                 >
-                  ➕ Ajouter une recette
+                  ➕ Ajouter
                 </button>
               )}
             </div>

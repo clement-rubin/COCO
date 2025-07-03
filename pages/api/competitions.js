@@ -13,76 +13,13 @@ export default async function handler(req, res) {
   const requestId = `comp-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`
 
   try {
-    // Fermer automatiquement les compétitions expirées
-    await closeExpiredCompetitions()
-
+    // Redirection de l'API competitions vers l'API recipes
     if (req.method === 'GET') {
-      const { status, type } = req.query
-
-      let query = supabase
-        .from('competitions')
-        .select(`
-          *,
-          competition_entries (
-            id,
-            user_id,
-            recipe_id,
-            votes_count,
-            rank,
-            is_winner,
-            submitted_at,
-            recipes (
-              id,
-              title,
-              description,
-              image,
-              author,
-              created_at,
-              category
-            ),
-            profiles:user_id (
-              display_name,
-              avatar_url
-            )
-          )
-        `)
-        .order('created_at', { ascending: false })
-
-      if (status) {
-        query = query.eq('status', status)
-      }
-
-      if (type) {
-        query = query.eq('type', type)
-      }
-
-      const { data: competitions, error } = await query
-
-      if (error) throw error
-
-      // Enrichir les données avec des statistiques
-      const enrichedCompetitions = competitions?.map(comp => {
-        const entries = comp.competition_entries || []
-        const totalVotes = entries.reduce((sum, entry) => sum + (entry.votes_count || 0), 0)
-        const sortedEntries = entries.sort((a, b) => (b.votes_count || 0) - (a.votes_count || 0))
-        
-        return {
-          ...comp,
-          participants_count: entries.length,
-          total_votes: totalVotes,
-          competition_entries: sortedEntries,
-          is_full: entries.length >= comp.max_participants
-        }
+      return res.status(301).json({
+        message: 'API competitions déplacée vers /api/recipes',
+        redirectTo: '/api/recipes',
+        newFeature: 'Explorer remplace les compétitions pour une meilleure découverte de recettes'
       })
-
-      logInfo('Competitions retrieved', {
-        requestId,
-        count: enrichedCompetitions?.length || 0,
-        status,
-        type
-      })
-
-      return res.status(200).json(enrichedCompetitions || [])
     }
 
     if (req.method === 'POST') {

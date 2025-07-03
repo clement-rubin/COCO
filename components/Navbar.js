@@ -66,7 +66,7 @@ export default function Navbar() {
           alignItems: 'center'
         }}>
           <Link href="/" style={navLinkStyle}>Accueil</Link>
-          <Link href="/collections" style={navLinkStyle}>Collections</Link>
+          <Link href="/explorer" style={navLinkStyle}>Explorer</Link>
           <Link href="/amis" style={navLinkStyle}>Amis</Link>
           <Link href="/share-photo" style={addBtnStyle}>➕ Partager</Link>
         </div>
@@ -110,7 +110,7 @@ export default function Navbar() {
             gap: 12
           }}>
             <Link href="/" style={mobileNavLinkStyle}>🏠 Accueil</Link>
-            <Link href="/collections" style={mobileNavLinkStyle}>📚 Collections</Link>
+            <Link href="/explorer" style={mobileNavLinkStyle}>🔍 Explorer</Link>
             <Link href="/amis" style={mobileNavLinkStyle}>👥 Amis</Link>
             <Link href="/share-photo" style={mobileNavLinkStyle}>➕ Partager une photo</Link>
           </div>

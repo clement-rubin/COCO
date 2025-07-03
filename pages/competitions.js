@@ -800,3 +800,31 @@ export default function Competitions() {
     </div>
   )
 }
+
+import { useEffect } from 'react'
+import { useRouter } from 'next/router'
+
+export default function Competitions() {
+  const router = useRouter()
+  
+  useEffect(() => {
+    // Redirection automatique vers la page explorer
+    router.replace('/explorer')
+  }, [router])
+  
+  return (
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: '100vh',
+      gap: '20px',
+      padding: '20px'
+    }}>
+      <div style={{ fontSize: '3rem' }}>🔍</div>
+      <h2>Redirection vers Explorer...</h2>
+      <p>La page des compétitions a été remplacée par l'explorateur de recettes.</p>
+    </div>
+  )
+}
