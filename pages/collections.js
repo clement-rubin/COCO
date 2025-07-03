@@ -372,7 +372,7 @@ export default function Collections() {
                     )}
                   </div>
                 ))
-              }
+              )}
             </div>
             <div style={{ padding: 16, borderTop: '1px solid #e5e7eb', textAlign: 'right' }}>
               <button
