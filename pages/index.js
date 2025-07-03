@@ -313,28 +313,265 @@ export default function Home() {
           </div>
         )}
 
-        {/* Section Hero */}
-        <section className={styles.section}>
-          <div className={styles.content} style={{ maxWidth: 400, margin: '0 auto', textAlign: 'center' }}>
-            <h2 className={styles.sectionTitle}>
-              Découvrez.<br/>
-              <span style={{
-                background: 'linear-gradient(135deg, #ff6b35, #f7931e)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent'
-              }}>
-                Créez. Partagez.
-              </span>
-            </h2>
-            <p style={{
-              fontSize: '1.1rem',
-              color: '#6b7280',
-              margin: 0,
-              lineHeight: '1.4',
-              fontWeight: '400'
+        {/* Section Hero améliorée */}
+        <section className={styles.section} style={{
+          background: 'linear-gradient(135deg, #fef3e2 0%, #fff5e6 50%, #fef7ed 100%)',
+          borderRadius: '0 0 32px 32px',
+          position: 'relative',
+          overflow: 'hidden',
+          paddingTop: '40px',
+          paddingBottom: '60px'
+        }}>
+          {/* Éléments décoratifs de fond */}
+          <div style={{
+            position: 'absolute',
+            top: '-20px',
+            right: '-20px',
+            width: '120px',
+            height: '120px',
+            background: 'linear-gradient(45deg, #ff6b35, #f7931e)',
+            borderRadius: '50%',
+            opacity: 0.1,
+            animation: 'float 6s ease-in-out infinite'
+          }} />
+          <div style={{
+            position: 'absolute',
+            bottom: '-30px',
+            left: '-30px',
+            width: '80px',
+            height: '80px',
+            background: 'linear-gradient(45deg, #4caf50, #45a049)',
+            borderRadius: '50%',
+            opacity: 0.08,
+            animation: 'float 8s ease-in-out infinite reverse'
+          }} />
+
+          <div className={styles.content} style={{ 
+            maxWidth: 400, 
+            margin: '0 auto', 
+            textAlign: 'center',
+            position: 'relative',
+            zIndex: 1
+          }}>
+            {/* Logo animé */}
+            <div style={{
+              width: '90px',
+              height: '90px',
+              background: 'linear-gradient(135deg, #ff6b35, #f7931e)',
+              borderRadius: '28px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '3rem',
+              margin: '0 auto 20px',
+              boxShadow: '0 16px 40px rgba(255, 107, 53, 0.25), 0 8px 20px rgba(255, 107, 53, 0.15)',
+              animation: 'heroLogo 3s ease-in-out infinite',
+              border: '3px solid rgba(255, 255, 255, 0.8)',
+              position: 'relative'
             }}>
-              L'univers culinaire qui vous ressemble
-            </p>
+              🥥
+              {/* Effet de brillance */}
+              <div style={{
+                position: 'absolute',
+                top: '15%',
+                left: '20%',
+                width: '30%',
+                height: '30%',
+                background: 'rgba(255, 255, 255, 0.3)',
+                borderRadius: '50%',
+                filter: 'blur(8px)',
+                animation: 'shine 2s ease-in-out infinite'
+              }} />
+            </div>
+
+            {/* Titre principal avec effet de gradient */}
+            <h1 style={{
+              fontSize: '3.2rem',
+              fontWeight: '900',
+              margin: '0 0 12px 0',
+              background: 'linear-gradient(135deg, #ff6b35, #f7931e, #ff8a50)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+              letterSpacing: '-0.02em',
+              lineHeight: '1.1',
+              textShadow: '0 4px 8px rgba(255, 107, 53, 0.1)'
+            }}>
+              COCO
+            </h1>
+
+            {/* Sous-titre avec animation */}
+            <div style={{
+              marginBottom: '24px'
+            }}>
+              <h2 style={{
+                fontSize: '1.4rem',
+                fontWeight: '700',
+                margin: '0 0 8px 0',
+                color: '#1f2937',
+                lineHeight: '1.3'
+              }}>
+                Découvrez.<br/>
+                <span style={{
+                  background: 'linear-gradient(135deg, #ff6b35, #f7931e)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent'
+                }}>
+                  Créez. Partagez.
+                </span>
+              </h2>
+              <p style={{
+                fontSize: '1.1rem',
+                color: '#6b7280',
+                margin: 0,
+                lineHeight: '1.4',
+                fontWeight: '500'
+              }}>
+                L'univers culinaire qui vous ressemble
+              </p>
+            </div>
+
+            {/* Statistiques de la communauté */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              gap: '24px',
+              marginBottom: '32px',
+              flexWrap: 'wrap'
+            }}>
+              {[
+                { number: '1000+', label: 'Recettes', icon: '📸' },
+                { number: '500+', label: 'Chefs', icon: '👨‍🍳' },
+                { number: '50+', label: 'Collections', icon: '📚' }
+              ].map((stat, index) => (
+                <div key={index} style={{
+                  background: 'rgba(255, 255, 255, 0.8)',
+                  backdropFilter: 'blur(10px)',
+                  padding: '16px 20px',
+                  borderRadius: '20px',
+                  border: '1px solid rgba(255, 107, 53, 0.1)',
+                  minWidth: '80px',
+                  animation: `fadeInUp 0.6s ease-out ${index * 0.1}s both`
+                }}>
+                  <div style={{ fontSize: '1.5rem', marginBottom: '4px' }}>
+                    {stat.icon}
+                  </div>
+                  <div style={{
+                    fontSize: '1.1rem',
+                    fontWeight: '700',
+                    color: '#ff6b35',
+                    marginBottom: '2px'
+                  }}>
+                    {stat.number}
+                  </div>
+                  <div style={{
+                    fontSize: '0.8rem',
+                    color: '#6b7280',
+                    fontWeight: '500'
+                  }}>
+                    {stat.label}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Actions rapides */}
+            <div style={{
+              display: 'flex',
+              gap: '16px',
+              justifyContent: 'center',
+              flexWrap: 'wrap',
+              marginBottom: '24px'
+            }}>
+              <button
+                onClick={() => router.push('/share-photo')}
+                style={{
+                  background: 'linear-gradient(135deg, #ff6b35, #f7931e)',
+                  color: 'white',
+                  border: 'none',
+                  padding: '14px 28px',
+                  borderRadius: '16px',
+                  fontWeight: '700',
+                  fontSize: '1rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  boxShadow: '0 8px 25px rgba(255, 107, 53, 0.3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.transform = 'translateY(-3px)'
+                  e.target.style.boxShadow = '0 12px 35px rgba(255, 107, 53, 0.4)'
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.transform = 'translateY(0)'
+                  e.target.style.boxShadow = '0 8px 25px rgba(255, 107, 53, 0.3)'
+                }}
+              >
+                📸 Partager une recette
+              </button>
+              <button
+                onClick={() => router.push('/collections')}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.9)',
+                  color: '#ff6b35',
+                  border: '2px solid #ff6b35',
+                  padding: '14px 28px',
+                  borderRadius: '16px',
+                  fontWeight: '700',
+                  fontSize: '1rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  backdropFilter: 'blur(10px)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = '#ff6b35'
+                  e.target.style.color = 'white'
+                  e.target.style.transform = 'translateY(-2px)'
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'rgba(255, 255, 255, 0.9)'
+                  e.target.style.color = '#ff6b35'
+                  e.target.style.transform = 'translateY(0)'
+                }}
+              >
+                📚 Explorer
+              </button>
+            </div>
+
+            {/* Indicateur de scroll */}
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '8px',
+              marginTop: '20px',
+              opacity: 0.6
+            }}>
+              <span style={{
+                fontSize: '0.85rem',
+                color: '#9ca3af',
+                fontWeight: '500'
+              }}>
+                Découvrez les dernières recettes
+              </span>
+              <div style={{
+                width: '24px',
+                height: '24px',
+                border: '2px solid #ff6b35',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                animation: 'bounce 2s infinite'
+              }}>
+                <span style={{ fontSize: '0.8rem' }}>↓</span>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -486,6 +723,58 @@ export default function Home() {
         </section>
       </main>
       <style jsx>{`
+        @keyframes heroLogo {
+          0%, 100% { 
+            transform: translateY(0px) rotate(0deg);
+          }
+          50% { 
+            transform: translateY(-8px) rotate(2deg);
+          }
+        }
+        
+        @keyframes shine {
+          0%, 100% { 
+            opacity: 0.3;
+            transform: scale(1);
+          }
+          50% { 
+            opacity: 0.6;
+            transform: scale(1.1);
+          }
+        }
+        
+        @keyframes float {
+          0%, 100% { 
+            transform: translateY(0px) rotate(0deg);
+          }
+          50% { 
+            transform: translateY(-20px) rotate(180deg);
+          }
+        }
+        
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        @keyframes bounce {
+          0%, 20%, 50%, 80%, 100% {
+            transform: translateY(0);
+          }
+          40% {
+            transform: translateY(-8px);
+          }
+          60% {
+            transform: translateY(-4px);
+          }
+        }
+        
         @keyframes pulse {
           0%, 100% { 
             transform: scale(1);
@@ -503,16 +792,16 @@ export default function Home() {
           outline-offset: 2px;
         }
         
-        /* Mode sombre automatique (si supporté) */
-        @media (prefers-color-scheme: dark) {
-          button {
-            background: rgba(255, 255, 255, 0.1) !important;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+        /* Responsive amélioré */
+        @media (max-width: 400px) {
+          h1 {
+            fontSize: 2.5rem !important;
+          }
+          h2 {
+            fontSize: 1.2rem !important;
           }
         }
       `}</style>
     </div>
   )
 }
-       
