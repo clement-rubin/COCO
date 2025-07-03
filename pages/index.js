@@ -91,8 +91,6 @@ export default function Home() {
           <title>COCO - Aperçu de la communauté culinaire</title>
           <meta name="description" content="Découvrez COCO, la communauté pour partager et découvrir des recettes" />
           <link rel="icon" href="/favicon.ico" />
-          {/* Tidio Chat Script */}
-          <script src="//code.tidio.co/t20tdgapr9jil5is7qeilj62uuksc4mi.js" async></script>
         </Head>
         <main className={styles.main}>
           <div className={styles.content} style={{ maxWidth: 400, margin: '0 auto', textAlign: 'center' }}>
@@ -283,8 +281,6 @@ export default function Home() {
         <meta name="description" content="Découvrez des recettes inspirantes et partagez vos créations culinaires" />
         <link rel="icon" href="/favicon.ico" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-        {/* Tidio Chat Script */}
-        <script src="//code.tidio.co/t20tdgapr9jil5is7qeilj62uuksc4mi.js" async></script>
       </Head>
       
       <main className={styles.main}>
@@ -820,3 +816,4 @@ export default function Home() {
     </div>
   )
 }
+      

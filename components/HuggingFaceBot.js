@@ -88,7 +88,7 @@ export default function HuggingFaceBot() {
           borderRadius: '20px 20px 20px 20px',
           boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15)',
           border: '1px solid rgba(255, 107, 53, 0.2)',
-          zIndex: 998,
+          zIndex: 999,
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
@@ -280,11 +280,19 @@ export default function HuggingFaceBot() {
         }
         
         @media (max-width: 480px) {
+          button {
+            right: 16px !important;
+            z-index: 1000 !important;
+          }
+          
           div[style*="position: fixed"][style*="bottom: 180px"] {
             height: 50vh !important;
             max-height: 400px !important;
           }
         }
+    </>
+  )
+}
       `}</style>
     </>
   )
