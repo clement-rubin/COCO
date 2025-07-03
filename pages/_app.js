@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { AuthProvider, useAuth } from '../components/AuthContext'
 import { logFrontendError, logComponentEvent, logUserInteraction, logInfo, logDebug } from '../utils/logger'
+import TidioChat from '../components/TidioChat'
 
 function AuthenticatedNav({ user, signOut }) {
   const [showUserMenu, setShowUserMenu] = useState(false)
@@ -417,6 +418,9 @@ function AppContent({ Component, pageProps }) {
           )}
           <Component {...pageProps} />
         </main>
+        
+        {/* Tidio Chat Integration */}
+        <TidioChat />
         
         {/* Bottom Navigation */}
         <nav className="bottom-nav">

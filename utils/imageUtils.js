@@ -176,33 +176,49 @@ export function processImageData(imageData, fallbackUrl = '/placeholder-recipe.j
  */
 function arrayToBase64(byteArray) {
   try {
-    // Méthode optimisée pour les gros tableaux
-    let binary = ''
-    const chunkSize = 8192 // Traiter par chunks pour éviter les stack overflow
+    // Méthode optimisée pour éviter l'erreur btoa avec les caractères non-Latin1
+    const uint8Array = new Uint8Array(byteArray)
     
-    for (let i = 0; i < byteArray.length; i += chunkSize) {
-      const chunk = byteArray.slice(i, i + chunkSize)
-      binary += String.fromCharCode.apply(null, chunk)
+    // Utiliser la méthode moderne avec TextEncoder si disponible
+    if (typeof TextEncoder !== 'undefined' && typeof btoa !== 'undefined') {
+      // Convertir en chaîne binaire sûre
+      let binaryString = ''
+      const chunkSize = 8192 // Traiter par chunks pour éviter les stack overflow
+      
+      for (let i = 0; i < uint8Array.length; i += chunkSize) {
+        const chunk = uint8Array.slice(i, i + chunkSize)
+        // Utiliser Array.from pour éviter les problèmes de caractères
+        const chunkString = Array.from(chunk, byte => String.fromCharCode(byte)).join('')
+        binaryString += chunkString
+      }
+      
+      return btoa(binaryString)
     }
     
-    return btoa(binary)
+    // Fallback: méthode manuelle de conversion base64
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+    let result = ''
+    let i = 0
+    
+    while (i < uint8Array.length) {
+      const a = uint8Array[i++]
+      const b = i < uint8Array.length ? uint8Array[i++] : 0
+      const c = i < uint8Array.length ? uint8Array[i++] : 0
+      
+      const bitmap = (a << 16) | (b << 8) | c
+      
+      result += chars.charAt((bitmap >> 18) & 63)
+      result += chars.charAt((bitmap >> 12) & 63)
+      result += i - 2 < uint8Array.length ? chars.charAt((bitmap >> 6) & 63) : '='
+      result += i - 1 < uint8Array.length ? chars.charAt(bitmap & 63) : '='
+    }
+    
+    return result
   } catch (error) {
     logError('Error converting array to base64', error, {
       arrayLength: byteArray?.length
     })
-    
-    // Fallback: méthode alternative
-    try {
-      const uint8Array = new Uint8Array(byteArray)
-      let binary = ''
-      for (let i = 0; i < uint8Array.length; i++) {
-        binary += String.fromCharCode(uint8Array[i])
-      }
-      return btoa(binary)
-    } catch (fallbackError) {
-      logError('Fallback conversion also failed', fallbackError)
-      throw new Error('Failed to convert byte array to base64')
-    }
+    throw new Error('Failed to convert byte array to base64')
   }
 }
 
@@ -229,9 +245,37 @@ function isBase64String(str) {
       return false
     }
     
-    // Essayer de décoder pour vérifier
-    const decoded = atob(str)
-    return decoded.length > 0
+    // Essayer de décoder pour vérifier (avec gestion d'erreur améliorée)
+    try {
+      const decoded = atob(str)
+      return decoded.length > 0
+    } catch (decodeError) {
+      // Si atob échoue, essayer la méthode manuelle
+      return isValidBase64Manual(str)
+    }
+  } catch (error) {
+    return false
+  }
+}
+
+/**
+ * Manual base64 validation when atob fails
+ * @param {string} str - Base64 string to validate
+ * @returns {boolean} True if valid
+ */
+function isValidBase64Manual(str) {
+  try {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+
+    // Vérifier que tous les caractères sont valides
+    for (let i = 0; i < str.length; i++) {
+      const char = str[i]
+      if (char !== '=' && chars.indexOf(char) === -1) {
+        return false
+      }
+    }
+
+    return true
   } catch (error) {
     return false
   }
@@ -256,128 +300,116 @@ export async function processImageToUrl(file, options = {}) {
   const settings = { ...defaults, ...options }
   
   return new Promise((resolve, reject) => {
-    // Détection de l'environnement mobile
-    const userAgent = navigator.userAgent || ''
-    const isAndroid = /android/i.test(userAgent)
-    const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent.toLowerCase())
-    
-    const reader = new FileReader()
-    
-    reader.onload = (event) => {
-      const img = new Image()
-      
-      img.onload = () => {
+    try {
+      const reader = new FileReader();
+      reader.onload = function (event) {
         try {
-          const canvas = document.createElement('canvas')
-          const ctx = canvas.getContext('2d')
-          
-          // Calcul des dimensions optimisées pour mobile
-          let { width, height } = img
-          const aspectRatio = width / height
-          
-          // Ajustement des dimensions selon l'appareil
-          if (isMobile) {
-            // Sur mobile, on peut être plus généreux avec la taille
-            if (width > settings.maxWidth || height > settings.maxHeight) {
-              if (aspectRatio > 1) {
-                width = Math.min(width, settings.maxWidth)
-                height = width / aspectRatio
-              } else {
-                height = Math.min(height, settings.maxHeight)
-                width = height * aspectRatio
-              }
-            }
-          } else {
-            // Sur desktop, on garde les limites classiques
+          const img = new Image();
+          img.onload = function () {
+            // Détection de l'environnement mobile
+            const userAgent = navigator.userAgent || '';
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+            const isAndroid = /Android/i.test(userAgent);
+
+            // Calculer les dimensions cibles
+            let width = img.width;
+            let height = img.height;
             if (width > settings.maxWidth) {
-              width = settings.maxWidth
-              height = width / aspectRatio
+              height = Math.round((settings.maxWidth / width) * height);
+              width = settings.maxWidth;
             }
             if (height > settings.maxHeight) {
-              height = settings.maxHeight
-              width = height * aspectRatio
+              width = Math.round((settings.maxHeight / height) * width);
+              height = settings.maxHeight;
             }
-          }
-          
-          canvas.width = width
-          canvas.height = height
-          
-          // Configuration du contexte pour une meilleure qualité sur Android
-          if (isAndroid) {
-            ctx.imageSmoothingEnabled = true
-            ctx.imageSmoothingQuality = 'high'
-          }
-          
-          // Dessiner l'image redimensionnée
-          ctx.drawImage(img, 0, 0, width, height)
-          
-          // Fonction pour obtenir la data URL avec compression adaptive
-          const getOptimizedDataUrl = (quality) => {
-            return canvas.toDataURL(`image/${settings.format}`, quality)
-          }
-          
-          // Compression adaptative pour respecter la taille limite
-          let quality = settings.quality
-          let dataUrl = getOptimizedDataUrl(quality)
-          let currentSizeKB = Math.round((dataUrl.length * 3) / 4 / 1024)
-          
-          // Réduction progressive de la qualité si nécessaire
-          while (currentSizeKB > settings.maxSizeKB && quality > 0.1) {
-            quality -= 0.1
-            dataUrl = getOptimizedDataUrl(quality)
-            currentSizeKB = Math.round((dataUrl.length * 3) / 4 / 1024)
-          }
-          
-          // Si encore trop lourd, réduire les dimensions
-          if (currentSizeKB > settings.maxSizeKB) {
-            const scaleFactor = Math.sqrt(settings.maxSizeKB / currentSizeKB)
-            canvas.width = Math.floor(width * scaleFactor)
-            canvas.height = Math.floor(height * scaleFactor)
-            
-            ctx.clearRect(0, 0, canvas.width, canvas.height)
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
-            
-            dataUrl = getOptimizedDataUrl(Math.max(quality, 0.6))
-            currentSizeKB = Math.round((dataUrl.length * 3) / 4 / 1024)
-          }
-          
-          const result = {
-            url: dataUrl,
-            originalSize: file.size,
-            compressedSize: currentSizeKB * 1024,
-            compressionRatio: ((file.size - (currentSizeKB * 1024)) / file.size * 100).toFixed(1),
-            dimensions: {
+
+            // Créer le canvas
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+
+            // Configuration du contexte pour une meilleure qualité sur Android
+            if (isAndroid) {
+              ctx.imageSmoothingEnabled = true;
+              ctx.imageSmoothingQuality = 'high';
+            }
+
+            // Dessiner l'image redimensionnée
+            ctx.drawImage(img, 0, 0, width, height);
+
+            // Fonction pour obtenir la data URL avec compression adaptive
+            const getOptimizedDataUrl = (quality) => {
+              return canvas.toDataURL(`image/${settings.format}`, quality);
+            };
+
+            // Compression adaptative pour respecter la taille limite
+            let quality = settings.quality;
+            let dataUrl = getOptimizedDataUrl(quality);
+            let currentSizeKB = Math.round((dataUrl.length * 3) / 4 / 1024);
+
+            // Réduction progressive de la qualité si nécessaire
+            while (currentSizeKB > settings.maxSizeKB && quality > 0.1) {
+              quality -= 0.1;
+              dataUrl = getOptimizedDataUrl(quality);
+              currentSizeKB = Math.round((dataUrl.length * 3) / 4 / 1024);
+            }
+
+            // Si encore trop lourd, réduire les dimensions
+            if (currentSizeKB > settings.maxSizeKB) {
+              const scaleFactor = Math.sqrt(settings.maxSizeKB / currentSizeKB);
+              canvas.width = Math.floor(width * scaleFactor);
+              canvas.height = Math.floor(height * scaleFactor);
+
+              ctx.clearRect(0, 0, canvas.width, canvas.height);
+              ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+              dataUrl = getOptimizedDataUrl(Math.max(quality, 0.6));
+              currentSizeKB = Math.round((dataUrl.length * 3) / 4 / 1024);
+            }
+
+            const result = {
+              url: dataUrl,
+              originalSize: file.size,
+              compressedSize: currentSizeKB * 1024,
+              compressionRatio: ((file.size - (currentSizeKB * 1024)) / file.size * 100).toFixed(1),
               width: canvas.width,
               height: canvas.height,
-              originalWidth: img.width,
-              originalHeight: img.height
-            },
-            quality: quality,
-            mimeType: `image/${settings.format}`,
-            isMobile,
-            isAndroid,
-            processingTime: Date.now()
-          }
-          
-          resolve(result)
+              dimensions: {
+                width: canvas.width,
+                height: canvas.height,
+                originalWidth: img.width,
+                originalHeight: img.height
+              },
+              quality: quality,
+              mimeType: `image/${settings.format}`,
+              isMobile,
+              isAndroid,
+              processingTime: Date.now()
+            };
+
+            resolve(result);
+          };
+
+          img.onerror = () => {
+            reject(new Error('Erreur lors du chargement de l\'image'));
+          };
+
+          img.src = event.target.result;
         } catch (error) {
-          reject(new Error(`Erreur lors du traitement de l'image: ${error.message}`))
+          reject(new Error(`Erreur lors du traitement de l'image: ${error.message}`));
         }
-      }
-      
-      img.onerror = () => {
-        reject(new Error('Erreur lors du chargement de l\'image'))
-      }
-      
-      img.src = event.target.result
+      };
+
+      reader.onerror = () => {
+        reject(new Error('Erreur lors de la lecture du fichier'));
+      };
+
+      reader.readAsDataURL(file);
+    } catch (error) {
+      reject(new Error(`Erreur lors du traitement de l'image: ${error.message}`));
     }
-    
-    reader.onerror = () => {
-      reject(new Error('Erreur lors de la lecture du fichier'))
-    }
-    
-    reader.readAsDataURL(file)
-  })
+  });
 }
 
 /**
