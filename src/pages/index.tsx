@@ -91,7 +91,7 @@ export default function Home() {
                 Se connecter
               </Link>
               <Link href="/feed" className={styles.actionButton}>
-                Explorer
+                Collections
               </Link>
             </div>
           </div>

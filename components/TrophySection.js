@@ -349,7 +349,7 @@ export default function TrophySection({ userId }) {
               <div className={styles.emptyIcon}>🏆</div>
               <h3 className={styles.emptyTitle}>Aucun trophée débloqué</h3>
               <p className={styles.emptyDesc}>
-                Commencez à explorer COCO pour débloquer vos premiers trophées !
+                Commencez à explorer les collections COCO pour débloquer vos premiers trophées !
               </p>
             </div>
           )}

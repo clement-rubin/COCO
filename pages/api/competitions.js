@@ -18,7 +18,7 @@ export default async function handler(req, res) {
       return res.status(301).json({
         message: 'API competitions déplacée vers /api/recipes',
         redirectTo: '/api/recipes',
-        newFeature: 'Explorer remplace les compétitions pour une meilleure découverte de recettes'
+        newFeature: 'Collections remplace les compétitions pour une meilleure découverte de recettes'
       })
     }
 

@@ -539,7 +539,7 @@ export default function Home() {
                   e.target.style.transform = 'translateY(0)'
                 }}
               >
-                📚 Explorer
+                📚 Collections
               </button>
             </div>
 

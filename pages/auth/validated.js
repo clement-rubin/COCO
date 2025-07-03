@@ -104,8 +104,8 @@ export default function AccountValidated() {
                   <div className="feature-icon">🔍</div>
                   <h3>Découvrir des recettes</h3>
                   <p>Explorez les délicieuses recettes de notre communauté</p>
-                  <Link href="/recipes" className="action-button secondary">
-                    Explorer
+                  <Link href="/collections" className="action-button secondary">
+                    Collections
                   </Link>
                 </div>
 

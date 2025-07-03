@@ -37,7 +37,7 @@ export default function Home() {
               justifyContent: 'center',
               flexWrap: 'wrap'
             }}>
-              <Link href="/recipes" className="btn btn-primary" style={{ textDecoration: 'none' }}>
+              <Link href="/collections" className="btn btn-primary" style={{ textDecoration: 'none' }}>
                 🍽️ Explorer les recettes
               </Link>
               <Link href="/add-recipe" className="btn btn-secondary" style={{ textDecoration: 'none' }}>

@@ -633,10 +633,10 @@ export default function AddictiveFeed() {
                 👥 Gérer mes amis
               </button>
               <button 
-                onClick={() => router.push('/explorer')} 
+                onClick={() => router.push('/collections')} 
                 className={styles.secondaryButton}
               >
-                🔍 Explorer les recettes
+                🔍 Explorer les collections
               </button>
               <button 
                 onClick={() => router.push('/share-photo')} 
@@ -654,10 +654,10 @@ export default function AddictiveFeed() {
                 🔐 Se connecter
               </button>
               <button 
-                onClick={() => router.push('/explorer')} 
+                onClick={() => router.push('/collections')} 
                 className={styles.secondaryButton}
               >
-                🔍 Explorer les recettes
+                🔍 Explorer les collections
               </button>
             </>
           )}

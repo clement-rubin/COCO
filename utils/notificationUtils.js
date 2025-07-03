@@ -656,7 +656,7 @@ export const showWeeklyVotingStartNotification = () => {
       body: 'Découvrez les nouvelles recettes candidates et votez pour votre préférée !',
       data: { 
         type: 'weekly_voting_start',
-        action: 'open_explorer_tab'
+        action: 'open_collections_tab'
       }
     }
   )
