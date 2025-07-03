@@ -220,15 +220,7 @@ export default function Collections() {
   }
 
   const handleCardClick = (collectionId) => {
-    setFlippedCards(prev => {
-      const newSet = new Set(prev)
-      if (newSet.has(collectionId)) {
-        newSet.delete(collectionId)
-      } else {
-        newSet.add(collectionId)
-      }
-      return newSet
-    })
+    router.push(`/collection/${collectionId}`)
   }
 
   const handleFavoriteClick = (collectionId, e) => {
@@ -242,11 +234,6 @@ export default function Collections() {
       }
       return newSet
     })
-  }
-
-  const handleExploreClick = (collection, e) => {
-    e.stopPropagation()
-    router.push(`/collection/${collection.id}`)
   }
 
   const filteredCollections = collections.filter(collection => {
@@ -338,13 +325,12 @@ export default function Collections() {
       {/* Grille des collections */}
       <main className={styles.collectionsGrid}>
         {filteredCollections.map((collection, index) => {
-          const isFlipped = flippedCards.has(collection.id)
           const isFavorite = favorites.has(collection.id)
           
           return (
             <div
               key={collection.id}
-              className={`${styles.collectionCard} ${isFlipped ? styles.flipped : ''} ${collection.featured ? styles.featured : ''} ${collection.trending ? styles.trending : ''}`}
+              className={`${styles.collectionCard} ${collection.featured ? styles.featured : ''} ${collection.trending ? styles.trending : ''}`}
               onClick={() => handleCardClick(collection.id)}
               style={{ 
                 '--card-color': collection.color, 
@@ -352,105 +338,25 @@ export default function Collections() {
                 '--animation-delay': `${index * 0.1}s`
               }}
             >
-              {/* Badges */}
-              <div className={styles.cardBadges}>
-                {collection.trending && (
-                  <span className={styles.trendingBadge}>🔥 Tendance</span>
-                )}
-                {collection.featured && (
-                  <span className={styles.featuredBadge}>⭐ Sélection</span>
-                )}
+              {/* Illustration */}
+              <div className={styles.cardIllustration}>
+                <span className={styles.illustrationEmoji}>{collection.illustration}</span>
               </div>
-
-              {/* Face avant */}
-              <div className={styles.cardFront}>
-                <div className={styles.cardIllustration}>
-                  <div className={styles.illustrationBg}>
-                    <span className={styles.illustrationEmoji}>{collection.illustration}</span>
-                  </div>
-                  
-                  {/* Actions */}
-                  <div className={styles.cardActions}>
-                    <button
-                      className={`${styles.favoriteButton} ${isFavorite ? styles.active : ''}`}
-                      onClick={(e) => handleFavoriteClick(collection.id, e)}
-                    >
-                      {isFavorite ? '❤️' : '🤍'}
-                    </button>
-                  </div>
-                  
-                  <div className={styles.cardInfo}>
-                    <span className={styles.recipeCount}>{collection.recipeCount} recettes</span>
-                    <span className={styles.estimatedTime}>{collection.estimatedTime}</span>
-                  </div>
-                </div>
+              
+              {/* Contenu */}
+              <div className={styles.cardContent}>
+                <h3 className={styles.collectionName}>{collection.name}</h3>
+                <p className={styles.collectionDescription}>
+                  {collection.description}
+                </p>
                 
-                <div className={styles.cardContent}>
-                  <h3 className={styles.collectionName}>{collection.name}</h3>
-                  <p className={styles.collectionDescription}>
-                    {collection.description}
-                  </p>
-                  
-                  <div className={styles.cardTags}>
-                    {collection.tags.slice(0, 2).map(tag => (
-                      <span key={tag} className={styles.tag}>#{tag}</span>
-                    ))}
-                  </div>
-                  
-                  <div className={styles.cardMeta}>
-                    <span className={`${styles.difficultyBadge} ${styles[collection.difficulty.toLowerCase()]}`}>
-                      {collection.difficulty}
-                    </span>
-                    <span className={styles.cardHint}>
-                      👆 Cliquez pour explorer
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Face arrière */}
-              <div className={styles.cardBack}>
-                <div className={styles.backHeader}>
-                  <div className={styles.backIllustration}>
-                    {collection.illustration}
-                  </div>
-                  <h3 className={styles.backTitle}>{collection.name}</h3>
-                  <div className={styles.backMeta}>
-                    <span className={styles.backCount}>{collection.recipeCount} recettes</span>
-                    <span className={styles.backTime}>{collection.estimatedTime}</span>
-                  </div>
-                </div>
-                
-                <div className={styles.recipesList}>
-                  <h4>Recettes populaires :</h4>
-                  {collection.recipes.map((recipe, index) => (
-                    <div key={index} className={styles.recipeItem}>
-                      <div className={styles.recipeInfo}>
-                        <span className={styles.recipeName}>{recipe.name}</span>
-                        <div className={styles.recipeDetails}>
-                          <span className={styles.recipeTime}>⏱️ {recipe.time}</span>
-                          <span className={`${styles.recipeDifficulty} ${styles[recipe.difficulty.toLowerCase()]}`}>
-                            {recipe.difficulty}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                
-                <div className={styles.cardFooter}>
-                  <div className={styles.backTags}>
-                    {collection.tags.map(tag => (
-                      <span key={tag} className={styles.backTag}>{tag}</span>
-                    ))}
-                  </div>
-                  
-                  <button
-                    className={styles.exploreButton}
-                    onClick={(e) => handleExploreClick(collection, e)}
-                  >
-                    🔍 Explorer la collection
-                  </button>
+                <div className={styles.cardMeta}>
+                  <span className={styles.recipeCount}>
+                    {collection.recipeCount} recettes
+                  </span>
+                  <span className={`${styles.difficultyBadge} ${styles[collection.difficulty.toLowerCase()]}`}>
+                    {collection.difficulty}
+                  </span>
                 </div>
               </div>
             </div>

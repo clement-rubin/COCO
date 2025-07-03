@@ -319,7 +319,7 @@ export default function Home() {
           background: 'linear-gradient(135deg, #fef3e2 0%, #fff5e6 50%, #fef7ed 100%)',
           position: 'relative',
           overflow: 'hidden',
-          paddingTop: '60px',
+          paddingTop: '20px',
           paddingBottom: '40px',
           marginBottom: '0'
         }}>
@@ -353,20 +353,20 @@ export default function Home() {
             textAlign: 'center',
             position: 'relative',
             zIndex: 1,
-            padding: '0 20px'
+            padding: '20px 20px 0'
           }}>
             {/* Logo animé */}
             <div style={{
-              width: '80px',
-              height: '80px',
+              width: '70px',
+              height: '70px',
               background: 'linear-gradient(135deg, #ff6b35, #f7931e)',
-              borderRadius: '24px',
+              borderRadius: '20px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '2.5rem',
-              margin: '0 auto 20px',
-              boxShadow: '0 12px 30px rgba(255, 107, 53, 0.2), 0 6px 15px rgba(255, 107, 53, 0.1)',
+              fontSize: '2.2rem',
+              margin: '0 auto 16px',
+              boxShadow: '0 8px 25px rgba(255, 107, 53, 0.2), 0 4px 12px rgba(255, 107, 53, 0.1)',
               animation: 'heroLogo 3s ease-in-out infinite',
               border: '2px solid rgba(255, 255, 255, 0.9)',
               position: 'relative'
@@ -388,9 +388,9 @@ export default function Home() {
 
             {/* Titre principal avec effet de gradient */}
             <h1 style={{
-              fontSize: '2.8rem',
+              fontSize: '2.4rem',
               fontWeight: '900',
-              margin: '0 0 12px 0',
+              margin: '0 0 8px 0',
               background: 'linear-gradient(135deg, #ff6b35, #f7931e, #ff8a50)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
@@ -403,12 +403,12 @@ export default function Home() {
 
             {/* Sous-titre avec animation */}
             <div style={{
-              marginBottom: '32px'
+              marginBottom: '24px'
             }}>
               <h2 style={{
-                fontSize: '1.3rem',
+                fontSize: '1.2rem',
                 fontWeight: '700',
-                margin: '0 0 8px 0',
+                margin: '0 0 6px 0',
                 color: '#1f2937',
                 lineHeight: '1.3'
               }}>
@@ -422,7 +422,7 @@ export default function Home() {
                 </span>
               </h2>
               <p style={{
-                fontSize: '1rem',
+                fontSize: '0.95rem',
                 color: '#6b7280',
                 margin: 0,
                 lineHeight: '1.4',
@@ -435,10 +435,10 @@ export default function Home() {
             {/* Actions rapides */}
             <div style={{
               display: 'flex',
-              gap: '12px',
+              gap: '10px',
               justifyContent: 'center',
               flexWrap: 'wrap',
-              marginBottom: '32px'
+              marginBottom: '24px'
             }}>
               <button
                 onClick={() => router.push('/share-photo')}
@@ -446,24 +446,24 @@ export default function Home() {
                   background: 'linear-gradient(135deg, #ff6b35, #f7931e)',
                   color: 'white',
                   border: 'none',
-                  padding: '12px 24px',
-                  borderRadius: '14px',
+                  padding: '10px 20px',
+                  borderRadius: '12px',
                   fontWeight: '700',
-                  fontSize: '0.95rem',
+                  fontSize: '0.9rem',
                   cursor: 'pointer',
                   transition: 'all 0.3s ease',
-                  boxShadow: '0 6px 20px rgba(255, 107, 53, 0.25)',
+                  boxShadow: '0 4px 15px rgba(255, 107, 53, 0.25)',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px'
+                  gap: '6px'
                 }}
                 onMouseEnter={(e) => {
                   e.target.style.transform = 'translateY(-2px)'
-                  e.target.style.boxShadow = '0 8px 25px rgba(255, 107, 53, 0.35)'
+                  e.target.style.boxShadow = '0 6px 20px rgba(255, 107, 53, 0.35)'
                 }}
                 onMouseLeave={(e) => {
                   e.target.style.transform = 'translateY(0)'
-                  e.target.style.boxShadow = '0 6px 20px rgba(255, 107, 53, 0.25)'
+                  e.target.style.boxShadow = '0 4px 15px rgba(255, 107, 53, 0.25)'
                 }}
               >
                 📸 Partager
@@ -474,16 +474,16 @@ export default function Home() {
                   background: 'rgba(255, 255, 255, 0.95)',
                   color: '#ff6b35',
                   border: '2px solid #ff6b35',
-                  padding: '12px 24px',
-                  borderRadius: '14px',
+                  padding: '10px 20px',
+                  borderRadius: '12px',
                   fontWeight: '700',
-                  fontSize: '0.95rem',
+                  fontSize: '0.9rem',
                   cursor: 'pointer',
                   transition: 'all 0.3s ease',
                   backdropFilter: 'blur(10px)',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px'
+                  gap: '6px'
                 }}
                 onMouseEnter={(e) => {
                   e.target.style.background = '#ff6b35'
@@ -504,8 +504,8 @@ export default function Home() {
             <div style={{
               display: 'flex',
               justifyContent: 'center',
-              gap: '20px',
-              marginBottom: '20px',
+              gap: '16px',
+              marginBottom: '16px',
               flexWrap: 'wrap'
             }}>
               {[
@@ -516,25 +516,25 @@ export default function Home() {
                 <div key={index} style={{
                   background: 'rgba(255, 255, 255, 0.8)',
                   backdropFilter: 'blur(10px)',
-                  padding: '12px 16px',
-                  borderRadius: '16px',
+                  padding: '8px 12px',
+                  borderRadius: '12px',
                   border: '1px solid rgba(255, 107, 53, 0.1)',
-                  minWidth: '70px',
+                  minWidth: '60px',
                   animation: `fadeInUp 0.6s ease-out ${index * 0.1}s both`
                 }}>
-                  <div style={{ fontSize: '1.2rem', marginBottom: '2px' }}>
+                  <div style={{ fontSize: '1rem', marginBottom: '2px' }}>
                     {stat.icon}
                   </div>
                   <div style={{
-                    fontSize: '0.95rem',
+                    fontSize: '0.85rem',
                     fontWeight: '700',
                     color: '#ff6b35',
-                    marginBottom: '2px'
+                    marginBottom: '1px'
                   }}>
                     {stat.number}
                   </div>
                   <div style={{
-                    fontSize: '0.75rem',
+                    fontSize: '0.7rem',
                     color: '#6b7280',
                     fontWeight: '500'
                   }}>
@@ -549,19 +549,19 @@ export default function Home() {
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              gap: '6px',
+              gap: '4px',
               opacity: 0.5
             }}>
               <span style={{
-                fontSize: '0.8rem',
+                fontSize: '0.75rem',
                 color: '#9ca3af',
                 fontWeight: '500'
               }}>
                 Découvrez les dernières recettes
               </span>
               <div style={{
-                width: '20px',
-                height: '20px',
+                width: '16px',
+                height: '16px',
                 border: '1.5px solid #ff6b35',
                 borderRadius: '50%',
                 display: 'flex',
@@ -569,7 +569,7 @@ export default function Home() {
                 justifyContent: 'center',
                 animation: 'bounce 2s infinite'
               }}>
-                <span style={{ fontSize: '0.7rem' }}>↓</span>
+                <span style={{ fontSize: '0.6rem' }}>↓</span>
               </div>
             </div>
           </div>
@@ -806,10 +806,10 @@ export default function Home() {
         /* Responsive amélioré */
         @media (max-width: 400px) {
           h1 {
-            fontSize: 2.4rem !important;
+            fontSize: 2.1rem !important;
           }
           h2 {
-            fontSize: 1.1rem !important;
+            fontSize: 1rem !important;
           }
         }
       `}</style>
