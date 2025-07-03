@@ -419,7 +419,7 @@ function AppContent({ Component, pageProps }) {
           <Component {...pageProps} />
         </main>
         
-        {/* Tidio Chat Integration */}
+        {/* Tidio Chat gratuit intégré */}
         <TidioChat />
         
         {/* Bottom Navigation */}
