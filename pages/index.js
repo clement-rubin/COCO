@@ -508,11 +508,11 @@ export default function Home() {
               marginBottom: '20px',
               flexWrap: 'wrap'
             }}>
-              {{
+              {[
                 { number: '1000+', label: 'Recettes', icon: '📸' },
                 { number: '500+', label: 'Chefs', icon: '👨‍🍳' },
                 { number: '50+', label: 'Collections', icon: '📚' }
-              }.map((stat, index) => (
+              ].map((stat, index) => (
                 <div key={index} style={{
                   background: 'rgba(255, 255, 255, 0.8)',
                   backdropFilter: 'blur(10px)',
