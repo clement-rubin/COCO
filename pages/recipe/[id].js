@@ -72,6 +72,7 @@ export default function RecipeDetail() {
   }
 
   const getMockRecipe = (recipeId) => {
+    // Extended mock recipes data including collection recipes
     const mockRecipes = {
       '1': {
         id: '1',
@@ -96,50 +97,137 @@ export default function RecipeDetail() {
           'Sel pour l\'eau de cuisson'
         ],
         instructions: [
-          {
-            step: 1,
-            instruction: 'Faire bouillir une grande casserole d\'eau salée pour les pâtes.'
-          },
-          {
-            step: 2,
-            instruction: 'Couper le guanciale en petits dés et le faire revenir dans une poêle jusqu\'à ce qu\'il soit croustillant.'
-          },
-          {
-            step: 3,
-            instruction: 'Dans un bol, battre les œufs avec les fromages râpés et une généreuse quantité de poivre noir.'
-          },
-          {
-            step: 4,
-            instruction: 'Cuire les spaghetti selon les instructions jusqu\'à ce qu\'ils soient al dente.'
-          },
-          {
-            step: 5,
-            instruction: 'Réserver une tasse d\'eau de cuisson des pâtes, puis égoutter.'
-          },
-          {
-            step: 6,
-            instruction: 'Ajouter les pâtes chaudes dans la poêle avec le guanciale, retirer du feu.'
-          },
-          {
-            step: 7,
-            instruction: 'Verser le mélange d\'œufs en remuant rapidement pour créer une sauce crémeuse.'
-          },
-          {
-            step: 8,
-            instruction: 'Ajouter l\'eau de cuisson si nécessaire pour obtenir la consistance désirée.'
-          }
+          { step: 1, instruction: 'Faire bouillir une grande casserole d\'eau salée pour les pâtes.' },
+          { step: 2, instruction: 'Couper le guanciale en petits dés et le faire revenir dans une poêle jusqu\'à ce qu\'il soit croustillant.' },
+          { step: 3, instruction: 'Dans un bol, battre les œufs avec les fromages râpés et une généreuse quantité de poivre noir.' },
+          { step: 4, instruction: 'Cuire les spaghetti selon les instructions jusqu\'à ce qu\'ils soient al dente.' },
+          { step: 5, instruction: 'Réserver une tasse d\'eau de cuisson des pâtes, puis égoutter.' },
+          { step: 6, instruction: 'Ajouter les pâtes chaudes dans la poêle avec le guanciale, retirer du feu.' },
+          { step: 7, instruction: 'Verser le mélange d\'œufs en remuant rapidement pour créer une sauce crémeuse.' },
+          { step: 8, instruction: 'Ajouter l\'eau de cuisson si nécessaire pour obtenir la consistance désirée.' }
         ],
         tips: [
           'Ne jamais ajouter de crème dans une vraie carbonara',
           'La chaleur des pâtes cuit les œufs, ne pas remettre sur le feu',
           'Utiliser du pecorino romano pour l\'authenticité'
         ],
-        nutrition: {
-          calories: 520,
-          protein: 28,
-          carbs: 65,
-          fat: 18
-        }
+        nutrition: { calories: 520, protein: 28, carbs: 65, fat: 18 }
+      },
+      // Add collection recipes
+      '101': {
+        id: '101',
+        title: 'Pancakes aux myrtilles',
+        description: 'Des pancakes moelleux garnis de myrtilles fraîches pour un petit-déjeuner vitaminé',
+        image: '/placeholder-recipe.jpg',
+        author: 'Chef Sarah',
+        category: 'Petit déjeuner',
+        difficulty: 'Facile',
+        prepTime: '15 min',
+        cookTime: '10 min',
+        servings: 4,
+        likes: 156,
+        rating: 4.6,
+        ingredients: [
+          '2 œufs',
+          '250ml de lait',
+          '200g de farine',
+          '2 c.à.s de sucre',
+          '1 c.à.c de levure chimique',
+          '150g de myrtilles fraîches',
+          'Beurre pour la cuisson'
+        ],
+        instructions: [
+          { step: 1, instruction: 'Dans un bol, battre les œufs avec le lait.' },
+          { step: 2, instruction: 'Dans un autre bol, mélanger la farine, le sucre et la levure.' },
+          { step: 3, instruction: 'Incorporer le mélange liquide aux ingrédients secs.' },
+          { step: 4, instruction: 'Ajouter délicatement les myrtilles à la pâte.' },
+          { step: 5, instruction: 'Chauffer une poêle avec un peu de beurre.' },
+          { step: 6, instruction: 'Verser une louche de pâte et cuire 2-3 minutes de chaque côté.' },
+          { step: 7, instruction: 'Servir chaud avec du sirop d\'érable.' }
+        ],
+        tips: [
+          'Ne pas trop mélanger la pâte pour garder des pancakes moelleux',
+          'Les myrtilles congelées peuvent être utilisées sans décongélation',
+          'Maintenir au chaud dans un four à 60°C'
+        ],
+        nutrition: { calories: 280, protein: 12, carbs: 45, fat: 8 }
+      },
+      '102': {
+        id: '102',
+        title: 'Granola maison croustillant',
+        description: 'Un mélange parfait d\'avoine, noix et miel pour un petit-déjeuner sain et énergisant',
+        image: '/placeholder-recipe.jpg',
+        author: 'Chef Marie',
+        category: 'Petit déjeuner',
+        difficulty: 'Facile',
+        prepTime: '10 min',
+        cookTime: '25 min',
+        servings: 8,
+        likes: 203,
+        rating: 4.7,
+        ingredients: [
+          '300g d\'avoine',
+          '100g de noix mélangées',
+          '50ml de miel',
+          '2 c.à.s d\'huile de coco',
+          '1 c.à.c de cannelle',
+          '50g de graines de tournesol',
+          '75g de fruits secs'
+        ],
+        instructions: [
+          { step: 1, instruction: 'Préchauffer le four à 160°C.' },
+          { step: 2, instruction: 'Mélanger l\'avoine, les noix et les graines dans un grand bol.' },
+          { step: 3, instruction: 'Faire fondre le miel avec l\'huile de coco.' },
+          { step: 4, instruction: 'Verser le mélange liquide sur les ingrédients secs.' },
+          { step: 5, instruction: 'Ajouter la cannelle et bien mélanger.' },
+          { step: 6, instruction: 'Étaler sur une plaque et cuire 25 minutes en remuant à mi-cuisson.' },
+          { step: 7, instruction: 'Laisser refroidir et ajouter les fruits secs.' }
+        ],
+        tips: [
+          'Remuer régulièrement pour une cuisson uniforme',
+          'Se conserve 2 semaines dans un récipient hermétique',
+          'Personnaliser avec vos fruits secs préférés'
+        ],
+        nutrition: { calories: 320, protein: 8, carbs: 42, fat: 14 }
+      },
+      '201': {
+        id: '201',
+        title: 'Pot-au-feu grand-mère',
+        description: 'La recette traditionnelle qui réunit toute la famille autour de saveurs authentiques',
+        image: '/placeholder-recipe.jpg',
+        author: 'Chef Pierre',
+        category: 'Plat principal',
+        difficulty: 'Moyen',
+        prepTime: '30 min',
+        cookTime: '2h30',
+        servings: 6,
+        likes: 89,
+        rating: 4.9,
+        ingredients: [
+          '1kg de bœuf (gîte, jarret)',
+          '4 carottes',
+          '2 navets',
+          '1 chou vert',
+          '4 poireaux',
+          '1 bouquet garni',
+          'Gros sel',
+          'Poivre en grains'
+        ],
+        instructions: [
+          { step: 1, instruction: 'Faire revenir la viande dans une grande cocotte.' },
+          { step: 2, instruction: 'Couvrir d\'eau froide et porter à ébullition.' },
+          { step: 3, instruction: 'Écumer régulièrement les premières 30 minutes.' },
+          { step: 4, instruction: 'Ajouter le bouquet garni et laisser mijoter 1h30.' },
+          { step: 5, instruction: 'Ajouter les légumes racines et poursuivre 45 minutes.' },
+          { step: 6, instruction: 'Terminer avec le chou les 15 dernières minutes.' },
+          { step: 7, instruction: 'Servir avec des cornichons et de la moutarde.' }
+        ],
+        tips: [
+          'Écumer régulièrement pour un bouillon clair',
+          'Ne pas faire bouillir fort, juste frémir',
+          'Les légumes doivent rester légèrement fermes'
+        ],
+        nutrition: { calories: 450, protein: 35, carbs: 25, fat: 18 }
       }
     }
 

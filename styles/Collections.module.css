@@ -157,219 +157,210 @@
   margin: 0 auto;
 }
 
-/* Cartes améliorées */
+/* Cartes simplifiées */
 .collectionCard {
   position: relative;
   width: 100%;
   aspect-ratio: 0.8;
-  perspective: 1000px;
   cursor: pointer;
-  animation: cardEntrance 0.6s cubic-bezier(0.4, 0, 0.2, 1) var(--animation-delay) both;
-}
-
-.cardFront,
-.cardBack {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  border-radius: 24px;
-  backface-visibility: hidden;
-  transition: transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transition: all 0.3s ease;
   background: white;
-  box-shadow: 
-    0 4px 16px rgba(0, 0, 0, 0.08),
-    0 1px 4px rgba(0, 0, 0, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.04);
   overflow: hidden;
 }
 
-.cardBack {
-  transform: rotateY(180deg);
-}
-
-.collectionCard.flipped .cardFront {
-  transform: rotateY(180deg);
-}
-
-.collectionCard.flipped .cardBack {
-  transform: rotateY(0deg);
-}
-
 .collectionCard:hover {
-  transform: translateY(-8px);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 
-.collectionCard:hover .cardFront,
-.collectionCard:hover .cardBack {
-  box-shadow: 
-    0 16px 40px rgba(0, 0, 0, 0.12),
-    0 4px 16px rgba(255, 107, 53, 0.1);
-}
-
-/* États spéciaux */
-.collectionCard.featured {
-  border: 2px solid transparent;
-  background: linear-gradient(white, white) padding-box,
-              linear-gradient(135deg, #f59e0b, #d97706) border-box;
-}
-
-.collectionCard.trending .cardFront::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, #ef4444, #f97316, #eab308);
-  z-index: 5;
-}
-
-/* Badges */
-.cardBadges {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  z-index: 10;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.trendingBadge,
-.featuredBadge {
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: white;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-}
-
-.trendingBadge {
-  background: linear-gradient(135deg, #ef4444, #dc2626);
-}
-
-.featuredBadge {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-}
-
-/* Face avant améliorée */
+/* Face avant simplifiée */
 .cardIllustration {
-  position: relative;
-  height: 55%;
+  height: 50%;
   background: var(--card-color);
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
-}
-
-.illustrationBg {
   position: relative;
-  width: 110px;
-  height: 110px;
-  background: rgba(255, 255, 255, 0.25);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  backdrop-filter: blur(20px);
-  border: 3px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
 
 .illustrationEmoji {
-  font-size: 3.2rem;
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
-}
-
-.cardActions {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  z-index: 10;
-}
-
-.favoriteButton {
-  background: rgba(255, 255, 255, 0.9);
-  border: none;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.1rem;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.favoriteButton:hover {
-  transform: scale(1.1);
-  background: rgba(255, 255, 255, 1);
-}
-
-.favoriteButton.active {
-  background: linear-gradient(135deg, #ef4444, #dc2626);
-  color: white;
-  animation: heartBeat 0.6s ease-in-out;
-}
-
-.cardInfo {
-  position: absolute;
-  bottom: 12px;
-  left: 12px;
-  right: 12px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.recipeCount,
-.estimatedTime {
-  background: rgba(255, 255, 255, 0.9);
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--accent-color);
-  backdrop-filter: blur(10px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  font-size: 3rem;
 }
 
 .cardContent {
   padding: 20px;
-  height: 45%;
+  height: 50%;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  gap: 8px;
 }
 
 .collectionName {
-  font-size: 1.25rem;
-  font-weight: 700;
-  margin: 0 0 8px 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 0;
   color: #1f2937;
-  line-height: 1.2;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  line-height: 1.3;
 }
 
 .collectionDescription {
   color: #6b7280;
-  font-size: 0.85rem;
-  margin: 0 0 12px 0;
+  font-size: 0.9rem;
+  margin: 0;
   line-height: 1.4;
   flex: 1;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.cardMeta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid #f3f4f6;
+}
+
+.recipeCount {
+  color: #ff6b35;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.difficultyBadge {
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: white;
+}
+
+.difficultyBadge.facile {
+  background: #10b981;
+}
+
+.difficultyBadge.moyen {
+  background: #f59e0b;
+}
+
+.difficultyBadge.difficile {
+  background: #ef4444;
+}
+
+.difficultyBadge.expert {
+  background: #8b5cf6;
+}
+
+/* Suppression des éléments non nécessaires */
+.cardFront,
+.cardBack {
+  display: none;
+}
+
+.cardBadges,
+.trendingBadge,
+.featuredBadge,
+.cardActions,
+.favoriteButton,
+.cardInfo,
+.estimatedTime,
+.cardTags,
+.tag,
+.cardHint,
+.backHeader,
+.backIllustration,
+.backTitle,
+.backMeta,
+.backCount,
+.backTime,
+.recipesList,
+.recipeItem,
+.recipeInfo,
+.recipeName,
+.recipeDetails,
+.recipeTime,
+.recipeDifficulty,
+.cardFooter,
+.backTags,
+.backTag,
+.exploreButton,
+.illustrationBg {
+  display: none;
+}
+
+/* États spéciaux simplifiés */
+.collectionCard.featured {
+  border: 2px solid #f59e0b;
+}
+
+.collectionCard.trending::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: #ef4444;
+  z-index: 5;
+}
+
+/* Animations simplifiées */
+@keyframes cardEntrance {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.collectionCard {
+  animation: cardEntrance 0.4s ease var(--animation-delay) both;
+}
+
+/* Suppression des animations complexes */
+
+.collectionCard:hover .illustrationBg,
+.collectionCard:hover .illustrationEmoji {
+  transform: none;
+  animation: none;
+}
+
+/* Responsive simplifié */
+@media (max-width: 768px) {
+  .collectionCard {
+    aspect-ratio: 0.9;
+  }
+  
+  .cardContent {
+    padding: 16px;
+  }
+  
+  .collectionName {
+    font-size: 1.1rem;
+  }
+  
+  .illustrationEmoji {
+    font-size: 2.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .cardContent {
+    padding: 14px;
+  }
+  
+  .illustrationEmoji {
+    font-size: 2.2rem;
+  }
 }
 
 .cardTags {
