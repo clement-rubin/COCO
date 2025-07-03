@@ -2,124 +2,115 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import Image from 'next/image'
-import { supabase } from '../lib/supabase'
 import { useAuth } from '../components/AuthContext'
-import { logInfo as baseLogInfo, logError as baseLogError } from '../utils/logger'
-import styles from '../styles/Collections.module.css'
-import { createSafeImageUrl } from '../utils/imageUtils'
+import { supabase } from '../lib/supabase'
+import { logInfo, logError } from '../utils/logger'
+import styles from '../styles/Pokedex.module.css'
 
 export default function Collections() {
   const { user } = useAuth()
   const router = useRouter()
-  
   const [collections, setCollections] = useState([])
-  const [activeTab, setActiveTab] = useState('featured')
   const [loading, setLoading] = useState(true)
+  const [activeCategory, setActiveCategory] = useState('all')
+  const [flippedCards, setFlippedCards] = useState(new Set())
   const [selectedCollection, setSelectedCollection] = useState(null)
-  const [userRecipes, setUserRecipes] = useState([])
-  const [showAddModal, setShowAddModal] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
-  const [userLikes, setUserLikes] = useState(new Set())
-  const [pageLogs, setPageLogs] = useState([])
-  const [showLogs, setShowLogs] = useState(false)
+  const [showDetailModal, setShowDetailModal] = useState(false)
+  const [userProgress, setUserProgress] = useState({
+    discovered: new Set(),
+    completed: new Set(),
+    favorites: new Set()
+  })
 
-  // Helpers pour logger
-  const logInfo = (message, data = {}) => {
-    setPageLogs(logs => [
-      {
-        id: Date.now() + Math.random(),
-        type: 'info',
-        message,
-        data: JSON.stringify(data, null, 2),
-        timestamp: new Date().toLocaleTimeString()
-      },
-      ...logs.slice(0, 99)
-    ])
-    baseLogInfo(message, data)
-  }
-  
-  const logError = (message, data = {}) => {
-    setPageLogs(logs => [
-      {
-        id: Date.now() + Math.random(),
-        type: 'error',
-        message,
-        data: JSON.stringify(data, null, 2),
-        timestamp: new Date().toLocaleTimeString()
-      },
-      ...logs.slice(0, 99)
-    ])
-    baseLogError(message, data)
-  }
+  // Catégories spéciales du Pokédex culinaire
+  const categories = [
+    { 
+      id: 'all', 
+      name: 'Toutes', 
+      icon: '📚', 
+      color: '#6366f1',
+      description: 'Toutes les collections disponibles'
+    },
+    { 
+      id: 'legendaire', 
+      name: 'Légendaires', 
+      icon: '👑', 
+      color: '#fbbf24',
+      description: 'Collections rares et exceptionnelles'
+    },
+    { 
+      id: 'saisonnier', 
+      name: 'Saisonnières', 
+      icon: '🍂', 
+      color: '#f97316',
+      description: 'Collections qui changent selon les saisons'
+    },
+    { 
+      id: 'regional', 
+      name: 'Régionales', 
+      icon: '🗺️', 
+      color: '#10b981',
+      description: 'Spécialités culinaires du monde entier'
+    },
+    { 
+      id: 'mystique', 
+      name: 'Mystiques', 
+      icon: '✨', 
+      color: '#8b5cf6',
+      description: 'Collections aux recettes secrètes'
+    },
+    { 
+      id: 'defi', 
+      name: 'Défis', 
+      icon: '⚔️', 
+      color: '#ef4444',
+      description: 'Collections de défis culinaires'
+    }
+  ]
 
   useEffect(() => {
-    logInfo('Collections page mounted', { user: user?.id })
     loadCollections()
-    if (user) {
-      loadUserRecipes()
-      loadUserLikes()
-    }
-    
-    // Animation progressive des cartes
-    const cards = document.querySelectorAll(`.${styles.collectionCard}`)
-    cards.forEach((card, index) => {
-      card.style.opacity = '0'
-      card.style.transform = 'translateY(20px)'
-      setTimeout(() => {
-        card.style.transition = 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)'
-        card.style.opacity = '1'
-        card.style.transform = 'translateY(0)'
-      }, index * 100)
-    })
-  }, [user, activeTab])
+    loadUserProgress()
+  }, [user])
 
   const loadCollections = async () => {
     try {
       setLoading(true)
-      logInfo('Loading collections from supabase')
       
-      let query = supabase
+      const { data, error } = await supabase
         .from('collections')
         .select(`
           *,
           collection_recipes (
             id,
-            recipe_id,
-            user_id,
-            likes_count,
-            featured,
             recipes (
               id,
               title,
               image,
-              author,
-              category
+              category,
+              difficulty
             )
           )
         `)
         .eq('status', 'active')
-        .order('featured', { ascending: false })
-        .order('created_at', { ascending: false })
-
-      // Filtrer selon l'onglet actif
-      if (activeTab !== 'all') {
-        if (activeTab === 'featured') {
-          query = query.eq('featured', true)
-        } else if (activeTab === 'weekly') {
-          query = query.eq('type', 'weekly')
-        } else if (activeTab === 'seasonal') {
-          query = query.eq('type', 'seasonal')
-        } else if (activeTab === 'special') {
-          query = query.eq('type', 'special')
-        }
-      }
-
-      const { data, error } = await query
+        .order('rarity_level', { ascending: false })
 
       if (error) throw error
 
-      setCollections(data || [])
-      logInfo('Collections loaded', { count: data?.length || 0 })
+      // Enrichir les collections avec des données Pokédex
+      const enrichedCollections = data.map(collection => ({
+        ...collection,
+        pokedex_number: collection.id.toString().padStart(3, '0'),
+        rarity: getRarityFromLevel(collection.rarity_level || 1),
+        element_type: getElementType(collection.type),
+        stats: {
+          recipes: collection.collection_recipes?.length || 0,
+          difficulty: calculateAverageDifficulty(collection.collection_recipes),
+          completion: calculateUserCompletion(collection.id)
+        }
+      }))
+
+      setCollections(enrichedCollections)
     } catch (error) {
       logError('Error loading collections', error)
     } finally {
@@ -127,149 +118,113 @@ export default function Collections() {
     }
   }
 
-  const loadUserRecipes = async () => {
+  const loadUserProgress = async () => {
     if (!user) return
-    
+
     try {
-      logInfo('Loading user recipes', { userId: user.id })
-      const { data, error } = await supabase
-        .from('recipes')
-        .select('id, title, image, created_at, category')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(20)
-
-      if (error) throw error
-
-      setUserRecipes(data || [])
-      logInfo('User recipes loaded', { count: data?.length || 0 })
-    } catch (error) {
-      logError('Error loading user recipes', error)
-    }
-  }
-
-  const loadUserLikes = async () => {
-    if (!user) return
-    
-    try {
-      const { data, error } = await supabase
-        .from('collection_likes')
-        .select('collection_id')
+      // Charger les données de progression utilisateur
+      const { data: progressData } = await supabase
+        .from('user_collection_progress')
+        .select('*')
         .eq('user_id', user.id)
 
-      if (error) throw error
-
-      setUserLikes(new Set(data?.map(like => like.collection_id) || []))
-    } catch (error) {
-      logError('Error loading user likes', error)
-    }
-  }
-
-  const toggleCollectionLike = async (collectionId) => {
-    if (!user) {
-      alert('Connectez-vous pour aimer les collections')
-      return
-    }
-
-    const isLiked = userLikes.has(collectionId)
-    
-    try {
-      if (isLiked) {
-        const { error } = await supabase
-          .from('collection_likes')
-          .delete()
-          .eq('collection_id', collectionId)
-          .eq('user_id', user.id)
-        
-        if (error) throw error
-        
-        setUserLikes(prev => {
-          const newSet = new Set(prev)
-          newSet.delete(collectionId)
-          return newSet
+      if (progressData) {
+        setUserProgress({
+          discovered: new Set(progressData.filter(p => p.discovered).map(p => p.collection_id)),
+          completed: new Set(progressData.filter(p => p.completed).map(p => p.collection_id)),
+          favorites: new Set(progressData.filter(p => p.favorited).map(p => p.collection_id))
         })
-      } else {
-        const { error } = await supabase
-          .from('collection_likes')
-          .insert({
-            collection_id: collectionId,
-            user_id: user.id
-          })
-        
-        if (error) throw error
-        
-        setUserLikes(prev => new Set([...prev, collectionId]))
       }
-
-      // Mettre à jour le compteur local
-      setCollections(prev => prev.map(collection => {
-        if (collection.id === collectionId) {
-          return {
-            ...collection,
-            likes_count: collection.likes_count + (isLiked ? -1 : 1)
-          }
-        }
-        return collection
-      }))
-
-      logInfo('Collection like toggled', { collectionId, isLiked: !isLiked })
     } catch (error) {
-      logError('Error toggling collection like', error)
-      alert('Erreur lors de l\'action. Veuillez réessayer.')
+      logError('Error loading user progress', error)
     }
   }
 
-  const addRecipeToCollection = async (collectionId, recipeId) => {
-    if (!user) return
+  const getRarityFromLevel = (level) => {
+    const rarities = {
+      1: { name: 'Commun', color: '#9ca3af', icon: '⚪' },
+      2: { name: 'Rare', color: '#3b82f6', icon: '🔵' },
+      3: { name: 'Épique', color: '#8b5cf6', icon: '🟣' },
+      4: { name: 'Légendaire', color: '#f59e0b', icon: '🟡' },
+      5: { name: 'Mythique', color: '#ef4444', icon: '🔴' }
+    }
+    return rarities[level] || rarities[1]
+  }
 
-    setSubmitting(true)
+  const getElementType = (type) => {
+    const elements = {
+      'weekly': { name: 'Feu', color: '#ef4444', icon: '🔥' },
+      'monthly': { name: 'Eau', color: '#3b82f6', icon: '💧' },
+      'seasonal': { name: 'Terre', color: '#84cc16', icon: '🌿' },
+      'special': { name: 'Air', color: '#06b6d4', icon: '💨' },
+      'challenge': { name: 'Électrique', color: '#eab308', icon: '⚡' }
+    }
+    return elements[type] || elements['weekly']
+  }
+
+  const handleCardClick = (collectionId) => {
+    setFlippedCards(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(collectionId)) {
+        newSet.delete(collectionId)
+      } else {
+        newSet.add(collectionId)
+      }
+      return newSet
+    })
+
+    // Marquer comme découvert
+    if (user && !userProgress.discovered.has(collectionId)) {
+      markAsDiscovered(collectionId)
+    }
+  }
+
+  const handleCardDoubleClick = (collection) => {
+    setSelectedCollection(collection)
+    setShowDetailModal(true)
+  }
+
+  const markAsDiscovered = async (collectionId) => {
     try {
-      logInfo('Adding recipe to collection', { collectionId, recipeId })
-      
-      const { error } = await supabase
-        .from('collection_recipes')
-        .insert({
+      await supabase
+        .from('user_collection_progress')
+        .upsert({
+          user_id: user.id,
           collection_id: collectionId,
-          recipe_id: recipeId,
-          user_id: user.id
+          discovered: true,
+          discovered_at: new Date().toISOString()
         })
 
-      if (error) throw error
-
-      setShowAddModal(false)
-      await loadCollections()
-      logInfo('Recipe added to collection successfully')
-      alert('Recette ajoutée à la collection avec succès !')
-      
+      setUserProgress(prev => ({
+        ...prev,
+        discovered: new Set([...prev.discovered, collectionId])
+      }))
     } catch (error) {
-      logError('Error adding recipe to collection', error)
-      if (error.code === '23505') {
-        alert('Cette recette est déjà dans la collection')
-      } else {
-        alert('Erreur lors de l\'ajout: ' + error.message)
-      }
-    } finally {
-      setSubmitting(false)
+      logError('Error marking collection as discovered', error)
     }
   }
 
-  const getCollectionTypeLabel = (type) => {
-    const types = {
-      weekly: 'Hebdomadaire',
-      monthly: 'Mensuelle',
-      seasonal: 'Saisonnière',
-      special: 'Spéciale'
+  const filteredCollections = collections.filter(collection => {
+    if (activeCategory === 'all') return true
+    
+    const categoryMap = {
+      'legendaire': collection.rarity_level >= 4,
+      'saisonnier': collection.type === 'seasonal',
+      'regional': collection.category === 'regional',
+      'mystique': collection.rarity_level === 5,
+      'defi': collection.type === 'challenge'
     }
-    return types[type] || type
-  }
+    
+    return categoryMap[activeCategory] || false
+  })
 
   if (loading) {
     return (
       <div className={styles.container}>
-        <div className={styles.loading}>
-          <div className={styles.spinner}></div>
-          <p>Chargement des collections...</p>
+        <div className={styles.pokeball}>
+          <div className={styles.pokeballInner}></div>
         </div>
+        <p>Chargement du Pokédex culinaire...</p>
       </div>
     )
   }
@@ -277,417 +232,260 @@ export default function Collections() {
   return (
     <div className={styles.container}>
       <Head>
-        <title>Collections - COCO</title>
-        <meta name="description" content="Découvrez les collections thématiques de recettes" />
+        <title>Pokédex Culinaire - COCO</title>
+        <meta name="description" content="Découvrez toutes les collections de recettes dans notre Pokédex culinaire" />
       </Head>
 
-      {/* Onglet Logs */}
-      <div style={{ position: 'absolute', top: 24, right: 24, zIndex: 20 }}>
-        <button
-          onClick={() => setShowLogs(true)}
-          style={{
-            background: '#1e293b',
-            color: 'white',
-            border: 'none',
-            borderRadius: 8,
-            padding: '8px 18px',
-            fontWeight: 600,
-            fontSize: '1rem',
-            boxShadow: '0 2px 8px rgba(30,41,59,0.15)',
-            cursor: 'pointer'
-          }}
-        >
-          🪵 Logs ({pageLogs.length})
-        </button>
-      </div>
-
-      {/* Modal logs */}
-      {showLogs && (
-        <div style={{
-          position: 'fixed',
-          top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,0.25)',
-          zIndex: 1000,
-          display: 'flex',
-          alignItems: 'flex-start',
-          justifyContent: 'flex-end'
-        }}>
-          <div style={{
-            width: '420px',
-            maxWidth: '100vw',
-            height: '100vh',
-            background: 'white',
-            boxShadow: '-4px 0 24px rgba(30,41,59,0.15)',
-            padding: 0,
-            overflowY: 'auto',
-            borderTopLeftRadius: 16,
-            borderBottomLeftRadius: 16,
-            display: 'flex',
-            flexDirection: 'column'
-          }}>
-            <div style={{
-              padding: '18px 24px',
-              borderBottom: '1px solid #e5e7eb',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between'
-            }}>
-              <span style={{ fontWeight: 700, fontSize: '1.1rem' }}>🪵 Logs Collections</span>
-              <button onClick={() => setShowLogs(false)} style={{
-                background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#1e293b'
-              }}>×</button>
-            </div>
-            <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
-              {pageLogs.length === 0 ? (
-                <div style={{ color: '#888', textAlign: 'center', marginTop: 40 }}>Aucun log.</div>
-              ) : (
-                pageLogs.map(log => (
-                  <div key={log.id} style={{
-                    background: log.type === 'error' ? '#fee2e2' : '#f3f4f6',
-                    border: `1px solid ${log.type === 'error' ? '#f87171' : '#e5e7eb'}`,
-                    borderRadius: 10,
-                    padding: 12,
-                    marginBottom: 12,
-                    fontSize: '0.97rem'
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <span style={{ fontWeight: 600, color: log.type === 'error' ? '#dc2626' : '#0369a1' }}>
-                        {log.type === 'error' ? 'Erreur' : 'Info'}
-                      </span>
-                      <span style={{ color: '#64748b', fontSize: '0.85rem' }}>{log.timestamp}</span>
-                    </div>
-                    <div style={{ fontWeight: 500 }}>{log.message}</div>
-                    {log.data && (
-                      <details style={{ marginTop: 6 }}>
-                        <summary style={{ cursor: 'pointer', color: '#64748b', fontSize: '0.92rem' }}>Détails</summary>
-                        <pre style={{
-                          background: '#f9fafb',
-                          borderRadius: 8,
-                          padding: 8,
-                          fontSize: '0.92rem',
-                          color: '#374151',
-                          whiteSpace: 'pre-wrap'
-                        }}>{log.data}</pre>
-                      </details>
-                    )}
-                  </div>
-                ))
-              )}
-            </div>
-            <div style={{ padding: 16, borderTop: '1px solid #e5e7eb', textAlign: 'right' }}>
-              <button
-                onClick={() => setPageLogs([])}
-                style={{
-                  background: '#ef4444',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: 8,
-                  padding: '8px 16px',
-                  fontWeight: 600,
-                  fontSize: '1rem',
-                  cursor: 'pointer'
-                }}
-              >
-                🗑️ Vider
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Header */}
-      <header className={styles.header}>
+      {/* Header Pokédex */}
+      <header className={styles.pokedexHeader}>
         <button 
-          onClick={() => router.back()} 
           className={styles.backButton}
+          onClick={() => router.back()}
         >
-          ← Retour
+          ←
         </button>
         <div className={styles.headerContent}>
-          <h1>📚 Collections</h1>
-          <p>Découvrez les collections thématiques de recettes</p>
+          <h1 className={styles.title}>
+            <span className={styles.titleIcon}>📱</span>
+            Pokédex Culinaire
+          </h1>
+          <div className={styles.stats}>
+            <span className={styles.stat}>
+              <span className={styles.statNumber}>{userProgress.discovered.size}</span>
+              <span className={styles.statLabel}>Découvertes</span>
+            </span>
+            <span className={styles.stat}>
+              <span className={styles.statNumber}>{collections.length}</span>
+              <span className={styles.statLabel}>Total</span>
+            </span>
+          </div>
+        </div>
+        <div className={styles.headerLights}>
+          <div className={styles.light}></div>
+          <div className={styles.light}></div>
+          <div className={styles.light}></div>
         </div>
       </header>
 
-      {/* Tabs */}
-      <div className={styles.tabsContainer}>
-        <div className={styles.tabs}>
-          {[
-            { id: 'featured', label: 'À la une', icon: '⭐' },
-            { id: 'weekly', label: 'Hebdomadaires', icon: '📅' },
-            { id: 'seasonal', label: 'Saisonnières', icon: '🍂' },
-            { id: 'special', label: 'Spéciales', icon: '✨' },
-            { id: 'all', label: 'Toutes', icon: '📚' }
-          ].map(tab => (
+      {/* Sélecteur de catégories */}
+      <div className={styles.categorySelector}>
+        <div className={styles.categoryTabs}>
+          {categories.map(category => (
             <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`${styles.tab} ${activeTab === tab.id ? styles.active : ''}`}
+              key={category.id}
+              onClick={() => setActiveCategory(category.id)}
+              className={`${styles.categoryTab} ${activeCategory === category.id ? styles.active : ''}`}
+              style={{ '--category-color': category.color }}
             >
-              <span className={styles.tabIcon}>{tab.icon}</span>
-              {tab.label}
+              <span className={styles.categoryIcon}>{category.icon}</span>
+              <span className={styles.categoryName}>{category.name}</span>
+              <span className={styles.categoryCount}>
+                ({activeCategory === category.id ? filteredCollections.length : 
+                  collections.filter(c => {
+                    if (category.id === 'all') return true
+                    const categoryMap = {
+                      'legendaire': c.rarity_level >= 4,
+                      'saisonnier': c.type === 'seasonal',
+                      'regional': c.category === 'regional',
+                      'mystique': c.rarity_level === 5,
+                      'defi': c.type === 'challenge'
+                    }
+                    return categoryMap[category.id] || false
+                  }).length})
+              </span>
             </button>
           ))}
         </div>
       </div>
 
-      {/* Collections Grid */}
-      <div className={styles.collectionsGrid}>
-        {collections.map((collection, index) => (
-          <div 
-            key={collection.id} 
-            className={`${styles.collectionCard} ${collection.type === 'weekly' ? styles.weeklyCollection : ''}`}
-            style={{
-              animationDelay: `${index * 0.1}s`
-            }}
-          >
-            {collection.featured && (
-              <div className={styles.featuredBadge}>
-                ⭐ À la une
-              </div>
-            )}
-            
-            <div className={styles.collectionHeader}>
-              <span className={styles.collectionEmoji}>{collection.emoji}</span>
-              <h3 className={styles.collectionTitle}>{collection.title}</h3>
-              <p className={styles.collectionDescription}>{collection.description}</p>
-              
-              <div className={styles.collectionMeta}>
-                <span className={`${styles.collectionType} ${styles[collection.type]}`}>
-                  {getCollectionTypeLabel(collection.type)}
-                </span>
-              </div>
-            </div>
-
-            <div className={styles.collectionStats}>
-              <div className={styles.stat}>
-                <span className={styles.statNumber}>{collection.recipe_count}</span>
-                <span className={styles.statLabel}>Recettes</span>
-              </div>
-              <div className={styles.stat}>
-                <span className={styles.statNumber}>{collection.likes_count}</span>
-                <span className={styles.statLabel}>J'aime</span>
-              </div>
-              <div className={styles.stat}>
-                <span className={styles.statNumber}>{collection.views_count || 0}</span>
-                <span className={styles.statLabel}>Vues</span>
-              </div>
-            </div>
-
-            {/* Aperçu des recettes */}
-            {collection.collection_recipes?.length > 0 && (
-              <div className={styles.recipesPreview}>
-                <h4 className={styles.recipesPreviewTitle}>
-                  Aperçu des recettes ({collection.collection_recipes.length})
-                </h4>
-                <div className={styles.recipesGrid}>
-                  {collection.collection_recipes.slice(0, 6).map(collectionRecipe => {
-                    const recipe = collectionRecipe.recipes
-                    const recipeImage = createSafeImageUrl(recipe.image, '/placeholder-recipe.jpg')
-                    
-                    // Déterminer si c'est une nouvelle recette (ajoutée dans les 3 derniers jours)
-                    const isNewRecipe = new Date(collectionRecipe.added_at) > new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
-                    
-                    return (
-                      <div 
-                        key={collectionRecipe.id} 
-                        className={`${styles.recipePreviewCard} ${isNewRecipe ? styles.newRecipe : ''}`}
-                        onClick={() => router.push(`/recipe/${recipe.id}`)}
-                      >
-                        {isNewRecipe && (
-                          <div className={styles.newRecipeBadge}>
-                            ✨ Nouveau
-                          </div>
-                        )}
-                        
-                        <div className={styles.recipePreviewImage}>
-                          <Image
-                            src={recipeImage}
-                            alt={recipe.title}
-                            fill
-                            className="object-cover"
-                            unoptimized={recipe.image?.startsWith('data:')}
-                            onLoad={() => {
-                              logInfo('Recipe preview image loaded', {
-                                recipeId: recipe.id,
-                                collectionId: collection.id
-                              })
-                            }}
-                            onError={(e) => {
-                              logError('Recipe preview image error', {
-                                recipeId: recipe.id,
-                                collectionId: collection.id,
-                                imageUrl: recipeImage
-                              })
-                              e.target.src = '/placeholder-recipe.jpg'
-                            }}
-                          />
-                        </div>
-                        
-                        <div className={styles.recipePreviewContent}>
-                          <div className={styles.recipePreviewAuthor}>
-                            {recipe.author || 'Chef Anonyme'}
-                          </div>
-                          
-                          <h5 className={styles.recipePreviewTitle}>{recipe.title}</h5>
-                          
-                          <div className={styles.recipePreviewMeta}>
-                            <div className={styles.recipePreviewLikes}>
-                              <span>❤️</span>
-                              <span>{collectionRecipe.likes_count}</span>
-                            </div>
-                            
-                            {recipe.category && (
-                              <div className={styles.recipePreviewCategory}>
-                                {recipe.category}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
+      {/* Grille des cartes Pokédex */}
+      <main className={styles.pokedexGrid}>
+        {filteredCollections.map(collection => {
+          const isFlipped = flippedCards.has(collection.id)
+          const isDiscovered = userProgress.discovered.has(collection.id)
+          
+          return (
+            <div
+              key={collection.id}
+              className={`${styles.pokemonCard} ${isFlipped ? styles.flipped : ''} ${!isDiscovered ? styles.mystery : ''}`}
+              onClick={() => handleCardClick(collection.id)}
+              onDoubleClick={() => handleCardDoubleClick(collection)}
+            >
+              {/* Face avant (recto) */}
+              <div className={styles.cardFront}>
+                <div className={styles.cardHeader}>
+                  <span className={styles.pokedexNumber}>#{collection.pokedex_number}</span>
+                  <span 
+                    className={styles.rarityBadge}
+                    style={{ backgroundColor: collection.rarity.color }}
+                  >
+                    {collection.rarity.icon}
+                  </span>
                 </div>
                 
-                {collection.collection_recipes.length > 6 && (
-                  <div style={{
-                    textAlign: 'center',
-                    marginTop: '1rem',
-                    color: '#64748b',
-                    fontSize: '0.9rem'
-                  }}>
-                    +{collection.collection_recipes.length - 6} autres recettes à découvrir
+                <div className={styles.cardImage}>
+                  {isDiscovered ? (
+                    <Image
+                      src={collection.image || '/placeholder-collection.jpg'}
+                      alt={collection.name}
+                      fill
+                      className={styles.collectionImage}
+                    />
+                  ) : (
+                    <div className={styles.mysteryImage}>
+                      <span className={styles.mysteryIcon}>❓</span>
+                    </div>
+                  )}
+                </div>
+                
+                <div className={styles.cardContent}>
+                  <h3 className={styles.collectionName}>
+                    {isDiscovered ? collection.name : '???'}
+                  </h3>
+                  <div className={styles.elementType}>
+                    <span 
+                      className={styles.typeChip}
+                      style={{ backgroundColor: collection.element_type.color }}
+                    >
+                      {collection.element_type.icon} {collection.element_type.name}
+                    </span>
                   </div>
-                )}
+                </div>
               </div>
-            )}
 
-            {/* Actions */}
-            <div className={styles.collectionActions}>
-              <button
-                onClick={() => toggleCollectionLike(collection.id)}
-                className={`${styles.likeButton} ${userLikes.has(collection.id) ? styles.liked : ''}`}
-                disabled={!user}
-              >
-                {userLikes.has(collection.id) ? '❤️' : '🤍'} J'aime
-              </button>
-              
-              <button
-                onClick={() => router.push(`/collection/${collection.id}`)}
-                className={styles.viewButton}
-              >
-                Voir →
-              </button>
-              
-              {user && (
-                <button
-                  onClick={() => {
-                    setSelectedCollection(collection)
-                    setShowAddModal(true)
-                  }}
-                  className={styles.addRecipeButton}
-                  disabled={submitting}
-                >
-                  ➕ Ajouter
-                </button>
-              )}
+              {/* Face arrière (verso) */}
+              <div className={styles.cardBack}>
+                <div className={styles.backHeader}>
+                  <h3 className={styles.backTitle}>{collection.name}</h3>
+                  <span className={styles.backNumber}>#{collection.pokedex_number}</span>
+                </div>
+                
+                <div className={styles.stats}>
+                  <div className={styles.statBar}>
+                    <span className={styles.statName}>Recettes</span>
+                    <div className={styles.statValue}>
+                      <div 
+                        className={styles.statFill}
+                        style={{ width: `${Math.min(collection.stats.recipes / 20 * 100, 100)}%` }}
+                      ></div>
+                      <span className={styles.statText}>{collection.stats.recipes}</span>
+                    </div>
+                  </div>
+                  
+                  <div className={styles.statBar}>
+                    <span className={styles.statName}>Difficulté</span>
+                    <div className={styles.statValue}>
+                      <div 
+                        className={styles.statFill}
+                        style={{ width: `${collection.stats.difficulty * 20}%` }}
+                      ></div>
+                      <span className={styles.statText}>{collection.stats.difficulty}/5</span>
+                    </div>
+                  </div>
+                  
+                  <div className={styles.statBar}>
+                    <span className={styles.statName}>Progression</span>
+                    <div className={styles.statValue}>
+                      <div 
+                        className={styles.statFill}
+                        style={{ width: `${collection.stats.completion}%` }}
+                      ></div>
+                      <span className={styles.statText}>{collection.stats.completion}%</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className={styles.description}>
+                  <p>{collection.description}</p>
+                </div>
+                
+                <div className={styles.abilities}>
+                  <h4>Spécialités</h4>
+                  <div className={styles.abilityList}>
+                    {collection.collection_recipes?.slice(0, 3).map((recipe, index) => (
+                      <span key={index} className={styles.ability}>
+                        {recipe.recipes?.title}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          )
+        })}
+      </main>
 
-      {collections.length === 0 && (
-        <div className={styles.emptyState}>
-          <span className={styles.emptyIcon}>📚</span>
-          <h3>Aucune collection trouvée</h3>
-          <p>Les collections apparaîtront ici bientôt. Revenez plus tard pour découvrir de nouveaux thèmes !</p>
-        </div>
-      )}
-
-      {/* Modal d'ajout de recette */}
-      {showAddModal && selectedCollection && (
-        <div className={styles.modal}>
-          <div className={styles.modalContent}>
+      {/* Modal de détail */}
+      {showDetailModal && selectedCollection && (
+        <div className={styles.modal} onClick={() => setShowDetailModal(false)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <button 
+              className={styles.modalClose}
+              onClick={() => setShowDetailModal(false)}
+            >
+              ✕
+            </button>
+            
             <div className={styles.modalHeader}>
-              <h3>Ajouter à "{selectedCollection.title}"</h3>
-              <button 
-                onClick={() => setShowAddModal(false)}
-                className={styles.closeButton}
-              >
-                ×
-              </button>
+              <h2>{selectedCollection.name}</h2>
+              <span className={styles.modalNumber}>#{selectedCollection.pokedex_number}</span>
             </div>
             
             <div className={styles.modalBody}>
-              <p>Choisissez une recette à ajouter à cette collection :</p>
-              <div className={styles.recipesGrid}>
-                {userRecipes.map(recipe => {
-                  const recipeImage = createSafeImageUrl(recipe.image, '/placeholder-recipe.jpg')
-                  return (
-                    <div key={recipe.id} className={styles.recipePreviewCard}>
-                      <div className={styles.recipePreviewImage}>
-                        <Image
-                          src={recipeImage}
-                          alt={recipe.title}
-                          fill
-                          className="object-cover"
-                          unoptimized={recipe.image?.startsWith('data:')}
-                        />
-                      </div>
-                      <div className={styles.recipePreviewContent}>
-                        <h5 className={styles.recipePreviewTitle}>{recipe.title}</h5>
-                        <button
-                          onClick={() => addRecipeToCollection(selectedCollection.id, recipe.id)}
-                          disabled={submitting}
-                          style={{
-                            background: '#10b981',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '6px',
-                            padding: '6px 10px',
-                            fontSize: '0.75rem',
-                            fontWeight: '600',
-                            cursor: submitting ? 'not-allowed' : 'pointer',
-                            width: '100%',
-                            marginTop: '4px'
-                          }}
-                        >
-                          {submitting ? 'Ajout...' : 'Ajouter'}
-                        </button>
-                      </div>
-                    </div>
-                  )
-                })}
+              <div className={styles.modalImage}>
+                <Image
+                  src={selectedCollection.image || '/placeholder-collection.jpg'}
+                  alt={selectedCollection.name}
+                  fill
+                  className={styles.collectionImageLarge}
+                />
               </div>
               
-              {userRecipes.length === 0 && (
-                <div style={{
-                  textAlign: 'center',
-                  padding: '40px 20px',
-                  color: '#6b7280'
-                }}>
-                  <p>Vous n'avez pas encore de recettes.</p>
-                  <button 
-                    onClick={() => router.push('/submit-recipe')}
-                    style={{
-                      background: '#3b82f6',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '8px',
-                      padding: '10px 20px',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                      marginTop: '12px'
-                    }}
-                  >
-                    Créer une recette
-                  </button>
+              <div className={styles.modalInfo}>
+                <p className={styles.modalDescription}>{selectedCollection.description}</p>
+                
+                <div className={styles.recipesList}>
+                  <h3>Recettes de cette collection</h3>
+                  {selectedCollection.collection_recipes?.map((recipe, index) => (
+                    <div key={index} className={styles.recipeItem}>
+                      <span className={styles.recipeName}>{recipe.recipes?.title}</span>
+                      <span className={styles.recipeCategory}>{recipe.recipes?.category}</span>
+                    </div>
+                  ))}
                 </div>
-              )}
+                
+                <button
+                  className={styles.exploreButton}
+                  onClick={() => router.push(`/collection/${selectedCollection.id}`)}
+                >
+                  🔍 Explorer cette collection
+                </button>
+              </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {filteredCollections.length === 0 && (
+        <div className={styles.emptyState}>
+          <div className={styles.emptyIcon}>🔍</div>
+          <h3>Aucune collection dans cette catégorie</h3>
+          <p>Explorez d'autres catégories pour découvrir plus de collections !</p>
         </div>
       )}
     </div>
   )
+}
+
+// Fonctions utilitaires
+function calculateAverageDifficulty(recipes) {
+  if (!recipes || recipes.length === 0) return 1
+  const difficulties = { 'Facile': 1, 'Moyen': 2, 'Difficile': 3, 'Expert': 4, 'Master': 5 }
+  const sum = recipes.reduce((acc, recipe) => acc + (difficulties[recipe.recipes?.difficulty] || 1), 0)
+  return Math.round(sum / recipes.length)
+}
+
+function calculateUserCompletion(collectionId) {
+  // Logique pour calculer le pourcentage de completion de l'utilisateur
+  return Math.floor(Math.random() * 100) // Placeholder
 }
