@@ -282,6 +282,7 @@ export default function Home() {
         <link rel="icon" href="/favicon.ico" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
       </Head>
+      
       <main className={styles.main}>
         {/* Message de bienvenue */}
         {user && showWelcome && (
@@ -313,14 +314,14 @@ export default function Home() {
           </div>
         )}
 
-        {/* Section Hero améliorée */}
-        <section className={styles.section} style={{
+        {/* Section Hero intégrée */}
+        <div style={{
           background: 'linear-gradient(135deg, #fef3e2 0%, #fff5e6 50%, #fef7ed 100%)',
-          borderRadius: '0 0 32px 32px',
           position: 'relative',
           overflow: 'hidden',
-          paddingTop: '40px',
-          paddingBottom: '60px'
+          paddingTop: '60px',
+          paddingBottom: '40px',
+          marginBottom: '0'
         }}>
           {/* Éléments décoratifs de fond */}
           <div style={{
@@ -331,7 +332,7 @@ export default function Home() {
             height: '120px',
             background: 'linear-gradient(45deg, #ff6b35, #f7931e)',
             borderRadius: '50%',
-            opacity: 0.1,
+            opacity: 0.08,
             animation: 'float 6s ease-in-out infinite'
           }} />
           <div style={{
@@ -342,7 +343,7 @@ export default function Home() {
             height: '80px',
             background: 'linear-gradient(45deg, #4caf50, #45a049)',
             borderRadius: '50%',
-            opacity: 0.08,
+            opacity: 0.06,
             animation: 'float 8s ease-in-out infinite reverse'
           }} />
 
@@ -351,22 +352,23 @@ export default function Home() {
             margin: '0 auto', 
             textAlign: 'center',
             position: 'relative',
-            zIndex: 1
+            zIndex: 1,
+            padding: '0 20px'
           }}>
             {/* Logo animé */}
             <div style={{
-              width: '90px',
-              height: '90px',
+              width: '80px',
+              height: '80px',
               background: 'linear-gradient(135deg, #ff6b35, #f7931e)',
-              borderRadius: '28px',
+              borderRadius: '24px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '3rem',
+              fontSize: '2.5rem',
               margin: '0 auto 20px',
-              boxShadow: '0 16px 40px rgba(255, 107, 53, 0.25), 0 8px 20px rgba(255, 107, 53, 0.15)',
+              boxShadow: '0 12px 30px rgba(255, 107, 53, 0.2), 0 6px 15px rgba(255, 107, 53, 0.1)',
               animation: 'heroLogo 3s ease-in-out infinite',
-              border: '3px solid rgba(255, 255, 255, 0.8)',
+              border: '2px solid rgba(255, 255, 255, 0.9)',
               position: 'relative'
             }}>
               🥥
@@ -379,14 +381,14 @@ export default function Home() {
                 height: '30%',
                 background: 'rgba(255, 255, 255, 0.3)',
                 borderRadius: '50%',
-                filter: 'blur(8px)',
+                filter: 'blur(6px)',
                 animation: 'shine 2s ease-in-out infinite'
               }} />
             </div>
 
             {/* Titre principal avec effet de gradient */}
             <h1 style={{
-              fontSize: '3.2rem',
+              fontSize: '2.8rem',
               fontWeight: '900',
               margin: '0 0 12px 0',
               background: 'linear-gradient(135deg, #ff6b35, #f7931e, #ff8a50)',
@@ -394,34 +396,33 @@ export default function Home() {
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',
               letterSpacing: '-0.02em',
-              lineHeight: '1.1',
-              textShadow: '0 4px 8px rgba(255, 107, 53, 0.1)'
+              lineHeight: '1.1'
             }}>
               COCO
             </h1>
 
             {/* Sous-titre avec animation */}
             <div style={{
-              marginBottom: '24px'
+              marginBottom: '32px'
             }}>
               <h2 style={{
-                fontSize: '1.4rem',
+                fontSize: '1.3rem',
                 fontWeight: '700',
                 margin: '0 0 8px 0',
                 color: '#1f2937',
                 lineHeight: '1.3'
               }}>
-                Découvrez.<br/>
+                Découvrez. Créez.{' '}
                 <span style={{
                   background: 'linear-gradient(135deg, #ff6b35, #f7931e)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent'
                 }}>
-                  Créez. Partagez.
+                  Partagez.
                 </span>
               </h2>
               <p style={{
-                fontSize: '1.1rem',
+                fontSize: '1rem',
                 color: '#6b7280',
                 margin: 0,
                 lineHeight: '1.4',
@@ -431,57 +432,13 @@ export default function Home() {
               </p>
             </div>
 
-            {/* Statistiques de la communauté */}
-            <div style={{
-              display: 'flex',
-              justifyContent: 'center',
-              gap: '24px',
-              marginBottom: '32px',
-              flexWrap: 'wrap'
-            }}>
-              {[
-                { number: '1000+', label: 'Recettes', icon: '📸' },
-                { number: '500+', label: 'Chefs', icon: '👨‍🍳' },
-                { number: '50+', label: 'Collections', icon: '📚' }
-              ].map((stat, index) => (
-                <div key={index} style={{
-                  background: 'rgba(255, 255, 255, 0.8)',
-                  backdropFilter: 'blur(10px)',
-                  padding: '16px 20px',
-                  borderRadius: '20px',
-                  border: '1px solid rgba(255, 107, 53, 0.1)',
-                  minWidth: '80px',
-                  animation: `fadeInUp 0.6s ease-out ${index * 0.1}s both`
-                }}>
-                  <div style={{ fontSize: '1.5rem', marginBottom: '4px' }}>
-                    {stat.icon}
-                  </div>
-                  <div style={{
-                    fontSize: '1.1rem',
-                    fontWeight: '700',
-                    color: '#ff6b35',
-                    marginBottom: '2px'
-                  }}>
-                    {stat.number}
-                  </div>
-                  <div style={{
-                    fontSize: '0.8rem',
-                    color: '#6b7280',
-                    fontWeight: '500'
-                  }}>
-                    {stat.label}
-                  </div>
-                </div>
-              ))}
-            </div>
-
             {/* Actions rapides */}
             <div style={{
               display: 'flex',
-              gap: '16px',
+              gap: '12px',
               justifyContent: 'center',
               flexWrap: 'wrap',
-              marginBottom: '24px'
+              marginBottom: '32px'
             }}>
               <button
                 onClick={() => router.push('/share-photo')}
@@ -489,38 +446,38 @@ export default function Home() {
                   background: 'linear-gradient(135deg, #ff6b35, #f7931e)',
                   color: 'white',
                   border: 'none',
-                  padding: '14px 28px',
-                  borderRadius: '16px',
+                  padding: '12px 24px',
+                  borderRadius: '14px',
                   fontWeight: '700',
-                  fontSize: '1rem',
+                  fontSize: '0.95rem',
                   cursor: 'pointer',
                   transition: 'all 0.3s ease',
-                  boxShadow: '0 8px 25px rgba(255, 107, 53, 0.3)',
+                  boxShadow: '0 6px 20px rgba(255, 107, 53, 0.25)',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px'
                 }}
                 onMouseEnter={(e) => {
-                  e.target.style.transform = 'translateY(-3px)'
-                  e.target.style.boxShadow = '0 12px 35px rgba(255, 107, 53, 0.4)'
+                  e.target.style.transform = 'translateY(-2px)'
+                  e.target.style.boxShadow = '0 8px 25px rgba(255, 107, 53, 0.35)'
                 }}
                 onMouseLeave={(e) => {
                   e.target.style.transform = 'translateY(0)'
-                  e.target.style.boxShadow = '0 8px 25px rgba(255, 107, 53, 0.3)'
+                  e.target.style.boxShadow = '0 6px 20px rgba(255, 107, 53, 0.25)'
                 }}
               >
-                📸 Partager une recette
+                📸 Partager
               </button>
               <button
                 onClick={() => router.push('/collections')}
                 style={{
-                  background: 'rgba(255, 255, 255, 0.9)',
+                  background: 'rgba(255, 255, 255, 0.95)',
                   color: '#ff6b35',
                   border: '2px solid #ff6b35',
-                  padding: '14px 28px',
-                  borderRadius: '16px',
+                  padding: '12px 24px',
+                  borderRadius: '14px',
                   fontWeight: '700',
-                  fontSize: '1rem',
+                  fontSize: '0.95rem',
                   cursor: 'pointer',
                   transition: 'all 0.3s ease',
                   backdropFilter: 'blur(10px)',
@@ -534,7 +491,7 @@ export default function Home() {
                   e.target.style.transform = 'translateY(-2px)'
                 }}
                 onMouseLeave={(e) => {
-                  e.target.style.background = 'rgba(255, 255, 255, 0.9)'
+                  e.target.style.background = 'rgba(255, 255, 255, 0.95)'
                   e.target.style.color = '#ff6b35'
                   e.target.style.transform = 'translateY(0)'
                 }}
@@ -543,192 +500,235 @@ export default function Home() {
               </button>
             </div>
 
-            {/* Indicateur de scroll */}
+            {/* Statistiques de la communauté */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              gap: '20px',
+              marginBottom: '20px',
+              flexWrap: 'wrap'
+            }}>
+              {{
+                { number: '1000+', label: 'Recettes', icon: '📸' },
+                { number: '500+', label: 'Chefs', icon: '👨‍🍳' },
+                { number: '50+', label: 'Collections', icon: '📚' }
+              }.map((stat, index) => (
+                <div key={index} style={{
+                  background: 'rgba(255, 255, 255, 0.8)',
+                  backdropFilter: 'blur(10px)',
+                  padding: '12px 16px',
+                  borderRadius: '16px',
+                  border: '1px solid rgba(255, 107, 53, 0.1)',
+                  minWidth: '70px',
+                  animation: `fadeInUp 0.6s ease-out ${index * 0.1}s both`
+                }}>
+                  <div style={{ fontSize: '1.2rem', marginBottom: '2px' }}>
+                    {stat.icon}
+                  </div>
+                  <div style={{
+                    fontSize: '0.95rem',
+                    fontWeight: '700',
+                    color: '#ff6b35',
+                    marginBottom: '2px'
+                  }}>
+                    {stat.number}
+                  </div>
+                  <div style={{
+                    fontSize: '0.75rem',
+                    color: '#6b7280',
+                    fontWeight: '500'
+                  }}>
+                    {stat.label}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Indicateur de scroll subtle */}
             <div style={{
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              gap: '8px',
-              marginTop: '20px',
-              opacity: 0.6
+              gap: '6px',
+              opacity: 0.5
             }}>
               <span style={{
-                fontSize: '0.85rem',
+                fontSize: '0.8rem',
                 color: '#9ca3af',
                 fontWeight: '500'
               }}>
                 Découvrez les dernières recettes
               </span>
               <div style={{
-                width: '24px',
-                height: '24px',
-                border: '2px solid #ff6b35',
+                width: '20px',
+                height: '20px',
+                border: '1.5px solid #ff6b35',
                 borderRadius: '50%',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 animation: 'bounce 2s infinite'
               }}>
-                <span style={{ fontSize: '0.8rem' }}>↓</span>
+                <span style={{ fontSize: '0.7rem' }}>↓</span>
               </div>
             </div>
           </div>
-        </section>
+        </div>
 
-        {/* Section Feed principale */}
-        <section className={styles.section}>
-          <div className={styles.content} style={{
-            maxWidth: '400px',
-            margin: '0 auto',
-            background: 'white',
-            borderRadius: '24px 24px 0 0',
-            marginTop: '-12px',
-            boxShadow: '0 -4px 20px rgba(0,0,0,0.08)',
-            overflow: 'hidden'
+        {/* Section Feed principale - transition fluide */}
+        <div style={{
+          maxWidth: '400px',
+          margin: '-20px auto 0',
+          background: 'white',
+          borderRadius: '24px 24px 0 0',
+          boxShadow: '0 -8px 25px rgba(0,0,0,0.08)',
+          overflow: 'hidden',
+          position: 'relative',
+          zIndex: 2
+        }}>
+          {/* En-tête du feed */}
+          <div style={{
+            padding: '20px 20px 12px',
+            textAlign: 'center',
+            borderBottom: '1px solid #f3f4f6'
           }}>
-            {/* En-tête du feed */}
             <div style={{
-              padding: '16px 20px 8px',
-              textAlign: 'center',
-              borderBottom: '1px solid #f3f4f6'
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              background: '#f0f9ff',
+              padding: '8px 16px',
+              borderRadius: '20px',
+              fontSize: '0.85rem',
+              fontWeight: '600',
+              color: '#0369a1',
+              border: '1px solid #e0f2fe'
             }}>
-              <div style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                background: '#f0f9ff',
-                padding: '8px 16px',
-                borderRadius: '24px',
-                fontSize: '0.85rem',
-                fontWeight: '600',
-                color: '#0369a1',
-                border: '1px solid #e0f2fe'
-              }}>
-                👥 Recettes de mes amis
-                <span style={{
-                  width: '6px',
-                  height: '6px',
-                  background: '#10b981',
-                  borderRadius: '50%',
-                  animation: 'pulse 2s infinite'
-                }} />
-              </div>
-              
-              {/* Options de navigation rapide */}
-              <div style={{
-                display: 'flex',
-                justifyContent: 'center',
-                gap: '12px',
-                marginTop: '12px'
-              }}>
-                <button
-                  onClick={() => router.push('/amis')}
-                  style={{
-                    background: 'transparent',
-                    border: '1px solid #e5e7eb',
-                    color: '#6b7280',
-                    padding: '6px 12px',
-                    borderRadius: '16px',
-                    fontSize: '0.75rem',
-                    fontWeight: '500',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.background = '#f3f4f6'
-                    e.target.style.color = '#374151'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.background = 'transparent'
-                    e.target.style.color = '#6b7280'
-                  }}
-                >
-                  ➕ Ajouter amis
-                </button>
-              </div>
+              👥 Recettes de mes amis
+              <span style={{
+                width: '6px',
+                height: '6px',
+                background: '#10b981',
+                borderRadius: '50%',
+                animation: 'pulse 2s infinite'
+              }} />
             </div>
-
-            {/* Contenu du feed */}
+            
+            {/* Options de navigation rapide */}
             <div style={{
-              minHeight: '60vh',
-              padding: '0 8px 20px'
+              display: 'flex',
+              justifyContent: 'center',
+              gap: '12px',
+              marginTop: '12px'
             }}>
-              <div style={{
-                maxWidth: '100%',
-                overflow: 'hidden'
-              }}>
-                <div style={{
-                  '--max-image-height': '250px',
-                  '--max-image-width': '100%'
-                }}>
-                  <AddictiveFeed />
-                </div>
-              </div>
+              <button
+                onClick={() => router.push('/amis')}
+                style={{
+                  background: 'transparent',
+                  border: '1px solid #e5e7eb',
+                  color: '#6b7280',
+                  padding: '6px 12px',
+                  borderRadius: '14px',
+                  fontSize: '0.75rem',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = '#f3f4f6'
+                  e.target.style.color = '#374151'
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'transparent'
+                  e.target.style.color = '#6b7280'
+                }}
+              >
+                ➕ Ajouter amis
+              </button>
             </div>
-
-            {/* Message d'encouragement si peu d'amis */}
-            {user && (
-              <div style={{
-                textAlign: 'center',
-                padding: '20px',
-                background: 'linear-gradient(135deg, #fef3c7, #fde68a)',
-                margin: '20px',
-                borderRadius: '16px',
-                border: '1px solid #f59e0b'
-              }}>
-                <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>🍳</div>
-                <p style={{
-                  margin: '0 0 12px 0',
-                  fontSize: '0.9rem',
-                  fontWeight: '600',
-                  color: '#92400e'
-                }}>
-                  Invitez vos amis à rejoindre COCO !
-                </p>
-                <p style={{
-                  margin: '0 0 16px 0',
-                  fontSize: '0.8rem',
-                  color: '#b45309',
-                  lineHeight: '1.4'
-                }}>
-                  Plus vous avez d'amis, plus vous découvrirez de délicieuses recettes
-                </p>
-                <button
-                  onClick={() => router.push('/amis')}
-                  style={{
-                    background: '#f59e0b',
-                    color: 'white',
-                    border: 'none',
-                    padding: '8px 16px',
-                    borderRadius: '8px',
-                    fontSize: '0.8rem',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.background = '#d97706'
-                    e.target.style.transform = 'translateY(-1px)'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.background = '#f59e0b'
-                    e.target.style.transform = 'translateY(0)'
-                  }}
-                >
-                  👥 Gérer mes amis
-                </button>
-              </div>
-            )}
           </div>
-        </section>
+
+          {/* Contenu du feed */}
+          <div style={{
+            minHeight: '60vh',
+            padding: '0 8px 20px'
+          }}>
+            <div style={{
+              maxWidth: '100%',
+              overflow: 'hidden'
+            }}>
+              <div style={{
+                '--max-image-height': '250px',
+                '--max-image-width': '100%'
+              }}>
+                <AddictiveFeed />
+              </div>
+            </div>
+          </div>
+
+          {/* Message d'encouragement si peu d'amis */}
+          {user && (
+            <div style={{
+              textAlign: 'center',
+              padding: '20px',
+              background: 'linear-gradient(135deg, #fef3c7, #fde68a)',
+              margin: '20px',
+              borderRadius: '16px',
+              border: '1px solid #f59e0b'
+            }}>
+              <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>🍳</div>
+              <p style={{
+                margin: '0 0 12px 0',
+                fontSize: '0.9rem',
+                fontWeight: '600',
+                color: '#92400e'
+              }}>
+                Invitez vos amis à rejoindre COCO !
+              </p>
+              <p style={{
+                margin: '0 0 16px 0',
+                fontSize: '0.8rem',
+                color: '#b45309',
+                lineHeight: '1.4'
+              }}>
+                Plus vous avez d'amis, plus vous découvrirez de délicieuses recettes
+              </p>
+              <button
+                onClick={() => router.push('/amis')}
+                style={{
+                  background: '#f59e0b',
+                  color: 'white',
+                  border: 'none',
+                  padding: '8px 16px',
+                  borderRadius: '8px',
+                  fontSize: '0.8rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = '#d97706'
+                  e.target.style.transform = 'translateY(-1px)'
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = '#f59e0b'
+                  e.target.style.transform = 'translateY(0)'
+                }}
+              >
+                👥 Gérer mes amis
+              </button>
+            </div>
+          )}
+        </div>
       </main>
+      
       <style jsx>{`
         @keyframes heroLogo {
           0%, 100% { 
             transform: translateY(0px) rotate(0deg);
           }
           50% { 
-            transform: translateY(-8px) rotate(2deg);
+            transform: translateY(-6px) rotate(1deg);
           }
         }
         
@@ -739,7 +739,7 @@ export default function Home() {
           }
           50% { 
             opacity: 0.6;
-            transform: scale(1.1);
+            transform: scale(1.05);
           }
         }
         
@@ -748,14 +748,14 @@ export default function Home() {
             transform: translateY(0px) rotate(0deg);
           }
           50% { 
-            transform: translateY(-20px) rotate(180deg);
+            transform: translateY(-15px) rotate(180deg);
           }
         }
         
         @keyframes fadeInUp {
           from {
             opacity: 0;
-            transform: translateY(30px);
+            transform: translateY(20px);
           }
           to {
             opacity: 1;
@@ -768,10 +768,10 @@ export default function Home() {
             transform: translateY(0);
           }
           40% {
-            transform: translateY(-8px);
+            transform: translateY(-6px);
           }
           60% {
-            transform: translateY(-4px);
+            transform: translateY(-3px);
           }
         }
         
@@ -781,24 +781,35 @@ export default function Home() {
             opacity: 1;
           }
           50% { 
-            transform: scale(1.2);
-            opacity: 0.7;
+            transform: scale(1.1);
+            opacity: 0.8;
+          }
+        }
+        
+        @keyframes welcomeSlide {
+          from {
+            opacity: 0;
+            transform: translate(-50%, -20px);
+          }
+          to {
+            opacity: 1;
+            transform: translate(-50%, 0);
           }
         }
         
         /* États de focus pour l'accessibilité */
         button:focus {
-          outline: 3px solid rgba(59, 130, 246, 0.5);
+          outline: 2px solid rgba(59, 130, 246, 0.5);
           outline-offset: 2px;
         }
         
         /* Responsive amélioré */
         @media (max-width: 400px) {
           h1 {
-            fontSize: 2.5rem !important;
+            fontSize: 2.4rem !important;
           }
           h2 {
-            fontSize: 1.2rem !important;
+            fontSize: 1.1rem !important;
           }
         }
       `}</style>

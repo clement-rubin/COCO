@@ -477,18 +477,29 @@ export default function Collections() {
             {/* Aperçu des recettes */}
             {collection.collection_recipes?.length > 0 && (
               <div className={styles.recipesPreview}>
-                <h4 className={styles.recipesPreviewTitle}>Aperçu des recettes</h4>
+                <h4 className={styles.recipesPreviewTitle}>
+                  Aperçu des recettes ({collection.collection_recipes.length})
+                </h4>
                 <div className={styles.recipesGrid}>
-                  {collection.collection_recipes.slice(0, 4).map(collectionRecipe => {
+                  {collection.collection_recipes.slice(0, 6).map(collectionRecipe => {
                     const recipe = collectionRecipe.recipes
                     const recipeImage = createSafeImageUrl(recipe.image, '/placeholder-recipe.jpg')
+                    
+                    // Déterminer si c'est une nouvelle recette (ajoutée dans les 3 derniers jours)
+                    const isNewRecipe = new Date(collectionRecipe.added_at) > new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
                     
                     return (
                       <div 
                         key={collectionRecipe.id} 
-                        className={styles.recipePreviewCard}
+                        className={`${styles.recipePreviewCard} ${isNewRecipe ? styles.newRecipe : ''}`}
                         onClick={() => router.push(`/recipe/${recipe.id}`)}
                       >
+                        {isNewRecipe && (
+                          <div className={styles.newRecipeBadge}>
+                            ✨ Nouveau
+                          </div>
+                        )}
+                        
                         <div className={styles.recipePreviewImage}>
                           <Image
                             src={recipeImage}
@@ -496,18 +507,58 @@ export default function Collections() {
                             fill
                             className="object-cover"
                             unoptimized={recipe.image?.startsWith('data:')}
+                            onLoad={() => {
+                              logInfo('Recipe preview image loaded', {
+                                recipeId: recipe.id,
+                                collectionId: collection.id
+                              })
+                            }}
+                            onError={(e) => {
+                              logError('Recipe preview image error', {
+                                recipeId: recipe.id,
+                                collectionId: collection.id,
+                                imageUrl: recipeImage
+                              })
+                              e.target.src = '/placeholder-recipe.jpg'
+                            }}
                           />
                         </div>
+                        
                         <div className={styles.recipePreviewContent}>
+                          <div className={styles.recipePreviewAuthor}>
+                            {recipe.author || 'Chef Anonyme'}
+                          </div>
+                          
                           <h5 className={styles.recipePreviewTitle}>{recipe.title}</h5>
-                          <div className={styles.recipePreviewLikes}>
-                            <span>❤️ {collectionRecipe.likes_count}</span>
+                          
+                          <div className={styles.recipePreviewMeta}>
+                            <div className={styles.recipePreviewLikes}>
+                              <span>❤️</span>
+                              <span>{collectionRecipe.likes_count}</span>
+                            </div>
+                            
+                            {recipe.category && (
+                              <div className={styles.recipePreviewCategory}>
+                                {recipe.category}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
                     )
                   })}
                 </div>
+                
+                {collection.collection_recipes.length > 6 && (
+                  <div style={{
+                    textAlign: 'center',
+                    marginTop: '1rem',
+                    color: '#64748b',
+                    fontSize: '0.9rem'
+                  }}>
+                    +{collection.collection_recipes.length - 6} autres recettes à découvrir
+                  </div>
+                )}
               </div>
             )}
 
