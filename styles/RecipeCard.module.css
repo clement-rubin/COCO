@@ -7,6 +7,9 @@
   cursor: pointer;
   position: relative;
   border: 1px solid #f3f4f6;
+  width: 100%;
+  max-width: 320px; /* Largeur maximale contrôlée */
+  margin: 0 auto; /* Centrage automatique */
 }
 
 .card:hover {
@@ -35,11 +38,17 @@
   position: relative;
   height: 200px;
   overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8fafc; /* Fond de fallback */
 }
 
 .image {
   object-fit: cover;
   transition: transform 0.3s ease;
+  width: 100%;
+  height: 100%;
 }
 
 .card:hover .image {
@@ -128,17 +137,24 @@
 /* Contenu de la carte */
 .content {
   padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 140px; /* Hauteur minimale pour l'uniformité */
+  box-sizing: border-box;
 }
 
 .recipeTitle {
   font-size: 1.1rem;
   font-weight: 600;
-  margin: 0 0 8px 0;
+  margin: 0;
   color: #1f2937;
   line-height: 1.3;
   display: -webkit-box;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  -webkit-line-clamp: 2;
+  min-height: 2.6em; /* Assure une hauteur constante */
 }
 
 .card:hover .recipeTitle {
@@ -148,22 +164,25 @@
 .recipeDescription {
   color: #6b7280;
   font-size: 0.85rem;
-  margin: 0 0 12px 0;
+  margin: 0;
   line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  height: 2.7em;
+  height: 2.4em; /* Hauteur fixe pour l'uniformité */
+  flex-shrink: 0;
 }
 
 /* Détails de la recette */
 .recipeDetails {
   display: flex;
   gap: 8px;
-  margin-bottom: 12px;
+  margin: 8px 0;
   flex-wrap: wrap;
+  justify-content: flex-start;
+  align-items: center;
 }
 
 .recipeDifficulty,
@@ -171,10 +190,12 @@
 .recipeCategory {
   background: #f3f4f6;
   color: #6b7280;
-  padding: 2px 8px;
+  padding: 4px 8px;
   border-radius: 8px;
   font-size: 0.7rem;
   font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .recipeDifficulty {
@@ -189,17 +210,24 @@
   align-items: center;
   padding-top: 12px;
   border-top: 1px solid #f3f4f6;
+  margin-top: auto; /* Pousse le footer vers le bas */
+  gap: 8px;
 }
 
 .recipeAuthor {
   font-size: 0.8rem;
   color: #9ca3af;
   font-weight: 500;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .recipeDate {
   font-size: 0.75rem;
   color: #d1d5db;
+  flex-shrink: 0;
 }
 
 .ownerActions {
@@ -316,7 +344,9 @@
 /* Responsive Design */
 @media (max-width: 768px) {
   .card {
-    border-radius: 16px;
+    border-radius: 12px;
+    max-width: 100%; /* Pleine largeur sur mobile */
+    margin: 0; /* Supprime le centrage auto sur mobile */
   }
   
   .imageContainer {
@@ -324,7 +354,8 @@
   }
   
   .content {
-    padding: 12px;
+    padding: 14px;
+    min-height: 120px;
   }
   
   .recipeTitle {
@@ -350,14 +381,15 @@
   }
   
   .recipeDetails {
-    gap: 8px;
+    gap: 6px;
+    margin: 6px 0;
   }
   
   .recipeDifficulty,
   .recipeTime,
   .recipeCategory {
-    font-size: 0.75rem;
-    padding: 3px 8px;
+    font-size: 0.7rem;
+    padding: 3px 6px;
   }
 }
 
@@ -368,20 +400,23 @@
   
   .content {
     padding: 12px;
+    min-height: 110px;
   }
   
   .recipeTitle {
-    font-size: 1rem;
+    font-size: 0.95rem;
   }
   
   .recipeFooter {
     flex-direction: column;
     align-items: flex-start;
-    gap: 8px;
+    gap: 6px;
+    padding-top: 8px;
   }
   
   .recipeDetails {
     justify-content: center;
+    gap: 4px;
   }
 }
 

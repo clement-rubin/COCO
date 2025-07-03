@@ -5,6 +5,7 @@ import { useRouter } from 'next/router'
 import { useAuth } from './AuthContext'
 import ShareButton from './ShareButton'
 import { processImageData } from '../utils/imageUtils'
+import { getRecipeIllustration } from '../utils/recipeIllustrations'
 import { logDebug, logInfo, logError } from '../utils/logger'
 import { canUserEditRecipe, deleteUserRecipe } from '../utils/profileUtils'
 import { showRecipeLikeInteractionNotification } from '../utils/notificationUtils'
@@ -24,7 +25,7 @@ const RecipeCard = ({ recipe, isPhotoOnly = false, onEdit, onDelete, showActions
     return null;
   }
 
-  // Fonction améliorée pour traiter les images avec debugging détaillé
+  // Fonction améliorée pour traiter les images avec illustrations de fallback
   const getImageUrl = (imageData) => {
     try {
       logDebug('RecipeCard: Processing image data', {
@@ -35,27 +36,38 @@ const RecipeCard = ({ recipe, isPhotoOnly = false, onEdit, onDelete, showActions
         dataLength: imageData?.length
       });
 
-      const processedUrl = processImageData(imageData, '/placeholder-recipe.jpg');
+      // Si pas d'image, générer une illustration
+      if (!imageData) {
+        const illustration = getRecipeIllustration(recipe)
+        logDebug('RecipeCard: Generated illustration', {
+          recipeId: recipe?.id,
+          category: recipe?.category,
+          hasTitle: !!recipe?.title
+        });
+        return illustration
+      }
+
+      const processedUrl = processImageData(imageData, null);
       
-      // Validate the processed URL
-      if (processedUrl && processedUrl !== '/placeholder-recipe.jpg' && 
+      // Valider l'URL traitée
+      if (processedUrl && 
           (processedUrl.startsWith('data:image/') || processedUrl.startsWith('http'))) {
         
         logDebug('RecipeCard: Image processed successfully', {
           recipeId: recipe?.id,
-          originalDataType: typeof imageData,
-          processedUrl: processedUrl?.substring(0, 100) + (processedUrl?.length > 100 ? '...' : ''),
+          processedUrl: processedUrl?.substring(0, 100) + '...',
           isDataUrl: processedUrl?.startsWith('data:'),
-          isPlaceholder: false
         });
 
         return processedUrl;
       } else {
-        logDebug('RecipeCard: Using fallback image', {
+        // Fallback vers illustration générée
+        const illustration = getRecipeIllustration(recipe)
+        logDebug('RecipeCard: Using generated illustration as fallback', {
           recipeId: recipe?.id,
           reason: 'Invalid processed URL'
         });
-        return '/placeholder-recipe.jpg';
+        return illustration
       }
     } catch (error) {
       logError('RecipeCard: Error processing image', error, {
@@ -63,7 +75,8 @@ const RecipeCard = ({ recipe, isPhotoOnly = false, onEdit, onDelete, showActions
         imageData: typeof imageData,
         hasData: !!imageData
       });
-      return '/placeholder-recipe.jpg';
+      // En cas d'erreur, utiliser l'illustration générée
+      return getRecipeIllustration(recipe)
     }
   }
 
@@ -108,7 +121,7 @@ const RecipeCard = ({ recipe, isPhotoOnly = false, onEdit, onDelete, showActions
   const safeRecipe = {
     id: recipe.id || Math.random().toString(36),
     title: recipe.title || 'Recette sans titre',
-    description: recipe.description || 'Aucune description disponible',
+    description: recipe.description || 'Une délicieuse recette à découvrir !',
     image: getImageUrl(recipe.image),
     author: recipe.author || 'Chef Anonyme',
     prepTime: recipe.prepTime || 'Non spécifié',
@@ -119,12 +132,12 @@ const RecipeCard = ({ recipe, isPhotoOnly = false, onEdit, onDelete, showActions
   };
 
   // Debug final de l'URL d'image
-  logDebug('RecipeCard: Image finale utilisée', {
+  logDebug('RecipeCard: Final image URL', {
     recipeId: safeRecipe.id,
-    finalImageUrl: safeRecipe.image?.substring(0, 100) + (safeRecipe.image?.length > 100 ? '...' : ''),
+    finalImageUrl: safeRecipe.image?.substring(0, 100) + '...',
     imageLength: safeRecipe.image?.length,
     isDataUrl: safeRecipe.image?.startsWith('data:'),
-    isPlaceholder: safeRecipe.image === '/placeholder-recipe.jpg'
+    isSVG: safeRecipe.image?.includes('svg')
   })
   
   // Détecter automatiquement si c'est un partage rapide
@@ -153,7 +166,7 @@ const RecipeCard = ({ recipe, isPhotoOnly = false, onEdit, onDelete, showActions
       
       <div className={styles.imageContainer}>
         <Image
-          src={imageError ? '/placeholder-recipe.jpg' : safeRecipe.image}
+          src={safeRecipe.image}
           alt={safeRecipe.title}
           fill
           sizes="(max-width: 768px) 100vw, 300px"
@@ -162,18 +175,23 @@ const RecipeCard = ({ recipe, isPhotoOnly = false, onEdit, onDelete, showActions
           unoptimized={safeRecipe.image.startsWith('data:')}
           onLoad={() => {
             setImageLoading(false)
-            logInfo('RecipeCard: Image chargée avec succès', {
+            logInfo('RecipeCard: Image loaded successfully', {
               recipeId: safeRecipe.id,
-              imageUrl: safeRecipe.image?.substring(0, 50) + '...'
+              imageType: safeRecipe.image?.includes('svg') ? 'svg' : 'raster'
             })
           }}
           onError={(e) => {
             setImageError(true)
             setImageLoading(false)
-            logError('RecipeCard: Erreur de chargement d\'image', new Error('Image load failed'), {
+            
+            // En cas d'erreur, essayer de charger l'illustration générée
+            const fallbackIllustration = getRecipeIllustration(recipe)
+            e.target.src = fallbackIllustration
+            
+            logError('RecipeCard: Image load failed, using illustration', new Error('Image load failed'), {
               recipeId: safeRecipe.id,
-              imageUrl: safeRecipe.image?.substring(0, 50) + '...',
-              errorTarget: e.target?.src?.substring(0, 50) + '...'
+              originalSrc: safeRecipe.image?.substring(0, 50) + '...',
+              fallbackSrc: fallbackIllustration?.substring(0, 50) + '...'
             })
           }}
         />

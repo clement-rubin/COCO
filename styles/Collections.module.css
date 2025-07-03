@@ -148,19 +148,23 @@
   margin-left: 4px;
 }
 
-/* Grille des collections */
+/* Grille des collections - Centrage amélioré */
 .collectionsGrid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 28px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
   max-width: 1200px;
   margin: 0 auto;
+  padding: 0 20px;
+  justify-items: center; /* Centre les cartes horizontalement */
+  align-items: start; /* Aligne les cartes en haut */
 }
 
-/* Cartes simplifiées */
+/* Cartes simplifiées - Padding corrigé */
 .collectionCard {
   position: relative;
   width: 100%;
+  max-width: 320px; /* Largeur maximale pour éviter qu'elles soient trop larges */
   aspect-ratio: 0.8;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -169,8 +173,7 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   border: 1px solid rgba(0, 0, 0, 0.04);
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
+  margin: 0 auto; /* Centre la carte dans son conteneur */
 }
 
 .collectionCard:hover {
@@ -178,14 +181,15 @@
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 
-/* Face avant simplifiée */
+/* Face avant simplifiée - Padding uniformisé */
 .cardIllustration {
   height: 50%;
-  background: var(--card-color);
+  background: var(--card-color, linear-gradient(135deg, #ff6b35, #f7931e));
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
+  padding: 0; /* Supprime le padding pour un centrage parfait */
 }
 
 .illustrationEmoji {
@@ -199,6 +203,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  box-sizing: border-box; /* Assure que le padding est inclus dans la taille */
 }
 
 .collectionName {
@@ -207,6 +212,7 @@
   margin: 0;
   color: #1f2937;
   line-height: 1.3;
+  text-align: center; /* Centre le titre */
 }
 
 .collectionDescription {
@@ -218,8 +224,12 @@
   display: -webkit-box;
   -webkit-line-clamp: 2;
   line-clamp: 2;
+  line-clamp: 2;
+  line-clamp: 2;
+  box-orient: vertical;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  text-align: center; /* Centre la description */
 }
 
 .cardMeta {
@@ -229,12 +239,14 @@
   margin-top: auto;
   padding-top: 12px;
   border-top: 1px solid #f3f4f6;
+  gap: 12px; /* Espacement entre les éléments */
 }
 
 .recipeCount {
-  color: var(--accent-color, #ff6b35);
+  color: #ff6b35;
   font-weight: 600;
   font-size: 0.85rem;
+  white-space: nowrap; /* Évite le retour à la ligne */
 }
 
 .difficultyBadge {
@@ -243,22 +255,179 @@
   font-size: 0.75rem;
   font-weight: 500;
   color: white;
+  flex-shrink: 0; /* Évite que le badge se compresse */
 }
 
-.difficultyBadge.facile {
-  background: #10b981;
+/* Section des filtres */
+.filtersSection {
+  margin-bottom: 32px;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
-.difficultyBadge.moyen {
-  background: #f59e0b;
+.filters {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 8px 0;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
-.difficultyBadge.difficile {
-  background: #ef4444;
+.filters::-webkit-scrollbar {
+  display: none;
 }
 
-.difficultyBadge.expert {
-  background: #8b5cf6;
+.filterButton {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(255, 107, 53, 0.2);
+  color: #6b7280;
+  padding: 10px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  min-width: max-content;
+}
+
+.filterButton:hover {
+  background: rgba(255, 255, 255, 0.95);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.1);
+}
+
+.filterButton.active {
+  background: linear-gradient(135deg, #ff6b35, #f7931e);
+  color: white;
+  border-color: #ff6b35;
+  box-shadow: 0 4px 16px rgba(255, 107, 53, 0.3);
+}
+
+.filterIcon {
+  font-size: 1rem;
+}
+
+.filterName {
+  font-weight: 600;
+}
+
+.filterCount {
+  font-size: 0.8rem;
+  opacity: 0.8;
+  margin-left: 4px;
+}
+
+/* Grille des collections - Centrage amélioré */
+.collectionsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+  justify-items: center; /* Centre les cartes horizontalement */
+  align-items: start; /* Aligne les cartes en haut */
+}
+
+/* Cartes simplifiées - Padding corrigé */
+.collectionCard {
+  position: relative;
+  width: 100%;
+  max-width: 320px; /* Largeur maximale pour éviter qu'elles soient trop larges */
+  aspect-ratio: 0.8;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  margin: 0 auto; /* Centre la carte dans son conteneur */
+}
+
+.collectionCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+/* Face avant simplifiée - Padding uniformisé */
+.cardIllustration {
+  height: 50%;
+  background: var(--card-color, linear-gradient(135deg, #ff6b35, #f7931e));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  padding: 0; /* Supprime le padding pour un centrage parfait */
+}
+
+.illustrationEmoji {
+  font-size: 3rem;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+.cardContent {
+  padding: 20px;
+  height: 50%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-sizing: border-box; /* Assure que le padding est inclus dans la taille */
+}
+
+.collectionName {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 0;
+  color: #1f2937;
+  line-height: 1.3;
+  text-align: center; /* Centre le titre */
+}
+
+.collectionDescription {
+  color: #6b7280;
+  font-size: 0.9rem;
+  margin: 0;
+  line-height: 1.4;
+  flex: 1;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-align: center; /* Centre la description */
+}
+
+.cardMeta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid #f3f4f6;
+  gap: 12px; /* Espacement entre les éléments */
+}
+
+.recipeCount {
+  color: #ff6b35;
+  font-weight: 600;
+  font-size: 0.85rem;
+  white-space: nowrap; /* Évite le retour à la ligne */
+}
+
+.difficultyBadge {
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: white;
+  flex-shrink: 0; /* Évite que le badge se compresse */
 }
 
 /* États spéciaux simplifiés */
@@ -702,18 +871,25 @@
 /* Responsive */
 @media (max-width: 1024px) {
   .collectionsGrid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 24px;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 20px;
+    padding: 0 16px;
+  }
+  
+  .collectionCard {
+    max-width: 300px;
   }
   
   .header {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center; /* Centre le header sur tablette */
+    text-align: center;
     gap: 16px;
+    padding: 0 16px;
   }
   
   .filters {
-    justify-content: flex-start;
+    justify-content: center; /* Centre les filtres */
   }
 }
 
@@ -723,36 +899,47 @@
   }
   
   .collectionsGrid {
-    grid-template-columns: 1fr;
-    gap: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+    padding: 0 8px;
   }
   
   .collectionCard {
-    max-width: 400px;
-    margin: 0 auto;
+    max-width: 280px;
     aspect-ratio: 0.85;
+  }
+  
+  .cardContent {
+    padding: 16px;
   }
   
   .title {
     font-size: 1.8rem;
+    text-align: center; /* Centre le titre principal */
   }
   
   .headerStats {
-    justify-content: flex-start;
-    gap: 32px;
-  }
-  
-  .illustrationBg {
-    width: 90px;
-    height: 90px;
+    justify-content: center; /* Centre les stats */
+    gap: 24px;
   }
   
   .illustrationEmoji {
-    font-size: 2.8rem;
+    font-size: 2.5rem;
   }
 }
 
 @media (max-width: 480px) {
+  .collectionsGrid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 0;
+  }
+  
+  .collectionCard {
+    max-width: 100%;
+    margin: 0; /* Prend toute la largeur sur mobile */
+  }
+  
   .cardContent {
     padding: 16px;
   }
@@ -761,21 +948,25 @@
     font-size: 1.1rem;
   }
   
-  .illustrationBg {
-    width: 80px;
-    height: 80px;
+  .illustrationEmoji {
+    font-size: 2.2rem;
   }
   
-  .illustrationEmoji {
-    font-size: 2.5rem;
+  .cardMeta {
+    flex-direction: column;
+    align-items: center; /* Centre les métadonnées sur mobile */
+    gap: 8px;
   }
   
   .filters {
     gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap; /* Permet aux filtres de passer à la ligne */
   }
   
   .filterButton {
     padding: 8px 12px;
     font-size: 0.85rem;
+    min-width: auto; /* Permet aux boutons de s'adapter */
   }
 }

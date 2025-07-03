@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { useAuth } from './AuthContext'
 import { logUserInteraction, logError } from '../utils/logger'
 import { showRecipeLikeInteractionNotification } from '../utils/notificationUtils'
+import { getRecipeIllustration } from '../utils/recipeIllustrations'
 import styles from '../styles/FriendsFeed.module.css'
 
 export default function FriendsFeed({ feedType = 'featured' }) {
@@ -79,33 +80,32 @@ export default function FriendsFeed({ feedType = 'featured' }) {
   
   const formatRecipesForDisplay = (apiRecipes, type) => {
     return apiRecipes.map(recipe => {
-      // Process image data to get a usable URL
-      let imageUrl = '/placeholder-recipe.jpg'
+      // Process image data with illustration fallback
+      let imageUrl = getRecipeIllustration(recipe)
+      
       if (recipe.image) {
         try {
           const { processImageData } = require('../utils/imageUtils')
-          const processedUrl = processImageData(recipe.image, '/placeholder-recipe.jpg')
+          const processedUrl = processImageData(recipe.image, null)
           
-          // Validate the processed URL
-          if (processedUrl && processedUrl !== '/placeholder-recipe.jpg' && 
+          // Si l'URL traitée est valide, l'utiliser, sinon garder l'illustration
+          if (processedUrl && 
               (processedUrl.startsWith('data:image/') || processedUrl.startsWith('http'))) {
             imageUrl = processedUrl
           }
           
-          console.log('FriendsFeed: Image processed', {
+          logDebug('FriendsFeed: Image processed', {
             recipeId: recipe.id,
-            originalType: typeof recipe.image,
-            isArray: Array.isArray(recipe.image),
-            processedUrl: imageUrl?.substring(0, 50) + '...',
-            isDataUrl: imageUrl?.startsWith('data:'),
-            isFallback: imageUrl === '/placeholder-recipe.jpg'
+            hasOriginalImage: !!recipe.image,
+            usesIllustration: imageUrl.includes('svg'),
+            processedUrl: imageUrl?.substring(0, 50) + '...'
           })
         } catch (err) {
-          console.error('FriendsFeed: Error processing image', err, {
+          logError('FriendsFeed: Error processing image, using illustration', err, {
             recipeId: recipe.id,
             imageType: typeof recipe.image
           })
-          imageUrl = '/placeholder-recipe.jpg'
+          // L'illustration est déjà définie comme fallback
         }
       }
       
@@ -130,7 +130,7 @@ export default function FriendsFeed({ feedType = 'featured' }) {
         difficulty: recipe.difficulty || 'Moyen',
         chef: recipe.author || 'Chef Anonyme',
         likes,
-        image: imageUrl,
+        image: imageUrl, // Utilise l'illustration ou l'image traitée
         isNew: type === 'recent',
         isTrending: type === 'trending',
         isHealthy: recipe.category === 'Healthy' || recipe.category === 'Végétarien'
