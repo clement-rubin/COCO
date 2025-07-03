@@ -16,7 +16,7 @@ const ChatBot = () => {
   const welcomeMessages = [
     {
       id: 'welcome',
-      text: "👋 Bonjour ! Je suis Coco Bot, votre assistant culinaire propulsé par Botpress Cloud ! Comment puis-je vous aider avec vos recettes aujourd'hui ?",
+      text: "🤖 Bonjour ! Je suis **Coco Bot**, votre assistant IA culinaire automatisé, propulsé par Botpress Cloud ! Je suis un chatbot conçu pour vous aider avec vos questions sur les recettes. Comment puis-je vous assister aujourd'hui ?",
       isBot: true,
       timestamp: new Date()
     }
@@ -116,9 +116,25 @@ const ChatBot = () => {
       <button
         onClick={toggleChatbot}
         className={`${styles.chatbotButton} ${isOpen ? styles.open : ''}`}
-        title={`Coco Bot (${quotaInfo.remaining} messages restants ce mois)`}
+        title={`🤖 Coco Bot IA - Assistant automatisé (${quotaInfo.remaining} messages restants)`}
       >
         {isOpen ? '✕' : '🤖'}
+        {/* Badge Bot */}
+        <div style={{
+          position: 'absolute',
+          bottom: '-4px',
+          right: '-4px',
+          background: '#FF6B35',
+          color: 'white',
+          fontSize: '8px',
+          fontWeight: 'bold',
+          padding: '2px 4px',
+          borderRadius: '6px',
+          border: '1px solid white',
+          lineHeight: '1'
+        }}>
+          BOT
+        </div>
         {chatbotService.isQuotaExceeded() && (
           <div className={styles.quotaWarning}>!</div>
         )}
@@ -129,17 +145,55 @@ const ChatBot = () => {
         <div className={styles.chatbotWindow}>
           <div className={styles.chatbotHeader}>
             <div className={styles.botInfo}>
-              <span className={styles.botAvatar}>🤖</span>
+              <div style={{ position: 'relative' }}>
+                <span className={styles.botAvatar}>🤖</span>
+                <div style={{
+                  position: 'absolute',
+                  bottom: '-2px',
+                  right: '-2px',
+                  background: '#FF6B35',
+                  color: 'white',
+                  fontSize: '7px',
+                  fontWeight: 'bold',
+                  padding: '1px 3px',
+                  borderRadius: '4px',
+                  lineHeight: '1'
+                }}>
+                  BOT
+                </div>
+              </div>
               <div>
-                <h4>Coco Bot</h4>
+                <h4>🤖 Coco Bot IA</h4>
                 <span className={styles.onlineStatus}>
-                  Propulsé par Botpress Cloud
+                  Assistant automatisé • Botpress Cloud
                 </span>
               </div>
             </div>
             <button onClick={toggleChatbot} className={styles.closeButton}>
               ✕
             </button>
+          </div>
+
+          {/* Avertissement Bot */}
+          <div style={{
+            padding: '12px 20px',
+            background: 'rgba(255, 107, 53, 0.05)',
+            borderBottom: '1px solid rgba(255, 107, 53, 0.1)',
+            textAlign: 'center'
+          }}>
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: 'rgba(255, 107, 53, 0.1)',
+              padding: '4px 8px',
+              borderRadius: '12px',
+              fontSize: '0.75rem',
+              fontWeight: '600',
+              color: '#FF6B35'
+            }}>
+              🤖 CHATBOT IA • RÉPONSES AUTOMATISÉES
+            </div>
           </div>
 
           {/* Indicateur de quota */}
@@ -218,7 +272,7 @@ const ChatBot = () => {
           {/* Footer avec info Botpress */}
           <div className={styles.chatbotFooter}>
             <span className={styles.footerText}>
-              💡 Alimenté par Botpress Cloud - {quotaInfo.remaining}/10000 messages ce mois
+              🤖 Assistant IA automatisé • Botpress Cloud • {quotaInfo.remaining}/10000 messages
             </span>
           </div>
         </div>

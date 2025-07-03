@@ -16,6 +16,24 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+}
+
+/* Badge Bot sur le bouton */
+.chatbotButton::after {
+  content: "BOT";
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  background: #4CAF50;
+  color: white;
+  font-size: 8px;
+  font-weight: bold;
+  padding: 2px 4px;
+  border-radius: 6px;
+  border: 1px solid white;
+  line-height: 1;
+  z-index: 1001;
 }
 
 .chatbotButton:hover {
@@ -25,6 +43,29 @@
 
 .chatbotButton.open {
   background: #64748b;
+}
+
+.chatbotButton.open::after {
+  background: #6b7280;
+}
+
+/* Nouveau style pour l'indicateur de quota avec warning */
+.quotaWarning {
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  background: #ef4444;
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid white;
+  animation: pulse 2s infinite;
 }
 
 .chatbotWindow {
@@ -280,6 +321,25 @@
   background: #ff6b35;
   color: white;
   border-color: #ff6b35;
+}
+
+/* Footer du chatbot avec style Bot */
+.chatbotFooter {
+  background: rgba(255, 107, 53, 0.05);
+  border-top: 1px solid rgba(255, 107, 53, 0.1);
+  padding: 8px 16px;
+  text-align: center;
+}
+
+.footerText {
+  font-size: 0.7rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.footerText::before {
+  content: "🤖 ";
+  margin-right: 4px;
 }
 
 /* Responsive */

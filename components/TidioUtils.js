@@ -41,15 +41,15 @@ export const TidioUtils = {
   // Messages prédéfinis pour COCO
   sendWelcomeMessage(userName = null) {
     const message = userName 
-      ? `Bonjour ${userName} ! 👨‍🍳 Comment puis-je vous aider avec COCO aujourd'hui ?`
-      : 'Bienvenue sur COCO ! 🍴 Comment puis-je vous aider avec l\'app de recettes ?'
+      ? `🤖 Bonjour ${userName} ! Je suis votre assistant IA automatisé. Comment puis-je vous aider avec COCO aujourd'hui ?`
+      : '🤖 Bienvenue sur COCO ! Je suis un chatbot IA spécialisé en cuisine. Comment puis-je vous aider avec l\'app de recettes ?'
     
     this.sendMessage(message, true)
   },
 
   sendRecipeHelp() {
     this.sendMessage(
-      '🍳 Pour trouver des recettes :\n' +
+      '🤖 **Assistant IA** : 🍳 Pour trouver des recettes :\n' +
       '• Utilisez l\'onglet "Collections"\n' +
       '• Filtrez par catégorie ou difficulté\n' +
       '• Suivez des amis pour découvrir leurs recettes !', 
@@ -59,7 +59,7 @@ export const TidioUtils = {
 
   sendSharingHelp() {
     this.sendMessage(
-      '📤 Pour partager une recette :\n' +
+      '🤖 **Assistant IA** : 📤 Pour partager une recette :\n' +
       '• Cliquez sur le bouton "+" en bas\n' +
       '• Prenez une photo de votre plat\n' +
       '• Ajoutez une description et des tags\n' +
@@ -70,7 +70,7 @@ export const TidioUtils = {
 
   sendFriendsHelp() {
     this.sendMessage(
-      '👥 Pour gérer vos amis :\n' +
+      '🤖 **Assistant IA** : 👥 Pour gérer vos amis :\n' +
       '• Allez dans l\'onglet "Amis"\n' +
       '• Recherchez par nom d\'utilisateur\n' +
       '• Envoyez des demandes d\'amitié\n' +
@@ -81,40 +81,42 @@ export const TidioUtils = {
 
   // Aide contextuelle basée sur la page
   sendContextualHelp(pathname, user = null) {
+    const botPrefix = "🤖 **Assistant IA COCO** : "
+    
     switch (pathname) {
       case '/':
         this.sendMessage(
-          '🏠 Vous êtes sur l\'accueil ! Ici vous pouvez voir les dernières recettes de vos amis et découvrir les tendances culinaires.',
+          botPrefix + '🏠 Vous êtes sur l\'accueil ! Ici vous pouvez voir les dernières recettes de vos amis et découvrir les tendances culinaires.',
           true
         )
         break
       case '/collections':
         this.sendMessage(
-          '📚 Dans les Collections, explorez toutes nos recettes par catégories, filtrez par difficulté ou temps de préparation !',
+          botPrefix + '📚 Dans les Collections, explorez toutes nos recettes par catégories, filtrez par difficulté ou temps de préparation !',
           true
         )
         break
       case '/amis':
         this.sendMessage(
-          '👥 Connectez-vous avec d\'autres passionnés de cuisine ! Recherchez des amis et découvrez leurs créations culinaires.',
+          botPrefix + '👥 Connectez-vous avec d\'autres passionnés de cuisine ! Recherchez des amis et découvrez leurs créations culinaires.',
           true
         )
         break
       case '/profil':
         this.sendMessage(
-          '👤 Personnalisez votre profil en ajoutant une photo, une bio et vos préférences culinaires !',
+          botPrefix + '👤 Personnalisez votre profil en ajoutant une photo, une bio et vos préférences culinaires !',
           true
         )
         break
       case '/share-photo':
         this.sendMessage(
-          '📸 Partagez votre création ! Prenez une belle photo, ajoutez les ingrédients et étapes, puis inspirez la communauté !',
+          botPrefix + '📸 Partagez votre création ! Prenez une belle photo, ajoutez les ingrédients et étapes, puis inspirez la communauté !',
           true
         )
         break
       default:
         this.sendMessage(
-          '🍴 Besoin d\'aide sur COCO ? Je suis là pour vous accompagner dans votre aventure culinaire !',
+          botPrefix + '🍴 Besoin d\'aide sur COCO ? Je suis un chatbot IA automatisé, là pour vous accompagner dans votre aventure culinaire !',
           true
         )
     }

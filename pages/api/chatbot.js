@@ -105,35 +105,43 @@ async function generateResponse(message, userId) {
 function getIntelligentResponse(message, userId) {
   const lowerMessage = message.toLowerCase()
   
+  // Préfixe bot pour identifier clairement les réponses automatisées
+  const botSignature = "🤖 **Coco Bot IA** : "
+  
   const responses = {
     salutation: [
-      "👋 Bonjour ! Comment puis-je vous aider avec COCO aujourd'hui ? 😊",
-      "Salut ! Que puis-je faire pour améliorer votre expérience culinaire ?",
-      "Hello ! Prêt à découvrir de nouvelles saveurs ?"
+      botSignature + "👋 Bonjour ! Je suis un assistant IA automatisé. Comment puis-je vous aider avec COCO aujourd'hui ? 😊",
+      botSignature + "Salut ! Je suis votre chatbot culinaire IA. Que puis-je faire pour améliorer votre expérience ?",
+      botSignature + "Hello ! Je suis un robot assistant spécialisé en cuisine. Prêt à découvrir de nouvelles saveurs ?"
     ],
     recette: [
-      "🍳 COCO propose des milliers de recettes ! Utilisez les filtres par catégorie, difficulté ou temps de préparation pour trouver votre bonheur.",
-      "Avez-vous exploré nos collections thématiques ? Elles regroupent les meilleures recettes par thème !",
-      "Pour des recettes personnalisées, suivez des amis aux goûts similaires aux vôtres !"
+      botSignature + "🍳 COCO propose des milliers de recettes ! Utilisez les filtres par catégorie, difficulté ou temps de préparation pour trouver votre bonheur.",
+      botSignature + "Avez-vous exploré nos collections thématiques ? Elles regroupent les meilleures recettes par thème !",
+      botSignature + "Pour des recettes personnalisées, suivez des amis aux goûts similaires aux vôtres !"
     ],
     aide: [
-      "Je peux vous aider avec : 🔍 Recherche de recettes, 👥 Gestion des amis, 📤 Partage de contenu, ⚙️ Paramètres du compte",
-      "Besoin d'aide spécifique ? Demandez-moi comment faire quelque chose de précis !",
-      "COCO est simple à utiliser ! N'hésitez pas à explorer les différents onglets."
+      botSignature + "Je suis un chatbot IA qui peut vous aider avec : 🔍 Recherche de recettes, 👥 Gestion des amis, 📤 Partage de contenu, ⚙️ Paramètres du compte",
+      botSignature + "Besoin d'aide spécifique ? Demandez-moi comment faire quelque chose de précis ! (Je suis programmé pour vous assister)",
+      botSignature + "COCO est simple à utiliser ! N'hésitez pas à explorer les différents onglets ou me poser vos questions."
     ],
     amis: [
-      "👥 Pour ajouter des amis, allez dans l'onglet 'Amis' et utilisez la recherche par nom d'utilisateur.",
-      "Vos amis peuvent voir vos recettes publiques et vous pouvez découvrir les leurs !",
-      "Créez une communauté culinaire en ajoutant des amis qui partagent vos goûts !"
+      botSignature + "👥 Pour ajouter des amis, allez dans l'onglet 'Amis' et utilisez la recherche par nom d'utilisateur.",
+      botSignature + "Vos amis peuvent voir vos recettes publiques et vous pouvez découvrir les leurs !",
+      botSignature + "Créez une communauté culinaire en ajoutant des amis qui partagent vos goûts !"
     ],
     profil: [
-      "👤 Personnalisez votre profil en cliquant sur votre avatar. Ajoutez une photo, une bio et vos préférences !",
-      "Un profil complet vous aide à vous connecter avec d'autres passionnés de cuisine.",
-      "Vous pouvez choisir de rendre votre profil privé dans les paramètres."
+      botSignature + "👤 Personnalisez votre profil en cliquant sur votre avatar. Ajoutez une photo, une bio et vos préférences !",
+      botSignature + "Un profil complet vous aide à vous connecter avec d'autres passionnés de cuisine.",
+      botSignature + "Vous pouvez choisir de rendre votre profil privé dans les paramètres."
+    ],
+    bot: [
+      botSignature + "🤖 Oui, je suis bien un chatbot IA ! Mes réponses sont automatisées et je suis spécialisé dans l'aide culinaire pour COCO.",
+      botSignature + "Je suis une Intelligence Artificielle programmée pour vous assister avec l'application COCO. Mes réponses sont générées automatiquement.",
+      botSignature + "Exactement ! Je suis un assistant virtuel automatisé, pas un humain. Je suis là 24h/24 pour vous aider !"
     ]
   }
 
-  // Détection d'intention améliorée
+  // Détection d'intention améliorée avec reconnaissance de questions sur les bots
   if (/(bonjour|salut|hello|hey|coucou)/i.test(lowerMessage)) {
     return getRandomResponse(responses.salutation)
   }
@@ -154,12 +162,16 @@ function getIntelligentResponse(message, userId) {
     return getRandomResponse(responses.profil)
   }
 
-  // Réponse par défaut contextuelle
-  return "🤖 C'est une bonne question ! Pour vous aider au mieux, pouvez-vous être plus spécifique ? Par exemple : 'Comment trouver des recettes végétariennes ?' ou 'Comment ajouter des amis ?'"
+  if (/(bot|robot|ia|intelligence|artificielle|automatique|chatbot)/i.test(lowerMessage)) {
+    return getRandomResponse(responses.bot)
+  }
+
+  // Réponse par défaut contextuelle avec identification du bot
+  return botSignature + "🤖 C'est une bonne question ! Je suis un assistant IA automatisé. Pour vous aider au mieux, pouvez-vous être plus spécifique ? Par exemple : 'Comment trouver des recettes végétariennes ?' ou 'Comment ajouter des amis ?'"
 }
 
 function getFallbackResponse(message) {
-  return "🤖 Je rencontre des difficultés techniques temporaires. En attendant, explorez les onglets Collections pour découvrir de nouvelles recettes ou l'onglet Amis pour vous connecter avec d'autres passionnés de cuisine !"
+  return "🤖 **Coco Bot IA** : Je rencontre des difficultés techniques temporaires. En attendant, explorez les onglets Collections pour découvrir de nouvelles recettes ou l'onglet Amis pour vous connecter avec d'autres passionnés de cuisine ! (Je suis un chatbot automatisé)"
 }
 
 function getRandomResponse(responseArray) {

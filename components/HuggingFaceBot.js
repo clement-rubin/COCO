@@ -71,9 +71,25 @@ export default function HuggingFaceBot() {
           e.target.style.transform = 'scale(1)'
           e.target.style.boxShadow = '0 8px 25px rgba(255, 107, 53, 0.4)'
         }}
-        title="Assistant COCO - Chatbot de recettes IA"
+        title="🤖 Assistant IA - Chatbot automatisé de recettes"
       >
         {isOpen ? '✕' : '🤖'}
+        {/* Badge IA */}
+        <div style={{
+          position: 'absolute',
+          bottom: '-4px',
+          right: '-4px',
+          background: '#4CAF50',
+          color: 'white',
+          fontSize: '8px',
+          fontWeight: 'bold',
+          padding: '2px 4px',
+          borderRadius: '6px',
+          border: '1px solid white',
+          lineHeight: '1'
+        }}>
+          IA
+        </div>
       </button>
 
       {/* Widget du chatbot */}
@@ -109,21 +125,40 @@ export default function HuggingFaceBot() {
               alignItems: 'center',
               gap: '12px'
             }}>
-              <span style={{ fontSize: '1.5rem' }}>🤖</span>
+              <div style={{
+                position: 'relative',
+                fontSize: '1.5rem'
+              }}>
+                🤖
+                <div style={{
+                  position: 'absolute',
+                  bottom: '-2px',
+                  right: '-2px',
+                  background: '#4CAF50',
+                  color: 'white',
+                  fontSize: '7px',
+                  fontWeight: 'bold',
+                  padding: '1px 3px',
+                  borderRadius: '4px',
+                  lineHeight: '1'
+                }}>
+                  IA
+                </div>
+              </div>
               <div>
                 <h3 style={{ 
                   margin: 0, 
                   fontSize: '1.1rem',
                   fontWeight: '600'
                 }}>
-                  Assistant Recettes IA
+                  🤖 Assistant IA Recettes
                 </h3>
                 <p style={{ 
                   margin: 0, 
                   fontSize: '0.85rem',
                   opacity: 0.9
                 }}>
-                  {user ? `Salut ${user.user_metadata?.display_name?.split(' ')[0] || 'Chef'} !` : 'Spécialiste en cuisine'}
+                  {user ? `Salut ${user.user_metadata?.display_name?.split(' ')[0] || 'Chef'} !` : 'Chatbot automatisé • Spécialisé cuisine'}
                 </p>
               </div>
             </div>
@@ -160,13 +195,31 @@ export default function HuggingFaceBot() {
             background: 'rgba(255, 107, 53, 0.05)',
             borderBottom: '1px solid rgba(255, 107, 53, 0.1)'
           }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              marginBottom: '8px'
+            }}>
+              <span style={{ fontSize: '1rem' }}>🤖</span>
+              <span style={{
+                fontSize: '0.8rem',
+                fontWeight: '600',
+                color: '#4CAF50',
+                background: 'rgba(76, 175, 80, 0.1)',
+                padding: '2px 6px',
+                borderRadius: '8px'
+              }}>
+                ASSISTANT IA
+              </span>
+            </div>
             <p style={{
               margin: 0,
               fontSize: '0.9rem',
               color: '#4B5563',
               lineHeight: '1.4'
             }}>
-              💬 Posez-moi vos questions sur les recettes, les ingrédients, ou demandez des suggestions culinaires !
+              💬 Je suis un chatbot IA spécialisé en cuisine. Posez-moi vos questions sur les recettes, les ingrédients, ou demandez des suggestions culinaires !
             </p>
           </div>
 
@@ -290,9 +343,6 @@ export default function HuggingFaceBot() {
             max-height: 400px !important;
           }
         }
-    </>
-  )
-}
       `}</style>
     </>
   )

@@ -129,29 +129,36 @@ export class ChatbotService {
   getContextualResponse(message, userContext = {}) {
     const lowerMessage = message.toLowerCase()
     
+    // Préfixe bot pour toutes les réponses
+    const botPrefix = "🤖 **Coco Bot IA** : "
+    
     // Réponses spécifiques à COCO avec emojis
     if (lowerMessage.includes('recette')) {
-      return "🍳 Pour trouver des recettes, allez dans l'onglet 'Collections' ou utilisez la recherche. Vous cherchez quelque chose de spécifique ?"
+      return botPrefix + "🍳 Pour trouver des recettes, allez dans l'onglet 'Collections' ou utilisez la recherche. Vous cherchez quelque chose de spécifique ?"
     }
     
     if (lowerMessage.includes('ami')) {
-      return "👥 Dans l'onglet 'Amis', vous pouvez rechercher d'autres utilisateurs et leur envoyer des demandes d'amitié. Vos amis verront vos recettes dans leur feed !"
+      return botPrefix + "👥 Dans l'onglet 'Amis', vous pouvez rechercher d'autres utilisateurs et leur envoyer des demandes d'amitié. Vos amis verront vos recettes dans leur feed !"
     }
     
     if (lowerMessage.includes('partager') || lowerMessage.includes('publier')) {
-      return "📤 Cliquez sur le bouton '+' en bas pour partager une photo de plat ou créer une recette complète. N'oubliez pas d'ajouter une description !"
+      return botPrefix + "📤 Cliquez sur le bouton '+' en bas pour partager une photo de plat ou créer une recette complète. N'oubliez pas d'ajouter une description !"
     }
     
     if (lowerMessage.includes('profil')) {
-      return "👤 Votre profil se trouve en cliquant sur votre avatar. Vous pouvez y ajouter une photo, une bio et gérer vos paramètres de confidentialité."
+      return botPrefix + "👤 Votre profil se trouve en cliquant sur votre avatar. Vous pouvez y ajouter une photo, une bio et gérer vos paramètres de confidentialité."
     }
 
     if (lowerMessage.includes('bonjour') || lowerMessage.includes('salut') || lowerMessage.includes('hello')) {
-      return "👋 Bonjour ! Je suis Coco Bot, votre assistant culinaire. Comment puis-je vous aider avec COCO aujourd'hui ?"
+      return botPrefix + "👋 Bonjour ! Je suis Coco Bot, votre assistant IA culinaire automatisé. Comment puis-je vous aider avec COCO aujourd'hui ?"
     }
 
     if (lowerMessage.includes('aide') || lowerMessage.includes('help')) {
-      return "🆘 Je peux vous aider avec : 🔍 Recherche de recettes, 👥 Gestion des amis, 📤 Partage de contenu, ⚙️ Paramètres du compte. Que souhaitez-vous faire ?"
+      return botPrefix + "🆘 Je suis un chatbot IA qui peut vous aider avec : 🔍 Recherche de recettes, 👥 Gestion des amis, 📤 Partage de contenu, ⚙️ Paramètres du compte. Que souhaitez-vous faire ?"
+    }
+
+    if (lowerMessage.includes('bot') || lowerMessage.includes('robot') || lowerMessage.includes('ia')) {
+      return botPrefix + "🤖 Exactement ! Je suis un chatbot IA (Intelligence Artificielle) conçu pour vous assister avec COCO. Mes réponses sont automatisées et basées sur ma programmation culinaire."
     }
     
     return null // Si aucune réponse prédéfinie ne correspond
