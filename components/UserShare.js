@@ -97,6 +97,7 @@ export default function UserShare({ recipe, isOpen, onClose }) {
               <div className={styles.recipeInfo}>
                 <h4>{recipe.title}</h4>
                 <p>{recipe.description}</p>
+                {/* Suppression des détails techniques pour simplifier */}
               </div>
             </div>
           )}

@@ -125,10 +125,9 @@ export default function FriendsFeed({ feedType = 'featured' }) {
         id: recipe.id,
         name: recipe.title,
         category: recipe.category || 'Autre',
-        time: recipe.prepTime || recipe.cookTime || '15 min',
+        // Simplification : suppression des détails techniques
         rating: parseFloat(rating.toFixed(1)),
         emoji: chefEmoji,
-        difficulty: recipe.difficulty || 'Moyen',
         chef: recipe.author || 'Chef Anonyme',
         likes,
         image: imageUrl, // Utilise l'illustration ou l'image traitée

@@ -138,26 +138,26 @@ export default function Collections() {
     {
       id: 7,
       name: "Cuisine de Saison",
-      description: "Savourez les produits frais au rythme des saisons pour une cuisine authentique",
+      description: "Savourez les produits frais au rythme des saisons",
       illustration: "🍂",
       color: "#fdf2f8",
       accent: "#ec4899",
       recipeCount: 33,
       difficulty: "Moyen",
       category: "seasonal",
-      estimatedTime: "25-45 min",
+      // Simplification : suppression des détails techniques
       recipes: [
-        { name: "Velouté de potiron épicé", time: "30 min", difficulty: "Facile" },
-        { name: "Salade d'été fraîcheur", time: "15 min", difficulty: "Facile" },
-        { name: "Ratatouille provençale", time: "45 min", difficulty: "Moyen" },
-        { name: "Tarte aux pommes rustique", time: "1h", difficulty: "Moyen" }
+        { name: "Velouté de potiron", difficulty: "Facile" },
+        { name: "Salade d'été fraîcheur", difficulty: "Facile" },
+        { name: "Ratatouille provençale", difficulty: "Moyen" },
+        { name: "Tarte aux pommes", difficulty: "Moyen" }
       ],
       tags: ["Saisonnier", "Local", "Frais"]
     },
     {
       id: 8,
       name: "Express & Savoureux",
-      description: "Solutions rapides pour cuisiner délicieux même quand le temps manque",
+      description: "Solutions rapides pour cuisiner délicieux",
       illustration: "⚡",
       color: "#eff6ff",
       accent: "#3b82f6",
@@ -165,12 +165,11 @@ export default function Collections() {
       difficulty: "Facile",
       category: "quick",
       trending: true,
-      estimatedTime: "5-15 min",
       recipes: [
-        { name: "Pâtes carbonara express", time: "12 min", difficulty: "Facile" },
-        { name: "Salade Caesar croquante", time: "10 min", difficulty: "Facile" },
-        { name: "Omelette aux fines herbes", time: "8 min", difficulty: "Facile" },
-        { name: "Wrap méditerranéen", time: "6 min", difficulty: "Facile" }
+        { name: "Pâtes carbonara express", difficulty: "Facile" },
+        { name: "Salade Caesar", difficulty: "Facile" },
+        { name: "Omelette aux herbes", difficulty: "Facile" },
+        { name: "Wrap méditerranéen", difficulty: "Facile" }
       ],
       tags: ["Rapide", "Pratique", "Efficace"]
     },

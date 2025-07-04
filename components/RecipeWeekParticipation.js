@@ -160,7 +160,7 @@ export default function RecipeWeekParticipation({ onParticipationChange }) {
     return matchesSearch && matchesCategory
   })
 
-  // Obtenir les catégories uniques
+  // Obtenir les catégories uniques pour le filtre
   const categories = [...new Set(availableRecipes.map(r => r.category).filter(Boolean))]
 
   return (

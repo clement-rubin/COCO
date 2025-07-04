@@ -7,8 +7,6 @@ import { showRecipeLikeInteractionNotification } from '../utils/notificationUtil
 import styles from '../styles/AddictiveFeed.module.css'
 import { supabase } from '../lib/supabase'
 
-// ...existing code...
-
 export default function AddictiveFeed() {
   const router = useRouter()
   const { user } = useAuth()
@@ -180,7 +178,7 @@ export default function AddictiveFeed() {
     }
   }
 
-  // Helper to format recipe data from API to feed format
+  // Helper to format recipe data from API to feed format - VERSION SIMPLIFIÉE
   const formatRecipeData = (apiRecipe) => {
     let imageUrl = '/placeholder-recipe.jpg'
     
@@ -219,12 +217,9 @@ export default function AddictiveFeed() {
     const authorName = apiRecipe.author || 'Chef Anonyme'
     const authorEmoji = getAuthorEmoji(apiRecipe.category)
     
-    const ingredientsCount = Array.isArray(apiRecipe.ingredients) ? apiRecipe.ingredients.length : 0
-    const instructionsCount = Array.isArray(apiRecipe.instructions) ? apiRecipe.instructions.length : 0
-    const complexity = ingredientsCount + instructionsCount
-    
-    const likesBase = 50 + Math.floor(complexity * 10)
-    const commentsBase = 5 + Math.floor(complexity * 2)
+    // Simplification : calcul basique sans détails techniques
+    const likesBase = 25 + Math.floor(Math.random() * 50)
+    const commentsBase = 2 + Math.floor(Math.random() * 8)
     
     const created = apiRecipe.created_at ? new Date(apiRecipe.created_at) : new Date()
     const timeAgo = getTimeAgo(created)
@@ -235,7 +230,7 @@ export default function AddictiveFeed() {
         id: apiRecipe.user_id || `author_${authorName.replace(/\s+/g, '_').toLowerCase()}`,
         name: authorName, // Utilise directement le nom d'auteur de la recette
         avatar: authorEmoji,
-        verified: complexity > 15
+        verified: Math.random() > 0.7 // Simplification du système de vérification
       },
       recipe: {
         id: apiRecipe.id,
@@ -243,16 +238,13 @@ export default function AddictiveFeed() {
         description: apiRecipe.description || "Une délicieuse recette à découvrir !",
         image: imageUrl,
         category: apiRecipe.category || 'Autre',
-        difficulty: apiRecipe.difficulty || 'Moyen',
-        prepTime: apiRecipe.prepTime || '15 min',
-        cookTime: apiRecipe.cookTime || '20 min',
-        portions: apiRecipe.servings || 4,
+        // Suppression des métadonnées complexes (difficulty, prepTime, cookTime, portions)
         likes: likesBase,
         comments: commentsBase
       },
       timeAgo,
-      ingredients: apiRecipe.ingredients,
-      instructions: apiRecipe.instructions
+      // Suppression des ingrédients et instructions pour simplifier
+      isQuickShare: apiRecipe.form_mode === 'quick' || apiRecipe.category === 'Photo partagée'
     }
   }
   
@@ -747,14 +739,13 @@ export default function AddictiveFeed() {
                 {post.recipe.description}
               </p>
 
-              {/* Recipe meta */}
+              {/* Recipe meta - VERSION SIMPLIFIÉE */}
               <div className={styles.recipeMeta}>
-                <span className={styles.metaItem}>⏱️ {post.recipe.prepTime}</span>
-                <span className={styles.metaItem}>🔥 {post.recipe.difficulty}</span>
-                <span className={styles.metaItem}>👥 {post.recipe.portions}</span>
+                <span className={styles.metaItem}>📂 {post.recipe.category}</span>
+                {post.isQuickShare && <span className={styles.metaItem}>📸 Partage express</span>}
               </div>
 
-              {/* Actions */}
+              {/* Actions - GARDÉ SIMPLE */}
               <div className={styles.recipeActions}>
                 <button
                   onClick={() => toggleLike(post.id)}
@@ -774,7 +765,7 @@ export default function AddictiveFeed() {
                   onClick={() => openRecipe(post.recipe.id)}
                   className={styles.viewRecipeBtn}
                 >
-                  Voir la recette →
+                  Voir →
                 </button>
               </div>
             </div>
