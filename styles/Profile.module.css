@@ -219,12 +219,20 @@
   background: rgba(255,255,255,0.98);
   box-shadow: 0 2px 12px rgba(0,0,0,0.03);
   border-bottom: 1px solid #f3f4f6;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.tabContainer::-webkit-scrollbar {
+  display: none;
 }
 
 .tabNavigation {
   padding: 20px 24px 0;
   display: flex;
   gap: 8px;
+  min-width: fit-content;
 }
 
 .tabButton {
@@ -241,6 +249,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .tabButton.active {
@@ -257,10 +267,12 @@
 
 .tabIcon {
   font-size: 1.1rem;
+  flex-shrink: 0;
 }
 
 .tabLabel {
   font-size: 0.95rem;
+  flex-shrink: 0;
 }
 
 .tabIndicator {
@@ -989,11 +1001,24 @@ input:checked + .slider:before {
   .tabNavigation {
     padding: 16px;
     gap: 4px;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
   }
   
   .tabButton {
     padding: 10px 16px 14px;
     font-size: 0.9rem;
+    min-width: fit-content;
+    border-radius: 12px 12px 0 0;
+  }
+  
+  .tabIcon {
+    font-size: 1rem;
+  }
+  
+  .tabLabel {
+    font-size: 0.85rem;
   }
   
   .tabContent {
@@ -1062,15 +1087,87 @@ input:checked + .slider:before {
     gap: 0.5rem;
     align-items: flex-start;
   }
-}
   
-.progressContainer {
-  flex-direction: column;
-  gap: 0.5rem;
+  .tabNavigation {
+    padding: 12px;
+    gap: 2px;
+  }
+  
+  .tabButton {
+    padding: 8px 12px 12px;
+    font-size: 0.8rem;
+    flex-direction: column;
+    gap: 4px;
+    text-align: center;
+    min-width: 70px;
+    border-radius: 8px 8px 0 0;
+  }
+  
+  .tabIcon {
+    font-size: 1.1rem;
+  }
+  
+  .tabLabel {
+    font-size: 0.7rem;
+    line-height: 1;
+  }
+  
+  /* Version ultra-compacte pour très petits écrans */
+  @media (max-width: 360px) {
+    .tabButton .tabLabel {
+      display: none;
+    }
+    
+    .tabButton {
+      min-width: 50px;
+      height: 50px;
+      justify-content: center;
+    }
+    
+    .tabButton .tabIcon {
+      font-size: 1.3rem;
+    }
+    
+    /* Tooltip au survol pour afficher le nom */
+    .tabButton:hover::after {
+      content: attr(data-label);
+      position: absolute;
+      bottom: -25px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1f2937;
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      white-space: nowrap;
+      z-index: 20;
+    }
+  }
 }
 
-.toggleCard {
-  flex-direction: column;
-  gap: 1rem;
-  text-align: center;
+/* États d'accessibilité pour les onglets */
+.tabButton:focus {
+  outline: 2px solid rgba(255, 107, 53, 0.5);
+  outline-offset: 2px;
+}
+
+.tabButton:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Animation fluide pour le contenu des onglets */
+.tabContent {
+  animation: fadeInProfileTab 0.3s ease-out;
+}
+
+@keyframes fadeInProfileTab {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
