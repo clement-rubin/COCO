@@ -235,25 +235,67 @@ export default function Amis() {
 
   const loadSuggestions = async (userId) => {
     try {
-      // Simple fallback - get random profiles excluding current user
-      const { data, error } = await supabase
+      // D'abord, récupérer tous les utilisateurs avec qui on a déjà une relation
+      const { data: existingRelations, error: relationsError } = await supabase
+        .from('friendships')
+        .select('user_id, friend_id')
+        .or(`user_id.eq.${userId},friend_id.eq.${userId}`);
+
+      if (relationsError) {
+        logError('Error loading existing relations:', relationsError);
+        // Continue sans filtrage si on ne peut pas charger les relations
+      }
+
+      // Créer un Set des IDs à exclure
+      const excludedUserIds = new Set([userId]); // Toujours exclure soi-même
+      
+      if (existingRelations) {
+        existingRelations.forEach(relation => {
+          if (relation.user_id === userId) {
+            excludedUserIds.add(relation.friend_id);
+          } else {
+            excludedUserIds.add(relation.user_id);
+          }
+        });
+      }
+
+      // Récupérer des profils aléatoires en excluant les relations existantes
+      const { data: allProfiles, error: profilesError } = await supabase
         .from('profiles')
         .select('user_id, display_name, bio, avatar_url')
-        .neq('user_id', userId)
         .eq('is_private', false)
-        .limit(5);
-      
-      if (error) {
-        if (error.code === 'PGRST116') {
+        .limit(20); // Prendre plus de profils pour avoir assez après filtrage
+
+      if (profilesError) {
+        if (profilesError.code === 'PGRST116') {
           logError('Profiles table not found');
           return;
         }
-        throw error;
+        throw profilesError;
       }
-      
-      setSuggestions(data || []);
+
+      // Filtrer les profils pour exclure les relations existantes
+      const filteredProfiles = (allProfiles || [])
+        .filter(profile => !excludedUserIds.has(profile.user_id))
+        .slice(0, 5); // Limiter à 5 suggestions
+
+      logInfo('Suggestions loaded:', {
+        totalProfiles: allProfiles?.length || 0,
+        excludedCount: excludedUserIds.size,
+        suggestionsCount: filteredProfiles.length,
+        excludedIds: Array.from(excludedUserIds).slice(0, 5) // Log quelques IDs pour debug
+      });
+
+      setSuggestions(filteredProfiles);
     } catch (error) {
       logError('Error loading suggestions:', error);
+    }
+  };
+
+  // Nouvelle fonction pour rafraîchir les suggestions après changement d'amitié
+  const refreshSuggestions = async () => {
+    if (user) {
+      await loadSuggestions(user.id);
     }
   };
 
@@ -325,6 +367,8 @@ export default function Amis() {
 
       if (!statusError && existingStatus && existingStatus.length > 0) {
         showToast('Une demande d\'amitié existe déjà', true);
+        // Retirer cette personne des suggestions
+        setSuggestions(prev => prev.filter(s => s.user_id !== friendId));
         return;
       }
 
@@ -348,6 +392,8 @@ export default function Amis() {
       if (error) {
         if (error.code === '23505') {
           showToast('Demande d\'amitié déjà envoyée', true);
+          // Retirer cette personne des suggestions
+          setSuggestions(prev => prev.filter(s => s.user_id !== friendId));
         } else if (error.code === '23503') {
           showToast('Erreur de référence utilisateur - veuillez réessayer', true);
           logError('Foreign key constraint error:', error);
@@ -362,6 +408,9 @@ export default function Amis() {
         setSentRequests(prev => new Set([...prev, friendId]));
         markCardAsSuccess(friendId);
         showToast('Demande d\'amitié envoyée avec succès ! 🎉');
+        
+        // Retirer cette personne des suggestions immédiatement
+        setSuggestions(prev => prev.filter(s => s.user_id !== friendId));
         
         // Rafraîchir les résultats de recherche
         if (searchTerm) {
@@ -406,7 +455,8 @@ export default function Amis() {
 
       await Promise.all([
         loadFriendRequests(user.id),
-        loadFriends(user.id)
+        loadFriends(user.id),
+        refreshSuggestions() // Rafraîchir les suggestions après changement
       ]);
     } catch (error) {
       logError('Error responding to friend request:', error);
@@ -448,7 +498,8 @@ export default function Amis() {
         showMessage(`${showConfirmDialog.friendName} a été retiré de vos amis`);
         await Promise.all([
           loadFriends(user.id),
-          loadFriendshipStats()
+          loadFriendshipStats(),
+          refreshSuggestions() // Rafraîchir les suggestions - la personne pourrait réapparaître
         ]);
       } else {
         showMessage(result.error || 'Erreur lors de la suppression', true);
@@ -1803,7 +1854,38 @@ export default function Amis() {
               padding: '32px 24px',
               marginBottom: 32
             }}>
-              <h2>Suggestions d'amis</h2>
+              <div className={styles.sectionHeader}>
+                <h2>Suggestions d'amis</h2>
+                {/* Bouton pour rafraîchir les suggestions */}
+                <button
+                  onClick={refreshSuggestions}
+                  className={styles.refreshButton}
+                  style={{
+                    background: 'rgba(255, 107, 53, 0.1)',
+                    border: '1px solid rgba(255, 107, 53, 0.3)',
+                    color: '#ff6b35',
+                    padding: '8px 16px',
+                    borderRadius: '12px',
+                    fontSize: '0.85rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.background = 'rgba(255, 107, 53, 0.15)'
+                    e.target.style.transform = 'translateY(-1px)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = 'rgba(255, 107, 53, 0.1)'
+                    e.target.style.transform = 'translateY(0)'
+                  }}
+                >
+                  🔄 Actualiser
+                </button>
+              </div>
               <div className={styles.suggestionsGrid}>
                 {suggestions.map((suggestion, idx) => {
                   const isRequestSent = sentRequests.has(suggestion.user_id);
@@ -1845,7 +1927,52 @@ export default function Amis() {
                 })}
                 {suggestions.length === 0 && (
                   <div className={styles.emptyState}>
-                    <p>Aucune suggestion pour le moment.</p>
+                    <div style={{
+                      textAlign: 'center',
+                      padding: '40px 20px',
+                      color: '#6b7280'
+                    }}>
+                      <div style={{ fontSize: '3rem', marginBottom: '16px' }}>🎯</div>
+                      <h3 style={{ 
+                        margin: '0 0 8px 0', 
+                        fontSize: '1.1rem', 
+                        fontWeight: '600' 
+                      }}>
+                        Aucune nouvelle suggestion
+                      </h3>
+                      <p style={{ 
+                        margin: '0 0 16px 0', 
+                        fontSize: '0.9rem',
+                        lineHeight: '1.4'
+                      }}>
+                        Vous avez déjà connecté avec tous les utilisateurs disponibles ! 
+                        Revenez plus tard pour découvrir de nouveaux membres.
+                      </p>
+                      <button
+                        onClick={refreshSuggestions}
+                        style={{
+                          background: '#ff6b35',
+                          color: 'white',
+                          border: 'none',
+                          padding: '10px 20px',
+                          borderRadius: '12px',
+                          fontSize: '0.9rem',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.target.style.background = '#e55a2b'
+                          e.target.style.transform = 'translateY(-1px)'
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.background = '#ff6b35'
+                          e.target.style.transform = 'translateY(0)'
+                        }}
+                      >
+                        🔄 Rechercher de nouvelles suggestions
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>

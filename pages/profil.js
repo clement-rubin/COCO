@@ -264,9 +264,67 @@ export default function Profil() {
   if (loading) {
     return (
       <Layout>
-        <div className={styles.loadingContainer}>
-          <div className={styles.loadingIcon}>🍳</div>
-          <div className={styles.loadingText}>Chargement de votre profil...</div>
+        <div style={{
+          background: 'linear-gradient(135deg, #fef3e2 0%, #fff5e6 50%, #fef7ed 100%)',
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexDirection: 'column',
+          gap: '24px',
+          position: 'relative'
+        }}>
+          {/* Éléments décoratifs de fond */}
+          <div style={{
+            position: 'fixed',
+            top: '20%',
+            right: '-40px',
+            width: '120px',
+            height: '120px',
+            background: 'linear-gradient(45deg, #ff6b35, #f7931e)',
+            borderRadius: '50%',
+            opacity: 0.08,
+            animation: 'float 6s ease-in-out infinite'
+          }} />
+          
+          <div style={{
+            width: '80px',
+            height: '80px',
+            background: 'linear-gradient(135deg, #ff6b35, #f7931e)',
+            borderRadius: '24px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '2.5rem',
+            boxShadow: '0 12px 35px rgba(255, 107, 53, 0.3)',
+            animation: 'pulse 2s ease-in-out infinite',
+            border: '3px solid rgba(255, 255, 255, 0.9)'
+          }}>
+            🍳
+          </div>
+          
+          <div style={{
+            textAlign: 'center',
+            color: '#1f2937'
+          }}>
+            <h2 style={{
+              fontSize: '1.5rem',
+              fontWeight: '700',
+              margin: '0 0 8px 0',
+              background: 'linear-gradient(135deg, #ff6b35, #f7931e)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent'
+            }}>
+              Chargement de votre profil...
+            </h2>
+            <p style={{
+              fontSize: '1rem',
+              color: '#6b7280',
+              margin: 0
+            }}>
+              Préparation de votre espace culinaire
+            </p>
+          </div>
         </div>
       </Layout>
     )
@@ -275,16 +333,73 @@ export default function Profil() {
   if (error) {
     return (
       <Layout>
-        <div className={styles.errorContainer}>
-          <div className={styles.errorIcon}>😓</div>
-          <h2 className={styles.errorTitle}>Oups ! Une erreur s'est produite</h2>
-          <p className={styles.errorMessage}>{error}</p>
-          <button 
-            onClick={loadUserProfile}
-            className={`btn btn-primary ${styles.retryBtn}`}
-          >
-            🔄 Réessayer
-          </button>
+        <div style={{
+          background: 'linear-gradient(135deg, #fef3e2 0%, #fff5e6 50%, #fef7ed 100%)',
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexDirection: 'column',
+          gap: '24px',
+          padding: '20px'
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '24px',
+            padding: '40px',
+            textAlign: 'center',
+            boxShadow: '0 12px 40px rgba(0,0,0,0.1)',
+            maxWidth: '400px',
+            width: '100%'
+          }}>
+            <div style={{
+              fontSize: '4rem',
+              marginBottom: '20px'
+            }}>😓</div>
+            <h2 style={{
+              fontSize: '1.5rem',
+              fontWeight: '700',
+              margin: '0 0 12px 0',
+              color: '#dc2626'
+            }}>
+              Oups ! Une erreur s'est produite
+            </h2>
+            <p style={{
+              color: '#6b7280',
+              margin: '0 0 24px 0',
+              lineHeight: '1.5'
+            }}>
+              {error}
+            </p>
+            <button 
+              onClick={loadUserProfile}
+              style={{
+                background: 'linear-gradient(135deg, #ff6b35, #f7931e)',
+                color: 'white',
+                border: 'none',
+                padding: '12px 24px',
+                borderRadius: '16px',
+                fontWeight: '700',
+                fontSize: '1rem',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                margin: '0 auto'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.transform = 'translateY(-2px)'
+                e.target.style.boxShadow = '0 8px 25px rgba(255, 107, 53, 0.4)'
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'translateY(0)'
+                e.target.style.boxShadow = 'none'
+              }}
+            >
+              🔄 Réessayer
+            </button>
+          </div>
         </div>
       </Layout>
     )
@@ -292,155 +407,488 @@ export default function Profil() {
 
   return (
     <Layout>
-      <div className={styles.container}>
+      <div style={{
+        background: 'linear-gradient(135deg, #fef3e2 0%, #fff5e6 50%, #fef7ed 100%)',
+        minHeight: '100vh',
+        position: 'relative'
+      }}>
         <Head>
           <title>Mon Profil - COCO</title>
           <meta name="description" content="Gérez votre profil sur COCO" />
         </Head>
 
-        {/* Hero Section modernisée */}
-        <section className={styles.heroSection}>
-          <div className={styles.heroBackground}>
-            <div className={styles.heroPattern}></div>
-          </div>
-          <div className={styles.profileCard}>
-            <div className={styles.avatarContainer}>
-              <div className={styles.avatar}>
-                {profile?.display_name?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || '👤'}
-              </div>
-              <div className={styles.statusIndicator}></div>
+        {/* Éléments décoratifs de fond */}
+        <div style={{
+          position: 'fixed',
+          top: '-40px',
+          right: '-40px',
+          width: '160px',
+          height: '160px',
+          background: 'linear-gradient(45deg, #ff6b35, #f7931e)',
+          borderRadius: '50%',
+          opacity: 0.08,
+          animation: 'float 6s ease-in-out infinite'
+        }} />
+        <div style={{
+          position: 'fixed',
+          top: '20%',
+          left: '-60px',
+          width: '120px',
+          height: '120px',
+          background: 'linear-gradient(45deg, #4caf50, #45a049)',
+          borderRadius: '50%',
+          opacity: 0.06,
+          animation: 'float 8s ease-in-out infinite reverse'
+        }} />
+
+        {/* Hero Section modernisée avec design unifié */}
+        <section style={{
+          width: '100%',
+          background: 'linear-gradient(135deg, #fef3e2 0%, #fff5e6 50%, #fef7ed 100%)',
+          padding: '80px 0 40px 0',
+          position: 'relative',
+          overflow: 'hidden',
+          marginBottom: 0,
+          marginTop: '-64px'
+        }}>
+          {/* Éléments décoratifs spécifiques au hero */}
+          <div style={{
+            position: 'absolute',
+            top: '-20px',
+            left: '10%',
+            width: '200px',
+            height: '200px',
+            background: 'radial-gradient(circle at 60% 40%, #ff6b35 0%, transparent 70%)',
+            opacity: 0.06,
+            animation: 'float 12s ease-in-out infinite'
+          }} />
+
+          <div style={{
+            maxWidth: '500px',
+            margin: '0 auto',
+            position: 'relative',
+            zIndex: 1,
+            textAlign: 'center',
+            padding: '24px 20px 0'
+          }}>
+            {/* Avatar principal avec effet moderne */}
+            <div style={{
+              width: '120px',
+              height: '120px',
+              background: 'linear-gradient(135deg, #ff6b35, #f7931e)',
+              borderRadius: '32px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '3rem',
+              margin: '0 auto 24px',
+              boxShadow: '0 16px 40px rgba(255, 107, 53, 0.3), 0 8px 20px rgba(255, 107, 53, 0.15)',
+              border: '4px solid rgba(255, 255, 255, 0.9)',
+              position: 'relative',
+              animation: 'float 6s ease-in-out infinite'
+            }}>
+              {profile?.display_name?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || '👤'}
+              
+              {/* Indicateur de statut */}
+              <div style={{
+                position: 'absolute',
+                bottom: '8px',
+                right: '8px',
+                width: '24px',
+                height: '24px',
+                background: '#22c55e',
+                borderRadius: '50%',
+                border: '3px solid white',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+              }} />
+              
+              {/* Effet de brillance */}
+              <div style={{
+                position: 'absolute',
+                top: '20%',
+                left: '25%',
+                width: '40%',
+                height: '40%',
+                background: 'radial-gradient(circle, rgba(255, 255, 255, 0.4) 0%, transparent 70%)',
+                borderRadius: '50%',
+                filter: 'blur(4px)',
+                animation: 'shine 3s ease-in-out infinite'
+              }} />
             </div>
-            <div className={styles.profileInfo}>
-              <h1 className={styles.profileName}>
-                {profile?.display_name || user?.email || 'Utilisateur'}
-                {profile?.is_private && <span className={styles.privateBadge}>🔒</span>}
+
+            {/* Informations utilisateur */}
+            <div style={{ marginBottom: '32px' }}>
+              <h1 style={{
+                fontSize: '2.5rem',
+                fontWeight: '900',
+                margin: '0 0 12px 0',
+                background: 'linear-gradient(135deg, #ff6b35 0%, #f7931e 50%, #ff8a50 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                letterSpacing: '-0.02em',
+                lineHeight: '1.1'
+              }}>
+                {profile?.display_name || user?.email || 'Chef COCO'}
+                {profile?.is_private && (
+                  <span style={{
+                    fontSize: '1rem',
+                    marginLeft: '12px',
+                    background: 'rgba(107, 114, 128, 0.1)',
+                    padding: '4px 12px',
+                    borderRadius: '12px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}>
+                    🔒 Privé
+                  </span>
+                )}
               </h1>
-              <p className={styles.profileBio}>
+              
+              <p style={{
+                fontSize: '1.1rem',
+                color: '#6b7280',
+                margin: '0 0 16px 0',
+                lineHeight: '1.5',
+                maxWidth: '400px',
+                margin: '0 auto 16px'
+              }}>
                 {profile?.bio || 'Passionné de cuisine et de partage 🍳'}
               </p>
+              
               {profile?.location && (
-                <div className={styles.locationBadge}>
-                  <span className={styles.locationIcon}>📍</span>
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  background: 'rgba(255, 255, 255, 0.8)',
+                  padding: '8px 16px',
+                  borderRadius: '16px',
+                  fontSize: '0.9rem',
+                  color: '#374151',
+                  fontWeight: '500',
+                  backdropFilter: 'blur(10px)',
+                  border: '1px solid rgba(255, 107, 53, 0.2)'
+                }}>
+                  <span>📍</span>
                   <span>{profile.location}</span>
                 </div>
               )}
             </div>
-            <div className={styles.statsContainer}>
-              <div className={styles.statsGrid}>
-                {[
-                  {
-                    icon: '📝',
-                    value: userStats.recipesCount,
-                    label: 'Recette',
-                    color: '#FF6B6B'
-                  },
-                  {
-                    icon: '❤️',
-                    value: userStats.likesReceived,
-                    label: 'Like',
-                    color: '#FF4757'
-                  },
-                  {
-                    icon: '👥',
-                    value: userStats.friendsCount,
-                    label: 'Ami',
-                    color: '#3742FA'
-                  },
-                  {
-                    icon: '🏆',
-                    value: userStats.trophiesUnlocked,
-                    label: 'Trophée',
-                    color: '#FFD700'
-                  },
-                  {
-                    icon: '⭐',
-                    value: userStats.trophyPoints,
-                    label: 'Point',
-                    color: '#FFA502'
-                  }
-                ].map((stat, index) => (
-                  <div 
-                    key={index} 
-                    className={styles.statCard}
-                    style={{'--stat-color': stat.color}}
-                  >
-                    <div className={styles.statIcon} style={{color: stat.color}}>
-                      {stat.icon}
-                    </div>
-                    <div className={styles.statNumber}>{stat.value}</div>
-                    <div className={styles.statLabel}>
-                      {stat.label}{stat.value > 1 ? 's' : ''}
-                    </div>
+
+            {/* Statistiques modernisées */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              gap: '16px',
+              marginBottom: '32px',
+              flexWrap: 'wrap'
+            }}>
+              {[
+                {
+                  icon: '📝',
+                  value: userStats.recipesCount,
+                  label: 'Recette',
+                  color: '#ff6b35',
+                  bgColor: 'rgba(255, 107, 53, 0.1)'
+                },
+                {
+                  icon: '❤️',
+                  value: userStats.likesReceived,
+                  label: 'Like',
+                  color: '#ef4444',
+                  bgColor: 'rgba(239, 68, 68, 0.1)'
+                },
+                {
+                  icon: '👥',
+                  value: userStats.friendsCount,
+                  label: 'Ami',
+                  color: '#3b82f6',
+                  bgColor: 'rgba(59, 130, 246, 0.1)'
+                },
+                {
+                  icon: '🏆',
+                  value: userStats.trophiesUnlocked,
+                  label: 'Trophée',
+                  color: '#fbbf24',
+                  bgColor: 'rgba(251, 191, 36, 0.1)'
+                }
+              ].map((stat, index) => (
+                <div 
+                  key={index} 
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.9)',
+                    backdropFilter: 'blur(15px)',
+                    padding: '20px',
+                    borderRadius: '20px',
+                    border: `2px solid ${stat.bgColor}`,
+                    minWidth: '90px',
+                    animation: `fadeInUp 0.6s ease-out ${index * 0.15}s both`,
+                    boxShadow: '0 8px 25px rgba(0, 0, 0, 0.08)',
+                    transition: 'all 0.3s ease',
+                    cursor: 'default'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.transform = 'translateY(-4px) scale(1.02)'
+                    e.target.style.boxShadow = '0 12px 35px rgba(0, 0, 0, 0.12)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.transform = 'translateY(0) scale(1)'
+                    e.target.style.boxShadow = '0 8px 25px rgba(0, 0, 0, 0.08)'
+                  }}
+                >
+                  <div style={{ 
+                    fontSize: '1.8rem', 
+                    marginBottom: '8px',
+                    filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))'
+                  }}>
+                    {stat.icon}
                   </div>
-                ))}
+                  <div style={{
+                    fontSize: '1.5rem',
+                    fontWeight: '800',
+                    color: stat.color,
+                    marginBottom: '4px'
+                  }}>
+                    {stat.value}
+                  </div>
+                  <div style={{
+                    fontSize: '0.85rem',
+                    color: '#64748b',
+                    fontWeight: '600'
+                  }}>
+                    {stat.label}{stat.value > 1 ? 's' : ''}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Barre de complétude du profil */}
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.9)',
+              backdropFilter: 'blur(15px)',
+              padding: '20px',
+              borderRadius: '20px',
+              border: '1px solid rgba(255, 107, 53, 0.2)',
+              maxWidth: '400px',
+              margin: '0 auto'
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: '12px'
+              }}>
+                <span style={{
+                  fontSize: '0.9rem',
+                  fontWeight: '600',
+                  color: '#374151'
+                }}>
+                  📊 Complétude du profil
+                </span>
+                <span style={{
+                  fontSize: '1rem',
+                  fontWeight: '700',
+                  color: userStats.profileCompleteness > 70 ? '#22c55e' : 
+                        userStats.profileCompleteness > 40 ? '#f59e0b' : '#ef4444'
+                }}>
+                  {userStats.profileCompleteness}%
+                </span>
+              </div>
+              <div style={{
+                width: '100%',
+                height: '8px',
+                background: '#e5e7eb',
+                borderRadius: '4px',
+                overflow: 'hidden'
+              }}>
+                <div style={{
+                  width: `${userStats.profileCompleteness}%`,
+                  height: '100%',
+                  background: userStats.profileCompleteness > 70 ? 
+                    'linear-gradient(90deg, #22c55e, #16a34a)' :
+                    userStats.profileCompleteness > 40 ? 
+                    'linear-gradient(90deg, #f59e0b, #d97706)' :
+                    'linear-gradient(90deg, #ef4444, #dc2626)',
+                  borderRadius: '4px',
+                  transition: 'width 1s ease-out'
+                }} />
               </div>
             </div>
           </div>
         </section>
 
         {/* Section principale avec onglets modernisés */}
-        <section className={styles.contentSection}>
-          <div className={styles.tabContainer}>
-            <div className={styles.tabNavigation}>
-              {[
-                {
-                  id: 'info',
-                  label: 'Profil',
-                  icon: '👤',
-                  color: '#3742FA'
-                },
-                {
-                  id: 'recipes',
-                  label: 'Recettes',
-                  icon: '📝',
-                  color: '#FF6B6B'
-                },
-                {
-                  id: 'trophies',
-                  label: 'Trophées',
-                  icon: '🏆',
-                  color: '#FFD700'
-                },
-                {
-                  id: 'settings',
-                  label: 'Paramètres',
-                  icon: '⚙️',
-                  color: '#2F3542'
-                }
-              ].map(tab => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`${styles.tabButton} ${activeTab === tab.id ? styles.active : ''}`}
-                  style={activeTab === tab.id ? {'--tab-color': tab.color} : {}}
-                >
-                  <span className={styles.tabIcon}>{tab.icon}</span>
-                  <span className={styles.tabLabel}>{tab.label}</span>
-                  {activeTab === tab.id && <div className={styles.tabIndicator}></div>}
-                </button>
-              ))}
-            </div>
-          </div>
+        <div style={{
+          maxWidth: '900px',
+          margin: '-20px auto 0',
+          background: 'white',
+          borderRadius: '28px 28px 0 0',
+          boxShadow: '0 -12px 40px rgba(0,0,0,0.1), 0 -4px 15px rgba(0,0,0,0.05)',
+          overflow: 'hidden',
+          position: 'relative',
+          zIndex: 2,
+          minHeight: '60vh'
+        }}>
+          {/* Navigation tabs redessinée */}
+          <nav style={{
+            position: 'sticky',
+            top: 0,
+            zIndex: 10,
+            background: 'rgba(255,255,255,0.98)',
+            boxShadow: '0 2px 12px rgba(0,0,0,0.03)',
+            borderBottom: '1px solid #f3f4f6',
+            padding: '20px 24px 0',
+            display: 'flex',
+            gap: '8px'
+          }}>
+            {[
+              {
+                id: 'info',
+                label: 'Profil',
+                icon: '👤',
+                color: '#ff6b35'
+              },
+              {
+                id: 'recipes',
+                label: 'Recettes',
+                icon: '📝',
+                color: '#10b981'
+              },
+              {
+                id: 'trophies',
+                label: 'Trophées',
+                icon: '🏆',
+                color: '#fbbf24'
+              },
+              {
+                id: 'settings',
+                label: 'Paramètres',
+                icon: '⚙️',
+                color: '#6b7280'
+              }
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                style={{
+                  position: 'relative',
+                  padding: '12px 20px 16px',
+                  borderRadius: '16px 16px 0 0',
+                  fontWeight: '700',
+                  fontSize: '0.95rem',
+                  color: activeTab === tab.id ? tab.color : '#6b7280',
+                  background: activeTab === tab.id ? 'white' : 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  boxShadow: activeTab === tab.id ? '0 -4px 15px rgba(0, 0, 0, 0.1)' : 'none',
+                  transform: activeTab === tab.id ? 'translateY(-2px)' : 'translateY(0)'
+                }}
+                onMouseEnter={(e) => {
+                  if (activeTab !== tab.id) {
+                    e.target.style.background = 'rgba(255, 255, 255, 0.5)'
+                    e.target.style.color = tab.color
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (activeTab !== tab.id) {
+                    e.target.style.background = 'transparent'
+                    e.target.style.color = '#6b7280'
+                  }
+                }}
+              >
+                <span style={{ fontSize: '1.1rem' }}>{tab.icon}</span>
+                <span>{tab.label}</span>
+                {activeTab === tab.id && (
+                  <div style={{
+                    position: 'absolute',
+                    bottom: '0',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    width: '60%',
+                    height: '3px',
+                    background: tab.color,
+                    borderRadius: '2px 2px 0 0'
+                  }} />
+                )}
+              </button>
+            ))}
+          </nav>
 
-          <div className={styles.tabContent}>
+          {/* Contenu principal */}
+          <main style={{
+            padding: '32px 24px',
+            minHeight: '400px'
+          }}>
+            {/* ...existing tab content with improved styling... */}
             {activeTab === 'info' && (
-              <div className={styles.infoSection}>
-                <div className={styles.sectionCard}>
-                  <div className={styles.sectionHeader}>
-                    <div className={styles.sectionTitle}>
-                      <span className={styles.sectionIcon}>👤</span>
-                      <h2>Informations personnelles</h2>
+              <div style={{
+                animation: 'fadeInUp 0.5s ease-out'
+              }}>
+                <div style={{
+                  background: 'white',
+                  borderRadius: '20px',
+                  boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
+                  padding: '32px',
+                  border: '1px solid #f3f4f6'
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: '24px'
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px'
+                    }}>
+                      <span style={{ fontSize: '1.5rem' }}>👤</span>
+                      <h2 style={{
+                        margin: 0,
+                        fontSize: '1.5rem',
+                        fontWeight: '700',
+                        color: '#1f2937'
+                      }}>
+                        Informations personnelles
+                      </h2>
                     </div>
                     <button
                       onClick={() => setIsEditing(!isEditing)}
-                      className={`${styles.actionButton} ${isEditing ? styles.secondary : styles.primary}`}
+                      style={{
+                        background: isEditing ? 
+                          'rgba(239, 68, 68, 0.1)' : 
+                          'linear-gradient(135deg, #ff6b35, #f7931e)',
+                        color: isEditing ? '#dc2626' : 'white',
+                        border: isEditing ? '2px solid #dc2626' : 'none',
+                        padding: '12px 24px',
+                        borderRadius: '16px',
+                        fontWeight: '700',
+                        fontSize: '0.95rem',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.transform = 'translateY(-2px)'
+                        e.target.style.boxShadow = '0 8px 25px rgba(0, 0, 0, 0.15)'
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.transform = 'translateY(0)'
+                        e.target.style.boxShadow = 'none'
+                      }}
                     >
-                      <span className={styles.buttonIcon}>
-                        {isEditing ? '❌' : '✏️'}
-                      </span>
+                      <span>{isEditing ? '❌' : '✏️'}</span>
                       <span>{isEditing ? 'Annuler' : 'Modifier'}</span>
                     </button>
                   </div>
+
                   {isEditing ? (
                     <div className={styles.editForm}>
                       <div className={styles.completenessCard}>
@@ -571,34 +1019,34 @@ export default function Profil() {
                             </div>
                           </div>
                         ))}
-                      </div>
-                      <div className={styles.privacySection}>
-                        <div className={styles.toggleCard}>
-                          <div className={styles.toggleInfo}>
-                            <div className={styles.toggleTitle}>
-                              <span className={styles.toggleIcon}>🔒</span>
-                              <span>Profil privé</span>
-                              {editForm.is_private && (
-                                <span className={styles.privateBadge}>PRIVÉ</span>
-                              )}
+
+                        <div className={styles.privacySection}>
+                          <div className={styles.toggleCard}>
+                            <div className={styles.toggleInfo}>
+                              <div className={styles.toggleTitle}>
+                                <span className={styles.toggleIcon}>🔒</span>
+                                <span>Profil privé</span>
+                                {editForm.is_private && (
+                                  <span className={styles.privateBadge}>PRIVÉ</span>
+                                )}
+                              </div>
+                              <div className={styles.toggleDescription}>
+                                {editForm.is_private 
+                                  ? 'Seuls vos amis peuvent voir votre profil complet' 
+                                  : 'Votre profil est visible par tous les utilisateurs'
+                                }
+                              </div>
                             </div>
-                            <div className={styles.toggleDescription}>
-                              {editForm.is_private 
-                                ? 'Seuls vos amis peuvent voir votre profil complet' 
-                                : 'Votre profil est visible par tous les utilisateurs'
-                              }
-                            </div>
+                            
+                            <label className={styles.switch}>
+                              <input
+                                type="checkbox"
+                                checked={editForm.is_private}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, is_private: e.target.checked }))}
+                              />
+                              <span className={styles.slider}></span>
+                            </label>
                           </div>
-                          
-                          <label className={styles.switch}>
-                            <input
-                              type="checkbox"
-                              checked={editForm.is_private}
-                              onChange={(e) => setEditForm(prev => ({ ...prev, is_private: e.target.checked }))
-                              }
-                            />
-                            <span className={styles.slider}></span>
-                          </label>
                         </div>
                       </div>
                       <div className={styles.formActions}>
@@ -691,6 +1139,42 @@ export default function Profil() {
                             </div>
                           </div>
                         ))}
+
+                        {/* Bouton d'action flottant pour ajouter une recette */}
+                        <div className={styles.floatingAction}>
+                          <button
+                            onClick={() => router.push('/share-photo')}
+                            className={styles.addRecipeButton}
+                            style={{
+                              background: 'linear-gradient(135deg, #10b981, #06b755)',
+                              color: 'white',
+                              border: 'none',
+                              padding: '12px 24px',
+                              borderRadius: '16px',
+                              fontWeight: '700',
+                              fontSize: '1rem',
+                              cursor: 'pointer',
+                              transition: 'all 0.3s ease',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                              boxShadow: '0 8px 25px rgba(16, 185, 129, 0.3)',
+                              position: 'relative',
+                              overflow: 'hidden'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.target.style.transform = 'translateY(-2px)'
+                              e.target.style.boxShadow = '0 12px 35px rgba(16, 185, 129, 0.4)'
+                            }}
+                            onMouseLeave={(e) => {
+                              e.target.style.transform = 'translateY(0)'
+                              e.target.style.boxShadow = 'none'
+                            }}
+                          >
+                            <span className={styles.buttonIcon}>📸</span>
+                            <span>Créer une recette</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -789,26 +1273,93 @@ export default function Profil() {
                 </div>
               </div>
             )}
-          </div>
-        </section>
+          </main>
+        </div>
 
-        {/* Notification trophée modernisée */}
+        {/* Toast notifications modernisées */}
         {showTrophyNotification && newTrophies.length > 0 && (
-          <div className={styles.trophyNotification}>
-            <div className={styles.notificationHeader}>
-              <span className={styles.notificationIcon}>🏆</span>
-              <span className={styles.notificationTitle}>Nouveau trophée débloqué !</span>
+          <div style={{
+            position: 'fixed',
+            top: '20px',
+            right: '20px',
+            background: 'linear-gradient(135deg, #fbbf24, #f59e0b)',
+            color: 'white',
+            padding: '20px 24px',
+            borderRadius: '20px',
+            boxShadow: '0 12px 40px rgba(251, 191, 36, 0.3)',
+            zIndex: 1000,
+            animation: 'slideInRight 0.5s ease-out',
+            maxWidth: '350px'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              marginBottom: '8px'
+            }}>
+              <span style={{ fontSize: '1.5rem' }}>🏆</span>
+              <span style={{ 
+                fontSize: '1.1rem', 
+                fontWeight: '700' 
+              }}>
+                Nouveau trophée débloqué !
+              </span>
             </div>
-            <div className={styles.notificationTrophies}>
+            <div>
               {newTrophies.map(trophy => (
-                <div key={trophy.id} className={styles.notificationTrophy}>
-                  <span className={styles.trophyIcon}>{trophy.icon}</span>
-                  <span className={styles.trophyName}>{trophy.name}</span>
+                <div key={trophy.id} style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  fontSize: '0.95rem'
+                }}>
+                  <span>{trophy.icon}</span>
+                  <span>{trophy.name}</span>
                 </div>
               ))}
             </div>
           </div>
         )}
+
+        {/* Style global pour les animations */}
+        <style jsx global>{`
+          @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+          }
+          
+          @keyframes shine {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 0.8; }
+          }
+          
+          @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+          }
+          
+          @keyframes fadeInUp {
+            from { 
+              opacity: 0; 
+              transform: translateY(30px); 
+            }
+            to { 
+              opacity: 1; 
+              transform: translateY(0); 
+            }
+          }
+          
+          @keyframes slideInRight {
+            from { 
+              opacity: 0; 
+              transform: translateX(100%); 
+            }
+            to { 
+              opacity: 1; 
+              transform: translateX(0); 
+            }
+          }
+        `}</style>
       </div>
     </Layout>
   )
