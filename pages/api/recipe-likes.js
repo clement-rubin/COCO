@@ -30,29 +30,47 @@ export default async function handler(req, res) {
       if (recipe_ids) {
         // Obtenir les likes de plusieurs recettes
         try {
-          const recipeIdsArray = Array.isArray(recipe_ids) ? recipe_ids : [recipe_ids]
+          const recipeIdsArray = recipe_ids.split(',').filter(id => id.trim())
           
           logDebug('Getting likes for multiple recipes', {
             requestId,
             recipeIdsCount: recipeIdsArray.length,
-            recipeIds: recipeIdsArray.slice(0, 5) // Log seulement les 5 premiers
+            recipeIds: recipeIdsArray.slice(0, 5)
           })
 
-          const { data, error } = await supabase.rpc('get_multiple_recipes_likes', {
-            recipe_ids: recipeIdsArray
-          })
-
-          if (error) {
-            throw error
-          }
-
+          // Récupérer les likes pour chaque recette
           const likesData = {}
-          data?.forEach(item => {
-            likesData[item.recipe_id] = {
-              likes_count: item.likes_count || 0,
-              user_has_liked: item.user_has_liked || false
+          
+          for (const recipeId of recipeIdsArray) {
+            try {
+              // Compter les likes pour cette recette
+              const { count, error: countError } = await supabase
+                .from('recipe_likes')
+                .select('*', { count: 'exact', head: true })
+                .eq('recipe_id', recipeId)
+
+              if (countError) {
+                logError('Error counting likes for recipe', countError, { recipeId })
+                likesData[recipeId] = { likes_count: 0, user_has_liked: false }
+                continue
+              }
+
+              // Vérifier si l'utilisateur actuel a liké (si connecté)
+              let userHasLiked = false
+              if (req.headers.authorization || req.headers['x-user-id']) {
+                // Dans une vraie app, récupérer l'user_id depuis l'auth
+                // Pour l'instant, pas de vérification user_has_liked pour les requêtes multiples
+              }
+
+              likesData[recipeId] = {
+                likes_count: count || 0,
+                user_has_liked: userHasLiked
+              }
+            } catch (error) {
+              logError('Error processing recipe likes', error, { recipeId })
+              likesData[recipeId] = { likes_count: 0, user_has_liked: false }
             }
-          })
+          }
 
           logInfo('Multiple recipe likes retrieved', {
             requestId,

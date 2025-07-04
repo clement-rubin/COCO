@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Image from 'next/image'
 import { useAuth } from './AuthContext'
-import { logUserInteraction, logError } from '../utils/logger'
+import { logUserInteraction, logError, logDebug } from '../utils/logger'
 import { showRecipeLikeInteractionNotification } from '../utils/notificationUtils'
 import { getRecipeIllustration } from '../utils/recipeIllustrations'
+import { getMultipleRecipesLikesStats } from '../utils/likesUtils' // Ajouter cette import
 import styles from '../styles/FriendsFeed.module.css'
 import RecipeCard from './RecipeCard'
 
@@ -15,6 +16,7 @@ export default function FriendsFeed({ feedType = 'featured' }) {
   const [loading, setLoading] = useState(true)
   const [likedRecipes, setLikedRecipes] = useState(new Set())
   const [error, setError] = useState(null)
+  const [likesData, setLikesData] = useState({}) // Nouveau: stocker les vraies données de likes
   const [collections, setCollections] = useState([
     { name: 'Italien', emoji: '🍝', count: 0, color: '#ef4444' },
     { name: 'Végétarien', emoji: '🥗', count: 0, color: '#22c55e' },
@@ -45,16 +47,13 @@ export default function FriendsFeed({ feedType = 'featured' }) {
       let apiUrl = '/api/recipes?limit=10'
       
       if (type === 'trending') {
-        // Dans une vraie app, vous utiliseriez un tri par popularité
         apiUrl += '&sort=popular'
       } else if (type === 'recent') {
         apiUrl += '&sort=created_at'
       } else if (type === 'featured') {
-        // Par défaut, les recettes en vedette (une requête personnalisée)
         apiUrl += '&featured=true'
       }
       
-      // Ajouter un timestamp pour éviter la mise en cache
       apiUrl += `&_t=${Date.now()}`
       
       const response = await fetch(apiUrl)
@@ -69,6 +68,9 @@ export default function FriendsFeed({ feedType = 'featured' }) {
       const formattedRecipes = formatRecipesForDisplay(data, type)
       setRecipes(formattedRecipes)
       
+      // NOUVEAU: Charger les vraies statistiques de likes
+      await loadRealLikesData(data)
+      
       // Update collection counts
       updateCollectionCounts(data)
     } catch (err) {
@@ -76,6 +78,26 @@ export default function FriendsFeed({ feedType = 'featured' }) {
       logError('Failed to load recipes in FriendsFeed', err, { feedType: type })
     } finally {
       setLoading(false)
+    }
+  }
+
+  // NOUVELLE FONCTION: Charger les vraies données de likes
+  const loadRealLikesData = async (recipes) => {
+    try {
+      const recipeIds = recipes.map(recipe => recipe.id)
+      const result = await getMultipleRecipesLikesStats(recipeIds)
+      
+      if (result.success) {
+        setLikesData(result.data)
+        logDebug('FriendsFeed: Real likes data loaded', {
+          recipesCount: recipeIds.length,
+          likesDataKeys: Object.keys(result.data).length
+        })
+      } else {
+        logError('FriendsFeed: Failed to load real likes data', new Error(result.error))
+      }
+    } catch (error) {
+      logError('FriendsFeed: Error loading real likes data', error)
     }
   }
   
@@ -89,7 +111,6 @@ export default function FriendsFeed({ feedType = 'featured' }) {
           const { processImageData } = require('../utils/imageUtils')
           const processedUrl = processImageData(recipe.image, null)
           
-          // Si l'URL traitée est valide, l'utiliser, sinon garder l'illustration
           if (processedUrl && 
               (processedUrl.startsWith('data:image/') || processedUrl.startsWith('http'))) {
             imageUrl = processedUrl
@@ -106,34 +127,30 @@ export default function FriendsFeed({ feedType = 'featured' }) {
             recipeId: recipe.id,
             imageType: typeof recipe.image
           })
-          // L'illustration est déjà définie comme fallback
         }
       }
       
-      // Calculate metrics based on recipe complexity
-      const ingredients = Array.isArray(recipe.ingredients) ? recipe.ingredients.length : 0
-      const instructions = Array.isArray(recipe.instructions) ? recipe.instructions.length : 0
-      const complexity = ingredients + instructions
+      // MODIFICATION: Utiliser les vraies données de likes au lieu de simuler
+      const realLikesData = likesData[recipe.id] || { likes_count: recipe.likes_count || 0 }
       
       const rating = 4 + (Math.random() * 1)
-      const likes = 50 + Math.floor(complexity * 10)
-      
-      // Get emoji for chef based on category
       const chefEmoji = getCategoryEmoji(recipe.category)
       
       return {
         id: recipe.id,
         name: recipe.title,
         category: recipe.category || 'Autre',
-        // Simplification : suppression des détails techniques
         rating: parseFloat(rating.toFixed(1)),
         emoji: chefEmoji,
         chef: recipe.author || 'Chef Anonyme',
-        likes,
-        image: imageUrl, // Utilise l'illustration ou l'image traitée
+        likes: realLikesData.likes_count, // CORRECTION: Utiliser les vraies données
+        image: imageUrl,
         isNew: type === 'recent',
         isTrending: type === 'trending',
-        isHealthy: recipe.category === 'Healthy' || recipe.category === 'Végétarien'
+        isHealthy: recipe.category === 'Healthy' || recipe.category === 'Végétarien',
+        // Ajouter les données complètes pour RecipeCard
+        likes_count: realLikesData.likes_count,
+        user_has_liked: realLikesData.user_has_liked || false
       }
     })
   }
@@ -191,6 +208,7 @@ export default function FriendsFeed({ feedType = 'featured' }) {
     const recipe = recipes.find(r => r.id === recipeId)
     const isLiking = !likedRecipes.has(recipeId)
     
+    // Mettre à jour l'état local immédiatement pour une réaction rapide
     setLikedRecipes(prev => {
       const newSet = new Set(prev)
       if (newSet.has(recipeId)) {
@@ -198,7 +216,6 @@ export default function FriendsFeed({ feedType = 'featured' }) {
       } else {
         newSet.add(recipeId)
         
-        // Déclencher une notification pour le chef de la recette
         if (recipe && recipe.chef !== user.user_metadata?.display_name) {
           showRecipeLikeInteractionNotification(
             {
@@ -214,16 +231,35 @@ export default function FriendsFeed({ feedType = 'featured' }) {
         }
       }
       
-      // Save to localStorage safely
       try {
         localStorage.setItem('userLikedRecipes', JSON.stringify([...newSet]))
       } catch (err) {
         console.error('Error saving likes to localStorage', err)
-        // Continue without localStorage if it fails
       }
       
       return newSet
     })
+
+    // NOUVEAU: Mettre à jour les données de likes localement
+    setLikesData(prev => ({
+      ...prev,
+      [recipeId]: {
+        likes_count: (prev[recipeId]?.likes_count || 0) + (isLiking ? 1 : -1),
+        user_has_liked: isLiking
+      }
+    }))
+
+    // Mettre à jour la liste des recettes avec les nouveaux likes
+    setRecipes(prev => prev.map(recipe => {
+      if (recipe.id === recipeId) {
+        return {
+          ...recipe,
+          likes: (recipe.likes || 0) + (isLiking ? 1 : -1),
+          likes_count: (recipe.likes_count || 0) + (isLiking ? 1 : -1)
+        }
+      }
+      return recipe
+    }))
     
     logUserInteraction('TOGGLE_LIKE', 'friends-feed', {
       recipeId,
@@ -313,7 +349,7 @@ export default function FriendsFeed({ feedType = 'featured' }) {
         </button>
       </div>
       
-      {/* Stories horizontales - utilisation du nouveau RecipeCard */}
+      {/* Stories horizontales - utilisation du nouveau RecipeCard avec vraies données */}
       <div className={styles.storiesContainer}>
         <div className={styles.storiesRow}>
           {recipes.map((recipe, index) => (
@@ -329,10 +365,12 @@ export default function FriendsFeed({ feedType = 'featured' }) {
                   difficulty: recipe.difficulty,
                   prepTime: recipe.time,
                   created_at: new Date().toISOString(),
-                  form_mode: 'complete'
+                  form_mode: 'complete',
+                  likes_count: recipe.likes_count || recipe.likes || 0 // CORRECTION: Utiliser les vraies données
                 }}
                 defaultCompact={true} // Mode compact pour les stories
                 showActions={false} // Pas d'actions dans les stories
+                showLikes={true} // S'assurer que les likes sont affichés
               />
             </div>
           ))}

@@ -38,21 +38,21 @@ export async function getRecipeLikesStats(recipeId) {
 /**
  * Obtenir les statistiques de likes pour plusieurs recettes
  */
-export async function getMultipleRecipesLikesStats(recipeIds) {
+export const getMultipleRecipesLikesStats = async (recipeIds) => {
+  if (!recipeIds || recipeIds.length === 0) {
+    return { success: true, data: {} }
+  }
+
   try {
-    if (!Array.isArray(recipeIds) || recipeIds.length === 0) {
-      return { success: true, data: {} }
+    const response = await fetch('/api/recipe-likes?' + new URLSearchParams({
+      recipe_ids: recipeIds.join(',')
+    }))
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(`HTTP ${response.status}: ${errorText}`)
     }
 
-    const params = new URLSearchParams()
-    recipeIds.forEach(id => params.append('recipe_ids', id))
-    
-    const response = await fetch(`/api/recipe-likes?${params.toString()}`)
-    
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-    }
-    
     const data = await response.json()
     
     return {
@@ -60,13 +60,15 @@ export async function getMultipleRecipesLikesStats(recipeIds) {
       data: data || {}
     }
   } catch (error) {
-    logError('Error getting multiple recipes likes stats', error, { 
-      recipeIdsCount: recipeIds?.length 
+    logError('Error getting multiple recipes likes stats', error, {
+      recipeIds: recipeIds.slice(0, 5),
+      recipeIdsCount: recipeIds.length
     })
+    
     return {
       success: false,
-      data: {},
-      error: error.message
+      error: error.message,
+      data: {}
     }
   }
 }
