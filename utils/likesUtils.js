@@ -1,280 +1,307 @@
-/**
- * Utility functions for managing realistic like patterns and behavior
- */
-
-import { logInfo, logError } from './logger'
+import { logInfo, logError, logDebug } from './logger'
+import { showRecipeLikeInteractionNotification } from './notificationUtils'
+import { useState, useEffect } from 'react'
 
 /**
- * Generate realistic like counts based on content quality and time
- * @param {Object} content - Content object with metadata
- * @returns {number} Realistic like count
+ * Utility functions pour gérer les likes des recettes
  */
-export function generateRealisticLikes(content) {
-  const {
-    createdAt,
-    difficulty = 'Moyen',
-    category = 'Autre',
-    ingredientsCount = 5,
-    instructionsCount = 5,
-    authorReputation = 1
-  } = content
-
-  // Base like count based on content complexity
-  let baseLikes = 10 + (ingredientsCount * 2) + (instructionsCount * 3)
-
-  // Difficulty multiplier
-  const difficultyMultipliers = {
-    'Facile': 1.5,
-    'Moyen': 1.2,
-    'Difficile': 0.9
-  }
-  baseLikes *= difficultyMultipliers[difficulty] || 1
-
-  // Category popularity multiplier
-  const categoryMultipliers = {
-    'Dessert': 1.8,
-    'Italien': 1.6,
-    'Végétarien': 1.4,
-    'BBQ': 1.3,
-    'Asiatique': 1.2,
-    'Healthy': 1.1,
-    'Autre': 1.0
-  }
-  baseLikes *= categoryMultipliers[category] || 1
-
-  // Time decay factor (newer content gets more engagement)
-  if (createdAt) {
-    const daysSinceCreated = (Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60 * 24)
-    const timeFactor = Math.max(0.3, 1 - (daysSinceCreated / 30)) // Decay over 30 days
-    baseLikes *= timeFactor
-  }
-
-  // Author reputation factor
-  baseLikes *= authorReputation
-
-  // Add some randomness for realism
-  const randomFactor = 0.7 + (Math.random() * 0.6) // Between 0.7 and 1.3
-  baseLikes *= randomFactor
-
-  return Math.round(Math.max(1, baseLikes))
-}
 
 /**
- * Simulate realistic like growth over time
- * @param {number} initialLikes - Starting like count
- * @param {number} hoursElapsed - Hours since content creation
- * @returns {number} Updated like count
+ * Obtenir les statistiques de likes pour une recette
  */
-export function simulateLikeGrowth(initialLikes, hoursElapsed) {
-  // Viral growth pattern: fast initial growth, then slower
-  const growthRate = Math.max(0.1, 2 - (hoursElapsed / 24)) // Decreases over days
-  const randomGrowth = Math.random() * growthRate
-  const newLikes = Math.round(initialLikes * (1 + randomGrowth * 0.1))
-  
-  return Math.max(initialLikes, newLikes)
-}
-
-/**
- * Get like analytics for content
- * @param {Array} likes - Array of like objects with timestamps
- * @returns {Object} Analytics data
- */
-export function getLikeAnalytics(likes) {
-  if (!Array.isArray(likes) || likes.length === 0) {
+export async function getRecipeLikesStats(recipeId) {
+  try {
+    const response = await fetch(`/api/recipe-likes?recipe_id=${recipeId}`)
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+    }
+    
+    const data = await response.json()
+    
     return {
-      total: 0,
-      today: 0,
-      thisWeek: 0,
-      thisMonth: 0,
-      trend: 'stable',
-      peakHour: null,
-      engagementRate: 0
+      success: true,
+      likes_count: data.likes_count || 0,
+      user_has_liked: data.user_has_liked || false
     }
-  }
-
-  const now = new Date()
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
-  const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
-
-  const todayLikes = likes.filter(like => new Date(like.timestamp) >= today).length
-  const weekLikes = likes.filter(like => new Date(like.timestamp) >= weekAgo).length
-  const monthLikes = likes.filter(like => new Date(like.timestamp) >= monthAgo).length
-
-  // Calculate trend
-  const lastWeekLikes = likes.filter(like => {
-    const likeDate = new Date(like.timestamp)
-    return likeDate >= new Date(weekAgo.getTime() - 7 * 24 * 60 * 60 * 1000) && likeDate < weekAgo
-  }).length
-
-  let trend = 'stable'
-  if (weekLikes > lastWeekLikes * 1.2) trend = 'rising'
-  else if (weekLikes < lastWeekLikes * 0.8) trend = 'falling'
-
-  // Find peak hour
-  const hourCounts = {}
-  likes.forEach(like => {
-    const hour = new Date(like.timestamp).getHours()
-    hourCounts[hour] = (hourCounts[hour] || 0) + 1
-  })
-  const peakHour = Object.keys(hourCounts).reduce((a, b) => 
-    hourCounts[a] > hourCounts[b] ? a : b, null
-  )
-
-  return {
-    total: likes.length,
-    today: todayLikes,
-    thisWeek: weekLikes,
-    thisMonth: monthLikes,
-    trend,
-    peakHour: peakHour ? parseInt(peakHour) : null,
-    engagementRate: Math.round((weekLikes / Math.max(1, likes.length)) * 100)
-  }
-}
-
-/**
- * Predict optimal posting time based on historical like patterns
- * @param {Array} historicalLikes - Historical like data
- * @returns {Object} Optimal posting recommendations
- */
-export function getOptimalPostingTime(historicalLikes) {
-  if (!Array.isArray(historicalLikes) || historicalLikes.length < 10) {
+  } catch (error) {
+    logError('Error getting recipe likes stats', error, { recipeId })
     return {
-      recommendedHour: 19, // Default to 7 PM
-      recommendedDay: 'Sunday',
-      confidence: 'low',
-      reason: 'Insufficient data'
+      success: false,
+      likes_count: 0,
+      user_has_liked: false,
+      error: error.message
     }
-  }
-
-  // Analyze by hour
-  const hourEngagement = {}
-  const dayEngagement = {}
-
-  historicalLikes.forEach(like => {
-    const date = new Date(like.timestamp)
-    const hour = date.getHours()
-    const day = date.toLocaleDateString('fr-FR', { weekday: 'long' })
-
-    hourEngagement[hour] = (hourEngagement[hour] || 0) + 1
-    dayEngagement[day] = (dayEngagement[day] || 0) + 1
-  })
-
-  const bestHour = Object.keys(hourEngagement).reduce((a, b) => 
-    hourEngagement[a] > hourEngagement[b] ? a : b
-  )
-
-  const bestDay = Object.keys(dayEngagement).reduce((a, b) => 
-    dayEngagement[a] > dayEngagement[b] ? a : b
-  )
-
-  const confidence = historicalLikes.length > 100 ? 'high' : 
-                    historicalLikes.length > 50 ? 'medium' : 'low'
-
-  return {
-    recommendedHour: parseInt(bestHour),
-    recommendedDay: bestDay,
-    confidence,
-    reason: `Based on ${historicalLikes.length} data points`
   }
 }
 
 /**
- * Create realistic like distribution for content
- * @param {number} totalLikes - Total number of likes to distribute
- * @param {number} daysOld - How many days old the content is
- * @returns {Array} Array of like timestamps
+ * Obtenir les statistiques de likes pour plusieurs recettes
  */
-export function createRealisticLikeDistribution(totalLikes, daysOld = 1) {
-  const likes = []
-  const now = Date.now()
-  const contentAge = daysOld * 24 * 60 * 60 * 1000
-
-  for (let i = 0; i < totalLikes; i++) {
-    // Most likes happen in the first few hours, then taper off
-    const randomFactor = Math.random()
-    let timeOffset
-
-    if (randomFactor < 0.4) {
-      // 40% of likes in first 6 hours
-      timeOffset = Math.random() * 6 * 60 * 60 * 1000
-    } else if (randomFactor < 0.7) {
-      // 30% of likes in first day
-      timeOffset = (6 * 60 * 60 * 1000) + (Math.random() * 18 * 60 * 60 * 1000)
-    } else {
-      // 30% of likes spread over remaining time
-      timeOffset = (24 * 60 * 60 * 1000) + (Math.random() * (contentAge - 24 * 60 * 60 * 1000))
+export async function getMultipleRecipesLikesStats(recipeIds) {
+  try {
+    if (!Array.isArray(recipeIds) || recipeIds.length === 0) {
+      return { success: true, data: {} }
     }
 
-    likes.push({
-      id: `like_${i}`,
-      timestamp: new Date(now - contentAge + timeOffset).toISOString(),
-      userId: `user_${Math.floor(Math.random() * 1000)}`
+    const params = new URLSearchParams()
+    recipeIds.forEach(id => params.append('recipe_ids', id))
+    
+    const response = await fetch(`/api/recipe-likes?${params.toString()}`)
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+    }
+    
+    const data = await response.json()
+    
+    return {
+      success: true,
+      data: data || {}
+    }
+  } catch (error) {
+    logError('Error getting multiple recipes likes stats', error, { 
+      recipeIdsCount: recipeIds?.length 
     })
+    return {
+      success: false,
+      data: {},
+      error: error.message
+    }
   }
-
-  return likes.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
 }
 
 /**
- * Calculate like velocity (likes per hour)
- * @param {Array} likes - Array of like objects
- * @param {number} hours - Time window in hours
- * @returns {number} Likes per hour
+ * Ajouter un like à une recette
  */
-export function calculateLikeVelocity(likes, hours = 24) {
-  if (!Array.isArray(likes) || likes.length === 0) return 0
+export async function addRecipeLike(recipeId, userId, recipe = null, user = null) {
+  try {
+    logDebug('Adding like to recipe', {
+      recipeId,
+      userId: userId?.substring(0, 8) + '...',
+      hasRecipeData: !!recipe,
+      hasUserData: !!user
+    })
 
-  const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000)
-  const recentLikes = likes.filter(like => new Date(like.timestamp) >= cutoff)
-  
-  return Math.round((recentLikes.length / hours) * 10) / 10 // Round to 1 decimal
+    const response = await fetch('/api/recipe-likes', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        recipe_id: recipeId,
+        user_id: userId
+      })
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || `HTTP ${response.status}: ${response.statusText}`)
+    }
+
+    // Déclencher une notification si les données sont disponibles
+    if (recipe && user && recipe.user_id && recipe.user_id !== userId) {
+      try {
+        showRecipeLikeInteractionNotification(recipe, user)
+      } catch (notificationError) {
+        logError('Error showing like notification', notificationError, {
+          recipeId,
+          userId: userId?.substring(0, 8) + '...'
+        })
+      }
+    }
+
+    logInfo('Like added successfully', {
+      recipeId,
+      userId: userId?.substring(0, 8) + '...',
+      newLikesCount: data.stats?.likes_count
+    })
+
+    return {
+      success: true,
+      like: data.like,
+      stats: data.stats
+    }
+  } catch (error) {
+    logError('Error adding recipe like', error, {
+      recipeId,
+      userId: userId?.substring(0, 8) + '...'
+    })
+    
+    return {
+      success: false,
+      error: error.message
+    }
+  }
 }
 
 /**
- * Detect suspicious like patterns (for spam prevention)
- * @param {Array} likes - Array of like objects
- * @returns {Object} Spam detection results
+ * Supprimer un like d'une recette
  */
-export function detectSuspiciousLikePatterns(likes) {
-  if (!Array.isArray(likes) || likes.length === 0) {
-    return { suspicious: false, reasons: [] }
+export async function removeRecipeLike(recipeId, userId) {
+  try {
+    logDebug('Removing like from recipe', {
+      recipeId,
+      userId: userId?.substring(0, 8) + '...'
+    })
+
+    const response = await fetch(`/api/recipe-likes?recipe_id=${recipeId}&user_id=${userId}`, {
+      method: 'DELETE'
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || `HTTP ${response.status}: ${response.statusText}`)
+    }
+
+    logInfo('Like removed successfully', {
+      recipeId,
+      userId: userId?.substring(0, 8) + '...',
+      newLikesCount: data.stats?.likes_count
+    })
+
+    return {
+      success: true,
+      stats: data.stats
+    }
+  } catch (error) {
+    logError('Error removing recipe like', error, {
+      recipeId,
+      userId: userId?.substring(0, 8) + '...'
+    })
+    
+    return {
+      success: false,
+      error: error.message
+    }
   }
+}
 
-  const reasons = []
-  const userCounts = {}
-  let suspicious = false
+/**
+ * Toggle like sur une recette (ajouter ou supprimer)
+ */
+export async function toggleRecipeLike(recipeId, userId, currentlyLiked, recipe = null, user = null) {
+  try {
+    logDebug('Toggling recipe like', {
+      recipeId,
+      userId: userId?.substring(0, 8) + '...',
+      currentlyLiked,
+      action: currentlyLiked ? 'remove' : 'add'
+    })
 
-  // Count likes per user
-  likes.forEach(like => {
-    userCounts[like.userId] = (userCounts[like.userId] || 0) + 1
-  })
-
-  // Check for repeated likes from same user
-  const maxLikesPerUser = Math.max(...Object.values(userCounts))
-  if (maxLikesPerUser > 3) {
-    suspicious = true
-    reasons.push('Multiple likes from same user')
+    if (currentlyLiked) {
+      return await removeRecipeLike(recipeId, userId)
+    } else {
+      return await addRecipeLike(recipeId, userId, recipe, user)
+    }
+  } catch (error) {
+    logError('Error toggling recipe like', error, {
+      recipeId,
+      userId: userId?.substring(0, 8) + '...',
+      currentlyLiked
+    })
+    
+    return {
+      success: false,
+      error: error.message
+    }
   }
+}
 
-  // Check for burst patterns (too many likes in short time)
-  const recentLikes = likes.filter(like => 
-    new Date(like.timestamp) > new Date(Date.now() - 60 * 60 * 1000) // Last hour
+/**
+ * Hook React pour gérer les likes d'une recette
+ */
+export function useRecipeLikes(recipeId, initialStats = null) {
+  const [likesStats, setLikesStats] = useState(
+    initialStats || { likes_count: 0, user_has_liked: false }
   )
-  
-  if (recentLikes.length > likes.length * 0.8) {
-    suspicious = true
-    reasons.push('Unusual burst of likes')
+  const [loading, setLoading] = useState(false)
+
+  // Charger les statistiques initiales
+  useEffect(() => {
+    if (recipeId && !initialStats) {
+      loadLikesStats()
+    }
+  }, [recipeId])
+
+  const loadLikesStats = async () => {
+    setLoading(true)
+    try {
+      const result = await getRecipeLikesStats(recipeId)
+      if (result.success) {
+        setLikesStats({
+          likes_count: result.likes_count,
+          user_has_liked: result.user_has_liked
+        })
+      }
+    } catch (error) {
+      logError('Error loading likes stats in hook', error, { recipeId })
+    } finally {
+      setLoading(false)
+    }
   }
 
-  // Check for bot-like timing patterns
-  const timeDiffs = likes.slice(1).map((like, i) => 
-    new Date(like.timestamp) - new Date(likes[i].timestamp)
-  )
-  
-  const avgTimeDiff = timeDiffs.reduce((sum, diff) => sum + diff, 0) / timeDiffs.length
-  const suspiciouslyRegular = timeDiffs.every(diff => Math.abs(diff - avgTimeDiff) < 1000) // Within 1 second
+  const toggleLike = async (userId, recipe = null, user = null) => {
+    if (loading) return
 
+    setLoading(true)
+    try {
+      const result = await toggleRecipeLike(
+        recipeId, 
+        userId, 
+        likesStats.user_has_liked,
+        recipe,
+        user
+      )
+      
+      if (result.success && result.stats) {
+        setLikesStats({
+          likes_count: result.stats.likes_count,
+          user_has_liked: result.stats.user_has_liked
+        })
+      }
+      
+      return result
+    } finally {
+      setLoading(false)
+    }
+  }
+  return {
+    likesStats,
+    loading,
+    toggleLike,
+    refresh: loadLikesStats
+  }
+}
+
+/**
+ * Detect suspicious like activity patterns
+ * @param {Array} likes - Array of like objects with timestamps
+ * @returns {Object} Analysis result with suspicious flag and reasons
+ */
+export function detectSuspiciousLikeActivity(likes) {
+  let suspicious = false;
+  const reasons = [];
+  
+  // Analyze timing patterns between consecutive likes
+  const timestamps = likes.map(like => new Date(like.created_at).getTime()).sort();
+  const timeDiffs = [];
+  
+  for (let i = 1; i < timestamps.length; i++) {
+    timeDiffs.push(timestamps[i] - timestamps[i-1]);
+  }
+  
+  // Check for suspiciously regular intervals
+  const avgDiff = timeDiffs.reduce((sum, diff) => sum + diff, 0) / timeDiffs.length;
+  const standardDeviation = Math.sqrt(
+    timeDiffs.reduce((sum, diff) => sum + Math.pow(diff - avgDiff, 2), 0) / timeDiffs.length
+  );
+  
+  // If standard deviation is very low compared to average, timing might be suspiciously regular
+  const suspiciouslyRegular = standardDeviation / avgDiff < 0.1;
+  
   if (suspiciouslyRegular && timeDiffs.length > 5) {
     suspicious = true
     reasons.push('Suspiciously regular timing')

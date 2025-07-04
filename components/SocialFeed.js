@@ -2,108 +2,180 @@ import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import ShareButton from './ShareButton'
 import UserProfilePreview from './UserProfilePreview'
-import { showRecipeLikeInteractionNotification } from '../utils/notificationUtils'
+import { toggleRecipeLike, getMultipleRecipesLikesStats } from '../utils/likesUtils'
+import { useAuth } from './AuthContext'
 import styles from '../styles/SocialFeed.module.css'
 import { getRecipeImageUrl } from '../lib/supabase'
 
 export default function SocialFeed() {
+  const { user } = useAuth()
   const [posts, setPosts] = useState([])
-  const [userLikes, setUserLikes] = useState(new Set())
+  const [likesData, setLikesData] = useState({}) // Stockage des données de likes réelles
   const [comments, setComments] = useState({})
   const [newComment, setNewComment] = useState('')
   const [activePost, setActivePost] = useState(null)
+  const [loading, setLoading] = useState(true)
   const [profilePreview, setProfilePreview] = useState({
     isVisible: false,
     user: null,
     position: null
   })
 
-  // Données simulées pour le feed social
+  // Charger les posts et leurs likes
   useEffect(() => {
-    const mockPosts = [
-      {
-        id: 1,
-        user: { name: 'Marie Dubois', avatar: '👩‍🍳', verified: true },
-        recipe: {
-          id: 1,
-          title: 'Pâtes Carbonara Authentiques',
-          image: getRecipeImageUrl('https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5'),
-          description: 'Ma recette familiale de carbonara, transmise par ma nonna italienne 🇮🇹'
-        },
-        likes: 156,
-        shares: 23,
-        timeAgo: '2h',
-        tags: ['#italien', '#authentique', '#famille']
-      },
-      {
-        id: 2,
-        user: { name: 'Chef Pierre', avatar: '👨‍🍳', verified: true },
-        recipe: {
-          id: 2,
-          title: 'Tarte Tatin Revisitée',
-          image: getRecipeImageUrl('https://images.unsplash.com/photo-1571115764595-644a1f56a55c'),
-          description: 'Une version moderne du classique français 🍎✨'
-        },
-        likes: 289,
-        shares: 45,
-        timeAgo: '4h',
-        tags: ['#français', '#dessert', '#modernité']
-      }
-    ]
-    setPosts(mockPosts)
+    loadSocialFeed()
   }, [])
 
-  const toggleLike = (postId) => {
-    const post = posts.find(p => p.id === postId)
-    const isLiking = !userLikes.has(postId)
-    
-    setUserLikes(prev => {
-      const newLikes = new Set(prev)
-      if (newLikes.has(postId)) {
-        newLikes.delete(postId)
-        setPosts(posts.map(post => 
-          post.id === postId 
-            ? { ...post, likes: post.likes - 1 }
-            : post
-        ))
-      } else {
-        newLikes.add(postId)
-        setPosts(posts.map(post => 
-          post.id === postId 
-            ? { ...post, likes: post.likes + 1 }
-            : post
-        ))
-        
-        // Déclencher une notification pour l'auteur du post
-        if (post && post.user.name !== 'Vous') { // Supposons que "Vous" indique l'utilisateur actuel
-          showRecipeLikeInteractionNotification(
-            {
-              id: post.recipe.id,
-              title: post.recipe.title,
-              image: post.recipe.image
-            },
-            {
-              user_id: 'current_user_id', // À remplacer par l'ID de l'utilisateur actuel
-              display_name: 'Utilisateur actuel' // À remplacer par le nom de l'utilisateur actuel
-            }
-          )
-        }
-        
-        // Animation de like
-        const heart = document.createElement('div')
-        heart.innerHTML = '❤️'
-        heart.style.cssText = `
-          position: fixed;
-          font-size: 2rem;
-          z-index: 10000;
-          pointer-events: none;
-          animation: heartFloat 1s ease-out forwards;
-        `
-        document.body.appendChild(heart)
-        setTimeout(() => heart.remove(), 1000)
+  const loadSocialFeed = async () => {
+    setLoading(true)
+    try {
+      // Charger les recettes publiques populaires
+      const response = await fetch('/api/recipes?limit=20&sort=recent')
+      if (!response.ok) throw new Error('Erreur lors du chargement')
+      
+      const recipes = await response.json()
+      
+      // Formater les données pour le feed social
+      const formattedPosts = recipes.map(recipe => ({
+        id: recipe.id,
+        user: { 
+          name: recipe.author || 'Chef Anonyme', 
+          avatar: '👨‍🍳', 
+          verified: Math.random() > 0.7,
+          id: recipe.user_id 
+        },
+        recipe: {
+          id: recipe.id,
+          title: recipe.title,
+          image: getRecipeImageUrl(recipe.image) || '/placeholder-recipe.jpg',
+          description: recipe.description || 'Une délicieuse recette à découvrir !'
+        },
+        shares: Math.floor(Math.random() * 50) + 5,
+        timeAgo: getTimeAgo(new Date(recipe.created_at)),
+        tags: generateTags(recipe.category, recipe.title)
+      }))
+
+      setPosts(formattedPosts)
+
+      // Charger les statistiques de likes pour tous les posts
+      const recipeIds = formattedPosts.map(post => post.recipe.id)
+      const likesResult = await getMultipleRecipesLikesStats(recipeIds)
+      
+      if (likesResult.success) {
+        setLikesData(likesResult.data)
       }
-      return newLikes
-    })
+
+    } catch (error) {
+      console.error('Erreur lors du chargement du feed social:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const getTimeAgo = (date) => {
+    const now = new Date()
+    const diffMs = now - date
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+    const diffDays = Math.floor(diffHours / 24)
+    
+    if (diffDays > 0) return `${diffDays}j`
+    if (diffHours > 0) return `${diffHours}h`
+    return '< 1h'
+  }
+
+  const generateTags = (category, title) => {
+    const tags = []
+    if (category) tags.push(`#${category.toLowerCase().replace(/\s+/g, '')}`)
+    
+    const commonTags = ['#delicieux', '#faitmaison', '#cuisine', '#recette']
+    tags.push(commonTags[Math.floor(Math.random() * commonTags.length)])
+    
+    return tags.slice(0, 3)
+  }
+
+  const toggleLike = async (postId) => {
+    if (!user) {
+      const wantsToLogin = window.confirm('Connectez-vous pour aimer cette recette. Aller à la page de connexion?')
+      if (wantsToLogin) {
+        window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname)
+      }
+      return
+    }
+
+    const post = posts.find(p => p.id === postId)
+    if (!post) return
+
+    const currentLikesData = likesData[postId] || { likes_count: 0, user_has_liked: false }
+    const isCurrentlyLiked = currentLikesData.user_has_liked
+
+    try {
+      // Optimistic update
+      setLikesData(prev => ({
+        ...prev,
+        [postId]: {
+          likes_count: currentLikesData.likes_count + (isCurrentlyLiked ? -1 : 1),
+          user_has_liked: !isCurrentlyLiked
+        }
+      }))
+
+      const result = await toggleRecipeLike(
+        postId,
+        user.id,
+        isCurrentlyLiked,
+        {
+          id: post.recipe.id,
+          title: post.recipe.title,
+          image: post.recipe.image,
+          user_id: post.user.id
+        },
+        {
+          user_id: user.id,
+          display_name: user.user_metadata?.display_name || user.email?.split('@')[0] || 'Utilisateur'
+        }
+      )
+
+      if (result.success && result.stats) {
+        // Mettre à jour avec les vraies données du serveur
+        setLikesData(prev => ({
+          ...prev,
+          [postId]: {
+            likes_count: result.stats.likes_count,
+            user_has_liked: result.stats.user_has_liked
+          }
+        }))
+
+        // Animation de like
+        if (result.stats.user_has_liked) {
+          const heart = document.createElement('div')
+          heart.innerHTML = '❤️'
+          heart.style.cssText = `
+            position: fixed;
+            font-size: 2rem;
+            z-index: 10000;
+            pointer-events: none;
+            animation: heartFloat 1s ease-out forwards;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+          `
+          document.body.appendChild(heart)
+          setTimeout(() => heart.remove(), 1000)
+        }
+      } else {
+        // Revert optimistic update en cas d'erreur
+        setLikesData(prev => ({
+          ...prev,
+          [postId]: currentLikesData
+        }))
+      }
+    } catch (error) {
+      console.error('Erreur lors du toggle like:', error)
+      // Revert optimistic update
+      setLikesData(prev => ({
+        ...prev,
+        [postId]: currentLikesData
+      }))
+    }
   }
 
   const addComment = (postId) => {
@@ -158,6 +230,15 @@ export default function SocialFeed() {
     })
   }
 
+  if (loading) {
+    return (
+      <div className={styles.loading}>
+        <div className={styles.spinner}></div>
+        <p>Chargement du feed social...</p>
+      </div>
+    )
+  }
+
   return (
     <>
       <div className={styles.feed}>
@@ -166,112 +247,116 @@ export default function SocialFeed() {
           <p>Découvrez les créations les plus populaires de la communauté</p>
         </div>
 
-        {posts.map(post => (
-          <article key={post.id} className={styles.post}>
-            <div className={styles.postHeader}>
-              <div className={styles.userInfo}>
-                <span className={styles.avatar}>{post.user.avatar}</span>
-                <div>
-                  <div 
-                    className={styles.userName}
-                    onClick={(e) => handleUserNameClick(post.user, e)}
-                  >
-                    {post.user.name}
-                    {post.user.verified && <span className={styles.verified}>✅</span>}
-                  </div>
-                  <div className={styles.timeAgo}>{post.timeAgo}</div>
-                </div>
-              </div>
-              <button className={styles.followBtn}>+ Suivre</button>
-            </div>
-
-            <div className={styles.recipeContent}>
-              <div className={styles.imageContainer}>
-                <Image
-                  src={post.recipe.image}
-                  alt={post.recipe.title}
-                  fill
-                  className={styles.recipeImage}
-                  onDoubleClick={() => toggleLike(post.id)}
-                />
-                <div className={styles.imageOverlay}>
-                  <button 
-                    className={`${styles.likeBtn} ${userLikes.has(post.id) ? styles.liked : ''}`}
-                    onClick={() => toggleLike(post.id)}
-                  >
-                    {userLikes.has(post.id) ? '❤️' : '🤍'}
-                  </button>
-                </div>
-              </div>
-              
-              <div className={styles.recipeInfo}>
-                <h3>{post.recipe.title}</h3>
-                <p>{post.recipe.description}</p>
-                <div className={styles.tags}>
-                  {post.tags.map(tag => (
-                    <span key={tag} className={styles.tag}>{tag}</span>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className={styles.postStats}>
-              <span>❤️ {post.likes} likes</span>
-              <span>💬 {(comments[post.id] || []).length} commentaires</span>
-              <span>📤 {post.shares} partages</span>
-            </div>
-
-            <div className={styles.postActions}>
-              <button 
-                className={`${styles.actionBtn} ${userLikes.has(post.id) ? styles.active : ''}`}
-                onClick={() => toggleLike(post.id)}
-              >
-                {userLikes.has(post.id) ? '❤️' : '🤍'} J'aime
-              </button>
-              
-              <button 
-                className={styles.actionBtn}
-                onClick={() => setActivePost(activePost === post.id ? null : post.id)}
-              >
-                💬 Commenter
-              </button>
-              
-              <ShareButton 
-                recipe={post.recipe}
-                onShare={(platform) => handleShare(platform, post)}
-              />
-            </div>
-
-            {activePost === post.id && (
-              <div className={styles.commentsSection}>
-                <div className={styles.comments}>
-                  {(comments[post.id] || []).map(comment => (
-                    <div key={comment.id} className={styles.comment}>
-                      <strong>{comment.user}:</strong> {comment.text}
-                      <span className={styles.commentTime}>{comment.timeAgo}</span>
+        {posts.map(post => {
+          const postLikesData = likesData[post.id] || { likes_count: 0, user_has_liked: false }
+          
+          return (
+            <article key={post.id} className={styles.post}>
+              <div className={styles.postHeader}>
+                <div className={styles.userInfo}>
+                  <span className={styles.avatar}>{post.user.avatar}</span>
+                  <div>
+                    <div 
+                      className={styles.userName}
+                      onClick={(e) => handleUserNameClick(post.user, e)}
+                    >
+                      {post.user.name}
+                      {post.user.verified && <span className={styles.verified}>✅</span>}
                     </div>
-                  ))}
+                    <div className={styles.timeAgo}>{post.timeAgo}</div>
+                  </div>
                 </div>
-                <div className={styles.addComment}>
-                  <input
-                    type="text"
-                    placeholder="Ajouter un commentaire..."
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && addComment(post.id)}
-                    className={styles.commentInput}
+                <button className={styles.followBtn}>+ Suivre</button>
+              </div>
+
+              <div className={styles.recipeContent}>
+                <div className={styles.imageContainer}>
+                  <Image
+                    src={post.recipe.image}
+                    alt={post.recipe.title}
+                    fill
+                    className={styles.recipeImage}
+                    onDoubleClick={() => toggleLike(post.id)}
                   />
-                  <button 
-                    onClick={() => addComment(post.id)}
-                    className={styles.sendComment}
-                  >
-                    ➤
-                  </button>
+                  <div className={styles.imageOverlay}>
+                    <button 
+                      className={`${styles.likeBtn} ${postLikesData.user_has_liked ? styles.liked : ''}`}
+                      onClick={() => toggleLike(post.id)}
+                    >
+                      {postLikesData.user_has_liked ? '❤️' : '🤍'}
+                    </button>
+                  </div>
+                </div>
+                
+                <div className={styles.recipeInfo}>
+                  <h3>{post.recipe.title}</h3>
+                  <p>{post.recipe.description}</p>
+                  <div className={styles.tags}>
+                    {post.tags.map(tag => (
+                      <span key={tag} className={styles.tag}>{tag}</span>
+                    ))}
+                  </div>
                 </div>
               </div>
-            )}
-          </article>
-        ))}
+
+              <div className={styles.postStats}>
+                <span>❤️ {postLikesData.likes_count} likes</span>
+                <span>💬 {(comments[post.id] || []).length} commentaires</span>
+                <span>📤 {post.shares} partages</span>
+              </div>
+
+              <div className={styles.postActions}>
+                <button 
+                  className={`${styles.actionBtn} ${postLikesData.user_has_liked ? styles.active : ''}`}
+                  onClick={() => toggleLike(post.id)}
+                >
+                  {postLikesData.user_has_liked ? '❤️' : '🤍'} J'aime
+                </button>
+                
+                <button 
+                  className={styles.actionBtn}
+                  onClick={() => setActivePost(activePost === post.id ? null : post.id)}
+                >
+                  💬 Commenter
+                </button>
+                
+                <ShareButton 
+                  recipe={post.recipe}
+                  onShare={(platform) => handleShare(platform, post)}
+                />
+              </div>
+
+              {activePost === post.id && (
+                <div className={styles.commentsSection}>
+                  <div className={styles.comments}>
+                    {(comments[post.id] || []).map(comment => (
+                      <div key={comment.id} className={styles.comment}>
+                        <strong>{comment.user}:</strong> {comment.text}
+                        <span className={styles.commentTime}>{comment.timeAgo}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className={styles.addComment}>
+                    <input
+                      type="text"
+                      placeholder="Ajouter un commentaire..."
+                      value={newComment}
+                      onChange={(e) => setNewComment(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && addComment(post.id)}
+                      className={styles.commentInput}
+                    />
+                    <button 
+                      onClick={() => addComment(post.id)}
+                      className={styles.sendComment}
+                    >
+                      ➤
+                    </button>
+                  </div>
+                </div>
+              )}
+            </article>
+          )
+        })}
 
         {/* Aperçu du profil utilisateur */}
         <UserProfilePreview
@@ -280,18 +365,20 @@ export default function SocialFeed() {
           onClose={closeProfilePreview}
           position={profilePreview.position}
         />
-      </div>      <style jsx>{`
+      </div>
+      
+      <style jsx>{`
         @keyframes heartFloat {
           0% {
-            transform: translateY(0) scale(1);
+            transform: translate(-50%, -50%) scale(1);
             opacity: 1;
           }
           50% {
-            transform: translateY(-50px) scale(1.5);
+            transform: translate(-50%, -70%) scale(1.5);
             opacity: 0.7;
           }
           100% {
-            transform: translateY(-100px) scale(2);
+            transform: translate(-50%, -90%) scale(2);
             opacity: 0;
           }
         }

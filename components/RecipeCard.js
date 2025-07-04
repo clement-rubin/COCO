@@ -1,14 +1,14 @@
 import Image from 'next/image'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { useAuth } from './AuthContext'
 import ShareButton from './ShareButton'
 import { processImageData } from '../utils/imageUtils'
 import { getRecipeIllustration } from '../utils/recipeIllustrations'
-import { logDebug, logInfo, logError } from '../utils/logger'
+import { logDebug, logInfo, logError, logUserInteraction } from '../utils/logger'
 import { canUserEditRecipe, deleteUserRecipe } from '../utils/profileUtils'
-import { showRecipeLikeInteractionNotification } from '../utils/notificationUtils'
+import { toggleRecipeLike, getRecipeLikesStats } from '../utils/likesUtils'
 import styles from '../styles/RecipeCard.module.css'
 
 const RecipeCard = ({ 
@@ -17,20 +17,47 @@ const RecipeCard = ({
   onEdit, 
   onDelete, 
   showActions = true,
-  defaultCompact = true // Nouveau prop pour définir le mode par défaut
+  defaultCompact = true,
+  showLikes = true // Nouveau prop pour afficher/masquer les likes
 }) => {
   const router = useRouter()
   const { user } = useAuth()
-  const [isFavorite, setIsFavorite] = useState(false)
   const [imageError, setImageError] = useState(false)
   const [imageLoading, setImageLoading] = useState(true)
   const [showActionsState, setShowActions] = useState(showActions)
   const [isDeleting, setIsDeleting] = useState(false)
-  const [isCompactMode, setIsCompactMode] = useState(defaultCompact) // Nouveau state pour le mode d'affichage
+  const [isCompactMode, setIsCompactMode] = useState(defaultCompact)
+  
+  // États pour le système de likes
+  const [likesStats, setLikesStats] = useState({ likes_count: 0, user_has_liked: false })
+  const [likesLoading, setLikesLoading] = useState(false)
 
   // Defensive programming: ensure recipe exists and has required properties
   if (!recipe) {
     return null;
+  }
+
+  // Charger les statistiques de likes au montage du composant
+  useEffect(() => {
+    if (recipe.id && showLikes) {
+      loadLikesStats()
+    }
+  }, [recipe.id, showLikes])
+
+  const loadLikesStats = async () => {
+    try {
+      const result = await getRecipeLikesStats(recipe.id)
+      if (result.success) {
+        setLikesStats({
+          likes_count: result.likes_count,
+          user_has_liked: result.user_has_liked
+        })
+      }
+    } catch (error) {
+      logError('Error loading likes stats for recipe card', error, {
+        recipeId: recipe.id
+      })
+    }
   }
 
   // Fonction améliorée pour traiter les images avec illustrations de fallback
@@ -88,26 +115,82 @@ const RecipeCard = ({
     }
   }
 
-  const toggleFavorite = (e) => {
+  const toggleLike = async (e) => {
     e.preventDefault()
     e.stopPropagation()
     
-    const isLiking = !isFavorite
-    setIsFavorite(!isFavorite)
+    if (!user) {
+      // Rediriger vers la connexion si pas connecté
+      const wantsToLogin = window.confirm('Connectez-vous pour aimer cette recette. Aller à la page de connexion?')
+      if (wantsToLogin) {
+        router.push('/login?redirect=' + encodeURIComponent(router.asPath))
+      }
+      return
+    }
+
+    if (likesLoading) return
+
+    setLikesLoading(true)
     
-    // Déclencher une notification pour l'auteur de la recette si ce n'est pas soi-même
-    if (isLiking && user && recipe.user_id && recipe.user_id !== user.id) {
-      showRecipeLikeInteractionNotification(
+    try {
+      const result = await toggleRecipeLike(
+        recipe.id,
+        user.id,
+        likesStats.user_has_liked,
         {
-          id: safeRecipe.id,
-          title: safeRecipe.title,
-          image: safeRecipe.image
+          id: recipe.id,
+          title: recipe.title,
+          image: recipe.image,
+          user_id: recipe.user_id
         },
         {
           user_id: user.id,
           display_name: user.user_metadata?.display_name || user.email?.split('@')[0] || 'Utilisateur'
         }
       )
+
+      if (result.success && result.stats) {
+        setLikesStats({
+          likes_count: result.stats.likes_count,
+          user_has_liked: result.stats.user_has_liked
+        })
+
+        // Animation de like
+        if (result.stats.user_has_liked) {
+          const heart = document.createElement('div')
+          heart.innerHTML = '❤️'
+          heart.style.cssText = `
+            position: fixed;
+            font-size: 2rem;
+            z-index: 10000;
+            pointer-events: none;
+            animation: heartFloat 1s ease-out forwards;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+          `
+          document.body.appendChild(heart)
+          setTimeout(() => heart.remove(), 1000)
+
+          // Vibration légère sur mobile
+          if (navigator.vibrate) {
+            navigator.vibrate(30)
+          }
+        }
+
+        logUserInteraction('TOGGLE_RECIPE_LIKE', 'recipe-card', {
+          recipeId: recipe.id,
+          action: result.stats.user_has_liked ? 'like' : 'unlike',
+          newLikesCount: result.stats.likes_count
+        })
+      }
+    } catch (error) {
+      logError('Error toggling like in recipe card', error, {
+        recipeId: recipe.id,
+        userId: user?.id
+      })
+    } finally {
+      setLikesLoading(false)
     }
   }
 
@@ -234,13 +317,21 @@ const RecipeCard = ({
         )}
         
         <div className={styles.cardActions}>
-          <button 
-            className={`${styles.favoriteBtn} ${isFavorite ? styles.active : ''}`}
-            onClick={toggleFavorite}
-            aria-label={isFavorite ? "Retirer des likes" : "Ajouter aux likes"}
-          >
-            {isFavorite ? '❤️' : '🤍'}
-          </button>
+          {/* Bouton de like */
+          showLikes && (
+            <button 
+              className={`${styles.likeBtn} ${likesStats.user_has_liked ? styles.liked : ''} ${likesLoading ? styles.loading : ''}`}
+              onClick={toggleLike}
+              disabled={likesLoading}
+              aria-label={likesStats.user_has_liked ? "Retirer des likes" : "Ajouter aux likes"}
+              title={`${likesStats.likes_count} like${likesStats.likes_count > 1 ? 's' : ''}`}
+            >
+              {likesLoading ? '⏳' : (likesStats.user_has_liked ? '❤️' : '🤍')}
+              {likesStats.likes_count > 0 && (
+                <span className={styles.likesCount}>{likesStats.likes_count}</span>
+              )}
+            </button>
+         ) }
 
           {/* Actions du propriétaire */}
           {canEdit && (
@@ -280,6 +371,12 @@ const RecipeCard = ({
                 day: '2-digit',
                 month: 'short'
               })}
+            </span>
+          )}
+          {/* Affichage compact des likes */}
+          {showLikes && likesStats.likes_count > 0 && (
+            <span className={styles.compactLikes}>
+              • ❤️ {likesStats.likes_count}
             </span>
           )}
         </div>
@@ -335,6 +432,13 @@ const RecipeCard = ({
                   })}
                 </span>
               )}
+              
+              {/* Affichage détaillé des likes */}
+              {showLikes && (
+                <span className={styles.detailedLikes}>
+                  ❤️ {likesStats.likes_count} like{likesStats.likes_count > 1 ? 's' : ''}
+                </span>
+              )}
             </div>
           </div>
         )}
@@ -348,6 +452,19 @@ const RecipeCard = ({
           </div>
         )}
       </div>
+
+      <style jsx>{`
+        @keyframes heartFloat {
+          0% {
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 1;
+          }
+          100% {
+            transform: translate(-50%, -70%) scale(1.2);
+            opacity: 0;
+          }
+        }
+      `}</style>
     </div>
   )
 }
