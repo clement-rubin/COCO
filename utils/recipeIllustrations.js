@@ -52,48 +52,6 @@ export const BACKGROUND_PATTERNS = [
 ]
 
 /**
- * Safe base64 encoding for SVG content
- * @param {string} content - Content to encode
- * @returns {string} Base64 encoded content
- */
-function safeBase64Encode(content) {
-  try {
-    // Try native btoa first
-    return btoa(content)
-  } catch (error) {
-    // Fallback: encode as UTF-8 first, then base64
-    const utf8Bytes = new TextEncoder().encode(content)
-    return manualBase64Encode(utf8Bytes)
-  }
-}
-
-/**
- * Manual base64 encoding for UTF-8 content
- * @param {Uint8Array} data - UTF-8 encoded data
- * @returns {string} Base64 string
- */
-function manualBase64Encode(data) {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
-  let result = ''
-  let i = 0
-  
-  while (i < data.length) {
-    const a = data[i++]
-    const b = i < data.length ? data[i++] : 0
-    const c = i < data.length ? data[i++] : 0
-    
-    const bitmap = (a << 16) | (b << 8) | c
-    
-    result += chars.charAt((bitmap >> 18) & 63)
-    result += chars.charAt((bitmap >> 12) & 63)
-    result += i - 2 < data.length ? chars.charAt((bitmap >> 6) & 63) : '='
-    result += i - 1 < data.length ? chars.charAt(bitmap & 63) : '='
-  }
-  
-  return result
-}
-
-/**
  * Génère une illustration SVG pour une recette
  */
 export function generateRecipeIllustration(recipe, options = {}) {
@@ -122,12 +80,6 @@ export function generateRecipeIllustration(recipe, options = {}) {
     parseInt(recipe.id.toString().slice(-2), 10) % emojis.length :
     Math.floor(Math.random() * emojis.length)
   ]
-
-  // Escape special characters in title for SVG
-  const safeTitle = recipe.title ? recipe.title.replace(/[<>&"']/g, (char) => {
-    const entities = { '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' }
-    return entities[char]
-  }) : ''
 
   const svg = `
     <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
@@ -158,10 +110,10 @@ export function generateRecipeIllustration(recipe, options = {}) {
       <text x="${width/2}" y="${height/2 + 20}" font-size="80" text-anchor="middle" filter="url(#glow)">${mainEmoji}</text>
       
       <!-- Titre de la recette (si court) -->
-      ${safeTitle && safeTitle.length < 20 ? `
+      ${recipe.title && recipe.title.length < 20 ? `
         <text x="${width/2}" y="${height - 40}" font-family="Arial, sans-serif" font-size="18" font-weight="bold" 
               text-anchor="middle" fill="rgba(255,255,255,0.9)" filter="url(#glow)">
-          ${safeTitle}
+          ${recipe.title}
         </text>
       ` : ''}
       
@@ -173,7 +125,7 @@ export function generateRecipeIllustration(recipe, options = {}) {
     </svg>
   `
 
-  return `data:image/svg+xml;base64,${safeBase64Encode(svg)}`
+  return `data:image/svg+xml;base64,${btoa(svg)}`
 }
 
 /**
@@ -203,7 +155,7 @@ export function generateRecipeThumbnail(recipe, size = 200) {
     </svg>
   `
 
-  return `data:image/svg+xml;base64,${safeBase64Encode(svg)}`
+  return `data:image/svg+xml;base64,${btoa(svg)}`
 }
 
 /**
