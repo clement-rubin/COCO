@@ -8,7 +8,7 @@ export default function UserProfilePreview({ user, isVisible, onClose, position 
   const [userStats, setUserStats] = useState({
     recipesCount: 0,
     likesReceived: 0,
-    friendsCount: 0
+    friendsCount: 0 // Utilise le vrai nombre d'amis
   })
   const [loading, setLoading] = useState(true)
 
@@ -27,10 +27,10 @@ export default function UserProfilePreview({ user, isVisible, onClose, position 
         setUserStats({
           recipesCount: stats.recipesCount || 0,
           likesReceived: stats.likesReceived || 0,
-          friendsCount: stats.friendsCount || 0
+          friendsCount: stats.friendsCount || 0 // Vrai nombre d'amis
         })
       } else {
-        // fallback mock
+        // fallback mock seulement si pas d'ID utilisateur
         setUserStats({
           recipesCount: Math.floor(Math.random() * 50) + 5,
           likesReceived: Math.floor(Math.random() * 500) + 50,

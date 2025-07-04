@@ -63,12 +63,15 @@ async function getUserStatsOptimized(userId) {
       // Compter les recettes
       supabase
         .from('recipes')
-        .select('id, created_at', { count: 'exact', head: true })
+        .select('id', { count: 'exact', head: true })
         .eq('user_id', userId),
       
-      // Statistiques d'amitié optimisées
+      // Compter les vrais amis (relations acceptées)
       supabase
-        .rpc('get_friendship_stats', { target_user_id: userId }),
+        .from('friendships')
+        .select('id')
+        .or(`user_id.eq.${userId},friend_id.eq.${userId}`)
+        .eq('status', 'accepted'),
       
       // Profil pour complétude
       supabase
@@ -98,13 +101,28 @@ async function getUserStatsOptimized(userId) {
       stats.recipesCount = recipesResult.value.count || 0
     }
 
-    // Amitié
+    // Amitié - compter le vrai nombre d'amis
     if (friendshipResult.status === 'fulfilled' && !friendshipResult.value.error) {
-      const friendshipData = friendshipResult.value.data
-      if (friendshipData && friendshipData.length > 0) {
-        stats.friendsCount = friendshipData[0].friends_count || 0
-        stats.pendingSent = friendshipData[0].pending_sent || 0
-        stats.pendingReceived = friendshipData[0].pending_received || 0
+      stats.friendsCount = friendshipResult.value.data?.length || 0
+      
+      // Calculer aussi les demandes en attente si besoin
+      try {
+        const { data: pendingSent } = await supabase
+          .from('friendships')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('status', 'pending')
+        
+        const { data: pendingReceived } = await supabase
+          .from('friendships')
+          .select('id')
+          .eq('friend_id', userId)
+          .eq('status', 'pending')
+        
+        stats.pendingSent = pendingSent?.length || 0
+        stats.pendingReceived = pendingReceived?.length || 0
+      } catch (pendingError) {
+        // Ignorer les erreurs pour les demandes en attente
       }
     }
 

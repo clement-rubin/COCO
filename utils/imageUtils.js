@@ -179,47 +179,51 @@ function arrayToBase64(byteArray) {
     // Méthode optimisée pour éviter l'erreur btoa avec les caractères non-Latin1
     const uint8Array = new Uint8Array(byteArray)
     
-    // Utiliser la méthode moderne avec TextEncoder si disponible
-    if (typeof TextEncoder !== 'undefined' && typeof btoa !== 'undefined') {
-      // Convertir en chaîne binaire sûre
-      let binaryString = ''
-      const chunkSize = 8192 // Traiter par chunks pour éviter les stack overflow
-      
-      for (let i = 0; i < uint8Array.length; i += chunkSize) {
-        const chunk = uint8Array.slice(i, i + chunkSize)
-        // Utiliser Array.from pour éviter les problèmes de caractères
-        const chunkString = Array.from(chunk, byte => String.fromCharCode(byte)).join('')
-        binaryString += chunkString
-      }
-      
-      return btoa(binaryString)
+    // Utiliser la méthode moderne pour conversion sûre
+    let binaryString = ''
+    const chunkSize = 8192 // Traiter par chunks pour éviter les stack overflow
+    
+    for (let i = 0; i < uint8Array.length; i += chunkSize) {
+      const chunk = uint8Array.slice(i, i + chunkSize)
+      // Conversion sûre caractère par caractère
+      const chunkString = Array.from(chunk, byte => String.fromCharCode(byte)).join('')
+      binaryString += chunkString
     }
     
-    // Fallback: méthode manuelle de conversion base64
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
-    let result = ''
-    let i = 0
-    
-    while (i < uint8Array.length) {
-      const a = uint8Array[i++]
-      const b = i < uint8Array.length ? uint8Array[i++] : 0
-      const c = i < uint8Array.length ? uint8Array[i++] : 0
-      
-      const bitmap = (a << 16) | (b << 8) | c
-      
-      result += chars.charAt((bitmap >> 18) & 63)
-      result += chars.charAt((bitmap >> 12) & 63)
-      result += i - 2 < uint8Array.length ? chars.charAt((bitmap >> 6) & 63) : '='
-      result += i - 1 < uint8Array.length ? chars.charAt(bitmap & 63) : '='
-    }
-    
-    return result
+    // Utiliser btoa de manière sûre
+    return btoa(binaryString)
   } catch (error) {
-    logError('Error converting array to base64', error, {
-      arrayLength: byteArray?.length
-    })
-    throw new Error('Failed to convert byte array to base64')
+    // Fallback: méthode manuelle de conversion base64
+    logWarning('btoa failed, using manual base64 encoding', { error: error.message })
+    return manualBase64Encode(byteArray)
   }
+}
+
+/**
+ * Manual base64 encoding for problematic data
+ * @param {Array<number>|Uint8Array} data - Byte data
+ * @returns {string} Base64 encoded string
+ */
+function manualBase64Encode(data) {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+  const uint8Array = data instanceof Uint8Array ? data : new Uint8Array(data)
+  let result = ''
+  let i = 0
+  
+  while (i < uint8Array.length) {
+    const a = uint8Array[i++]
+    const b = i < uint8Array.length ? uint8Array[i++] : 0
+    const c = i < uint8Array.length ? uint8Array[i++] : 0
+    
+    const bitmap = (a << 16) | (b << 8) | c
+    
+    result += chars.charAt((bitmap >> 18) & 63)
+    result += chars.charAt((bitmap >> 12) & 63)
+    result += i - 2 < uint8Array.length ? chars.charAt((bitmap >> 6) & 63) : '='
+    result += i - 1 < uint8Array.length ? chars.charAt(bitmap & 63) : '='
+  }
+  
+  return result
 }
 
 /**
@@ -504,14 +508,10 @@ export async function uploadImageAsBytes(file) {
       maxSizeKB: 300
     })
     
-    // Convertir le data URL en bytes array
+    // Convertir le data URL en bytes array de manière sûre
     const base64Data = processed.url.split(',')[1] // Enlever le préfixe data:image/jpeg;base64,
-    const binaryString = atob(base64Data)
-    const bytes = new Array(binaryString.length)
-    
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i)
-    }
+    const uint8Array = base64ToUint8Array(base64Data)
+    const bytes = Array.from(uint8Array)
     
     const result = {
       bytes,
@@ -562,14 +562,9 @@ export async function uploadImageToSupabase(base64Data, fileName = null) {
     // Remove data URL prefix if present
     const base64Content = base64Data.replace(/^data:image\/[a-z]+;base64,/, '')
     
-    // Convert base64 to blob
-    const byteCharacters = atob(base64Content)
-    const byteNumbers = new Array(byteCharacters.length)
-    for (let i = 0; i < byteCharacters.length; i++) {
-      byteNumbers[i] = byteCharacters.charCodeAt(i)
-    }
-    const byteArray = new Uint8Array(byteNumbers)
-    const blob = new Blob([byteArray], { type: 'image/jpeg' })
+    // Convert base64 to blob using safe method
+    const uint8Array = base64ToUint8Array(base64Content)
+    const blob = new Blob([uint8Array], { type: 'image/jpeg' })
 
     logDebug('Uploading image to Supabase storage', {
       fileName,
@@ -921,4 +916,57 @@ export function createSafeImageUrl(imageData, fallback = '/placeholder-recipe.jp
     })
     return fallback
   }
+}
+
+/**
+ * Convert base64 to Uint8Array safely
+ * @param {string} base64 - Base64 string
+ * @returns {Uint8Array} Byte array
+ */
+function base64ToUint8Array(base64) {
+  try {
+    // Remove data URL prefix if present
+    const base64Data = base64.replace(/^data:image\/[a-z]+;base64,/, '')
+    
+    // Try native atob first
+    const binaryString = atob(base64Data)
+    const bytes = new Uint8Array(binaryString.length)
+    
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i)
+    }
+    
+    return bytes
+  } catch (error) {
+    logWarning('atob failed, using manual base64 decoding', { error: error.message })
+    return manualBase64Decode(base64)
+  }
+}
+
+/**
+ * Manual base64 decoding for problematic data
+ * @param {string} base64 - Base64 string
+ * @returns {Uint8Array} Decoded bytes
+ */
+function manualBase64Decode(base64) {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+  const base64Data = base64.replace(/^data:image\/[a-z]+;base64,/, '').replace(/[^A-Za-z0-9+/]/g, '')
+  
+  const bytes = []
+  let i = 0
+  
+  while (i < base64Data.length) {
+    const encoded1 = chars.indexOf(base64Data[i++])
+    const encoded2 = chars.indexOf(base64Data[i++])
+    const encoded3 = chars.indexOf(base64Data[i++])
+    const encoded4 = chars.indexOf(base64Data[i++])
+    
+    const bitmap = (encoded1 << 18) | (encoded2 << 12) | (encoded3 << 6) | encoded4
+    
+    bytes.push((bitmap >> 16) & 255)
+    if (encoded3 !== 64) bytes.push((bitmap >> 8) & 255)
+    if (encoded4 !== 64) bytes.push(bitmap & 255)
+  }
+  
+  return new Uint8Array(bytes)
 }

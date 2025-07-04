@@ -58,6 +58,33 @@ export default function Profil() {
     }
   }, [user, authLoading, router])
 
+  // Fonction manquante pour charger les stats utilisateur
+  const loadUserStats = async () => {
+    try {
+      const statsData = await getUserStatsComplete(user.id)
+      setUserStats(prevStats => ({
+        ...prevStats,
+        recipesCount: userRecipes.length,
+        likesReceived: statsData.likesReceived || 0,
+        friendsCount: statsData.friendsCount || 0,
+        trophyPoints: statsData.trophyPoints || 0,
+        trophiesUnlocked: statsData.trophiesUnlocked || 0,
+        profileCompleteness: calculateProfileCompleteness(profile || {}),
+        daysSinceRegistration: statsData.daysSinceRegistration || 0,
+        memberSince: user?.created_at ? new Date(user.created_at).toLocaleDateString('fr-FR') : null
+      }))
+      
+      logInfo('User stats reloaded successfully', {
+        userId: user.id,
+        stats: statsData
+      })
+    } catch (error) {
+      logError('Failed to reload user stats', error, {
+        userId: user.id
+      })
+    }
+  }
+
   const loadUserProfile = async () => {
     try {
       setLoading(true)
@@ -123,7 +150,10 @@ export default function Profil() {
           likesReceived: statsData.likesReceived || 0,
           friendsCount: statsData.friendsCount || 0,
           trophyPoints: statsData.trophyPoints || 0,
-          trophiesUnlocked: statsData.trophiesUnlocked || 0
+          trophiesUnlocked: statsData.trophiesUnlocked || 0,
+          profileCompleteness: calculateProfileCompleteness(profileData || {}),
+          daysSinceRegistration: statsData.daysSinceRegistration || 0,
+          memberSince: user?.created_at ? new Date(user.created_at).toLocaleDateString('fr-FR') : null
         })
       } catch (statsError) {
         logError('Failed to load user stats', statsError)
@@ -132,7 +162,10 @@ export default function Profil() {
           likesReceived: 0,
           friendsCount: 0,
           trophyPoints: 0,
-          trophiesUnlocked: 0
+          trophiesUnlocked: 0,
+          profileCompleteness: 0,
+          daysSinceRegistration: 0,
+          memberSince: null
         })
       }
 
@@ -198,6 +231,10 @@ export default function Profil() {
 
   // Fonction pour calculer la complétude du profil en temps réel
   const calculateProfileCompleteness = (formData) => {
+    if (!formData || typeof formData !== 'object') {
+      return 0
+    }
+    
     const fields = ['display_name', 'bio', 'location', 'website', 'phone', 'date_of_birth']
     const completedFields = fields.filter(field => {
       const value = formData[field]

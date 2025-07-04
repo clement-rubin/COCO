@@ -205,7 +205,6 @@ export async function searchUsersByDisplayName(query, limit = 10) {
  */
 export async function getUserStats(userId) {
   if (!userId) {
-    logWarning('getUserStats called without userId')
     return {
       recipesCount: 0,
       friendsCount: 0,
@@ -214,83 +213,47 @@ export async function getUserStats(userId) {
   }
 
   try {
-    // Essayer d'utiliser l'API optimisée si disponible
-    if (typeof window !== 'undefined') {
-      try {
-        const response = await fetch(`/api/user-stats?user_id=${userId}`)
-        if (response.ok) {
-          const stats = await response.json()
-          return {
-            recipesCount: stats.recipesCount || 0,
-            friendsCount: stats.friendsCount || 0,
-            profileCompleteness: stats.profileCompleteness || 0,
-            pendingSent: stats.pendingSent || 0,
-            pendingReceived: stats.pendingReceived || 0
-          }
-        }
-      } catch (apiError) {
-        logWarning('API user-stats not available, using direct queries', apiError)
-      }
+    // Récupérer le vrai nombre d'amis depuis la base de données
+    const { data: friendshipsData, error: friendsError } = await supabase
+      .from('friendships')
+      .select('id')
+      .or(`user_id.eq.${userId},friend_id.eq.${userId}`)
+      .eq('status', 'accepted')
+
+    // Récupérer le nombre de recettes
+    const { data: recipesData, error: recipesError } = await supabase
+      .from('recipes')
+      .select('id', { count: 'exact' })
+      .eq('user_id', userId)
+
+    // Récupérer les données du profil pour calculer la complétude
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('display_name, bio, avatar_url, location, website, phone, date_of_birth')
+      .eq('user_id', userId)
+      .single()
+
+    let profileCompleteness = 0
+    if (profileData) {
+      const fields = ['display_name', 'bio', 'avatar_url', 'location', 'website', 'phone', 'date_of_birth']
+      const completedFields = fields.filter(field => 
+        profileData[field] && 
+        typeof profileData[field] === 'string' && 
+        profileData[field].trim().length > 0
+      )
+      profileCompleteness = Math.round((completedFields.length / fields.length) * 100)
     }
 
-    // Fallback vers les requêtes directes optimisées
-    const [recipesResult, friendshipResult, profileResult] = await Promise.allSettled([
-      supabase
-        .from('recipes')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', userId),
-      
-      supabase
-        .rpc('get_friendship_stats', { target_user_id: userId }),
-      
-      supabase
-        .from('profiles')
-        .select('display_name, bio, avatar_url, location, website')
-        .eq('user_id', userId)
-        .single()
-    ])
-
-    const stats = {
-      recipesCount: 0,
-      friendsCount: 0,
-      profileCompleteness: 0,
-      pendingSent: 0,
-      pendingReceived: 0
+    return {
+      recipesCount: recipesData?.length || 0,
+      friendsCount: friendshipsData?.length || 0,
+      profileCompleteness,
+      likesReceived: 0, // À implémenter plus tard
+      trophyPoints: 0,
+      trophiesUnlocked: 0
     }
-
-    // Traiter les résultats
-    if (recipesResult.status === 'fulfilled' && !recipesResult.value.error) {
-      stats.recipesCount = recipesResult.value.count || 0
-    }
-
-    if (friendshipResult.status === 'fulfilled' && !friendshipResult.value.error) {
-      const friendshipData = friendshipResult.value.data
-      if (friendshipData && friendshipData.length > 0) {
-        stats.friendsCount = friendshipData[0].friends_count || 0
-        stats.pendingSent = friendshipData[0].pending_sent || 0
-        stats.pendingReceived = friendshipData[0].pending_received || 0
-      }
-    }
-
-    if (profileResult.status === 'fulfilled' && !profileResult.value.error) {
-      const profile = profileResult.value.data
-      if (profile) {
-        const fields = ['display_name', 'bio', 'avatar_url', 'location', 'website']
-        const filledFields = fields.filter(field => profile[field] && profile[field].trim())
-        const profileCompleteness = Math.round((filledFields.length / fields.length) * 100)
-        stats.profileCompleteness = profileCompleteness
-      }
-    }
-
-    logInfo('User stats retrieved', {
-      userId: userId.substring(0, 8) + '...',
-      stats
-    })
-
-    return stats
-
   } catch (error) {
-    logError('Error in getUserStats', error, { userId })
+    console.error('Error getting user stats:', error)
     return {
       recipesCount: 0,
       friendsCount: 0,

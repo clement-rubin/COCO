@@ -112,20 +112,174 @@ export default function HuggingFaceBot() {
         }}
         title="🤖 Assistant IA - Chatbot automatisé de recettes"
       >
-        {isOpen ? '✕' : '🤖'}
-        {/* Badge IA responsive */}
+        {isOpen ? (
+          <div style={{
+            width: '20px',
+            height: '20px',
+            position: 'relative',
+            animation: 'closeRotate 0.3s ease'
+          }}>
+            <div style={{
+              position: 'absolute',
+              width: '14px',
+              height: '2px',
+              background: 'white',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%) rotate(45deg)',
+              borderRadius: '1px'
+            }} />
+            <div style={{
+              position: 'absolute',
+              width: '14px',
+              height: '2px',
+              background: 'white',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%) rotate(-45deg)',
+              borderRadius: '1px'
+            }} />
+          </div>
+        ) : (
+          <div style={{
+            width: '24px',
+            height: '24px',
+            position: 'relative',
+            animation: 'botAnimation 3s ease-in-out infinite'
+          }}>
+            {/* Tête du robot */}
+            <div style={{
+              width: '16px',
+              height: '14px',
+              background: 'white',
+              borderRadius: '4px 4px 2px 2px',
+              position: 'absolute',
+              top: '2px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)'
+            }}>
+              {/* Yeux */}
+              <div style={{
+                position: 'absolute',
+                top: '3px',
+                left: '3px',
+                width: '2px',
+                height: '2px',
+                background: '#ff6b35',
+                borderRadius: '50%',
+                animation: 'eyeBlink 4s infinite'
+              }} />
+              <div style={{
+                position: 'absolute',
+                top: '3px',
+                right: '3px',
+                width: '2px',
+                height: '2px',
+                background: '#ff6b35',
+                borderRadius: '50%',
+                animation: 'eyeBlink 4s infinite 0.1s'
+              }} />
+              
+              {/* Bouche */}
+              <div style={{
+                position: 'absolute',
+                bottom: '2px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: '6px',
+                height: '1px',
+                background: '#ff6b35',
+                borderRadius: '1px',
+                animation: 'mouthMove 2s ease-in-out infinite'
+              }} />
+            </div>
+            
+            {/* Corps */}
+            <div style={{
+              width: '12px',
+              height: '8px',
+              background: 'white',
+              borderRadius: '2px',
+              position: 'absolute',
+              bottom: '2px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)'
+            }}>
+              {/* Bouton central */}
+              <div style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: '2px',
+                height: '2px',
+                background: '#4caf50',
+                borderRadius: '50%',
+                animation: 'buttonPulse 2s ease-in-out infinite'
+              }} />
+            </div>
+            
+            {/* Antennes */}
+            <div style={{
+              position: 'absolute',
+              top: '0',
+              left: '6px',
+              width: '1px',
+              height: '3px',
+              background: 'white',
+              animation: 'antennaWiggle 1.5s ease-in-out infinite'
+            }}>
+              <div style={{
+                position: 'absolute',
+                top: '-1px',
+                left: '-1px',
+                width: '3px',
+                height: '3px',
+                border: '1px solid white',
+                borderRadius: '50%',
+                background: 'transparent'
+              }} />
+            </div>
+            <div style={{
+              position: 'absolute',
+              top: '0',
+              right: '6px',
+              width: '1px',
+              height: '3px',
+              background: 'white',
+              animation: 'antennaWiggle 1.5s ease-in-out infinite 0.3s'
+            }}>
+              <div style={{
+                position: 'absolute',
+                top: '-1px',
+                right: '-1px',
+                width: '3px',
+                height: '3px',
+                border: '1px solid white',
+                borderRadius: '50%',
+                background: 'transparent'
+              }} />
+            </div>
+          </div>
+        )}
+        
+        {/* Badge IA amélioré */}
         <div style={{
           position: 'absolute',
           bottom: '-4px',
           right: '-4px',
-          background: '#4CAF50',
+          background: 'linear-gradient(135deg, #4CAF50, #45a049)',
           color: 'white',
           fontSize: isMobile ? '7px' : '8px',
           fontWeight: 'bold',
           padding: isMobile ? '1px 3px' : '2px 4px',
           borderRadius: '6px',
-          border: '1px solid white',
-          lineHeight: '1'
+          border: '2px solid white',
+          lineHeight: '1',
+          boxShadow: '0 2px 8px rgba(76, 175, 80, 0.3)',
+          animation: 'badgePulse 3s ease-in-out infinite'
         }}>
           IA
         </div>
@@ -245,41 +399,6 @@ export default function HuggingFaceBot() {
               >
                 ✕
               </button>
-            </div>
-
-            {/* Message d'introduction responsive */}
-            <div style={{
-              padding: isMobile ? '12px 16px' : '16px 20px',
-              background: 'rgba(255, 107, 53, 0.05)',
-              borderBottom: '1px solid rgba(255, 107, 53, 0.1)',
-              flexShrink: 0
-            }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                marginBottom: '8px'
-              }}>
-                <span style={{ fontSize: isMobile ? '0.9rem' : '1rem' }}>🤖</span>
-                <span style={{
-                  fontSize: isMobile ? '0.7rem' : '0.8rem',
-                  fontWeight: '600',
-                  color: '#4CAF50',
-                  background: 'rgba(76, 175, 80, 0.1)',
-                  padding: '2px 6px',
-                  borderRadius: '8px'
-                }}>
-                  ASSISTANT IA
-                </span>
-              </div>
-              <p style={{
-                margin: 0,
-                fontSize: isMobile ? '0.8rem' : '0.9rem',
-                color: '#4B5563',
-                lineHeight: '1.4'
-              }}>
-                💬 Je suis un chatbot IA spécialisé en cuisine. Posez-moi vos questions sur les recettes, les ingrédients, ou demandez des suggestions culinaires !
-              </p>
             </div>
 
             {/* Iframe du chatbot responsive */}
@@ -481,6 +600,89 @@ export default function HuggingFaceBot() {
             animation-duration: 0.01ms !important;
             animation-iteration-count: 1 !important;
             transition-duration: 0.01ms !important;
+          }
+        }
+      `}</style>
+      <style jsx>{`
+        @keyframes botAnimation {
+          0%, 100% { 
+            transform: translateY(0px) rotate(0deg);
+          }
+          25% { 
+            transform: translateY(-2px) rotate(1deg);
+          }
+          50% { 
+            transform: translateY(0px) rotate(0deg);
+          }
+          75% { 
+            transform: translateY(-1px) rotate(-1deg);
+          }
+        }
+        
+        @keyframes eyeBlink {
+          0%, 90%, 100% { 
+            transform: scaleY(1);
+            opacity: 1;
+          }
+          95% { 
+            transform: scaleY(0.1);
+            opacity: 0.5;
+          }
+        }
+        
+        @keyframes mouthMove {
+          0%, 100% { 
+            width: 6px;
+            opacity: 1;
+          }
+          50% { 
+            width: 4px;
+            opacity: 0.8;
+          }
+        }
+        
+        @keyframes buttonPulse {
+          0%, 100% { 
+            transform: translate(-50%, -50%) scale(1);
+            background: #4caf50;
+          }
+          50% { 
+            transform: translate(-50%, -50%) scale(1.2);
+            background: #45a049;
+          }
+        }
+        
+        @keyframes antennaWiggle {
+          0%, 100% { 
+            transform: rotate(0deg);
+          }
+          25% { 
+            transform: rotate(5deg);
+          }
+          75% { 
+            transform: rotate(-5deg);
+          }
+        }
+        
+        @keyframes badgePulse {
+          0%, 100% { 
+            transform: scale(1);
+            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+          }
+          50% { 
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.5);
+          }
+        }
+        
+        @keyframes closeRotate {
+          from { 
+            transform: rotate(0deg) scale(0.8);
+            opacity: 0.8;
+          }
+          to { 
+            transform: rotate(180deg) scale(1);
+            opacity: 1;
           }
         }
       `}</style>

@@ -926,178 +926,356 @@ export default function Amis() {
 
   return (
     <div className={styles.container} style={{
-      background: 'linear-gradient(135deg, #fff5f0 0%, #f8fafc 100%)',
+      background: 'linear-gradient(135deg, #fef3e2 0%, #fff5e6 50%, #fef7ed 100%)',
       minHeight: '100vh',
       position: 'relative'
     }}>
-      {/* Fond décoratif */}
+      {/* Éléments décoratifs de fond */}
       <div style={{
         position: 'fixed',
-        top: 0, left: 0, right: 0, bottom: 0,
-        background: 'radial-gradient(circle at 20% 10%, #ff6b35 0%, transparent 60%), radial-gradient(circle at 80% 90%, #3b82f6 0%, transparent 60%)',
-        opacity: 0.04,
-        zIndex: 0,
-        pointerEvents: 'none'
+        top: '-40px',
+        right: '-40px',
+        width: '160px',
+        height: '160px',
+        background: 'linear-gradient(45deg, #ff6b35, #f7931e)',
+        borderRadius: '50%',
+        opacity: 0.08,
+        animation: 'float 6s ease-in-out infinite'
+      }} />
+      <div style={{
+        position: 'fixed',
+        top: '20%',
+        left: '-60px',
+        width: '120px',
+        height: '120px',
+        background: 'linear-gradient(45deg, #4caf50, #45a049)',
+        borderRadius: '50%',
+        opacity: 0.06,
+        animation: 'float 8s ease-in-out infinite reverse'
+      }} />
+      <div style={{
+        position: 'fixed',
+        bottom: '-50px',
+        right: '10%',
+        width: '100px',
+        height: '100px',
+        background: 'linear-gradient(45deg, #ff6b35, #f7931e)',
+        borderRadius: '50%',
+        opacity: 0.05,
+        animation: 'float 10s ease-in-out infinite'
       }} />
 
-      {/* Hero section */}
-      <section
-        style={{
-          width: '100%',
-          background: 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)',
-          padding: '48px 0 32px 0',
-          position: 'relative',
-          overflow: 'hidden',
-          marginBottom: 32,
-          boxShadow: '0 8px 32px rgba(255, 107, 53, 0.07)'
-        }}
-      >
+      {/* Hero section redessinée */}
+      <section style={{
+        width: '100%',
+        background: 'linear-gradient(135deg, #fef3e2 0%, #fff5e6 50%, #fef7ed 100%)',
+        padding: '80px 0 40px 0',
+        position: 'relative',
+        overflow: 'hidden',
+        marginBottom: 0,
+        marginTop: '-64px' // Compenser le padding-top du main
+      }}>
+        {/* Éléments décoratifs spécifiques au hero */}
         <div style={{
           position: 'absolute',
-          top: -40,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          width: 320,
-          height: 320,
+          top: '-20px',
+          left: '10%',
+          width: '200px',
+          height: '200px',
           background: 'radial-gradient(circle at 60% 40%, #ff6b35 0%, transparent 70%)',
-          opacity: 0.08,
-          zIndex: 0
+          opacity: 0.06,
+          animation: 'float 12s ease-in-out infinite'
         }} />
         <div style={{
-          maxWidth: 700,
+          position: 'absolute',
+          bottom: '-30px',
+          right: '15%',
+          width: '150px',
+          height: '150px',
+          background: 'radial-gradient(circle at 40% 60%, #4caf50 0%, transparent 70%)',
+          opacity: 0.08,
+          animation: 'float 10s ease-in-out infinite reverse'
+        }} />
+
+        <div style={{
+          maxWidth: '400px',
           margin: '0 auto',
           position: 'relative',
           zIndex: 1,
-          textAlign: 'center'
+          textAlign: 'center',
+          padding: '24px 20px 0'
         }}>
+          {/* Logo animé COCO-style */}
           <div style={{
-            display: 'inline-flex',
+            width: '80px',
+            height: '80px',
+            background: 'linear-gradient(135deg, #ff6b35, #f7931e)',
+            borderRadius: '24px',
+            display: 'flex',
             alignItems: 'center',
-            gap: 16,
-            marginBottom: 16
+            justifyContent: 'center',
+            fontSize: '2.5rem',
+            margin: '0 auto 20px',
+            boxShadow: '0 12px 35px rgba(255, 107, 53, 0.3), 0 6px 15px rgba(255, 107, 53, 0.15)',
+            animation: 'heroLogo 3s ease-in-out infinite',
+            border: '3px solid rgba(255, 255, 255, 0.9)',
+            position: 'relative'
           }}>
-            <span style={{
-              fontSize: '2.5rem',
-              background: 'linear-gradient(135deg, #ff6b35, #f7931e)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              fontWeight: 900
-            }}>👥</span>
-            <h1 style={{
-              fontSize: '2.2rem',
-              fontWeight: 800,
-              margin: 0,
-              background: 'linear-gradient(135deg, #ff6b35, #f7931e)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent'
-            }}>
-              Mes amis COCO
-            </h1>
+            👥
+            {/* Effet de brillance */}
+            <div style={{
+              position: 'absolute',
+              top: '15%',
+              left: '20%',
+              width: '35%',
+              height: '35%',
+              background: 'radial-gradient(circle, rgba(255, 255, 255, 0.4) 0%, transparent 70%)',
+              borderRadius: '50%',
+              filter: 'blur(4px)',
+              animation: 'shine 2s ease-in-out infinite'
+            }} />
           </div>
-          <p style={{
-            color: '#475569',
-            fontSize: '1.15rem',
-            fontWeight: 500,
-            margin: '0 0 12px 0'
+
+          {/* Titre principal avec effet gradient */}
+          <h1 style={{
+            fontSize: '2.8rem',
+            fontWeight: '900',
+            margin: '0 0 12px 0',
+            background: 'linear-gradient(135deg, #ff6b35 0%, #f7931e 50%, #ff8a50 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            letterSpacing: '-0.03em',
+            lineHeight: '1',
+            textShadow: '0 2px 10px rgba(255, 107, 53, 0.1)'
           }}>
-            Retrouvez, ajoutez et gérez vos amis culinaires pour partager vos meilleures recettes !
-          </p>
+            Mes Amis COCO
+          </h1>
+
+          {/* Sous-titre avec animation */}
+          <div style={{ marginBottom: '28px' }}>
+            <h2 style={{
+              fontSize: '1.3rem',
+              fontWeight: '700',
+              margin: '0 0 8px 0',
+              color: '#1f2937',
+              lineHeight: '1.2'
+            }}>
+              Connectez-vous.{' '}
+              <span style={{
+                background: 'linear-gradient(135deg, #ff6b35, #f7931e)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                position: 'relative'
+              }}>
+                Partagez.
+                <div style={{
+                  position: 'absolute',
+                  bottom: '-2px',
+                  left: '0',
+                  right: '0',
+                  height: '2px',
+                  background: 'linear-gradient(135deg, #ff6b35, #f7931e)',
+                  borderRadius: '1px',
+                  animation: 'expandLine 2s ease-in-out infinite'
+                }} />
+              </span>
+              {' '}Cuisinez ensemble.
+            </h2>
+            <p style={{
+              fontSize: '1rem',
+              color: '#6b7280',
+              margin: 0,
+              lineHeight: '1.4',
+              fontWeight: '500'
+            }}>
+              Votre communauté culinaire vous attend
+            </p>
+          </div>
+
+          {/* Statistiques de la communauté avec design amélioré */}
           <div style={{
             display: 'flex',
             justifyContent: 'center',
-            gap: 32,
-            marginTop: 24,
+            gap: '20px',
+            marginBottom: '28px',
             flexWrap: 'wrap'
           }}>
-            <div style={{
-              background: 'white',
-              borderRadius: 16,
-              boxShadow: '0 2px 12px rgba(255,107,53,0.07)',
-              padding: '18px 28px',
-              minWidth: 120,
-              textAlign: 'center'
-            }}>
-              <div style={{
-                fontSize: '1.5rem',
-                fontWeight: 700,
+            {[{
+              number: userStats.friendsCount, label: 'Amis', icon: '👥', color: '#ff6b35'
+            },
+            { 
+              number: friendshipStats.pending, 
+              label: 'En attente', 
+              icon: '⏳', 
+              color: '#f59e0b',
+              clickable: friendshipStats.pending > 0,
+              onClick: friendshipStats.pending > 0 ? handlePendingClick : undefined
+            },
+            { number: userStats.recipesCount, label: 'Recettes', icon: '🍽️', color: '#10b981' }
+          ].map((stat, index) => (
+              <div 
+                key={index} 
+                style={{
+                  background: 'rgba(255, 255, 255, 0.9)',
+                  backdropFilter: 'blur(15px)',
+                  padding: '16px 20px',
+                  borderRadius: '16px',
+                  border: `2px solid ${stat.color}20`,
+                  minWidth: '80px',
+                  animation: `fadeInUp 0.6s ease-out ${index * 0.15}s both`,
+                  boxShadow: '0 4px 15px rgba(0, 0, 0, 0.05)',
+                  cursor: stat.clickable ? 'pointer' : 'default',
+                  transition: 'all 0.3s ease',
+                  ...(stat.clickable && {
+                    border: `2px solid ${stat.color}`,
+                    transform: 'scale(1.02)'
+                  })
+                }}
+                onClick={stat.onClick}
+                onMouseEnter={stat.clickable ? (e) => {
+                  e.target.style.transform = 'translateY(-3px) scale(1.05)'
+                  e.target.style.boxShadow = '0 8px 25px rgba(0, 0, 0, 0.1)'
+                } : undefined}
+                onMouseLeave={stat.clickable ? (e) => {
+                  e.target.style.transform = 'translateY(0) scale(1.02)'
+                  e.target.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.05)'
+                } : undefined}
+              >
+                <div style={{ 
+                  fontSize: '1.4rem', 
+                  marginBottom: '6px',
+                  filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))'
+                }}>
+                  {stat.icon}
+                </div>
+                <div style={{
+                  fontSize: '1.2rem',
+                  fontWeight: '800',
+                  color: stat.color,
+                  marginBottom: '4px'
+                }}>
+                  {stat.number}
+                </div>
+                <div style={{
+                  fontSize: '0.8rem',
+                  color: '#64748b',
+                  fontWeight: '600'
+                }}>
+                  {stat.label}
+                </div>
+                {stat.clickable && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '8px',
+                    right: '8px',
+                    background: '#f59e0b',
+                    color: 'white',
+                    borderRadius: '50%',
+                    width: '20px',
+                    height: '20px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '0.7rem',
+                    fontWeight: '700',
+                    animation: 'pulse 2s infinite'
+                  }}>
+                    !
+                  </div>
+                )}
+              </div>
+            ))
+            }
+          </div>
+
+          {/* Actions rapides avec meilleur design */}
+          <div style={{
+            display: 'flex',
+            gap: '12px',
+            justifyContent: 'center',
+            flexWrap: 'wrap',
+            marginBottom: '20px'
+          }}>
+            <button
+              onClick={() => setActiveTab('suggestions')}
+              style={{
                 background: 'linear-gradient(135deg, #ff6b35, #f7931e)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent'
-              }}>{userStats.friendsCount}</div>
-              <div style={{
-                fontSize: '0.9rem',
-                color: '#64748b',
-                fontWeight: 600
-              }}>Amis</div>
-            </div>
-            <div style={{
-              background: 'white',
-              borderRadius: 16,
-              boxShadow: '0 2px 12px rgba(255,107,53,0.07)',
-              padding: '18px 28px',
-              minWidth: 120,
-              textAlign: 'center',
-              position: 'relative',
-              cursor: friendshipStats.pending > 0 ? 'pointer' : 'default',
-              border: friendshipStats.pending > 0 ? '2px solid #f59e0b' : 'none'
-            }}
-              onClick={friendshipStats.pending > 0 ? handlePendingClick : undefined}
-              title={friendshipStats.pending > 0 ? 'Voir les demandes en attente' : ''}
+                color: 'white',
+                border: 'none',
+                padding: '12px 24px',
+                borderRadius: '16px',
+                fontWeight: '700',
+                fontSize: '0.95rem',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                boxShadow: '0 6px 20px rgba(255, 107, 53, 0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.transform = 'translateY(-3px)'
+                e.target.style.boxShadow = '0 8px 25px rgba(255, 107, 53, 0.4)'
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'translateY(0)'
+                e.target.style.boxShadow = '0 6px 20px rgba(255, 107, 53, 0.3)'
+              }}
             >
-              <div style={{
-                fontSize: '1.5rem',
-                fontWeight: 700,
-                background: 'linear-gradient(135deg, #f59e0b, #f7931e)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent'
-              }}>{friendshipStats.pending}</div>
-              <div style={{
-                fontSize: '0.9rem',
-                color: '#f59e0b',
-                fontWeight: 600
-              }}>En attente</div>
-              {friendshipStats.pending > 0 && (
+              💡 Découvrir
+            </button>
+            {friendRequests.length > 0 && (
+              <button
+                onClick={() => setActiveTab('requests')}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.95)',
+                  color: '#f59e0b',
+                  border: '2px solid #f59e0b',
+                  padding: '12px 24px',
+                  borderRadius: '16px',
+                  fontWeight: '700',
+                  fontSize: '0.95rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  backdropFilter: 'blur(10px)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  position: 'relative'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = '#f59e0b'
+                  e.target.style.color = 'white'
+                  e.target.style.transform = 'translateY(-3px)'
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'rgba(255, 255, 255, 0.95)'
+                  e.target.style.color = '#f59e0b'
+                  e.target.style.transform = 'translateY(0)'
+                }}
+              >
+                📩 Demandes ({friendRequests.length})
                 <span style={{
                   position: 'absolute',
-                  top: 8,
-                  right: 12,
+                  top: '-8px',
+                  right: '-8px',
                   background: '#f59e0b',
                   color: 'white',
                   borderRadius: '50%',
-                  width: 22,
-                  height: 22,
+                  width: '24px',
+                  height: '24px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '0.85rem',
-                  fontWeight: 700,
-                  boxShadow: '0 2px 6px rgba(245,158,11,0.18)'
+                  fontSize: '0.8rem',
+                  fontWeight: '700',
+                  animation: 'pulse 2s infinite'
                 }}>
-                  {friendshipStats.pending}
+                  {friendRequests.length}
                 </span>
-              )}
-            </div>
-            <div style={{
-              background: 'white',
-              borderRadius: 16,
-              boxShadow: '0 2px 12px rgba(255,107,53,0.07)',
-              padding: '18px 28px',
-              minWidth: 120,
-              textAlign: 'center'
-            }}>
-              <div style={{
-                fontSize: '1.5rem',
-                fontWeight: 700,
-                background: 'linear-gradient(135deg, #10b981, #059669)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent'
-              }}>{userStats.recipesCount}</div>
-              <div style={{
-                fontSize: '0.9rem',
-                color: '#10b981',
-                fontWeight: 600
-              }}>Recettes</div>
-            </div>
+              </button>
+            )}
           </div>
         </div>
       </section>
@@ -1111,518 +1289,673 @@ export default function Amis() {
 
       {/* Affichage des messages d'erreur/succès */}
       {(error || successMessage) && (
-        <div className={styles.errorMessage} style={{ margin: '0 auto', maxWidth: 540 }}>
+        <div className={styles.errorMessage} style={{ 
+          margin: '0 auto 24px auto', 
+          maxWidth: 540,
+          background: 'rgba(255, 255, 255, 0.95)',
+          backdropFilter: 'blur(10px)',
+          borderRadius: '16px',
+          border: '1px solid rgba(255, 107, 53, 0.2)'
+        }}>
           {error ? error : successMessage}
         </div>
       )}
 
-      {/* Barre de recherche d'utilisateurs */}
+      {/* Section de transition fluide */}
       <div style={{
-        maxWidth: 540,
-        margin: '0 auto 32px auto',
+        maxWidth: '900px',
+        margin: '-20px auto 0',
+        background: 'white',
+        borderRadius: '28px 28px 0 0',
+        boxShadow: '0 -12px 40px rgba(0,0,0,0.1), 0 -4px 15px rgba(0,0,0,0.05)',
+        overflow: 'hidden',
         position: 'relative',
-        zIndex: 2
+        zIndex: 2,
+        minHeight: '60vh'
       }}>
-        {searchSection}
-      </div>
-
-      {/* Résultats de recherche d'utilisateurs */}
-      {searchTerm.length >= 2 && (
-        <div className={styles.searchSection} style={{ maxWidth: 540, margin: '0 auto 32px auto' }}>
-          <div className={styles.searchResults}>
-            <h3>Résultats de recherche</h3>
-            {renderSearchResults()}
+        {/* Barre de recherche d'utilisateurs redessinée */}
+        <div style={{
+          padding: '32px 24px 20px',
+          borderBottom: '1px solid #f3f4f6'
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            marginBottom: '16px'
+          }}>
+            <span style={{ fontSize: '1.5rem' }}>🔍</span>
+            <h3 style={{
+              margin: 0,
+              fontSize: '1.2rem',
+              fontWeight: '700',
+              color: '#1f2937'
+            }}>
+              Rechercher des amis
+            </h3>
+          </div>
+          
+          <div style={{
+            position: 'relative',
+            maxWidth: '400px'
+          }}>
+            <input
+              type="text"
+              className={styles.searchInput}
+              placeholder="Rechercher par nom d'utilisateur..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              autoComplete="off"
+              style={{
+                width: '100%',
+                padding: '16px 20px',
+                borderRadius: '16px',
+                border: '2px solid #e5e7eb',
+                fontSize: '1rem',
+                outline: 'none',
+                transition: 'all 0.3s ease',
+                background: 'rgba(255, 255, 255, 0.8)',
+                backdropFilter: 'blur(10px)'
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = '#ff6b35'
+                e.target.style.boxShadow = '0 0 0 3px rgba(255, 107, 53, 0.1)'
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = '#e5e7eb'
+                e.target.style.boxShadow = 'none'
+              }}
+            />
+            {searchLoading && (
+              <div style={{
+                position: 'absolute',
+                right: '16px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                color: '#ff6b35',
+                fontSize: '1.2rem',
+                animation: 'spin 1s linear infinite'
+              }}>
+                🔄
+              </div>
+            )}
           </div>
         </div>
-      )}
 
-      {/* Navigation sticky */}
-      <nav className={styles.tabs} style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 10,
-        background: 'rgba(255,255,255,0.95)',
-        boxShadow: '0 2px 12px rgba(0,0,0,0.03)',
-        marginBottom: 24,
-        borderRadius: '0 0 18px 18px'
-      }}>
-        <button
-          className={activeTab === 'friends' ? styles.activeTab : ''}
-          onClick={() => setActiveTab('friends')}
-        >
-          <span className={styles.tabIcon}>👥</span>
-          <span className={styles.tabText}>Amis ({friends.length})</span>
-        </button>
-        <button
-          className={activeTab === 'requests' ? styles.activeTab : ''}
-          onClick={() => setActiveTab('requests')}
-          style={{ position: 'relative' }}
-        >
-          <span className={styles.tabIcon}>📩</span>
-          <span className={styles.tabText}>Demandes ({friendRequests.length})</span>
-          {friendRequests.length > 0 && (
-            <div className={`${styles.tabBadge} ${friendRequests.length > 3 ? styles.urgent : ''}`}>
-              {friendRequests.length}
-            </div>
-          )}
-        </button>
-        <button
-          className={activeTab === 'suggestions' ? styles.activeTab : ''}
-          onClick={() => setActiveTab('suggestions')}
-        >
-          <span className={styles.tabIcon}>💡</span>
-          <span className={styles.tabText}>Suggestions</span>
-        </button>
-        <button
-          className={activeTab === 'friendsRecipes' ? styles.activeTab : ''}
-          onClick={() => setActiveTab('friendsRecipes')}
-        >
-          <span className={styles.tabIcon}>🍽️</span>
-          <span className={styles.tabText}>Recettes des amis</span>
-        </button>
-      </nav>
-
-      {/* Affichage conditionnel selon l'onglet */}
-      <main style={{
-        maxWidth: 900,
-        margin: '0 auto',
-        padding: '0 12px'
-      }}>
-        {activeTab === 'friends' && (
-          <section className={`${styles.friendsSection} ${getSectionAnimationClass()}`} style={{
-            background: 'white',
-            borderRadius: 18,
-            boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
-            padding: '32px 24px',
-            marginBottom: 32
+        {/* Résultats de recherche améliorés */}
+        {searchTerm.length >= 2 && (
+          <div style={{
+            padding: '0 24px 24px',
+            borderBottom: '1px solid #f3f4f6'
           }}>
-            <div className={styles.sectionHeader}>
-              <h2>Mes amis ({friends.length})</h2>
-              
-              {/* Nouveau: Filtres pour les amis */}
-              {friends.length > 0 && (
-                <div className={styles.friendsFilters}>
-                  <select 
-                    value={friendFilter}
-                    onChange={(e) => setFriendFilter(e.target.value)}
-                    className={styles.filterSelect}
-                  >
-                    <option value="all">Tous</option>
-                    <option value="recent">Ajoutés récemment</option>
-                    <option value="active">Actifs récemment</option>
-                  </select>
-                </div>
-              )}
+            <div style={{
+              background: 'linear-gradient(135deg, #f0f9ff, #e0f2fe)',
+              borderRadius: '16px',
+              padding: '20px',
+              border: '1px solid #0ea5e9'
+            }}>
+              <h4 style={{
+                margin: '0 0 16px 0',
+                color: '#0369a1',
+                fontSize: '1rem',
+                fontWeight: '600',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <span>🎯</span> Résultats de recherche
+              </h4>
+              <div style={{
+                display: 'grid',
+                gap: '12px'
+              }}>
+                {renderSearchResults()}
+              </div>
             </div>
-            
-            {friends.length > 0 ? (
-              <div className={styles.friendsGrid}>
-                {getFilteredFriends().map((friendship, idx) => {
-                  const isOnline = Math.random() > 0.7;
-                  const lastActive = Math.floor(Math.random() * 72);
-                  
-                  // Charger les amis communs si pas déjà chargés
-                  if (!mutualFriendsData[friendship.friend_id] && friendship.friend_id) {
-                    loadMutualFriends(friendship.friend_id);
-                  }
-                  
-                  return (
-                    <div
-                      key={friendship.id}
-                      className={`${styles.friendCard} ${getCardAnimationClass(idx)}`}
-                      onMouseEnter={() => {
-                        setHoveredFriendId(friendship.friend_id);
-                        fetchFriendRecipes(friendship.friend_id);
-                      }}
-                      onMouseLeave={() => setHoveredFriendId(null)}
+          </div>
+        )}
+
+        {/* Navigation tabs redessinée */}
+        <nav className={styles.tabs} style={{
+          position: 'sticky',
+          top: 0,
+          zIndex: 10,
+          background: 'rgba(255,255,255,0.98)',
+          boxShadow: '0 2px 12px rgba(0,0,0,0.03)',
+          borderBottom: '1px solid #f3f4f6',
+          padding: '0 24px'
+        }}>
+          <button
+            className={activeTab === 'friends' ? styles.activeTab : ''}
+            onClick={() => setActiveTab('friends')}
+            style={{
+              position: 'relative',
+              padding: '12px 16px',
+              borderRadius: '16px',
+              fontWeight: '700',
+              fontSize: '0.95rem',
+              color: activeTab === 'friends' ? '#ff6b35' : '#374151',
+              background: activeTab === 'friends' ? 'rgba(255, 107, 53, 0.1)' : 'transparent',
+              transition: 'all 0.3s ease',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              boxShadow: activeTab === 'friends' ? '0 4px 15px rgba(255, 107, 53, 0.2)' : 'none'
+            }}
+          >
+            <span className={styles.tabIcon}>👥</span>
+            <span className={styles.tabText}>Amis ({friends.length})</span>
+          </button>
+          <button
+            className={activeTab === 'requests' ? styles.activeTab : ''}
+            onClick={() => setActiveTab('requests')}
+            style={{
+              position: 'relative',
+              padding: '12px 16px',
+              borderRadius: '16px',
+              fontWeight: '700',
+              fontSize: '0.95rem',
+              color: activeTab === 'requests' ? '#f59e0b' : '#374151',
+              background: activeTab === 'requests' ? 'rgba(245, 158, 11, 0.1)' : 'transparent',
+              transition: 'all 0.3s ease',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              boxShadow: activeTab === 'requests' ? '0 4px 15px rgba(245, 158, 11, 0.2)' : 'none'
+            }}
+          >
+            <span className={styles.tabIcon}>📩</span>
+            <span className={styles.tabText}>Demandes ({friendRequests.length})</span>
+            {friendRequests.length > 0 && (
+              <div className={`${styles.tabBadge} ${friendRequests.length > 3 ? styles.urgent : ''}`}>
+                {friendRequests.length}
+              </div>
+            )}
+          </button>
+          <button
+            className={activeTab === 'suggestions' ? styles.activeTab : ''}
+            onClick={() => setActiveTab('suggestions')}
+            style={{
+              position: 'relative',
+              padding: '12px 16px',
+              borderRadius: '16px',
+              fontWeight: '700',
+              fontSize: '0.95rem',
+              color: activeTab === 'suggestions' ? '#4caf50' : '#374151',
+              background: activeTab === 'suggestions' ? 'rgba(76, 175, 80, 0.1)' : 'transparent',
+              transition: 'all 0.3s ease',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              boxShadow: activeTab === 'suggestions' ? '0 4px 15px rgba(76, 175, 80, 0.2)' : 'none'
+            }}
+          >
+            <span className={styles.tabIcon}>💡</span>
+            <span className={styles.tabText}>Suggestions</span>
+          </button>
+          <button
+            className={activeTab === 'friendsRecipes' ? styles.activeTab : ''}
+            onClick={() => setActiveTab('friendsRecipes')}
+            style={{
+              position: 'relative',
+              padding: '12px 16px',
+              borderRadius: '16px',
+              fontWeight: '700',
+              fontSize: '0.95rem',
+              color: activeTab === 'friendsRecipes' ? '#10b981' : '#374151',
+              background: activeTab === 'friendsRecipes' ? 'rgba(16, 185, 129, 0.1)' : 'transparent',
+              transition: 'all 0.3s ease',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              boxShadow: activeTab === 'friendsRecipes' ? '0 4px 15px rgba(16, 185, 129, 0.2)' : 'none'
+            }}
+          >
+            <span className={styles.tabIcon}>🍽️</span>
+            <span className={styles.tabText}>Recettes des amis</span>
+          </button>
+        </nav>
+
+        {/* Contenu principal avec meilleur espacement */}
+        <main style={{
+          padding: '32px 24px',
+          minHeight: '400px'
+        }}>
+          {activeTab === 'friends' && (
+            <section className={`${styles.friendsSection} ${getSectionAnimationClass()}`} style={{
+              background: 'white',
+              borderRadius: 18,
+              boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
+              padding: '32px 24px',
+              marginBottom: 32
+            }}>
+              <div className={styles.sectionHeader}>
+                <h2>Mes amis ({friends.length})</h2>
+                
+                {/* Nouveau: Filtres pour les amis */}
+                {friends.length > 0 && (
+                  <div className={styles.friendsFilters}>
+                    <select 
+                      value={friendFilter}
+                      onChange={(e) => setFriendFilter(e.target.value)}
+                      className={styles.filterSelect}
                     >
-                      {/* Nouveau: Badge de statut d'activité */}
-                      <div className={`${styles.statusIndicator} ${isOnline ? styles.online : styles.offline}`} 
-                           title={isOnline ? 'En ligne' : `Dernière activité: il y a ${lastActive}h`}>
-                        {isOnline ? '🟢' : '⚪'}
-                      </div>
-                      
-                      <div className={styles.avatar}>
-                        {friendship.profiles?.avatar_url ? (
-                          <img src={friendship.profiles.avatar_url} alt={friendship.profiles.display_name} />
-                        ) : (
-                          <div className={styles.avatarPlaceholder}>
-                            {friendship.profiles?.display_name?.charAt(0)?.toUpperCase() || '?'
-                            }
-                          </div>
-                        )}
-                      </div>
-                      <h4>{friendship.profiles?.display_name || 'Utilisateur'}</h4>
-                      <p>{friendship.profiles?.bio || 'Amateur de cuisine passionné 🍽️'}</p>
-                      
-                      {/* Nouveau: Affichage des amis communs */}
-                      {mutualFriendsData[friendship.friend_id] > 0 && (
-                        <div className={styles.mutualFriends}>
-                          <span className={styles.mutualIcon}>👥</span>
-                          <span className={styles.mutualCount}>
-                            {mutualFriendsData[friendship.friend_id]} 
-                            {mutualFriendsData[friendship.friend_id] === 1 ? ' ami commun' : ' amis communs'}
-                          </span>
-                        </div>
-                      )}
-                      
-                      {/* Section Gestion des amitiés améliorée */}
-                      <div className={styles.friendActions}>
-                        <div className={styles.actionButtonsContainer}>
-                          <button
-                            onClick={() => router.push(`/profile/${friendship.friend_id}`)}
-                            className={styles.viewProfileButton}
-                            title="Voir le profil"
-                          >
-                            <span className={styles.buttonIcon}>👤</span>
-                            <span className={styles.buttonText}>Profil</span>
-                          </button>
-                          
-                          {/* Nouveau: Bouton message direct */}
-                          <button
-                            onClick={() => alert('Fonctionnalité de messagerie à venir!')}
-                            className={styles.messageButton}
-                            title="Envoyer un message"
-                          >
-                            <span className={styles.buttonIcon}>💬</span>
-                            <span className={styles.buttonText}>Message</span>
-                          </button>
-                          
-                          <button
-                            onClick={() => fetchFriendshipStatus(friendship.friend_id)}
-                            className={styles.statusButton}
-                            disabled={friendshipStatuses[friendship.friend_id]?.loading}
-                            title="Vérifier le statut de l'amitié"
-                          >
-                            <span className={styles.buttonIcon}>
-                              {friendshipStatuses[friendship.friend_id]?.loading ? '⏳' : 'ℹ️'}
-                            </span>
-                            <span className={styles.buttonText}>Statut</span>
-                          </button>
-                          
-                          <div className={styles.dangerActions}>
-                            <button
-                              onClick={() => handleRemoveFriend(friendship.friend_id, friendship.profiles?.display_name)}
-                              disabled={friendshipActions[friendship.friend_id]?.loading}
-                              className={styles.removeButton}
-                              title="Retirer de mes amis"
-                            >
-                              <span className={styles.buttonIcon}>
-                                {friendshipActions[friendship.friend_id]?.loading ? '⏳' : '🗑️'}
-                              </span>
-                              <span className={styles.buttonText}>Supprimer</span>
-                            </button>
-                            
-                            <button
-                              onClick={() => handleBlockUser(friendship.friend_id, friendship.profiles?.display_name)}
-                              disabled={friendshipActions[friendship.friend_id]?.loading}
-                              className={styles.blockButton}
-                              title="Bloquer cet utilisateur"
-                            >
-                              <span className={styles.buttonIcon}>
-                                {friendshipActions[friendship.friend_id]?.loading ? '⏳' : '🚫'}
-                              </span>
-                              <span className={styles.buttonText}>Bloquer</span>
-                            </button>
-                          </div>
+                      <option value="all">Tous</option>
+                      <option value="recent">Ajoutés récemment</option>
+                      <option value="active">Actifs récemment</option>
+                    </select>
+                  </div>
+                )}
+              </div>
+              
+              {friends.length > 0 ? (
+                <div className={styles.friendsGrid}>
+                  {getFilteredFriends().map((friendship, idx) => {
+                    const isOnline = Math.random() > 0.7;
+                    const lastActive = Math.floor(Math.random() * 72);
+                    
+                    // Charger les amis communs si pas déjà chargés
+                    if (!mutualFriendsData[friendship.friend_id] && friendship.friend_id) {
+                      loadMutualFriends(friendship.friend_id);
+                    }
+                    
+                    return (
+                      <div
+                        key={friendship.id}
+                        className={`${styles.friendCard} ${getCardAnimationClass(idx)}`}
+                        onMouseEnter={() => {
+                          setHoveredFriendId(friendship.friend_id);
+                          fetchFriendRecipes(friendship.friend_id);
+                        }}
+                        onMouseLeave={() => setHoveredFriendId(null)}
+                      >
+                        {/* Nouveau: Badge de statut d'activité */}
+                        <div className={`${styles.statusIndicator} ${isOnline ? styles.online : styles.offline}`} 
+                             title={isOnline ? 'En ligne' : `Dernière activité: il y a ${lastActive}h`}>
+                          {isOnline ? '🟢' : '⚪'}
                         </div>
                         
-                        {/* Affichage du statut d'amitié amélioré */}
-                        {friendshipStatuses[friendship.friend_id] && !friendshipStatuses[friendship.friend_id].loading && (
-                          <div className={styles.statusInfo}>
-                            <div className={styles.statusBadge}>
-                              <span className={styles.statusLabel}>Statut:</span>
-                              <span className={`${styles.statusValue} ${styles[friendshipStatuses[friendship.friend_id].status]}`}>
-                                {friendshipStatuses[friendship.friend_id].status === 'accepted' && '✅ Amis'}
-                                {friendshipStatuses[friendship.friend_id].status === 'pending' && '⏳ En attente'}
-                                {friendshipStatuses[friendship.friend_id].status === 'blocked' && '🚫 Bloqué'}
-                                {friendshipStatuses[friendship.friend_id].status === 'none' && '❌ Aucune relation'}
-                              </span>
-                            </div>
-                            {friendshipStatuses[friendship.friend_id].canSendRequest && (
-                              <div className={styles.statusHint}>
-                                💡 Vous pouvez renvoyer une demande d'amitié
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Prévisualisation des recettes au survol - améliorée */}
-                      {hoveredFriendId === friendship.friend_id && (
-                        <div className={styles.friendRecipesPreview}>
-                          <strong>Recettes récentes :</strong>
-                          {friendsRecipes[friendship.friend_id] && friendsRecipes[friendship.friend_id].length > 0 ? (
-                            <div className={styles.recipesMiniGrid}>
-                              {friendsRecipes[friendship.friend_id].map(recipe => (
-                                <div
-                                  key={recipe.id}
-                                  className={styles.recipeMiniCard}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    router.push(`/recipe/${recipe.id}`);
-                                  }}
-                                >
-                                  <div className={styles.recipeMiniImage}>
-                                    <img
-                                      src={recipe.image || '/placeholder-recipe.jpg'}
-                                      alt={recipe.title}
-                                      style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover' }}
-                                    />
-                                  </div>
-                                  <div className={styles.recipeMiniTitle}>
-                                    {recipe.title?.length > 18 ? recipe.title.slice(0, 18) + '…' : recipe.title}
-                                  </div>
-                                  {/* Nouveau: badge de catégorie */}
-                                  <span className={styles.recipeMiniCategory}>
-                                    {recipe.category || 'Plat'}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <div style={{ fontSize: 12, color: '#888' }}>
-                              {friendsRecipes[friendship.friend_id]
-                                ? "Aucune recette partagée"
-                                : "Chargement..."}
-                            </div>
-                          )}
-                          {/* Nouveau: bouton pour voir toutes les recettes */}
-                          <button 
-                            className={styles.viewAllRecipesButton}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              router.push(`/profile/${friendship.friend_id}?tab=recipes`);
-                            }}
-                          >
-                            Voir toutes les recettes →
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className={styles.emptyState}>
-                <p>Vous n'avez pas encore d'amis culinaires. Utilisez la recherche pour découvrir des passionnés comme vous !</p>
-              </div>
-            )}
-          </section>
-        )}
-
-        {activeTab === 'requests' && (
-          <section className={`${styles.requestsSection} ${getSectionAnimationClass()}`} data-tab="requests" style={{
-            background: 'white',
-            borderRadius: 18,
-            boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
-            padding: '32px 24px',
-            marginBottom: 32
-          }}>
-            <h2>Demandes d'amitié ({friendRequests.length})</h2>
-            {friendRequests.map((request, idx) => (
-              <div key={request.id} className={`${styles.requestCard} ${getCardAnimationClass(idx)}`} style={{ animation: 'cardSlideIn 0.7s cubic-bezier(0.68,-0.55,0.265,1.55)' }}>
-                <div className={styles.userInfo}>
-                  <div className={styles.avatar}>
-                    {request.profiles?.avatar_url ? (
-                      <img src={request.profiles.avatar_url} alt={request.profiles.display_name} />
-                    ) : (
-                      <div className={styles.avatarPlaceholder}>
-                        {request.profiles?.display_name?.charAt(0)?.toUpperCase() || '?'}
-                      </div>
-                    )}
-                  </div>
-                  <div className={styles.userDetails}>
-                    <h4>{request.profiles?.display_name || 'Utilisateur'}</h4>
-                    <p>{request.profiles?.bio || 'Nouveau membre de la communauté COCO 🌟'}</p>
-                  </div>
-                </div>
-                <div className={styles.requestActions}>
-                  <button
-                    onClick={() => respondToFriendRequest(request.id, 'accept')}
-                    className={styles.acceptButton}
-                    disabled={buttonStates[`accept-${request.id}`]?.loading}
-                  >
-                    {buttonStates[`accept-${request.id}`]?.loading ? '⏳' : '✅'} Accepter
-                  </button>
-                  <button
-                    onClick={() => respondToFriendRequest(request.id, 'decline')}
-                    className={styles.declineButton}
-                    disabled={buttonStates[`decline-${request.id}`]?.loading}
-                  >
-                    {buttonStates[`decline-${request.id}`]?.loading ? '⏳' : '❌'} Refuser
-                  </button>
-                </div>
-              </div>
-            ))}
-            {friendRequests.length === 0 && (
-              <div className={styles.emptyState}>
-                <p>Aucune demande d'amitié en attente.</p>
-              </div>
-            )}
-          </section>
-        )}
-
-        {activeTab === 'suggestions' && (
-          <section className={`${styles.suggestionsSection} ${getSectionAnimationClass()}`} style={{
-            background: 'white',
-            borderRadius: 18,
-            boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
-            padding: '32px 24px',
-            marginBottom: 32
-          }}>
-            <h2>Suggestions d'amis</h2>
-            <div className={styles.suggestionsGrid}>
-              {suggestions.map((suggestion, idx) => {
-                const isRequestSent = sentRequests.has(suggestion.user_id);
-                const isSuccess = successCards.has(suggestion.user_id);
-                const isLoading = buttonStates[`add-${suggestion.user_id}`]?.loading;
-                
-                return (
-                  <div
-                    key={suggestion.user_id}
-                    className={`${styles.suggestionCard} ${getCardAnimationClass(idx)} ${isRequestSent ? styles.requestSent : ''} ${isSuccess ? styles.success : ''}`}
-                    style={{ animation: 'cardSlideIn 0.7s cubic-bezier(0.68,-0.55,0.265,1.55)' }}
-                  >
-                    {isRequestSent && (
-                      <div className={`${styles.statusBadge} ${styles.sent}`}>
-                        Demande envoyée
-                      </div>
-                    )}
-                    
-                    <div className={styles.avatar}>
-                      {suggestion.avatar_url ? (
-                        <img src={suggestion.avatar_url} alt={suggestion.display_name} />
-                      ) : (
-                        <div className={styles.avatarPlaceholder}>
-                          {suggestion.display_name?.charAt(0)?.toUpperCase() || '?'}
-                        </div>
-                      )}
-                    </div>
-                    <h4>{suggestion.display_name || 'Utilisateur'}</h4>
-                    <p>{suggestion.bio || 'Découvrez de nouvelles recettes ensemble ! 🌟'}</p>
-                    <button
-                      onClick={() => sendFriendRequest(suggestion.user_id)}
-                      className={`${styles.addFriendButton} ${isRequestSent ? styles.sent : ''} ${isLoading ? styles.loading : ''}`}
-                      disabled={isLoading || isRequestSent}
-                    >
-                      {isRequestSent ? 'Envoyée' : isLoading ? 'Envoi...' : '🤝 Ajouter'}
-                    </button>
-                  </div>
-                );
-              })}
-              {suggestions.length === 0 && (
-                <div className={styles.emptyState}>
-                  <p>Aucune suggestion pour le moment.</p>
-                </div>
-              )}
-            </div>
-          </section>
-        )}
-
-        {activeTab === 'friendsRecipes' && (
-          <section className={`${styles.friendsRecipesSection} ${getSectionAnimationClass()}`} style={{
-            background: 'white',
-            borderRadius: 18,
-            boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
-            padding: '32px 24px',
-            marginBottom: 32
-          }}>
-            <h2>Recettes de mes amis</h2>
-            {friends.length === 0 ? (
-              <div className={styles.emptyState}>
-                <p>Ajoutez des amis pour découvrir leurs recettes !</p>
-              </div>
-            ) : (
-              <div className={styles.friendsRecipesGrid}>
-                <div className={styles.loadAllButton}>
-                  <button 
-                    onClick={loadAllFriendsRecipes}
-                    className={styles.refreshButton}
-                  >
-                    🔄 Actualiser toutes les recettes
-                  </button>
-                </div>
-                {friends.map(friendship => {
-                  const friendRecipes = friendsRecipes[friendship.friend_id] || [];
-                  
-                  return (
-                    <div key={friendship.friend_id} className={styles.friendsRecipesBlock} style={{ animation: 'cardSlideIn 0.7s cubic-bezier(0.68,-0.55,0.265,1.55)' }}>
-                      <div className={styles.friendsRecipesHeader}>
-                        <div className={styles.avatarMini}>
+                        <div className={styles.avatar}>
                           {friendship.profiles?.avatar_url ? (
                             <img src={friendship.profiles.avatar_url} alt={friendship.profiles.display_name} />
                           ) : (
-                            <div className={styles.avatarPlaceholderMini}>
+                            <div className={styles.avatarPlaceholder}>
                               {friendship.profiles?.display_name?.charAt(0)?.toUpperCase() || '?'}
                             </div>
                           )}
                         </div>
-                        <span>{friendship.profiles?.display_name || 'Utilisateur'}</span>
-                        <span className={styles.recipeCount}>
-                          ({friendRecipes.length} recette{friendRecipes.length !== 1 ? 's' : ''})
-                        </span>
-                      </div>
-                      <div className={styles.friendsRecipesList}>
-                        {friendRecipes.length > 0 ? (
-                          friendRecipes.map(recipe => (
-                            <div
-                              key={recipe.id}
-                              className={styles.recipeMiniCard}
-                              onClick={() => router.push(`/recipe/${recipe.id}`)}
+                        <h4>{friendship.profiles?.display_name || 'Utilisateur'}</h4>
+                        <p>{friendship.profiles?.bio || 'Amateur de cuisine passionné 🍽️'}</p>
+                        
+                        {/* Nouveau: Affichage des amis communs */}
+                        {mutualFriendsData[friendship.friend_id] > 0 && (
+                          <div className={styles.mutualFriends}>
+                            <span className={styles.mutualIcon}>👥</span>
+                            <span className={styles.mutualCount}>
+                              {mutualFriendsData[friendship.friend_id]} 
+                              {mutualFriendsData[friendship.friend_id] === 1 ? ' ami commun' : ' amis communs'}
+                            </span>
+                          </div>
+                        )}
+                        
+                        {/* Section Gestion des amitiés améliorée */}
+                        <div className={styles.friendActions}>
+                          <div className={styles.actionButtonsContainer}>
+                            <button
+                              onClick={() => router.push(`/profile/${friendship.friend_id}`)}
+                              className={styles.viewProfileButton}
+                              title="Voir le profil"
                             >
-                              <div className={styles.recipeMiniImage}>
-                                <img
-                                  src={recipe.image || '/placeholder-recipe.jpg'}
-                                  alt={recipe.title}
-                                  style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover' }}
-                                />
-                              </div>
-                              <div className={styles.recipeMiniInfo}>
-                                <div className={styles.recipeMiniTitle}>
-                                  {recipe.title?.length > 18 ? recipe.title.slice(0, 18) + '…' : recipe.title}
-                                </div>
-                                {recipe.category && (
-                                  <div className={styles.recipeMiniCategory}>
-                                    {recipe.category}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <div style={{ fontSize: 12, color: '#888', padding: '8px' }}>
-                            {friendsRecipes.hasOwnProperty(friendship.friend_id) ? (
-                              "Aucune recette partagée"
-                            ) : (
-                              <button 
-                                onClick={() => fetchFriendRecipes(friendship.friend_id)}
-                                className={styles.loadRecipesButton}
+                              <span className={styles.buttonIcon}>👤</span>
+                              <span className={styles.buttonText}>Profil</span>
+                            </button>
+                            
+                            {/* Nouveau: Bouton message direct */}
+                            <button
+                              onClick={() => alert('Fonctionnalité de messagerie à venir!')}
+                              className={styles.messageButton}
+                              title="Envoyer un message"
+                            >
+                              <span className={styles.buttonIcon}>💬</span>
+                              <span className={styles.buttonText}>Message</span>
+                            </button>
+                            
+                            <button
+                              onClick={() => fetchFriendshipStatus(friendship.friend_id)}
+                              className={styles.statusButton}
+                              disabled={friendshipStatuses[friendship.friend_id]?.loading}
+                              title="Vérifier le statut de l'amitié"
+                            >
+                              <span className={styles.buttonIcon}>
+                                {friendshipStatuses[friendship.friend_id]?.loading ? '⏳' : 'ℹ️'}
+                              </span>
+                              <span className={styles.buttonText}>Statut</span>
+                            </button>
+                            
+                            <div className={styles.dangerActions}>
+                              <button
+                                onClick={() => handleRemoveFriend(friendship.friend_id, friendship.profiles?.display_name)}
+                                disabled={friendshipActions[friendship.friend_id]?.loading}
+                                className={styles.removeButton}
+                                title="Retirer de mes amis"
                               >
-                                Charger les recettes
+                                <span className={styles.buttonIcon}>
+                                  {friendshipActions[friendship.friend_id]?.loading ? '⏳' : '🗑️'}
+                                </span>
+                                <span className={styles.buttonText}>Supprimer</span>
                               </button>
+                              
+                              <button
+                                onClick={() => handleBlockUser(friendship.friend_id, friendship.profiles?.display_name)}
+                                disabled={friendshipActions[friendship.friend_id]?.loading}
+                                className={styles.blockButton}
+                                title="Bloquer cet utilisateur"
+                              >
+                                <span className={styles.buttonIcon}>
+                                  {friendshipActions[friendship.friend_id]?.loading ? '⏳' : '🚫'}
+                                </span>
+                                <span className={styles.buttonText}>Bloquer</span>
+                              </button>
+                            </div>
+                          </div>
+                          
+                          {/* Affichage du statut d'amitié amélioré */}
+                          {friendshipStatuses[friendship.friend_id] && !friendshipStatuses[friendship.friend_id].loading && (
+                            <div className={styles.statusInfo}>
+                              <div className={styles.statusBadge}>
+                                <span className={styles.statusLabel}>Statut:</span>
+                                <span className={`${styles.statusValue} ${styles[friendshipStatuses[friendship.friend_id].status]}`}>
+                                  {friendshipStatuses[friendship.friend_id].status === 'accepted' && '✅ Amis'}
+                                  {friendshipStatuses[friendship.friend_id].status === 'pending' && '⏳ En attente'}
+                                  {friendshipStatuses[friendship.friend_id].status === 'blocked' && '🚫 Bloqué'}
+                                  {friendshipStatuses[friendship.friend_id].status === 'none' && '❌ Aucune relation'}
+                                </span>
+                              </div>
+                              {friendshipStatuses[friendship.friend_id].canSendRequest && (
+                                <div className={styles.statusHint}>
+                                  💡 Vous pouvez renvoyer une demande d'amitié
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Prévisualisation des recettes au survol - améliorée */}
+                        {hoveredFriendId === friendship.friend_id && (
+                          <div className={styles.friendRecipesPreview}>
+                            <strong>Recettes récentes :</strong>
+                            {friendsRecipes[friendship.friend_id] && friendsRecipes[friendship.friend_id].length > 0 ? (
+                              <div className={styles.recipesMiniGrid}>
+                                {friendsRecipes[friendship.friend_id].map(recipe => (
+                                  <div
+                                    key={recipe.id}
+                                    className={styles.recipeMiniCard}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      router.push(`/recipe/${recipe.id}`);
+                                    }}
+                                  >
+                                    <div className={styles.recipeMiniImage}>
+                                      <img
+                                        src={recipe.image || '/placeholder-recipe.jpg'}
+                                        alt={recipe.title}
+                                        style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover' }}
+                                      />
+                                    </div>
+                                    <div className={styles.recipeMiniTitle}>
+                                      {recipe.title?.length > 18 ? recipe.title.slice(0, 18) + '…' : recipe.title}
+                                    </div>
+                                    {/* Nouveau: badge de catégorie */}
+                                    <span className={styles.recipeMiniCategory}>
+                                      {recipe.category || 'Plat'}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div style={{ fontSize: 12, color: '#888' }}>
+                                {friendsRecipes[friendship.friend_id]
+                                  ? "Aucune recette partagée"
+                                  : "Chargement..."}
+                              </div>
                             )}
+                            {/* Nouveau: bouton pour voir toutes les recettes */}
+                            <button 
+                              className={styles.viewAllRecipesButton}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                router.push(`/profile/${friendship.friend_id}?tab=recipes`);
+                              }}
+                            >
+                              Voir toutes les recettes →
+                            </button>
                           </div>
                         )}
                       </div>
-                      {friendRecipes.length > 0 && (
-                        <div className={styles.viewAllContainer}>
-                          <button 
-                            className={styles.viewAllRecipesButton}
-                            onClick={() => router.push(`/profile/${friendship.friend_id}?tab=recipes`)}
-                          >
-                            Voir toutes les recettes →
-                          </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className={styles.emptyState}>
+                  <p>Vous n'avez pas encore d'amis culinaires. Utilisez la recherche pour découvrir des passionnés comme vous !</p>
+                </div>
+              )}
+            </section>
+          )}
+
+          {activeTab === 'requests' && (
+            <section className={`${styles.requestsSection} ${getSectionAnimationClass()}`} data-tab="requests" style={{
+              background: 'white',
+              borderRadius: 18,
+              boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
+              padding: '32px 24px',
+              marginBottom: 32
+            }}>
+              <h2>Demandes d'amitié ({friendRequests.length})</h2>
+              {friendRequests.map((request, idx) => (
+                <div key={request.id} className={`${styles.requestCard} ${getCardAnimationClass(idx)}`} style={{ animation: 'cardSlideIn 0.7s cubic-bezier(0.68,-0.55,0.265,1.55)' }}>
+                  <div className={styles.userInfo}>
+                    <div className={styles.avatar}>
+                      {request.profiles?.avatar_url ? (
+                        <img src={request.profiles.avatar_url} alt={request.profiles.display_name} />
+                      ) : (
+                        <div className={styles.avatarPlaceholder}>
+                          {request.profiles?.display_name?.charAt(0)?.toUpperCase() || '?'}
                         </div>
                       )}
                     </div>
+                    <div className={styles.userDetails}>
+                      <h4>{request.profiles?.display_name || 'Utilisateur'}</h4>
+                      <p>{request.profiles?.bio || 'Nouveau membre de la communauté COCO 🌟'}</p>
+                    </div>
+                  </div>
+                  <div className={styles.requestActions}>
+                    <button
+                      onClick={() => respondToFriendRequest(request.id, 'accept')}
+                      className={styles.acceptButton}
+                      disabled={buttonStates[`accept-${request.id}`]?.loading}
+                    >
+                      {buttonStates[`accept-${request.id}`]?.loading ? '⏳' : '✅'} Accepter
+                    </button>
+                    <button
+                      onClick={() => respondToFriendRequest(request.id, 'decline')}
+                      className={styles.declineButton}
+                      disabled={buttonStates[`decline-${request.id}`]?.loading}
+                    >
+                      {buttonStates[`decline-${request.id}`]?.loading ? '⏳' : '❌'} Refuser
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {friendRequests.length === 0 && (
+                <div className={styles.emptyState}>
+                  <p>Aucune demande d'amitié en attente.</p>
+                </div>
+              )}
+            </section>
+          )}
+
+          {activeTab === 'suggestions' && (
+            <section className={`${styles.suggestionsSection} ${getSectionAnimationClass()}`} style={{
+              background: 'white',
+              borderRadius: 18,
+              boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
+              padding: '32px 24px',
+              marginBottom: 32
+            }}>
+              <h2>Suggestions d'amis</h2>
+              <div className={styles.suggestionsGrid}>
+                {suggestions.map((suggestion, idx) => {
+                  const isRequestSent = sentRequests.has(suggestion.user_id);
+                  const isSuccess = successCards.has(suggestion.user_id);
+                  const isLoading = buttonStates[`add-${suggestion.user_id}`]?.loading;
+                  
+                  return (
+                    <div
+                      key={suggestion.user_id}
+                      className={`${styles.suggestionCard} ${getCardAnimationClass(idx)} ${isRequestSent ? styles.requestSent : ''} ${isSuccess ? styles.success : ''}`}
+                      style={{ animation: 'cardSlideIn 0.7s cubic-bezier(0.68,-0.55,0.265,1.55)' }}
+                    >
+                      {isRequestSent && (
+                        <div className={`${styles.statusBadge} ${styles.sent}`}>
+                          Demande envoyée
+                        </div>
+                      )}
+                      
+                      <div className={styles.avatar}>
+                        {suggestion.avatar_url ? (
+                          <img src={suggestion.avatar_url} alt={suggestion.display_name} />
+                        ) : (
+                          <div className={styles.avatarPlaceholder}>
+                            {suggestion.display_name?.charAt(0)?.toUpperCase() || '?'}
+                          </div>
+                        )}
+                      </div>
+                      <h4>{suggestion.display_name || 'Utilisateur'}</h4>
+                      <p>{suggestion.bio || 'Découvrez de nouvelles recettes ensemble ! 🌟'}</p>
+                      <button
+                        onClick={() => sendFriendRequest(suggestion.user_id)}
+                        className={`${styles.addFriendButton} ${isRequestSent ? styles.sent : ''} ${isLoading ? styles.loading : ''}`}
+                        disabled={isLoading || isRequestSent}
+                      >
+                        {isRequestSent ? 'Envoyée' : isLoading ? 'Envoi...' : '🤝 Ajouter'}
+                      </button>
+                    </div>
                   );
                 })}
+                {suggestions.length === 0 && (
+                  <div className={styles.emptyState}>
+                    <p>Aucune suggestion pour le moment.</p>
+                  </div>
+                )}
               </div>
-            )}
-          </section>
-        )}
-      </main>
+            </section>
+          )}
+
+          {activeTab === 'friendsRecipes' && (
+            <section className={`${styles.friendsRecipesSection} ${getSectionAnimationClass()}`} style={{
+              background: 'white',
+              borderRadius: 18,
+              boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
+              padding: '32px 24px',
+              marginBottom: 32
+            }}>
+              <h2>Recettes de mes amis</h2>
+              {friends.length === 0 ? (
+                <div className={styles.emptyState}>
+                  <p>Ajoutez des amis pour découvrir leurs recettes !</p>
+                </div>
+              ) : (
+                <div className={styles.friendsRecipesGrid}>
+                  <div className={styles.loadAllButton}>
+                    <button 
+                      onClick={loadAllFriendsRecipes}
+                      className={styles.refreshButton}
+                    >
+                      🔄 Actualiser toutes les recettes
+                    </button>
+                  </div>
+                  {friends.map(friendship => {
+                    const friendRecipes = friendsRecipes[friendship.friend_id] || [];
+                    
+                    return (
+                      <div key={friendship.friend_id} className={styles.friendsRecipesBlock} style={{ animation: 'cardSlideIn 0.7s cubic-bezier(0.68,-0.55,0.265,1.55)' }}>
+                        <div className={styles.friendsRecipesHeader}>
+                          <div className={styles.avatarMini}>
+                            {friendship.profiles?.avatar_url ? (
+                              <img src={friendship.profiles.avatar_url} alt={friendship.profiles.display_name} />
+                            ) : (
+                              <div className={styles.avatarPlaceholderMini}>
+                                {friendship.profiles?.display_name?.charAt(0)?.toUpperCase() || '?'}
+                              </div>
+                            )}
+                          </div>
+                          <span>{friendship.profiles?.display_name || 'Utilisateur'}</span>
+                          <span className={styles.recipeCount}>
+                            ({friendRecipes.length} recette{friendRecipes.length !== 1 ? 's' : ''})
+                          </span>
+                        </div>
+                        <div className={styles.friendsRecipesList}>
+                          {friendRecipes.length > 0 ? (
+                            friendRecipes.map(recipe => (
+                              <div
+                                key={recipe.id}
+                                className={styles.recipeMiniCard}
+                                onClick={() => router.push(`/recipe/${recipe.id}`)}
+                              >
+                                <div className={styles.recipeMiniImage}>
+                                  <img
+                                    src={recipe.image || '/placeholder-recipe.jpg'}
+                                    alt={recipe.title}
+                                    style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover' }}
+                                  />
+                                </div>
+                                <div className={styles.recipeMiniInfo}>
+                                  <div className={styles.recipeMiniTitle}>
+                                    {recipe.title?.length > 18 ? recipe.title.slice(0, 18) + '…' : recipe.title}
+                                  </div>
+                                  {recipe.category && (
+                                    <div className={styles.recipeMiniCategory}>
+                                      {recipe.category}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <div style={{ fontSize: 12, color: '#888', padding: '8px' }}>
+                              {friendsRecipes.hasOwnProperty(friendship.friend_id) ? (
+                                "Aucune recette partagée"
+                              ) : (
+                                <button 
+                                  onClick={() => fetchFriendRecipes(friendship.friend_id)}
+                                  className={styles.loadRecipesButton}
+                                >
+                                  Charger les recettes
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        {friendRecipes.length > 0 && (
+                          <div className={styles.viewAllContainer}>
+                            <button 
+                              className={styles.viewAllRecipesButton}
+                              onClick={() => router.push(`/profile/${friendship.friend_id}?tab=recipes`)}
+                            >
+                              Voir toutes les recettes →
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+          )}
+        </main>
+      </div>
 
       {/* Modal de confirmation amélioré */}
       {showConfirmDialog && (
@@ -1695,5 +2028,5 @@ export default function Amis() {
         }
       `}</style>
     </div>
-  );
+  )
 }

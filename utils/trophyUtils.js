@@ -199,16 +199,14 @@ export async function checkAndUnlockTrophies(userId) {
  */
 function checkTrophyCondition(condition, userStats) {
   switch (condition.type) {
-    case 'recipes_count':
-      return userStats.recipesCount >= condition.value
     case 'friends_count':
       return userStats.friendsCount >= condition.value
+    case 'recipes_count':
+      return userStats.recipesCount >= condition.value
     case 'profile_completeness':
       return userStats.profileCompleteness >= condition.value
     case 'days_since_registration':
       return userStats.daysSinceRegistration >= condition.value
-    case 'account_created':
-      return condition.value === true
     default:
       return false
   }
