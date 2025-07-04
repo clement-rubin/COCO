@@ -27,7 +27,7 @@ export default function UserProfilePreview({ user, isVisible, onClose, position 
         setUserStats({
           recipesCount: stats.recipesCount || 0,
           likesReceived: stats.likesReceived || 0,
-          friendsCount: stats.friendsCount || 0 // Vrai nombre d'amis
+          friendsCount: stats.friendsCount || 0 // Vrai nombre d'amis et de likes
         })
       } else {
         // fallback mock seulement si pas d'ID utilisateur

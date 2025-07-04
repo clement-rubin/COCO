@@ -109,7 +109,9 @@ export default function TestNotifications() {
       const mockRecipe = {
         id: 'test-recipe',
         title: 'Tarte aux pommes test',
-        image: '/images/placeholder-recipe.jpg'
+        image: '/images/placeholder-recipe.jpg',
+        // Ajout du likes_count réel
+        likes_count: 0
       }
       const mockUser = {
         user_id: 'test-user',

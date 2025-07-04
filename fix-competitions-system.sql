@@ -711,7 +711,7 @@ BEGIN
     SELECT 1 FROM information_schema.columns 
     WHERE table_name='recipes' AND column_name='likes_count'
   ) THEN
-    ALTER TABLE recipes ADD COLUMN likes_count INTEGER DEFAULT 0;
+    ALTER TABLE recipes ADD COLUMN likes_count INTEGER DEFAULT 0 CHECK (likes_count >= 0);
   END IF;
 END $$;
 

@@ -174,7 +174,9 @@ export default function SubmitRecipe() {
         ingredients: [],
         instructions: [],
         category: 'Photo partagée',
-        difficulty: 'Facile'
+        difficulty: 'Facile',
+        // Initialiser les likes à 0
+        likes_count: 0
       }
 
       // Soumission avec timeout court

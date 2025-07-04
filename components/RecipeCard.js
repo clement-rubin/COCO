@@ -28,8 +28,11 @@ const RecipeCard = ({
   const [isDeleting, setIsDeleting] = useState(false)
   const [isCompactMode, setIsCompactMode] = useState(defaultCompact)
   
-  // États pour le système de likes
-  const [likesStats, setLikesStats] = useState({ likes_count: 0, user_has_liked: false })
+  // États pour le système de likes - utiliser les vraies données
+  const [likesStats, setLikesStats] = useState({ 
+    likes_count: recipe.likes_count || 0, 
+    user_has_liked: false 
+  })
   const [likesLoading, setLikesLoading] = useState(false)
 
   // Defensive programming: ensure recipe exists and has required properties
@@ -52,10 +55,21 @@ const RecipeCard = ({
           likes_count: result.likes_count,
           user_has_liked: result.user_has_liked
         })
+      } else {
+        // Fallback sur les données de la recette si l'API échoue
+        setLikesStats({
+          likes_count: recipe.likes_count || 0,
+          user_has_liked: false
+        })
       }
     } catch (error) {
       logError('Error loading likes stats for recipe card', error, {
         recipeId: recipe.id
+      })
+      // Utiliser les données de la recette en fallback
+      setLikesStats({
+        likes_count: recipe.likes_count || 0,
+        user_has_liked: false
       })
     }
   }

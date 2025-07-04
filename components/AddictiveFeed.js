@@ -327,7 +327,8 @@ export default function AddictiveFeed() {
             {
               id: recipe.recipe.id,
               title: recipe.recipe.title,
-              image: recipe.recipe.image
+              image: recipe.recipe.image,
+              likes_count: recipe.recipe.likes_count || 0 // Inclure le nombre de likes réels
             },
             {
               user_id: user.id,

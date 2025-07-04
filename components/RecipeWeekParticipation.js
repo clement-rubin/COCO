@@ -348,7 +348,7 @@ export default function RecipeWeekParticipation({ onParticipationChange }) {
                               fontSize: '0.75rem',
                               color: '#059669'
                             }}>
-                              {recipe.isThisWeek ? '🆕 Créée cette semaine' : '📚 Recette archivée'} • Inscrite au concours
+                              {recipe.isThisWeek ? '🆕 Créée cette semaine' : '📚 Recette archivée'} • Inscrite au concours • ❤️ {recipe.likes_count || 0} likes
                             </p>
                           </div>
                           

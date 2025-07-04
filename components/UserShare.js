@@ -15,11 +15,11 @@ export default function UserShare({ recipe, isOpen, onClose }) {
 
   // Simulation d'utilisateurs - à remplacer par vraies données
   const users = [
-    { id: 1, user_id: 'user1', display_name: 'Marie Dubois', avatar_url: null, bio: 'Passionnée de pâtisserie française 🧁', lastSeen: 'En ligne' },
-    { id: 2, user_id: 'user2', display_name: 'Pierre Martin', avatar_url: null, bio: 'Chef cuisinier amateur, spécialisé en cuisine méditerranéenne', lastSeen: 'Il y a 2h' },
-    { id: 3, user_id: 'user3', display_name: 'Sophie Laurent', avatar_url: null, bio: 'Blogueuse culinaire et photographe food', lastSeen: 'Hier' },
-    { id: 4, user_id: 'user4', display_name: 'Lucas Moreau', avatar_url: null, bio: 'Étudiant en cuisine, toujours à la recherche de nouvelles saveurs', lastSeen: 'En ligne' },
-    { id: 5, user_id: 'user5', display_name: 'Emma Petit', avatar_url: null, bio: 'Nutritionniste et amatrice de cuisine saine', lastSeen: 'Il y a 1h' }
+    { id: 1, user_id: 'user1', display_name: 'Marie Dubois', avatar_url: null, bio: 'Passionnée de pâtisserie française 🧁', lastSeen: 'En ligne', likes_count: 156 },
+    { id: 2, user_id: 'user2', display_name: 'Pierre Martin', avatar_url: null, bio: 'Chef cuisinier amateur, spécialisé en cuisine méditerranéenne', lastSeen: 'Il y a 2h', likes_count: 89 },
+    { id: 3, user_id: 'user3', display_name: 'Sophie Laurent', avatar_url: null, bio: 'Blogueuse culinaire et photographe food', lastSeen: 'Hier', likes_count: 120 },
+    { id: 4, user_id: 'user4', display_name: 'Lucas Moreau', avatar_url: null, bio: 'Étudiant en cuisine, toujours à la recherche de nouvelles saveurs', lastSeen: 'En ligne', likes_count: 45 },
+    { id: 5, user_id: 'user5', display_name: 'Emma Petit', avatar_url: null, bio: 'Nutritionniste et amatrice de cuisine saine', lastSeen: 'Il y a 1h', likes_count: 200 }
   ]
 
   const filteredUsers = users.filter(user =>

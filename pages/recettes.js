@@ -80,7 +80,7 @@ export default function Recettes() {
 
       const response = await fetch(`/api/recipes?user_id=${user.id}`)
       
-      addDebugLog('INFO', 'Recipes API response received', {
+      addLog('INFO', 'Recipes API response received', {
         status: response.status,
         statusText: response.statusText,
         ok: response.ok,

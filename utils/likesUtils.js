@@ -80,7 +80,8 @@ export async function addRecipeLike(recipeId, userId, recipe = null, user = null
       recipeId,
       userId: userId?.substring(0, 8) + '...',
       hasRecipeData: !!recipe,
-      hasUserData: !!user
+      hasUserData: !!user,
+      currentLikesCount: recipe?.likes_count || 0
     })
 
     const response = await fetch('/api/recipe-likes', {
@@ -103,7 +104,10 @@ export async function addRecipeLike(recipeId, userId, recipe = null, user = null
     // Déclencher une notification si les données sont disponibles
     if (recipe && user && recipe.user_id && recipe.user_id !== userId) {
       try {
-        showRecipeLikeInteractionNotification(recipe, user)
+        showRecipeLikeInteractionNotification({
+          ...recipe,
+          likes_count: data.stats?.likes_count || recipe.likes_count || 0
+        }, user)
       } catch (notificationError) {
         logError('Error showing like notification', notificationError, {
           recipeId,
@@ -115,7 +119,8 @@ export async function addRecipeLike(recipeId, userId, recipe = null, user = null
     logInfo('Like added successfully', {
       recipeId,
       userId: userId?.substring(0, 8) + '...',
-      newLikesCount: data.stats?.likes_count
+      newLikesCount: data.stats?.likes_count,
+      previousCount: recipe?.likes_count || 0
     })
 
     return {

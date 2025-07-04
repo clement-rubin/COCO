@@ -12,6 +12,7 @@ export default function RecipeForm({ initialData = {}, onSubmit, onCancel, isEdi
     ingredients: initialData.ingredients || [{ name: '', quantity: '', unit: '' }],
     instructions: initialData.instructions || [{ step: 1, description: '' }],
     image: null,
+    likes_count: initialData.likes_count || 0, // Préserver les likes existants
     // Nouvelles options
     includeIngredients: initialData.includeIngredients !== false, // Par défaut true
     includeInstructions: initialData.includeInstructions !== false // Par défaut true

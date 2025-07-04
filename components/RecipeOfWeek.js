@@ -42,7 +42,8 @@ export default function RecipeOfWeek({ isInCompetitionPage = false }) {
         weekStart: data.weekStart,
         weekEnd: data.weekEnd,
         totalVotes: data.totalVotes,
-        contest: data.contest
+        contest: data.contest,
+        totalLikes: data.candidates?.reduce((sum, c) => sum + (c.likes_count || 0), 0) || 0 // Ajouter le total des likes réels
       })
       
       // Vérifier si l'utilisateur a déjà voté (only if logged in)
@@ -51,6 +52,7 @@ export default function RecipeOfWeek({ isInCompetitionPage = false }) {
       logInfo('Recipe of week candidates loaded', {
         candidatesCount: data.candidates?.length || 0,
         totalVotes: data.totalVotes || 0,
+        totalLikes: data.candidates?.reduce((sum, c) => sum + (c.likes_count || 0), 0) || 0,
         userHasVoted: data.hasUserVoted || false,
         isAuthenticated: !!user?.id
       })

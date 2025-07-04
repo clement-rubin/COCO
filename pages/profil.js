@@ -124,7 +124,8 @@ export default function Profil() {
               title: r.title,
               author: r.author,
               user_id: r.user_id,
-              category: r.category
+              category: r.category,
+              likes_count: r.likes_count || 0 // Inclure les likes réels
             }))
           })
         } else {

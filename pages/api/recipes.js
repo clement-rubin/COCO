@@ -421,7 +421,8 @@ export default async function handler(req, res) {
                 unknown: validRecipes.filter(r => !r.form_mode || r.form_mode === '').length
               },
               categoriesFound: [...new Set(validRecipes.map(r => r.category))],
-              hasImages: validRecipes.filter(r => r.image).length
+              hasImages: validRecipes.filter(r => r.image).length,
+              totalLikes: validRecipes.reduce((sum, r) => sum + (r.likes_count || 0), 0) // Ajouter le total des likes réels
             })
             
             return safeResponse(res, 200, validRecipes)

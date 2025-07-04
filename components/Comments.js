@@ -67,7 +67,7 @@ export default function Comments({
           user_avatar: '👩‍🍳',
           text: 'Cette recette a l\'air délicieuse ! 🤤',
           created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          likes: 12,
+          likes_count: 12,
           userHasLiked: userLikes.has(1),
           replies: [
             {

@@ -105,7 +105,10 @@ export default function SocialFeed() {
     const post = posts.find(p => p.id === postId)
     if (!post) return
 
-    const currentLikesData = likesData[postId] || { likes_count: 0, user_has_liked: false }
+    const currentLikesData = likesData[postId] || { 
+      likes_count: posts.find(p => p.id === postId)?.recipe?.likes_count || 0, 
+      user_has_liked: false 
+    }
     const isCurrentlyLiked = currentLikesData.user_has_liked
 
     try {

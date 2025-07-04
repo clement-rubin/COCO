@@ -89,7 +89,8 @@ export default function QuickRecipeForm() {
         ingredients: [],
         instructions: [],
         category: 'Photo partagée',
-        difficulty: 'Facile'
+        difficulty: 'Facile',
+        likes_count: 0 // Initialiser à 0 pour les nouvelles recettes
       }
 
       // Soumission avec timeout

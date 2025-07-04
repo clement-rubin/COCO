@@ -85,7 +85,7 @@ export default function RecipeDetail() {
         prepTime: '10 min',
         cookTime: '15 min',
         servings: 4,
-        likes: 234,
+        likes_count: 234, // Utiliser likes_count au lieu de likes
         rating: 4.8,
         ingredients: [
           '400g de spaghetti',

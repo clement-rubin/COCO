@@ -16,8 +16,7 @@ CREATE TABLE IF NOT EXISTS comments (
   recipe_id UUID NOT NULL,
   user_id UUID NOT NULL,
   content TEXT NOT NULL CHECK (length(content) > 0 AND length(content) <= 500),
-  likes INTEGER DEFAULT 0 CHECK (likes >= 0),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  likes_count INTEGER DEFAULT 0 CHECK (likes_count >= 0),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -49,4 +48,5 @@ BEGIN
   RAISE NOTICE '🔓 Insertion libre autorisée pour tous les utilisateurs';
   RAISE NOTICE '🔒 Modification/suppression limitée au propriétaire';
   RAISE NOTICE '👁️ Lecture publique activée';
+END $$;
 END $$;

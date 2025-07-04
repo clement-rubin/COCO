@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS comments (
   recipe_id UUID NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   content TEXT NOT NULL CHECK (length(content) > 0 AND length(content) <= 500),
-  likes INTEGER DEFAULT 0 CHECK (likes >= 0),
+  likes_count INTEGER DEFAULT 0 CHECK (likes_count >= 0),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

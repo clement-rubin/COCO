@@ -163,6 +163,7 @@ export default function EditRecipe() {
             category: recipe.category,
             difficulty: recipe.difficulty,
             imageUrl: recipe.image,
+            likes_count: recipe.likes_count || 0, // Préserver les likes existants
             includeIngredients: Array.isArray(recipe.ingredients) && recipe.ingredients.length > 0,
             includeInstructions: Array.isArray(recipe.instructions) && recipe.instructions.length > 0
           }}
