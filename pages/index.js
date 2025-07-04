@@ -319,17 +319,19 @@ export default function Home() {
           background: 'linear-gradient(135deg, #fef3e2 0%, #fff5e6 50%, #fef7ed 100%)',
           position: 'relative',
           overflow: 'hidden',
-          paddingTop: '20px',
-          paddingBottom: '40px',
-          marginBottom: '0'
+          paddingTop: '0',
+          paddingBottom: '32px',
+          marginBottom: '0',
+          marginTop: '0',
+          minHeight: '40vh'
         }}>
           {/* Éléments décoratifs de fond */}
           <div style={{
             position: 'absolute',
-            top: '-20px',
-            right: '-20px',
-            width: '120px',
-            height: '120px',
+            top: '-40px',
+            right: '-40px',
+            width: '160px',
+            height: '160px',
             background: 'linear-gradient(45deg, #ff6b35, #f7931e)',
             borderRadius: '50%',
             opacity: 0.08,
@@ -337,14 +339,25 @@ export default function Home() {
           }} />
           <div style={{
             position: 'absolute',
-            bottom: '-30px',
-            left: '-30px',
-            width: '80px',
-            height: '80px',
+            top: '20%',
+            left: '-60px',
+            width: '120px',
+            height: '120px',
             background: 'linear-gradient(45deg, #4caf50, #45a049)',
             borderRadius: '50%',
             opacity: 0.06,
             animation: 'float 8s ease-in-out infinite reverse'
+          }} />
+          <div style={{
+            position: 'absolute',
+            bottom: '-50px',
+            right: '10%',
+            width: '100px',
+            height: '100px',
+            background: 'linear-gradient(45deg, #ff6b35, #f7931e)',
+            borderRadius: '50%',
+            opacity: 0.05,
+            animation: 'float 10s ease-in-out infinite'
           }} />
 
           <div className={styles.content} style={{ 
@@ -353,76 +366,88 @@ export default function Home() {
             textAlign: 'center',
             position: 'relative',
             zIndex: 1,
-            padding: '20px 20px 0'
+            padding: '16px 20px 0'
           }}>
             {/* Logo animé */}
             <div style={{
-              width: '70px',
-              height: '70px',
+              width: '80px',
+              height: '80px',
               background: 'linear-gradient(135deg, #ff6b35, #f7931e)',
-              borderRadius: '20px',
+              borderRadius: '24px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '2.2rem',
-              margin: '0 auto 16px',
-              boxShadow: '0 8px 25px rgba(255, 107, 53, 0.2), 0 4px 12px rgba(255, 107, 53, 0.1)',
+              fontSize: '2.5rem',
+              margin: '0 auto 20px',
+              boxShadow: '0 12px 35px rgba(255, 107, 53, 0.3), 0 6px 15px rgba(255, 107, 53, 0.15)',
               animation: 'heroLogo 3s ease-in-out infinite',
-              border: '2px solid rgba(255, 255, 255, 0.9)',
+              border: '3px solid rgba(255, 255, 255, 0.9)',
               position: 'relative'
             }}>
               🥥
-              {/* Effet de brillance */}
+              {/* Effet de brillance amélioré */}
               <div style={{
                 position: 'absolute',
                 top: '15%',
                 left: '20%',
-                width: '30%',
-                height: '30%',
-                background: 'rgba(255, 255, 255, 0.3)',
+                width: '35%',
+                height: '35%',
+                background: 'radial-gradient(circle, rgba(255, 255, 255, 0.4) 0%, transparent 70%)',
                 borderRadius: '50%',
-                filter: 'blur(6px)',
+                filter: 'blur(4px)',
                 animation: 'shine 2s ease-in-out infinite'
               }} />
             </div>
 
-            {/* Titre principal avec effet de gradient */}
+            {/* Titre principal avec effet de gradient amélioré */}
             <h1 style={{
-              fontSize: '2.4rem',
+              fontSize: '2.8rem',
               fontWeight: '900',
-              margin: '0 0 8px 0',
-              background: 'linear-gradient(135deg, #ff6b35, #f7931e, #ff8a50)',
+              margin: '0 0 12px 0',
+              background: 'linear-gradient(135deg, #ff6b35 0%, #f7931e 50%, #ff8a50 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',
-              letterSpacing: '-0.02em',
-              lineHeight: '1.1'
+              letterSpacing: '-0.03em',
+              lineHeight: '1',
+              textShadow: '0 2px 10px rgba(255, 107, 53, 0.1)'
             }}>
               COCO
             </h1>
 
-            {/* Sous-titre avec animation */}
+            {/* Sous-titre avec animation améliorée */}
             <div style={{
-              marginBottom: '24px'
+              marginBottom: '28px'
             }}>
               <h2 style={{
-                fontSize: '1.2rem',
+                fontSize: '1.3rem',
                 fontWeight: '700',
-                margin: '0 0 6px 0',
+                margin: '0 0 8px 0',
                 color: '#1f2937',
-                lineHeight: '1.3'
+                lineHeight: '1.2'
               }}>
                 Découvrez. Créez.{' '}
                 <span style={{
                   background: 'linear-gradient(135deg, #ff6b35, #f7931e)',
                   WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent'
+                  WebkitTextFillColor: 'transparent',
+                  position: 'relative'
                 }}>
                   Partagez.
+                  <div style={{
+                    position: 'absolute',
+                    bottom: '-2px',
+                    left: '0',
+                    right: '0',
+                    height: '2px',
+                    background: 'linear-gradient(135deg, #ff6b35, #f7931e)',
+                    borderRadius: '1px',
+                    animation: 'expandLine 2s ease-in-out infinite'
+                  }} />
                 </span>
               </h2>
               <p style={{
-                fontSize: '0.95rem',
+                fontSize: '1rem',
                 color: '#6b7280',
                 margin: 0,
                 lineHeight: '1.4',
@@ -432,13 +457,13 @@ export default function Home() {
               </p>
             </div>
 
-            {/* Actions rapides */}
+            {/* Actions rapides avec meilleur espacement */}
             <div style={{
               display: 'flex',
-              gap: '10px',
+              gap: '12px',
               justifyContent: 'center',
               flexWrap: 'wrap',
-              marginBottom: '24px'
+              marginBottom: '28px'
             }}>
               <button
                 onClick={() => router.push('/share-photo')}
@@ -446,24 +471,24 @@ export default function Home() {
                   background: 'linear-gradient(135deg, #ff6b35, #f7931e)',
                   color: 'white',
                   border: 'none',
-                  padding: '10px 20px',
-                  borderRadius: '12px',
+                  padding: '12px 24px',
+                  borderRadius: '16px',
                   fontWeight: '700',
-                  fontSize: '0.9rem',
+                  fontSize: '0.95rem',
                   cursor: 'pointer',
                   transition: 'all 0.3s ease',
-                  boxShadow: '0 4px 15px rgba(255, 107, 53, 0.25)',
+                  boxShadow: '0 6px 20px rgba(255, 107, 53, 0.3)',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px'
+                  gap: '8px'
                 }}
                 onMouseEnter={(e) => {
-                  e.target.style.transform = 'translateY(-2px)'
-                  e.target.style.boxShadow = '0 6px 20px rgba(255, 107, 53, 0.35)'
+                  e.target.style.transform = 'translateY(-3px)'
+                  e.target.style.boxShadow = '0 8px 25px rgba(255, 107, 53, 0.4)'
                 }}
                 onMouseLeave={(e) => {
                   e.target.style.transform = 'translateY(0)'
-                  e.target.style.boxShadow = '0 4px 15px rgba(255, 107, 53, 0.25)'
+                  e.target.style.boxShadow = '0 6px 20px rgba(255, 107, 53, 0.3)'
                 }}
               >
                 📸 Partager
@@ -474,21 +499,21 @@ export default function Home() {
                   background: 'rgba(255, 255, 255, 0.95)',
                   color: '#ff6b35',
                   border: '2px solid #ff6b35',
-                  padding: '10px 20px',
-                  borderRadius: '12px',
+                  padding: '12px 24px',
+                  borderRadius: '16px',
                   fontWeight: '700',
-                  fontSize: '0.9rem',
+                  fontSize: '0.95rem',
                   cursor: 'pointer',
                   transition: 'all 0.3s ease',
                   backdropFilter: 'blur(10px)',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px'
+                  gap: '8px'
                 }}
                 onMouseEnter={(e) => {
                   e.target.style.background = '#ff6b35'
                   e.target.style.color = 'white'
-                  e.target.style.transform = 'translateY(-2px)'
+                  e.target.style.transform = 'translateY(-3px)'
                 }}
                 onMouseLeave={(e) => {
                   e.target.style.background = 'rgba(255, 255, 255, 0.95)'
@@ -500,43 +525,48 @@ export default function Home() {
               </button>
             </div>
 
-            {/* Statistiques de la communauté */}
+            {/* Statistiques de la communauté avec design amélioré */}
             <div style={{
               display: 'flex',
               justifyContent: 'center',
-              gap: '16px',
-              marginBottom: '16px',
+              gap: '20px',
+              marginBottom: '20px',
               flexWrap: 'wrap'
             }}>
               {[
-                { number: '1000+', label: 'Recettes', icon: '📸' },
-                { number: '500+', label: 'Chefs', icon: '👨‍🍳' },
-                { number: '50+', label: 'Collections', icon: '📚' }
+                { number: '1000+', label: 'Recettes', icon: '📸', color: '#ff6b35' },
+                { number: '500+', label: 'Chefs', icon: '👨‍🍳', color: '#4caf50' },
+                { number: '50+', label: 'Collections', icon: '📚', color: '#2196f3' }
               ].map((stat, index) => (
                 <div key={index} style={{
-                  background: 'rgba(255, 255, 255, 0.8)',
-                  backdropFilter: 'blur(10px)',
-                  padding: '8px 12px',
-                  borderRadius: '12px',
-                  border: '1px solid rgba(255, 107, 53, 0.1)',
-                  minWidth: '60px',
-                  animation: `fadeInUp 0.6s ease-out ${index * 0.1}s both`
+                  background: 'rgba(255, 255, 255, 0.9)',
+                  backdropFilter: 'blur(15px)',
+                  padding: '12px 16px',
+                  borderRadius: '16px',
+                  border: `2px solid ${stat.color}20`,
+                  minWidth: '70px',
+                  animation: `fadeInUp 0.6s ease-out ${index * 0.15}s both`,
+                  boxShadow: '0 4px 15px rgba(0, 0, 0, 0.05)'
                 }}>
-                  <div style={{ fontSize: '1rem', marginBottom: '2px' }}>
+                  <div style={{ 
+                    fontSize: '1.2rem', 
+                    marginBottom: '4px',
+                    filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))'
+                  }}>
                     {stat.icon}
                   </div>
                   <div style={{
-                    fontSize: '0.85rem',
-                    fontWeight: '700',
-                    color: '#ff6b35',
-                    marginBottom: '1px'
+                    fontSize: '0.9rem',
+                    fontWeight: '800',
+                    color: stat.color,
+                    marginBottom: '2px'
                   }}>
                     {stat.number}
                   </div>
                   <div style={{
-                    fontSize: '0.7rem',
+                    fontSize: '0.75rem',
                     color: '#6b7280',
-                    fontWeight: '500'
+                    fontWeight: '600'
                   }}>
                     {stat.label}
                   </div>
@@ -544,44 +574,45 @@ export default function Home() {
               ))}
             </div>
 
-            {/* Indicateur de scroll subtle */}
+            {/* Indicateur de scroll redessiné */}
             <div style={{
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              gap: '4px',
-              opacity: 0.5
+              gap: '6px',
+              opacity: 0.6
             }}>
               <span style={{
-                fontSize: '0.75rem',
+                fontSize: '0.8rem',
                 color: '#9ca3af',
-                fontWeight: '500'
+                fontWeight: '600'
               }}>
                 Découvrez les dernières recettes
               </span>
               <div style={{
-                width: '16px',
-                height: '16px',
-                border: '1.5px solid #ff6b35',
+                width: '20px',
+                height: '20px',
+                border: '2px solid #ff6b35',
                 borderRadius: '50%',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                animation: 'bounce 2s infinite'
+                animation: 'bounceDown 2s infinite',
+                background: 'rgba(255, 107, 53, 0.1)'
               }}>
-                <span style={{ fontSize: '0.6rem' }}>↓</span>
+                <span style={{ fontSize: '0.7rem', color: '#ff6b35' }}>↓</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Section Feed principale - transition fluide */}
+        {/* Section Feed principale - transition parfaitement fluide */}
         <div style={{
           maxWidth: '400px',
-          margin: '-20px auto 0',
+          margin: '-24px auto 0',
           background: 'white',
-          borderRadius: '24px 24px 0 0',
-          boxShadow: '0 -8px 25px rgba(0,0,0,0.08)',
+          borderRadius: '28px 28px 0 0',
+          boxShadow: '0 -12px 40px rgba(0,0,0,0.1), 0 -4px 15px rgba(0,0,0,0.05)',
           overflow: 'hidden',
           position: 'relative',
           zIndex: 2
@@ -725,30 +756,56 @@ export default function Home() {
       <style jsx>{`
         @keyframes heroLogo {
           0%, 100% { 
-            transform: translateY(0px) rotate(0deg);
+            transform: translateY(0px) rotate(0deg) scale(1);
           }
           50% { 
-            transform: translateY(-6px) rotate(1deg);
+            transform: translateY(-8px) rotate(2deg) scale(1.05);
           }
         }
         
         @keyframes shine {
           0%, 100% { 
-            opacity: 0.3;
-            transform: scale(1);
+            opacity: 0.4;
+            transform: scale(1) rotate(0deg);
           }
           50% { 
-            opacity: 0.6;
-            transform: scale(1.05);
+            opacity: 0.7;
+            transform: scale(1.1) rotate(90deg);
+          }
+        }
+        
+        @keyframes expandLine {
+          0%, 100% { 
+            transform: scaleX(0);
+            opacity: 0;
+          }
+          50% { 
+            transform: scaleX(1);
+            opacity: 1;
+          }
+        }
+        
+        @keyframes bounceDown {
+          0%, 20%, 50%, 80%, 100% {
+            transform: translateY(0);
+          }
+          40% {
+            transform: translateY(-8px);
+          }
+          60% {
+            transform: translateY(-4px);
           }
         }
         
         @keyframes float {
           0%, 100% { 
-            transform: translateY(0px) rotate(0deg);
+            transform: translateY(0px) rotate(0deg) scale(1);
           }
-          50% { 
-            transform: translateY(-15px) rotate(180deg);
+          33% { 
+            transform: translateY(-20px) rotate(120deg) scale(1.1);
+          }
+          66% { 
+            transform: translateY(-10px) rotate(240deg) scale(0.9);
           }
         }
         
@@ -803,17 +860,38 @@ export default function Home() {
           outline-offset: 2px;
         }
         
-        /* Responsive amélioré */
+        /* Responsive amélioré pour header sans espaces */
         @media (max-width: 400px) {
           h1 {
-            fontSize: 2.1rem !important;
+            fontSize: 2.4rem !important;
           }
           h2 {
-            fontSize: 1rem !important;
+            fontSize: 1.1rem !important;
+          }
+          div[style*="maxWidth: 400"] {
+            padding: 12px 16px 0 !important;
+          }
+        }
+        
+        @media (max-width: 360px) {
+          h1 {
+            fontSize: 2.2rem !important;
+          }
+          div[style*="width: 80px"] {
+            width: 70px !important;
+            height: 70px !important;
+            fontSize: 2.2rem !important;
+          }
+        }
+        
+        /* Suppression des espacements sur très petits écrans */
+        @media (max-width: 320px) {
+          div[style*="padding: 16px 20px 0"] {
+            padding: 8px 12px 0 !important;
           }
         }
       `}</style>
     </div>
   )
 }
-      
+

@@ -6,6 +6,7 @@ import { logUserInteraction, logError } from '../utils/logger'
 import { showRecipeLikeInteractionNotification } from '../utils/notificationUtils'
 import { getRecipeIllustration } from '../utils/recipeIllustrations'
 import styles from '../styles/FriendsFeed.module.css'
+import RecipeCard from './RecipeCard'
 
 export default function FriendsFeed({ feedType = 'featured' }) {
   const router = useRouter()
@@ -313,81 +314,27 @@ export default function FriendsFeed({ feedType = 'featured' }) {
         </button>
       </div>
       
-      {/* Stories horizontales */}
+      {/* Stories horizontales - utilisation du nouveau RecipeCard */}
       <div className={styles.storiesContainer}>
         <div className={styles.storiesRow}>
-          {recipes.map(recipe => (
-            <div 
-              key={recipe.id} 
-              className={styles.storyCard}
-              onClick={() => handleRecipeClick(recipe.id)}
-            >
-              <div className={styles.storyImageContainer}>
-                <Image 
-                  src={recipe.image} 
-                  alt={recipe.name} 
-                  fill
-                  sizes="(max-width: 768px) 180px, 220px"
-                  className={styles.storyImage}
-                  unoptimized={recipe.image.startsWith('data:')}
-                  onError={(e) => {
-                    console.error('FriendsFeed: Image load failed', {
-                      recipeId: recipe.id,
-                      src: e.target?.src?.substring(0, 50) + '...'
-                    })
-                    e.target.src = '/placeholder-recipe.jpg'
-                  }}
-                />
-                <div className={styles.storyGradient} />
-                
-                {/* Badges */}
-                <div className={styles.storyBadges}>
-                  {recipe.isNew && <span className={styles.newBadge}>Nouveau</span>}
-                  {recipe.isTrending && <span className={styles.trendingBadge}>🔥</span>}
-                  {recipe.isHealthy && <span className={styles.healthyBadge}>💚</span>}
-                </div>
-                
-                {/* Actions */}
-                <div className={styles.storyActions}>
-                  <button 
-                    className={`${styles.storyLikeBtn} ${likedRecipes.has(recipe.id) ? styles.liked : ''}`}
-                    onClick={(e) => handleLike(recipe.id, e)}
-                    aria-label={likedRecipes.has(recipe.id) ? "Ne plus aimer cette recette" : "Aimer cette recette"}
-                  >
-                    {likedRecipes.has(recipe.id) ? '❤️' : '🤍'}
-                  </button>
-                </div>
-              </div>
-              
-              <div className={styles.storyContent}>
-                <div className={styles.storyChef}>
-                  <span className={styles.chefAvatar}>{recipe.emoji}</span>
-                  <span className={styles.chefName}>{recipe.chef}</span>
-                </div>
-                
-                <h3 className={styles.storyTitle}>{recipe.name}</h3>
-                
-                <div className={styles.storyMeta}>
-                  <span className={styles.metaItem}>
-                    <span className={styles.metaIcon}>📂</span>
-                    {recipe.category}
-                  </span>
-                  <span className={styles.metaDivider}>•</span>
-                  <span className={styles.metaItem}>
-                    <span className={styles.metaIcon}>⏱️</span>
-                    {recipe.time}
-                  </span>
-                </div>
-                
-                <div className={styles.storyStats}>
-                  <span className={styles.statItem}>
-                    ⭐ {recipe.rating}
-                  </span>
-                  <span className={styles.statItem}>
-                    ❤️ {recipe.likes}
-                  </span>
-                </div>
-              </div>
+          {recipes.map((recipe, index) => (
+            <div key={recipe.id} className={styles.storyCardWrapper}>
+              <RecipeCard 
+                recipe={{
+                  id: recipe.id,
+                  title: recipe.name,
+                  description: `Une délicieuse recette ${recipe.category.toLowerCase()}`,
+                  image: recipe.image,
+                  category: recipe.category,
+                  author: recipe.chef,
+                  difficulty: recipe.difficulty,
+                  prepTime: recipe.time,
+                  created_at: new Date().toISOString(),
+                  form_mode: 'complete'
+                }}
+                defaultCompact={true} // Mode compact pour les stories
+                showActions={false} // Pas d'actions dans les stories
+              />
             </div>
           ))}
         </div>

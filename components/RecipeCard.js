@@ -11,7 +11,14 @@ import { canUserEditRecipe, deleteUserRecipe } from '../utils/profileUtils'
 import { showRecipeLikeInteractionNotification } from '../utils/notificationUtils'
 import styles from '../styles/RecipeCard.module.css'
 
-const RecipeCard = ({ recipe, isPhotoOnly = false, onEdit, onDelete, showActions = true }) => {
+const RecipeCard = ({ 
+  recipe, 
+  isPhotoOnly = false, 
+  onEdit, 
+  onDelete, 
+  showActions = true,
+  defaultCompact = true // Nouveau prop pour définir le mode par défaut
+}) => {
   const router = useRouter()
   const { user } = useAuth()
   const [isFavorite, setIsFavorite] = useState(false)
@@ -19,6 +26,7 @@ const RecipeCard = ({ recipe, isPhotoOnly = false, onEdit, onDelete, showActions
   const [imageLoading, setImageLoading] = useState(true)
   const [showActionsState, setShowActions] = useState(showActions)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isCompactMode, setIsCompactMode] = useState(defaultCompact) // Nouveau state pour le mode d'affichage
 
   // Defensive programming: ensure recipe exists and has required properties
   if (!recipe) {
@@ -150,9 +158,21 @@ const RecipeCard = ({ recipe, isPhotoOnly = false, onEdit, onDelete, showActions
   // Vérifier si l'utilisateur peut modifier cette recette
   const canEdit = user && recipe.user_id && canUserEditRecipe(recipe.user_id, user.id)
 
+  const toggleViewMode = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsCompactMode(!isCompactMode)
+    
+    logUserInteraction('RECIPE_CARD_VIEW_TOGGLE', 'recipe-card', {
+      recipeId: safeRecipe.id,
+      newMode: isCompactMode ? 'detailed' : 'compact',
+      userId: user?.id
+    })
+  }
+
   return (
     <div 
-      className={`${styles.card} ${isQuickShare ? styles.photoOnly : ''} ${imageLoading ? styles.loading : ''}`} 
+      className={`${styles.card} ${isQuickShare ? styles.photoOnly : ''} ${imageLoading ? styles.loading : ''} ${isCompactMode ? styles.compact : styles.detailed}`} 
       onClick={navigateToRecipe}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
@@ -196,6 +216,17 @@ const RecipeCard = ({ recipe, isPhotoOnly = false, onEdit, onDelete, showActions
           }}
         />
         
+        {/* Overlay avec toggle de vue */}
+        <div className={styles.imageOverlay}>
+          <button 
+            className={styles.viewToggleBtn}
+            onClick={toggleViewMode}
+            title={isCompactMode ? "Voir les détails" : "Vue compacte"}
+          >
+            {isCompactMode ? '📋' : '📖'}
+          </button>
+        </div>
+        
         {isQuickShare && (
           <div className={styles.photoTag}>
             📷 Partage Rapide
@@ -236,57 +267,86 @@ const RecipeCard = ({ recipe, isPhotoOnly = false, onEdit, onDelete, showActions
       </div>
       
       <div className={styles.content}>
+        {/* Titre toujours visible */}
         <h3 className={styles.recipeTitle}>{safeRecipe.title}</h3>
         
-        {safeRecipe.description && !isQuickShare && (
-          <p className={styles.recipeDescription}>
-            {safeRecipe.description.length > 100 
-              ? `${safeRecipe.description.substring(0, 100)}...` 
-              : safeRecipe.description}
-          </p>
-        )}
-        
-        {isQuickShare && (
-          <p className={styles.recipeDescription}>
-            {safeRecipe.description}
-          </p>
-        )}
-        
-        <div className={styles.recipeDetails}>
-          {!isQuickShare && recipe.difficulty && (
-            <span className={styles.recipeDifficulty}>
-              {recipe.difficulty === 'Facile' ? '🟢' : 
-               recipe.difficulty === 'Moyen' ? '🟠' : '🔴'} {recipe.difficulty}
-            </span>
-          )}
-          
-          {!isQuickShare && safeRecipe.prepTime && (
-            <span className={styles.recipeTime}>
-              ⏱️ {safeRecipe.prepTime}
-            </span>
-          )}
-          
-          {safeRecipe.category && (
-            <span className={styles.recipeCategory}>
-              {isQuickShare ? '📸' : '📂'} {safeRecipe.category}
-            </span>
-          )}
-        </div>
-        
-        <div className={styles.recipeFooter}>
-          <span className={styles.recipeAuthor}>
-            👤 {safeRecipe.author || 'Chef Anonyme'}
-          </span>
-          
+        {/* Auteur compact toujours visible */}
+        <div className={styles.compactAuthor}>
+          <span className={styles.authorEmoji}>👤</span>
+          <span className={styles.authorName}>{safeRecipe.author}</span>
           {recipe.created_at && (
-            <span className={styles.recipeDate}>
-              {new Date(recipe.created_at).toLocaleDateString('fr-FR', {
+            <span className={styles.compactDate}>
+              • {new Date(recipe.created_at).toLocaleDateString('fr-FR', {
                 day: '2-digit',
                 month: 'short'
               })}
             </span>
           )}
         </div>
+        
+        {/* Contenu détaillé - affiché seulement en mode détaillé */}
+        {!isCompactMode && (
+          <div className={styles.detailedContent}>
+            {safeRecipe.description && !isQuickShare && (
+              <p className={styles.recipeDescription}>
+                {safeRecipe.description.length > 100 
+                  ? `${safeRecipe.description.substring(0, 100)}...` 
+                  : safeRecipe.description}
+              </p>
+            )}
+            
+            {isQuickShare && (
+              <p className={styles.recipeDescription}>
+                {safeRecipe.description}
+              </p>
+            )}
+            
+            <div className={styles.recipeDetails}>
+              {!isQuickShare && recipe.difficulty && (
+                <span className={styles.recipeDifficulty}>
+                  {recipe.difficulty === 'Facile' ? '🟢' : 
+                   recipe.difficulty === 'Moyen' ? '🟠' : '🔴'} {recipe.difficulty}
+                </span>
+              )}
+              
+              {!isQuickShare && safeRecipe.prepTime && (
+                <span className={styles.recipeTime}>
+                  ⏱️ {safeRecipe.prepTime}
+                </span>
+              )}
+              
+              {safeRecipe.category && (
+                <span className={styles.recipeCategory}>
+                  {isQuickShare ? '📸' : '📂'} {safeRecipe.category}
+                </span>
+              )}
+            </div>
+            
+            <div className={styles.recipeFooter}>
+              <span className={styles.recipeAuthor}>
+                👤 {safeRecipe.author || 'Chef Anonyme'}
+              </span>
+              
+              {recipe.created_at && (
+                <span className={styles.recipeDate}>
+                  {new Date(recipe.created_at).toLocaleDateString('fr-FR', {
+                    day: '2-digit',
+                    month: 'short'
+                  })}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+        
+        {/* Mode compact - juste une indication de catégorie */}
+        {isCompactMode && safeRecipe.category && (
+          <div className={styles.compactCategory}>
+            <span className={styles.categoryChip}>
+              {isQuickShare ? '📸' : '📂'} {safeRecipe.category}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   )

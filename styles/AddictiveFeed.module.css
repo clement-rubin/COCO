@@ -188,6 +188,7 @@
   line-height: 1.3;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -488,7 +489,7 @@
 }
 
 .exploreAllBtn {
-  background: #7b1fa2;
+  background: linear-gradient(135deg, #ff6b35, #f7931e);
   color: white;
   border: none;
   padding: 8px 16px;
@@ -496,13 +497,12 @@
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
-  flex-shrink: 0;
+  transition: all 0.3s ease;
 }
 
 .exploreAllBtn:hover {
-  background: #6a1b9a;
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(255, 107, 53, 0.3);
 }
 
 .friendBadge {
@@ -730,4 +730,49 @@
 .tertiaryButton:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
+}
+
+.recipeCardWrapper {
+  width: 100%;
+  transition: transform 0.3s ease;
+}
+
+.recipeCardWrapper:hover {
+  transform: translateY(-4px);
+}
+
+.feedControls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.exploreAllBtn {
+  background: linear-gradient(135deg, #ff6b35, #f7931e);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.exploreAllBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(255, 107, 53, 0.3);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .feedControls {
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .exploreAllBtn {
+    font-size: 0.8rem;
+    padding: 6px 12px;
+  }
 }

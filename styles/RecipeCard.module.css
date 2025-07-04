@@ -260,203 +260,211 @@
   color: white;
 }
 
-/* Animations */
-@keyframes cardPulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.8;
-  }
+/* Nouveaux styles pour les modes compact/détaillé */
+.card.compact {
+  min-height: 280px;
+  transition: all 0.3s ease;
 }
 
-@keyframes tagBounce {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-2px);
-  }
+.card.detailed {
+  min-height: 380px;
+  transition: all 0.3s ease;
 }
 
-@keyframes heartBeat {
-  0%, 100% {
-    transform: scale(1);
-  }
-  25% {
-    transform: scale(1.1);
-  }
-  50% {
-    transform: scale(1.05);
-  }
-  75% {
-    transform: scale(1.15);
-  }
+.card.compact .content {
+  padding: 12px;
+  min-height: 80px;
 }
 
-/* États spéciaux */
-.card.featured {
-  background: linear-gradient(145deg, #fef3c7 0%, #ffffff 100%);
-  border: 2px solid #f59e0b;
+.card.detailed .content {
+  padding: 16px;
+  min-height: 140px;
 }
 
-.card.featured::before {
-  content: '⭐';
+/* Toggle de vue dans l'overlay */
+.imageOverlay {
   position: absolute;
-  top: -8px;
-  right: -8px;
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-  color: white;
-  width: 24px;
-  height: 24px;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 0.05) 60%,
+    rgba(0, 0, 0, 0.2) 100%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 8px;
+  z-index: 2;
+}
+
+.card:hover .imageOverlay {
+  opacity: 1;
+}
+
+.viewToggleBtn {
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.8rem;
-  z-index: 4;
-  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.card.trending {
-  background: linear-gradient(145deg, #fef2f2 0%, #ffffff 100%);
-  border: 2px solid #ef4444;
+.viewToggleBtn:hover {
+  transform: scale(1.1);
+  background: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-.card.trending::before {
-  content: '🔥';
-  position: absolute;
-  top: -8px;
-  right: -8px;
-  background: linear-gradient(135deg, #ef4444, #dc2626);
-  color: white;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
+/* Auteur compact */
+.compactAuthor {
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 6px;
   font-size: 0.8rem;
-  z-index: 4;
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+  color: #6b7280;
+  margin-bottom: 8px;
 }
 
-/* Responsive Design */
+.authorEmoji {
+  font-size: 0.9rem;
+}
+
+.authorName {
+  font-weight: 500;
+  color: #374151;
+}
+
+.compactDate {
+  color: #9ca3af;
+  font-size: 0.75rem;
+}
+
+/* Catégorie compacte */
+.compactCategory {
+  margin-top: auto;
+  padding-top: 8px;
+}
+
+.categoryChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #f3f4f6;
+  color: #6b7280;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+/* Contenu détaillé */
+.detailedContent {
+  animation: fadeInDetails 0.3s ease;
+}
+
+/* Ajustements du titre pour les deux modes */
+.card.compact .recipeTitle {
+  font-size: 1rem;
+  line-height: 1.3;
+  -webkit-line-clamp: 2;
+  min-height: 2.6em;
+  margin-bottom: 8px;
+}
+
+.card.detailed .recipeTitle {
+  font-size: 1.1rem;
+  line-height: 1.3;
+  -webkit-line-clamp: 2;
+  min-height: 2.6em;
+  margin-bottom: 8px;
+}
+
+/* Responsive pour les modes */
 @media (max-width: 768px) {
-  .card {
-    border-radius: 12px;
-    max-width: 100%; /* Pleine largeur sur mobile */
-    margin: 0; /* Supprime le centrage auto sur mobile */
+  .card.compact {
+    min-height: 240px;
   }
   
-  .imageContainer {
-    height: 180px;
+  .card.detailed {
+    min-height: 320px;
   }
   
-  .content {
+  .card.compact .content {
+    padding: 10px;
+    min-height: 70px;
+  }
+  
+  .card.detailed .content {
     padding: 14px;
     min-height: 120px;
   }
   
-  .recipeTitle {
-    font-size: 1rem;
+  .viewToggleBtn {
+    width: 28px;
+    height: 28px;
+    font-size: 0.8rem;
   }
   
-  .recipeDescription {
-    font-size: 0.85rem;
-    -webkit-line-clamp: 1;
-    line-clamp: 1;
-    height: 1.35em;
+  .compactAuthor {
+    font-size: 0.75rem;
   }
   
-  .cardActions {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  
-  .favoriteBtn {
-    width: 36px;
-    height: 36px;
-    font-size: 1rem;
-  }
-  
-  .recipeDetails {
-    gap: 6px;
-    margin: 6px 0;
-  }
-  
-  .recipeDifficulty,
-  .recipeTime,
-  .recipeCategory {
-    font-size: 0.7rem;
+  .categoryChip {
+    font-size: 0.65rem;
     padding: 3px 6px;
   }
 }
 
-@media (max-width: 480px) {
-  .imageContainer {
-    height: 160px;
+@keyframes fadeInDetails {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
   }
-  
-  .content {
-    padding: 12px;
-    min-height: 110px;
-  }
-  
-  .recipeTitle {
-    font-size: 0.95rem;
-  }
-  
-  .recipeFooter {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 6px;
-    padding-top: 8px;
-  }
-  
-  .recipeDetails {
-    justify-content: center;
-    gap: 4px;
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-/* Dark mode support */
+/* Dark mode support pour les nouveaux éléments */
 @media (prefers-color-scheme: dark) {
-  .card {
-    background: linear-gradient(145deg, #1f2937 0%, #111827 100%);
-    border-color: rgba(55, 65, 81, 0.5);
+  .compactAuthor {
+    color: #d1d5db;
   }
   
-  .card:hover {
-    border-color: rgba(255, 107, 53, 0.3);
-  }
-  
-  .recipeTitle {
+  .authorName {
     color: #f9fafb;
   }
   
-  .card:hover .recipeTitle {
-    color: #ff6b35;
-  }
-  
-  .recipeDescription {
-    color: #d1d5db;
-  }
-  
-  .recipeAuthor {
-    color: #d1d5db;
-  }
-  
-  .recipeDate {
+  .compactDate {
     color: #9ca3af;
   }
   
-  .favoriteBtn {
+  .categoryChip {
+    background: rgba(31, 41, 55, 0.8);
+    color: #d1d5db;
+  }
+  
+  .viewToggleBtn {
     background: rgba(31, 41, 55, 0.95);
     color: #f9fafb;
   }
   
-  .favoriteBtn:hover {
+  .viewToggleBtn:hover {
     background: rgba(31, 41, 55, 1);
   }
 }
