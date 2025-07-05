@@ -169,8 +169,9 @@ const RecipeCard = ({
           user_has_liked: result.stats.user_has_liked
         })
 
-        // Animation de like
+        // Animation de like améliorée
         if (result.stats.user_has_liked) {
+          // Créer une animation de coeur flottant plus sophistiquée
           const heart = document.createElement('div')
           heart.innerHTML = '❤️'
           heart.style.cssText = `
@@ -178,18 +179,31 @@ const RecipeCard = ({
             font-size: 2rem;
             z-index: 10000;
             pointer-events: none;
-            animation: heartFloat 1s ease-out forwards;
+            animation: enhancedHeartFloat 1.5s ease-out forwards;
             left: 50%;
             top: 50%;
             transform: translate(-50%, -50%);
+            filter: drop-shadow(0 0 10px rgba(239, 68, 68, 0.5));
           `
           document.body.appendChild(heart)
-          setTimeout(() => heart.remove(), 1000)
+          setTimeout(() => heart.remove(), 1500)
+
+          // Ajouter une animation de pulsation sur le bouton
+          const likeButton = e.target.closest(`.${styles.likeBtn}`)
+          if (likeButton) {
+            likeButton.style.animation = 'heartBeat 0.6s ease-in-out'
+            setTimeout(() => {
+              if (likeButton) likeButton.style.animation = ''
+            }, 600)
+          }
 
           // Vibration légère sur mobile
           if (navigator.vibrate) {
-            navigator.vibrate(30)
+            navigator.vibrate([50, 30, 50])
           }
+
+          // Effet de particules
+          createLikeParticles(e.target)
         }
 
         logUserInteraction('TOGGLE_RECIPE_LIKE', 'recipe-card', {
@@ -203,8 +217,42 @@ const RecipeCard = ({
         recipeId: recipe.id,
         userId: user?.id
       })
+      
+      // Animation d'erreur
+      const likeButton = e.target.closest(`.${styles.likeBtn}`)
+      if (likeButton) {
+        likeButton.style.animation = 'shake 0.5s ease-in-out'
+        setTimeout(() => {
+          if (likeButton) likeButton.style.animation = ''
+        }, 500)
+      }
     } finally {
       setLikesLoading(false)
+    }
+  }
+
+  // Nouvelle fonction pour créer des particules
+  const createLikeParticles = (target) => {
+    const rect = target.getBoundingClientRect()
+    const centerX = rect.left + rect.width / 2
+    const centerY = rect.top + rect.height / 2
+
+    for (let i = 0; i < 6; i++) {
+      const particle = document.createElement('div')
+      particle.innerHTML = ['💖', '✨', '💕', '⭐', '💫'][Math.floor(Math.random() * 5)]
+      particle.style.cssText = `
+        position: fixed;
+        left: ${centerX}px;
+        top: ${centerY}px;
+        font-size: 1rem;
+        pointer-events: none;
+        z-index: 10000;
+        animation: particleFloat 1.2s ease-out forwards;
+        animation-delay: ${i * 0.1}s;
+        transform: translate(-50%, -50%);
+      `
+      document.body.appendChild(particle)
+      setTimeout(() => particle.remove(), 1200 + (i * 100))
     }
   }
 
@@ -468,13 +516,51 @@ const RecipeCard = ({
       </div>
 
       <style jsx>{`
-        @keyframes heartFloat {
+        @keyframes enhancedHeartFloat {
           0% {
-            transform: translate(-50%, -50%) scale(1);
+            transform: translate(-50%, -50%) scale(1) rotate(0deg);
             opacity: 1;
           }
+          50% {
+            transform: translate(-50%, -80%) scale(1.3) rotate(10deg);
+            opacity: 0.9;
+          }
           100% {
-            transform: translate(-50%, -70%) scale(1.2);
+            transform: translate(-50%, -120%) scale(0.8) rotate(20deg);
+            opacity: 0;
+          }
+        }
+        
+        @keyframes heartBeat {
+          0%, 100% { transform: scale(1); }
+          25% { transform: scale(1.2); }
+          50% { transform: scale(1.1); }
+          75% { transform: scale(1.3); }
+        }
+        
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(-5px); }
+          75% { transform: translateX(5px); }
+        }
+        
+        @keyframes particleFloat {
+          0% {
+            transform: translate(-50%, -50%) scale(0) rotate(0deg);
+            opacity: 1;
+          }
+          50% {
+            transform: translate(
+              calc(-50% + ${Math.random() * 60 - 30}px), 
+              calc(-50% - ${Math.random() * 40 + 20}px)
+            ) scale(1) rotate(${Math.random() * 360}deg);
+            opacity: 0.8;
+          }
+          100% {
+            transform: translate(
+              calc(-50% + ${Math.random() * 100 - 50}px), 
+              calc(-50% - ${Math.random() * 80 + 40}px)
+            ) scale(0) rotate(${Math.random() * 720}deg);
             opacity: 0;
           }
         }

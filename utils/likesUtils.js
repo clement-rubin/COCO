@@ -1,6 +1,6 @@
 import { logInfo, logError, logDebug } from './logger'
 import { showRecipeLikeInteractionNotification } from './notificationUtils'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 
 /**
  * Utility functions pour gérer les likes des recettes
@@ -221,66 +221,168 @@ export async function toggleRecipeLike(recipeId, userId, currentlyLiked, recipe 
  * Hook React pour gérer les likes d'une recette
  */
 export function useRecipeLikes(recipeId, initialStats = null) {
-  const [likesStats, setLikesStats] = useState(
-    initialStats || { likes_count: 0, user_has_liked: false }
-  )
   const [loading, setLoading] = useState(false)
+  const [optimisticLoading, setOptimisticLoading] = useState(false)
+  const [stats, setStats] = useState(initialStats || { likes_count: 0, user_has_liked: false })
+  const [error, setError] = useState(null)
+  const [lastAction, setLastAction] = useState(null)
 
-  // Charger les statistiques initiales
-  useEffect(() => {
-    if (recipeId && !initialStats) {
-      loadLikesStats()
+  // Animation states
+  const [showHeartAnimation, setShowHeartAnimation] = useState(false)
+  const [heartPosition, setHeartPosition] = useState({ x: 0, y: 0 })
+
+  const createHeartAnimation = useCallback((event) => {
+    if (event?.target) {
+      const rect = event.target.getBoundingClientRect()
+      setHeartPosition({
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2
+      })
+      setShowHeartAnimation(true)
+      setTimeout(() => setShowHeartAnimation(false), 1000)
     }
-  }, [recipeId])
+  }, [])
 
-  const loadLikesStats = async () => {
-    setLoading(true)
-    try {
-      const result = await getRecipeLikesStats(recipeId)
-      if (result.success) {
-        setLikesStats({
-          likes_count: result.likes_count,
-          user_has_liked: result.user_has_liked
-        })
+  const toggleLike = useCallback(async (event, user, recipeData) => {
+    if (loading || optimisticLoading) return
+
+    if (!user) {
+      const wantsToLogin = window.confirm('Connectez-vous pour aimer cette recette. Aller à la page de connexion?')
+      if (wantsToLogin) {
+        window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname)
       }
-    } catch (error) {
-      logError('Error loading likes stats in hook', error, { recipeId })
+      return
+    }
+
+    const isCurrentlyLiked = stats.user_has_liked
+    const action = isCurrentlyLiked ? 'unlike' : 'like'
+    
+    setOptimisticLoading(true)
+    setError(null)
+    setLastAction(action)
+
+    // Optimistic update
+    setStats(prev => ({
+      likes_count: prev.likes_count + (isCurrentlyLiked ? -1 : 1),
+      user_has_liked: !isCurrentlyLiked
+    }))
+
+    // Create animation for like action
+    if (!isCurrentlyLiked) {
+      createHeartAnimation(event)
+      
+      // Haptic feedback on mobile
+      if (navigator.vibrate) {
+        navigator.vibrate([30])
+      }
+    }
+
+    try {
+      setLoading(true)
+      
+      // Simulate API call with proper delay
+      await new Promise(resolve => setTimeout(resolve, 300))
+      
+      const response = await fetch('/api/recipes/like', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          recipeId,
+          userId: user.id,
+          action
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Erreur lors de la mise à jour du like')
+      }
+
+      const result = await response.json()
+      
+      // Update with real data from server
+      setStats({
+        likes_count: result.likes_count,
+        user_has_liked: result.user_has_liked
+      })
+
+      // Send notification if liked and not own recipe
+      if (!isCurrentlyLiked && recipeData?.user_id !== user.id) {
+        showRecipeLikeInteractionNotification(
+          recipeData,
+          {
+            user_id: user.id,
+            display_name: user.user_metadata?.display_name || user.email?.split('@')[0] || 'Utilisateur'
+          }
+        )
+      }
+
+    } catch (err) {
+      // Revert optimistic update on error
+      setStats(prev => ({
+        likes_count: prev.likes_count + (isCurrentlyLiked ? 1 : -1),
+        user_has_liked: isCurrentlyLiked
+      }))
+      
+      setError('Impossible de mettre à jour le like. Réessayez.')
+      
+      // Show error animation
+      if (event?.target) {
+        event.target.style.animation = 'shake 0.3s ease-in-out'
+        setTimeout(() => {
+          if (event.target) event.target.style.animation = ''
+        }, 300)
+      }
     } finally {
       setLoading(false)
+      setOptimisticLoading(false)
+      setTimeout(() => setLastAction(null), 2000)
     }
-  }
+  }, [loading, optimisticLoading, stats, recipeId, createHeartAnimation])
 
-  const toggleLike = async (userId, recipe = null, user = null) => {
-    if (loading) return
+  const clearError = useCallback(() => {
+    setError(null)
+  }, [])
 
-    setLoading(true)
-    try {
-      const result = await toggleRecipeLike(
-        recipeId, 
-        userId, 
-        likesStats.user_has_liked,
-        recipe,
-        user
-      )
-      
-      if (result.success && result.stats) {
-        setLikesStats({
-          likes_count: result.stats.likes_count,
-          user_has_liked: result.stats.user_has_liked
-        })
-      }
-      
-      return result
-    } finally {
-      setLoading(false)
-    }
-  }
   return {
-    likesStats,
     loading,
+    optimisticLoading,
+    stats,
+    error,
+    lastAction,
     toggleLike,
-    refresh: loadLikesStats
+    clearError,
+    showHeartAnimation,
+    heartPosition
   }
+}
+
+// Component for floating heart animation
+export function FloatingHeart({ show, position, onComplete }) {
+  useEffect(() => {
+    if (show) {
+      const timer = setTimeout(onComplete, 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [show, onComplete])
+
+  if (!show) return null
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        left: position.x,
+        top: position.y,
+        fontSize: '2rem',
+        pointerEvents: 'none',
+        zIndex: 10000,
+        transform: 'translate(-50%, -50%)',
+        animation: 'floatingHeart 1s ease-out forwards'
+      }}
+    >
+      ❤️
+    </div>
+  )
 }
 
 /**

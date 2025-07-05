@@ -10,39 +10,325 @@ const LOADING_MESSAGES = [
   "📝 Vérification de la recette..."
 ]
 
+// Skeleton loader component for better UX
+export function RecipeSkeleton({ count = 1 }) {
+  return (
+    <div className="skeleton-container">
+      {Array.from({ length: count }, (_, i) => (
+        <div key={i} className="recipe-skeleton">
+          <div className="skeleton-image"></div>
+          <div className="skeleton-content">
+            <div className="skeleton-title"></div>
+            <div className="skeleton-description"></div>
+            <div className="skeleton-meta">
+              <div className="skeleton-avatar"></div>
+              <div className="skeleton-text-short"></div>
+            </div>
+          </div>
+        </div>
+      ))}
+      
+      <style jsx>{`
+        .skeleton-container {
+          display: grid;
+          gap: 1rem;
+          padding: 1rem;
+        }
+        
+        .recipe-skeleton {
+          background: white;
+          border-radius: 16px;
+          overflow: hidden;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+          animation: fadeIn 0.3s ease;
+        }
+        
+        .skeleton-image {
+          width: 100%;
+          height: 200px;
+          background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+          background-size: 200% 100%;
+          animation: shimmer 1.5s infinite;
+        }
+        
+        .skeleton-content {
+          padding: 1rem;
+        }
+        
+        .skeleton-title {
+          height: 20px;
+          width: 80%;
+          border-radius: 4px;
+          background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+          background-size: 200% 100%;
+          animation: shimmer 1.5s infinite;
+          margin-bottom: 0.5rem;
+        }
+        
+        .skeleton-description {
+          height: 14px;
+          width: 100%;
+          border-radius: 4px;
+          background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+          background-size: 200% 100%;
+          animation: shimmer 1.5s infinite;
+          margin-bottom: 1rem;
+        }
+        
+        .skeleton-meta {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+        
+        .skeleton-avatar {
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+          background-size: 200% 100%;
+          animation: shimmer 1.5s infinite;
+        }
+        
+        .skeleton-text-short {
+          height: 12px;
+          width: 60px;
+          border-radius: 4px;
+          background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+          background-size: 200% 100%;
+          animation: shimmer 1.5s infinite;
+        }
+        
+        @keyframes shimmer {
+          0% { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+      `}</style>
+    </div>
+  )
+}
+
 export default function LoadingSpinner({ 
   size = 'medium', 
   message = null, 
   showProgress = false,
   progress = 0,
   duration = 3000,
-  className = ''
+  className = '',
+  variant = 'default', // default, minimal, festive
+  steps = null // Array of step descriptions
 }) {
   const [currentMessage, setCurrentMessage] = useState(
     message || LOADING_MESSAGES[0]
   )
   const [messageIndex, setMessageIndex] = useState(0)
+  const [currentStep, setCurrentStep] = useState(0)
 
-  // Rotation automatique des messages
+  // Enhanced message rotation with steps
   useEffect(() => {
-    if (message) return // Ne pas changer si un message spécifique est fourni
+    if (message || !steps) return
 
+    const messages = steps || LOADING_MESSAGES
     const interval = setInterval(() => {
       setMessageIndex(prev => {
-        const next = (prev + 1) % LOADING_MESSAGES.length
-        setCurrentMessage(LOADING_MESSAGES[next])
+        const next = (prev + 1) % messages.length
+        setCurrentMessage(messages[next])
+        setCurrentStep(next)
         return next
       })
-    }, duration / LOADING_MESSAGES.length)
+    }, duration / messages.length)
 
     return () => clearInterval(interval)
-  }, [message, duration])
+  }, [message, duration, steps])
 
   const sizeClasses = {
     small: 'w-4 h-4',
     medium: 'w-8 h-8',
     large: 'w-12 h-12',
     xl: 'w-16 h-16'
+  }
+
+  if (variant === 'minimal') {
+    return (
+      <div className={`minimal-spinner ${className}`}>
+        <div className={`spinner-dot ${sizeClasses[size]}`}></div>
+        {message && <span className="minimal-message">{message}</span>}
+        
+        <style jsx>{`
+          .minimal-spinner {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+          }
+          
+          .spinner-dot {
+            border-radius: 50%;
+            background: var(--primary-orange);
+            animation: pulse 1.5s ease-in-out infinite;
+          }
+          
+          .minimal-message {
+            font-size: 0.875rem;
+            color: var(--text-medium);
+          }
+          
+          @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.8); }
+          }
+        `}</style>
+      </div>
+    )
+  }
+
+  if (variant === 'festive') {
+    return (
+      <div className={`festive-spinner ${className}`}>
+        <div className="festive-container">
+          <div className="chef-hat">👨‍🍳</div>
+          <div className="cooking-items">
+            <span className="item item-1">🍳</span>
+            <span className="item item-2">🥘</span>
+            <span className="item item-3">🍲</span>
+          </div>
+          <div className="sparkles">
+            <span>✨</span>
+            <span>✨</span>
+            <span>✨</span>
+          </div>
+        </div>
+        
+        <div className="festive-message">
+          <span className="message-text">{currentMessage}</span>
+          {steps && (
+            <div className="step-indicator">
+              Étape {currentStep + 1} sur {steps.length}
+            </div>
+          )}
+        </div>
+
+        <style jsx>{`
+          .festive-spinner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            padding: 2rem;
+            text-align: center;
+          }
+          
+          .festive-container {
+            position: relative;
+            width: 120px;
+            height: 120px;
+          }
+          
+          .chef-hat {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 3rem;
+            animation: bounce 2s infinite;
+          }
+          
+          .cooking-items {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+          }
+          
+          .item {
+            position: absolute;
+            font-size: 1.5rem;
+            animation: orbit 3s linear infinite;
+          }
+          
+          .item-1 {
+            animation-delay: 0s;
+          }
+          
+          .item-2 {
+            animation-delay: 1s;
+          }
+          
+          .item-3 {
+            animation-delay: 2s;
+          }
+          
+          .sparkles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+          }
+          
+          .sparkles span {
+            position: absolute;
+            font-size: 1rem;
+            animation: twinkle 1.5s infinite;
+          }
+          
+          .sparkles span:nth-child(1) {
+            top: 20%;
+            left: 20%;
+            animation-delay: 0s;
+          }
+          
+          .sparkles span:nth-child(2) {
+            top: 20%;
+            right: 20%;
+            animation-delay: 0.5s;
+          }
+          
+          .sparkles span:nth-child(3) {
+            bottom: 20%;
+            left: 50%;
+            animation-delay: 1s;
+          }
+          
+          .festive-message {
+            max-width: 300px;
+          }
+          
+          .message-text {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--primary-orange);
+            display: block;
+            margin-bottom: 0.5rem;
+          }
+          
+          .step-indicator {
+            font-size: 0.875rem;
+            color: var(--text-medium);
+            background: var(--bg-card);
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            display: inline-block;
+          }
+          
+          @keyframes bounce {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -60%) scale(1.1); }
+          }
+          
+          @keyframes orbit {
+            0% { transform: rotate(0deg) translateX(40px) rotate(0deg); }
+            100% { transform: rotate(360deg) translateX(40px) rotate(-360deg); }
+          }
+          
+          @keyframes twinkle {
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.2); }
+          }
+        `}</style>
+      </div>
+    )
   }
 
   return (
@@ -56,7 +342,7 @@ export default function LoadingSpinner({
           </div>
         </div>
         
-        {/* Barre de progression */}
+        {/* Enhanced progress bar */}
         {showProgress && (
           <div className="progress-container">
             <div className="progress-bar">
@@ -65,12 +351,19 @@ export default function LoadingSpinner({
                 style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
               ></div>
             </div>
-            <span className="progress-text">{Math.round(progress)}%</span>
+            <div className="progress-info">
+              <span className="progress-text">{Math.round(progress)}%</span>
+              {steps && (
+                <span className="progress-step">
+                  {currentStep + 1}/{steps.length}
+                </span>
+              )}
+            </div>
           </div>
         )}
       </div>
 
-      {/* Message */}
+      {/* Message avec indicateur d'étapes */}
       <div className="loading-message">
         <span className="message-text">{currentMessage}</span>
         <div className="dots">
@@ -139,10 +432,11 @@ export default function LoadingSpinner({
 
         .progress-bar {
           width: 100%;
-          height: 6px;
+          height: 8px;
           background: rgba(255, 107, 53, 0.2);
           border-radius: 10px;
           overflow: hidden;
+          position: relative;
         }
 
         .progress-fill {
@@ -164,10 +458,21 @@ export default function LoadingSpinner({
           animation: shimmer 1.5s infinite;
         }
 
-        .progress-text {
+        .progress-info {
+          display: flex;
+          justify-content: space-between;
+          width: 100%;
           font-size: 0.875rem;
           font-weight: 600;
           color: var(--text-medium);
+        }
+
+        .progress-text {
+          color: var(--primary-orange);
+        }
+
+        .progress-step {
+          color: var(--text-light);
         }
 
         .loading-message {
@@ -245,90 +550,6 @@ export default function LoadingSpinner({
           .progress-container {
             width: 150px;
           }
-        }
-      `}</style>
-    </div>
-  )
-}
-
-// Composant de skeleton pour le chargement de contenu
-export function SkeletonLoader({ 
-  lines = 3, 
-  showAvatar = false, 
-  showImage = false,
-  className = '' 
-}) {
-  return (
-    <div className={`skeleton-loader ${className}`}>
-      {showAvatar && (
-        <div className="skeleton-avatar"></div>
-      )}
-      
-      {showImage && (
-        <div className="skeleton-image"></div>
-      )}
-      
-      <div className="skeleton-content">
-        {Array.from({ length: lines }, (_, i) => (
-          <div 
-            key={i} 
-            className="skeleton-line"
-            style={{ 
-              width: i === lines - 1 ? '70%' : '100%',
-              animationDelay: `${i * 0.1}s`
-            }}
-          ></div>
-        ))}
-      </div>
-
-      <style jsx>{`
-        .skeleton-loader {
-          display: flex;
-          gap: 1rem;
-          padding: 1rem;
-          background: var(--bg-card);
-          border-radius: var(--radius-lg);
-          animation: fadeIn 0.3s ease;
-        }
-
-        .skeleton-avatar {
-          width: 48px;
-          height: 48px;
-          border-radius: 50%;
-          background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-          background-size: 200% 100%;
-          animation: loading 1.5s infinite;
-          flex-shrink: 0;
-        }
-
-        .skeleton-image {
-          width: 100%;
-          height: 200px;
-          border-radius: var(--radius-md);
-          background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-          background-size: 200% 100%;
-          animation: loading 1.5s infinite;
-          margin-bottom: 1rem;
-        }
-
-        .skeleton-content {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          gap: 0.75rem;
-        }
-
-        .skeleton-line {
-          height: 16px;
-          border-radius: 4px;
-          background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-          background-size: 200% 100%;
-          animation: loading 1.5s infinite;
-        }
-
-        @keyframes loading {
-          0% { background-position: 200% 0; }
-          100% { background-position: -200% 0; }
         }
       `}</style>
     </div>

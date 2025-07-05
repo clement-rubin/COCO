@@ -202,47 +202,101 @@ export function useRetryOperation() {
   const [state, setState] = useState({
     loading: false,
     error: null,
-    progress: null
+    progress: null,
+    retryCount: 0,
+    success: false
   })
 
-  const executeWithRetry = useCallback(async (operation, options = {}) => {
-    setState({ loading: true, error: null, progress: null })
+  const execute = useCallback(async (operation, options = {}) => {
+    const {
+      maxRetries = 3,
+      retryDelay = 1000,
+      onProgress,
+      onRetry,
+      progressSteps = []
+    } = options
 
-    const retryOp = new RetryOperation(operation, {
-      ...options,
-      onProgress: (progress) => {
-        setState(prev => ({ ...prev, progress }))
-        options.onProgress?.(progress)
-      },
-      onRetry: (retryInfo) => {
-        setState(prev => ({ 
-          ...prev, 
-          progress: { 
-            ...prev.progress, 
-            retrying: true, 
-            ...retryInfo 
-          } 
+    setState(prev => ({
+      ...prev,
+      loading: true,
+      error: null,
+      retryCount: 0,
+      success: false,
+      progress: progressSteps.length > 0 ? { current: 0, total: progressSteps.length, step: progressSteps[0] } : null
+    }))
+
+    let lastError = null
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        if (attempt > 0) {
+          setState(prev => ({ ...prev, retryCount: attempt }))
+          onRetry?.(attempt)
+          await new Promise(resolve => setTimeout(resolve, retryDelay * attempt))
+        }
+
+        // Simulate progress steps
+        if (progressSteps.length > 0) {
+          for (let i = 0; i < progressSteps.length; i++) {
+            setState(prev => ({
+              ...prev,
+              progress: { current: i, total: progressSteps.length, step: progressSteps[i] }
+            }))
+            onProgress?.(i, progressSteps.length, progressSteps[i])
+            
+            if (i < progressSteps.length - 1) {
+              await new Promise(resolve => setTimeout(resolve, 300))
+            }
+          }
+        }
+
+        const result = await operation()
+        
+        setState(prev => ({
+          ...prev,
+          loading: false,
+          success: true,
+          progress: progressSteps.length > 0 ? { current: progressSteps.length, total: progressSteps.length, step: 'Terminé ✅' } : null
         }))
-        options.onRetry?.(retryInfo)
-      }
-    })
 
-    try {
-      const result = await retryOp.execute()
-      setState({ loading: false, error: null, progress: null })
-      return result
-    } catch (error) {
-      setState({ loading: false, error, progress: null })
-      throw error
+        return { success: true, data: result, error: null }
+
+      } catch (error) {
+        lastError = error
+        
+        if (attempt === maxRetries) {
+          setState(prev => ({
+            ...prev,
+            loading: false,
+            error: error.message || 'Une erreur est survenue',
+            retryCount: attempt
+          }))
+          break
+        }
+      }
     }
+
+    return { success: false, data: null, error: lastError }
   }, [])
 
   const reset = useCallback(() => {
-    setState({ loading: false, error: null, progress: null })
+    setState({
+      loading: false,
+      error: null,
+      progress: null,
+      retryCount: 0,
+      success: false
+    })
   }, [])
 
-  return { ...state, executeWithRetry, reset }
+  return {
+    ...state,
+    execute,
+    reset
+  }
 }
+
+export default useRetryOperation
 
 /**
  * Composant de feedback pour les opérations en cours
