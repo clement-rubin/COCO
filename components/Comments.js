@@ -633,3 +633,12 @@ export default function Comments({
     </div>
   )
 }
+
+/*
+  This component is imported and used in other pages, not accessed directly via URL
+  Check your pages/ directory for files that import this component
+  Common locations might be:
+  - /pages/recipe/[id].js (for recipe comments)
+  - /pages/posts/[id].js (for post comments)
+  - Any page that imports: import Comments from '../components/Comments'
+*/
