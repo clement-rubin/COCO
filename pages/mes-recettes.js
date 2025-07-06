@@ -806,35 +806,407 @@ export default function MesRecettes() {
   }
 
   return (
-    <div className={styles.container}>
+    <div className={styles.container} style={{
+      background: 'linear-gradient(135deg, #fef3e2 0%, #fff5e6 50%, #fef7ed 100%)',
+      minHeight: '100vh',
+      position: 'relative'
+    }}>
       <Head>
         <title>Mes Recettes - COCO</title>
         <meta name="description" content="Toutes mes recettes sur COCO" />
       </Head>
 
-      {/* Section Logs */}
-      <div className={styles.logsSection}>
+      {/* Éléments décoratifs de fond */}
+      <div style={{
+        position: 'fixed',
+        top: '-40px',
+        right: '-40px',
+        width: '160px',
+        height: '160px',
+        background: 'linear-gradient(45deg, #10b981, #059669)',
+        borderRadius: '50%',
+        opacity: 0.08,
+        animation: 'float 6s ease-in-out infinite'
+      }} />
+      <div style={{
+        position: 'fixed',
+        top: '20%',
+        left: '-60px',
+        width: '120px',
+        height: '120px',
+        background: 'linear-gradient(45deg, #f59e0b, #d97706)',
+        borderRadius: '50%',
+        opacity: 0.06,
+        animation: 'float 8s ease-in-out infinite reverse'
+      }} />
+      <div style={{
+        position: 'fixed',
+        bottom: '-50px',
+        right: '10%',
+        width: '100px',
+        height: '100px',
+        background: 'linear-gradient(45deg, #10b981, #059669)',
+        borderRadius: '50%',
+        opacity: 0.05,
+        animation: 'float 10s ease-in-out infinite'
+      }} />
+
+      {/* Hero section modernisé */}
+      <section style={{
+        width: '100%',
+        background: 'linear-gradient(135deg, #fef3e2 0%, #fff5e6 50%, #fef7ed 100%)',
+        padding: '80px 0 40px 0',
+        position: 'relative',
+        overflow: 'hidden',
+        marginBottom: 0,
+        marginTop: '-64px'
+      }}>
+        {/* Éléments décoratifs spécifiques au hero */}
+        <div style={{
+          position: 'absolute',
+          top: '-20px',
+          left: '10%',
+          width: '200px',
+          height: '200px',
+          background: 'radial-gradient(circle at 60% 40%, #10b981 0%, transparent 70%)',
+          opacity: 0.06,
+          animation: 'float 12s ease-in-out infinite'
+        }} />
+        <div style={{
+          position: 'absolute',
+          bottom: '-30px',
+          right: '15%',
+          width: '150px',
+          height: '150px',
+          background: 'radial-gradient(circle at 40% 60%, #f59e0b 0%, transparent 70%)',
+          opacity: 0.08,
+          animation: 'float 10s ease-in-out infinite reverse'
+        }} />
+
+        <div style={{
+          maxWidth: '500px',
+          margin: '0 auto',
+          position: 'relative',
+          zIndex: 1,
+          textAlign: 'center',
+          padding: '24px 20px 0'
+        }}>
+          {/* Logo animé COCO-style */}
+          <div style={{
+            width: '80px',
+            height: '80px',
+            background: 'linear-gradient(135deg, #10b981, #059669)',
+            borderRadius: '24px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '2.5rem',
+            margin: '0 auto 20px',
+            boxShadow: '0 12px 35px rgba(16, 185, 129, 0.3), 0 6px 15px rgba(16, 185, 129, 0.15)',
+            animation: 'heroLogo 3s ease-in-out infinite',
+            border: '3px solid rgba(255, 255, 255, 0.9)',
+            position: 'relative'
+          }}>
+            👨‍🍳
+            {/* Effet de brillance */}
+            <div style={{
+              position: 'absolute',
+              top: '15%',
+              left: '20%',
+              width: '35%',
+              height: '35%',
+              background: 'radial-gradient(circle, rgba(255, 255, 255, 0.4) 0%, transparent 70%)',
+              borderRadius: '50%',
+              filter: 'blur(4px)',
+              animation: 'shine 2s ease-in-out infinite'
+            }} />
+          </div>
+
+          {/* Titre principal avec effet gradient */}
+          <h1 style={{
+            fontSize: '2.8rem',
+            fontWeight: '900',
+            margin: '0 0 12px 0',
+            background: 'linear-gradient(135deg, #10b981 0%, #059669 50%, #34d399 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            letterSpacing: '-0.03em',
+            lineHeight: '1',
+            textShadow: '0 2px 10px rgba(16, 185, 129, 0.1)'
+          }}>
+            Mes Recettes COCO
+          </h1>
+
+          {/* Sous-titre avec animation */}
+          <div style={{ marginBottom: '28px' }}>
+            <h2 style={{
+              fontSize: '1.3rem',
+              fontWeight: '700',
+              margin: '0 0 8px 0',
+              color: '#1f2937',
+              lineHeight: '1.2'
+            }}>
+              Créez.{' '}
+              <span style={{
+                background: 'linear-gradient(135deg, #10b981, #059669)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                position: 'relative'
+              }}>
+                Partagez.
+                <div style={{
+                  position: 'absolute',
+                  bottom: '-2px',
+                  left: '0',
+                  right: '0',
+                  height: '2px',
+                  background: 'linear-gradient(135deg, #10b981, #059669)',
+                  borderRadius: '1px',
+                  animation: 'expandLine 2s ease-in-out infinite'
+                }} />
+              </span>
+              {' '}Inspirez.
+            </h2>
+            <p style={{
+              fontSize: '1rem',
+              color: '#6b7280',
+              margin: 0,
+              lineHeight: '1.4',
+              fontWeight: '500'
+            }}>
+              Votre collection personnelle de délices culinaires
+            </p>
+          </div>
+
+          {/* Statistiques avec design amélioré */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            gap: '20px',
+            marginBottom: '28px',
+            flexWrap: 'wrap'
+          }}>
+            {[
+              { 
+                number: recipes.length, 
+                label: 'Recettes', 
+                icon: '🍽️', 
+                color: '#10b981' 
+              },
+              { 
+                number: getFilteredRecipes().filter(r => r.form_mode === 'quick').length, 
+                label: 'Express', 
+                icon: '⚡', 
+                color: '#f59e0b' 
+              },
+              { 
+                number: participatingRecipes.size, 
+                label: 'En concours', 
+                icon: '🏆', 
+                color: '#8b5cf6',
+                clickable: participatingRecipes.size > 0,
+                onClick: () => setShowParticipationModal(true)
+              }
+            ].map((stat, index) => (
+              <div 
+                key={index} 
+                style={{
+                  background: 'rgba(255, 255, 255, 0.9)',
+                  backdropFilter: 'blur(15px)',
+                  padding: '16px 20px',
+                  borderRadius: '16px',
+                  border: `2px solid ${stat.color}20`,
+                  minWidth: '80px',
+                  animation: `fadeInUp 0.6s ease-out ${index * 0.15}s both`,
+                  boxShadow: '0 4px 15px rgba(0, 0, 0, 0.05)',
+                  cursor: stat.clickable ? 'pointer' : 'default',
+                  transition: 'all 0.3s ease',
+                  position: 'relative',
+                  ...(stat.clickable && {
+                    border: `2px solid ${stat.color}`,
+                    transform: 'scale(1.02)'
+                  })
+                }}
+                onClick={stat.onClick}
+                onMouseEnter={stat.clickable ? (e) => {
+                  e.target.style.transform = 'translateY(-3px) scale(1.05)'
+                  e.target.style.boxShadow = '0 8px 25px rgba(0, 0, 0, 0.1)'
+                } : undefined}
+                onMouseLeave={stat.clickable ? (e) => {
+                  e.target.style.transform = 'translateY(0) scale(1.02)'
+                  e.target.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.05)'
+                } : undefined}
+              >
+                <div style={{ 
+                  fontSize: '1.4rem', 
+                  marginBottom: '6px',
+                  filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))'
+                }}>
+                  {stat.icon}
+                </div>
+                <div style={{
+                  fontSize: '1.2rem',
+                  fontWeight: '800',
+                  color: stat.color,
+                  marginBottom: '4px'
+                }}>
+                  {stat.number}
+                </div>
+                <div style={{
+                  fontSize: '0.8rem',
+                  color: '#64748b',
+                  fontWeight: '600'
+                }}>
+                  {stat.label}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Actions rapides redessinées */}
+          <div style={{
+            display: 'flex',
+            gap: '12px',
+            justifyContent: 'center',
+            flexWrap: 'wrap',
+            marginBottom: '20px'
+          }}>
+            <button
+              onClick={() => router.push('/submit-recipe')}
+              style={{
+                background: 'linear-gradient(135deg, #10b981, #059669)',
+                color: 'white',
+                border: 'none',
+                padding: '12px 24px',
+                borderRadius: '16px',
+                fontWeight: '700',
+                fontSize: '0.95rem',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                boxShadow: '0 6px 20px rgba(16, 185, 129, 0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.transform = 'translateY(-3px)'
+                e.target.style.boxShadow = '0 8px 25px rgba(16, 185, 129, 0.4)'
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'translateY(0)'
+                e.target.style.boxShadow = '0 6px 20px rgba(16, 185, 129, 0.3)'
+              }}
+            >
+              ✨ Nouvelle Recette
+            </button>
+            
+            {participatingRecipes.size > 0 && (
+              <button
+                onClick={() => setShowParticipationModal(true)}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.95)',
+                  color: '#8b5cf6',
+                  border: '2px solid #8b5cf6',
+                  padding: '12px 24px',
+                  borderRadius: '16px',
+                  fontWeight: '700',
+                  fontSize: '0.95rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  backdropFilter: 'blur(10px)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  position: 'relative'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = '#8b5cf6'
+                  e.target.style.color = 'white'
+                  e.target.style.transform = 'translateY(-3px)'
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'rgba(255, 255, 255, 0.95)'
+                  e.target.style.color = '#8b5cf6'
+                  e.target.style.transform = 'translateY(0)'
+                }}
+              >
+                🏆 Gérer Concours ({participatingRecipes.size})
+              </button>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* Section Logs redessinée */}
+      <div style={{
+        maxWidth: '900px',
+        margin: '-20px auto 20px',
+        padding: '0 20px'
+      }}>
         <button 
           onClick={() => setShowLogs(!showLogs)}
-          className={styles.logsToggle}
+          style={{
+            background: 'rgba(255, 255, 255, 0.9)',
+            backdropFilter: 'blur(10px)',
+            border: '2px solid #e5e7eb',
+            color: '#1f2937',
+            padding: '12px 20px',
+            borderRadius: '16px',
+            cursor: 'pointer',
+            fontWeight: '600',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            transition: 'all 0.3s ease',
+            boxShadow: '0 4px 15px rgba(0, 0, 0, 0.05)',
+            position: 'relative'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.transform = 'translateY(-2px)'
+            e.target.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.1)'
+            e.target.style.borderColor = '#10b981'
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = 'translateY(0)'
+            e.target.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.05)'
+            e.target.style.borderColor = '#e5e7eb'
+          }}
         >
-          {showLogs ? '📋 Masquer Logs' : '📋 Afficher Logs'}
-          <span className={styles.logsBadge}>{debugLogs.length}</span>
+          {showLogs ? '📋 Masquer Debug' : '📋 Debug & Logs'}
+          <span style={{
+            background: debugLogs.length > 0 ? '#10b981' : '#6b7280',
+            color: 'white',
+            padding: '4px 8px',
+            borderRadius: '10px',
+            fontSize: '0.8rem',
+            fontWeight: '700',
+            marginLeft: '4px'
+          }}>
+            {debugLogs.length}
+          </span>
         </button>
 
         {showLogs && (
-          <div className={styles.logsPanel}>
-            <div className={styles.logsHeader}>
-              <h3>📋 Logs de Debug</h3>
-              <div className={styles.logsStats}>
-                <span>Total: {debugLogs.length}</span>
-                <span>Recettes: {recipes.length}</span>
-                <span>En concours: {participatingRecipes.size}</span>
-              </div>
-            </div>
-            
-            <div className={styles.logsContent}>
-              <div className={styles.logsContainer}>
+          <div style={{
+            background: 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(15px)',
+            borderRadius: '20px',
+            padding: '24px',
+            marginTop: '12px',
+            boxShadow: '0 8px 30px rgba(0, 0, 0, 0.1)',
+            border: '1px solid #e5e7eb'
+          }}>
+            <div style={{
+              maxHeight: '300px',
+              overflowY: 'auto',
+              paddingRight: '8px'
+            }}>
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px'
+              }}>
                 {debugLogs.slice(0, 15).map(log => (
                   <div key={log.id} className={`${styles.logEntry} ${styles[log.level.toLowerCase()]}`}>
                     <div className={styles.logHeader}>
@@ -872,158 +1244,560 @@ export default function MesRecettes() {
         )}
       </div>
 
-      <div className={styles.header}>
-        <button onClick={() => router.back()} className={styles.backButton}>
-          <span className={styles.backIcon}>←</span>
-          Retour
-        </button>
-        <div className={styles.headerTitle}>
-          <h1>Mes Recettes</h1>
-          <span className={styles.recipeCount}>{recipes.length} recette{recipes.length > 1 ? 's' : ''}</span>
-        </div>
-        <div className={styles.headerActions}>
-          <button onClick={() => router.push('/submit-recipe')} className={styles.addButton}>
-            <span className={styles.buttonIcon}>+</span>
-            Nouvelle
-          </button>
-          <button 
-            onClick={() => setShowParticipationModal(true)} 
-            className={styles.contestButton}
-            disabled={recipes.length === 0}
-          >
-            <span className={styles.contestIcon}>🏆</span>
-            Concours
-            <span className={styles.contestBadge}>{participatingRecipes.size}</span>
-          </button>
-        </div>
-      </div>
-
       {/* Indicateur de participation amélioré */}
       {weekInfo && participatingRecipes.size > 0 && (
-        <div className={styles.participationBanner}>
-          <div className={styles.bannerContent}>
-            <div className={styles.bannerIcon}>
-              <span className={styles.trophyIcon}>🏆</span>
+        <div style={{
+          maxWidth: '900px',
+          margin: '0 auto 24px',
+          padding: '0 20px'
+        }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #fef3c7, #fde68a)',
+            border: '2px solid #f59e0b',
+            borderRadius: '20px',
+            padding: '20px 24px',
+            boxShadow: '0 8px 25px rgba(245, 158, 11, 0.2)',
+            position: 'relative',
+            overflow: 'hidden'
+          }}>
+            {/* Particules décoratives */}
+            <div style={{
+              position: 'absolute',
+              top: '-10px',
+              right: '-10px',
+              width: '40px',
+              height: '40px',
+              background: 'radial-gradient(circle, #f59e0b 0%, transparent 70%)',
+              borderRadius: '50%',
+              opacity: 0.3,
+              animation: 'float 4s ease-in-out infinite'
+            }} />
+            
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '16px'
+            }}>
+              <div style={{
+                background: '#f59e0b',
+                color: 'white',
+                width: '50px',
+                height: '50px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.5rem',
+                flexShrink: 0,
+                boxShadow: '0 4px 15px rgba(245, 158, 11, 0.4)'
+              }}>
+                🏆
+              </div>
+              
+              <div style={{ flex: 1 }}>
+                <h3 style={{
+                  margin: '0 0 4px 0',
+                  color: '#92400e',
+                  fontSize: '1.2rem',
+                  fontWeight: '800'
+                }}>
+                  {participatingRecipes.size} recette{participatingRecipes.size > 1 ? 's' : ''} en concours !
+                </h3>
+                <p style={{
+                  margin: 0,
+                  color: '#92400e',
+                  fontSize: '0.95rem',
+                  opacity: 0.9
+                }}>
+                  Semaine du {weekInfo && new Date(weekInfo.weekStart).toLocaleDateString('fr-FR', { 
+                    day: 'numeric', 
+                    month: 'long' 
+                  })} au {weekInfo && new Date(weekInfo.weekEnd).toLocaleDateString('fr-FR', { 
+                    day: 'numeric', 
+                    month: 'long' 
+                  })}
+                </p>
+              </div>
+              
+              <button 
+                onClick={() => setShowParticipationModal(true)}
+                style={{
+                  background: '#f59e0b',
+                  color: 'white',
+                  border: 'none',
+                  padding: '12px 20px',
+                  borderRadius: '12px',
+                  cursor: 'pointer',
+                  fontWeight: '700',
+                  fontSize: '0.9rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  transition: 'all 0.3s ease',
+                  boxShadow: '0 4px 15px rgba(245, 158, 11, 0.3)'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.transform = 'translateY(-2px)'
+                  e.target.style.boxShadow = '0 6px 20px rgba(245, 158, 11, 0.4)'
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.transform = 'translateY(0)'
+                  e.target.style.boxShadow = '0 4px 15px rgba(245, 158, 11, 0.3)'
+                }}
+              >
+                Gérer
+                <span style={{ fontSize: '0.8rem' }}>→</span>
+              </button>
             </div>
-            <div className={styles.bannerText}>
-              <h3>{participatingRecipes.size} recette{participatingRecipes.size > 1 ? 's' : ''} en concours</h3>
-              <p>
-                Semaine du {new Date(weekInfo.weekStart).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} 
-                {' au '} 
-                {new Date(weekInfo.weekEnd).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
-              </p>
-            </div>
-            <button 
-              onClick={() => setShowParticipationModal(true)} 
-              className={styles.manageBanner}
-            >
-              Gérer
-              <span className={styles.arrowIcon}>→</span>
-            </button>
           </div>
         </div>
       )}
 
-      {/* Filtres améliorés */}
-      <div className={styles.filtersContainer}>
-        <div className={styles.filters}>
-          <button 
-            className={filter === 'all' ? styles.activeFilter : styles.filter}
-            onClick={() => setFilter('all')}
-          >
-            <span className={styles.filterIcon}>📋</span>
-            Toutes
-            <span className={styles.filterCount}>({recipes.length})</span>
-          </button>
-          <button 
-            className={filter === 'quick' ? styles.activeFilter : styles.filter}
-            onClick={() => setFilter('quick')}
-          >
-            <span className={styles.filterIcon}>📸</span>
-            Express
-            <span className={styles.filterCount}>({recipes.filter(r => r.form_mode === 'quick' || r.category === 'Photo partagée').length})</span>
-          </button>
-          <button 
-            className={filter === 'complete' ? styles.activeFilter : styles.filter}
-            onClick={() => setFilter('complete')}
-          >
-            <span className={styles.filterIcon}>🍳</span>
-            Complètes
-            <span className={styles.filterCount}>({recipes.filter(r => r.form_mode === 'complete' || (r.form_mode !== 'quick' && r.category !== 'Photo partagée')).length})</span>
-          </button>
-        </div>
-      </div>
-
-      <div className={styles.content}>
-        {recipes.length === 0 ? (
-          <div className={styles.emptyState}>
-            <div className={styles.emptyIllustration}>
-              <span className={styles.emptyIcon}>👨‍🍳</span>
-              <div className={styles.emptyBubbles}>
-                <span className={styles.bubble}>🍽️</span>
-                <span className={styles.bubble}>✨</span>
-                <span className={styles.bubble}>🥘</span>
-              </div>
-            </div>
-            <h3>Votre livre de recettes est vide</h3>
-            <p>Commencez par partager votre première création culinaire et rejoignez notre communauté de passionnés !</p>
-            <button 
-              onClick={() => router.push('/submit-recipe')} 
-              className={styles.createButton}
-            >
-              <span className={styles.buttonIcon}>+</span>
-              Créer ma première recette
-            </button>
-          </div>
-        ) : (
-          <div className={styles.recipesGrid}>
-            {getFilteredRecipes().map((recipe) => (
-              <div key={recipe.id} className={styles.recipeCardWrapper}>
-                {/* Badge de participation amélioré */}
-                {participatingRecipes.has(recipe.id) && (
-                  <div className={styles.participationBadge}>
-                    <span className={styles.badgeIcon}>🏆</span>
-                    <span className={styles.badgeText}>En concours</span>
-                  </div>
-                )}
-                <RecipeCard 
-                  recipe={recipe} 
-                  isPhotoOnly={recipe.category === 'Photo partagée'}
-                  onEdit={() => handleEditRecipe(recipe.id)}
-                  onDelete={() => handleDeleteRecipe(recipe.id)}
-                />
-                {/* Bouton de participation flottant */}
-                <div className={styles.participationActions}>
-                  <button
-                    onClick={() => handleParticipationToggle(
-                      recipe.id, 
-                      !participatingRecipes.has(recipe.id)
-                    )}
-                    disabled={participationLoading}
-                    className={
-                      participatingRecipes.has(recipe.id) 
-                        ? styles.removeParticipationBtn 
-                        : styles.addParticipationBtn
-                    }
-                    title={participatingRecipes.has(recipe.id) ? 'Retirer du concours' : 'Inscrire au concours'}
-                  >
-                    {participatingRecipes.has(recipe.id) ? (
-                      <>
-                        <span className={styles.actionIcon}>✖️</span>
-                        <span className={styles.actionText}>Retirer</span>
-                      </>
-                    ) : (
-                      <>
-                        <span className={styles.actionIcon}>🏆</span>
-                        <span className={styles.actionText}>Inscrire</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
+      {/* Section principale avec transition fluide */}
+      <div style={{
+        maxWidth: '900px',
+        margin: '0 auto',
+        background: 'white',
+        borderRadius: '28px 28px 0 0',
+        boxShadow: '0 -12px 40px rgba(0,0,0,0.1), 0 -4px 15px rgba(0,0,0,0.05)',
+        overflow: 'hidden',
+        position: 'relative',
+        zIndex: 2,
+        minHeight: '60vh'
+      }}>
+        {/* Filtres redessinés avec navigation sticky */}
+        <nav style={{
+          position: 'sticky',
+          top: 0,
+          zIndex: 10,
+          background: 'rgba(255,255,255,0.98)',
+          backdropFilter: 'blur(15px)',
+          borderBottom: '1px solid #f3f4f6',
+          padding: '24px 24px 16px'
+        }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            gap: '12px',
+            flexWrap: 'wrap'
+          }}>
+            {[
+              { key: 'all', label: 'Toutes', icon: '📋', count: recipes.length, color: '#6366f1' },
+              { key: 'quick', label: 'Express', icon: '⚡', count: recipes.filter(r => r.form_mode === 'quick' || r.category === 'Photo partagée').length, color: '#f59e0b' },
+              { key: 'complete', label: 'Complètes', icon: '🍳', count: recipes.filter(r => r.form_mode === 'complete' || (r.form_mode !== 'quick' && r.category !== 'Photo partagée')).length, color: '#10b981' }
+            ].map((filterOption) => (
+              <button
+                key={filterOption.key}
+                onClick={() => setFilter(filterOption.key)}
+                style={{
+                  position: 'relative',
+                  padding: '12px 20px',
+                  borderRadius: '16px',
+                  fontWeight: '700',
+                  fontSize: '0.95rem',
+                  color: filter === filterOption.key ? filterOption.color : '#374151',
+                  background: filter === filterOption.key ? `${filterOption.color}15` : 'rgba(255, 255, 255, 0.8)',
+                  border: `2px solid ${filter === filterOption.key ? filterOption.color : '#e5e7eb'}`,
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  minWidth: '130px',
+                  justifyContent: 'center',
+                  boxShadow: filter === filterOption.key ? `0 4px 15px ${filterOption.color}20` : '0 2px 8px rgba(0, 0, 0, 0.05)'
+                }}
+                onMouseEnter={(e) => {
+                  if (filter !== filterOption.key) {
+                    e.target.style.borderColor = filterOption.color
+                    e.target.style.transform = 'translateY(-2px)'
+                    e.target.style.boxShadow = `0 4px 15px ${filterOption.color}15`
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (filter !== filterOption.key) {
+                    e.target.style.borderColor = '#e5e7eb'
+                    e.target.style.transform = 'translateY(0)'
+                    e.target.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.05)'
+                  }
+                }}
+              >
+                <span style={{ fontSize: '1.1rem' }}>{filterOption.icon}</span>
+                <span>{filterOption.label}</span>
+                <span style={{
+                  background: filter === filterOption.key ? filterOption.color : '#6b7280',
+                  color: 'white',
+                  padding: '2px 8px',
+                  borderRadius: '10px',
+                  fontSize: '0.8rem',
+                  fontWeight: '700',
+                  marginLeft: '4px'
+                }}>
+                  {filterOption.count}
+                </span>
+              </button>
             ))}
           </div>
-        )}
+        </nav>
+
+        {/* Contenu principal */}
+        <main style={{ padding: '32px 24px' }}>
+          {loading ? (
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minHeight: '300px',
+              textAlign: 'center'
+            }}>
+              <div style={{
+                width: '60px',
+                height: '60px',
+                border: '4px solid #f3f4f6',
+                borderTop: '4px solid #10b981',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite',
+                marginBottom: '20px'
+              }} />
+              <h3 style={{
+                color: '#1f2937',
+                fontSize: '1.2rem',
+                fontWeight: '600',
+                margin: '0 0 8px 0'
+              }}>
+                Chargement de vos recettes...
+              </h3>
+              <p style={{
+                color: '#6b7280',
+                margin: 0
+              }}>
+                Préparation de vos délicieuses créations
+              </p>
+            </div>
+          ) : error ? (
+            <div style={{
+              background: 'linear-gradient(135deg, #fef2f2, #fee2e2)',
+              border: '2px solid #ef4444',
+              borderRadius: '16px',
+              padding: '24px',
+              textAlign: 'center',
+              color: '#dc2626'
+            }}>
+              <div style={{ fontSize: '2rem', marginBottom: '12px' }}>⚠️</div>
+              <h3 style={{ margin: '0 0 8px 0', fontSize: '1.1rem', fontWeight: '600' }}>
+                Erreur de chargement
+              </h3>
+              <p style={{ margin: '0 0 16px 0' }}>{error}</p>
+              <button
+                onClick={() => {loadUserRecipes(); loadParticipationStatus();}}
+                style={{
+                  background: '#ef4444',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 20px',
+                  borderRadius: '10px',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = '#dc2626'
+                  e.target.style.transform = 'translateY(-2px)'
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = '#ef4444'
+                  e.target.style.transform = 'translateY(0)'
+                }}
+              >
+                🔄 Réessayer
+              </button>
+            </div>
+          ) : recipes.length === 0 ? (
+            <div style={{
+              textAlign: 'center',
+              padding: '60px 40px',
+              background: 'linear-gradient(135deg, #f0f9ff, #e0f2fe)',
+              borderRadius: '24px',
+              border: '2px solid #0ea5e9',
+              maxWidth: '500px',
+              margin: '40px auto'
+            }}>
+              <div style={{
+                position: 'relative',
+                marginBottom: '30px',
+                display: 'inline-block'
+              }}>
+                <div style={{
+                  fontSize: '4rem',
+                  marginBottom: '16px',
+                  animation: 'float 3s ease-in-out infinite'
+                }}>
+                  👨‍🍳
+                </div>
+                
+                {/* Bulles d'inspiration */}
+                <div style={{
+                  position: 'absolute',
+                  top: '10px',
+                  left: '-20px',
+                  fontSize: '1.5rem',
+                  animation: 'bubble 4s ease-in-out infinite'
+                }}>
+                  🍽️
+                </div>
+                <div style={{
+                  position: 'absolute',
+                  top: '20px',
+                  right: '-15px',
+                  fontSize: '1.2rem',
+                  animation: 'bubble 4s ease-in-out infinite 1s'
+                }}>
+                  ✨
+                </div>
+                <div style={{
+                  position: 'absolute',
+                  bottom: '10px',
+                  left: '10px',
+                  fontSize: '1.3rem',
+                  animation: 'bubble 4s ease-in-out infinite 2s'
+                }}>
+                  🥘
+                </div>
+              </div>
+              
+              <h3 style={{
+                color: '#0369a1',
+                fontSize: '1.8rem',
+                fontWeight: '800',
+                margin: '0 0 16px 0'
+              }}>
+                Votre livre de recettes vous attend !
+              </h3>
+              
+              <p style={{
+                color: '#0284c7',
+                fontSize: '1.1rem',
+                lineHeight: '1.6',
+                margin: '0 0 32px 0',
+                fontWeight: '500'
+              }}>
+                Créez votre première recette et rejoignez notre communauté de passionnés de cuisine. 
+                Chaque chef a commencé par un premier plat !
+              </p>
+              
+              <button 
+                onClick={() => router.push('/submit-recipe')}
+                style={{
+                  background: 'linear-gradient(135deg, #10b981, #059669)',
+                  color: 'white',
+                  border: 'none',
+                  padding: '16px 32px',
+                  borderRadius: '16px',
+                  cursor: 'pointer',
+                  fontWeight: '800',
+                  fontSize: '1.1rem',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  transition: 'all 0.3s ease',
+                  boxShadow: '0 8px 25px rgba(16, 185, 129, 0.4)'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.transform = 'translateY(-3px) scale(1.02)'
+                  e.target.style.boxShadow = '0 12px 35px rgba(16, 185, 129, 0.5)'
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.transform = 'translateY(0) scale(1)'
+                  e.target.style.boxShadow = '0 8px 25px rgba(16, 185, 129, 0.4)'
+                }}
+              >
+                <span style={{ fontSize: '1.3rem' }}>✨</span>
+                Créer ma première recette
+              </button>
+            </div>
+          ) : (
+            <>
+              {/* En-tête des résultats */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '32px',
+                padding: '0 8px'
+              }}>
+                <div>
+                  <h2 style={{
+                    margin: '0 0 4px 0',
+                    color: '#1f2937',
+                    fontSize: '1.5rem',
+                    fontWeight: '800'
+                  }}>
+                    {filter === 'all' ? 'Toutes vos recettes' :
+                     filter === 'quick' ? 'Recettes express' : 'Recettes complètes'}
+                  </h2>
+                  <p style={{
+                    margin: 0,
+                    color: '#6b7280',
+                    fontSize: '0.95rem'
+                  }}>
+                    {getFilteredRecipes().length} recette{getFilteredRecipes().length > 1 ? 's' : ''} trouvée{getFilteredRecipes().length > 1 ? 's' : ''}
+                  </p>
+                </div>
+                
+                <button
+                  onClick={() => router.push('/submit-recipe')}
+                  style={{
+                    background: 'linear-gradient(135deg, #10b981, #059669)',
+                    color: 'white',
+                    border: 'none',
+                    padding: '12px 20px',
+                    borderRadius: '12px',
+                    cursor: 'pointer',
+                    fontWeight: '700',
+                    fontSize: '0.9rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    transition: 'all 0.3s ease',
+                    boxShadow: '0 4px 15px rgba(16, 185, 129, 0.3)'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.transform = 'translateY(-2px)'
+                    e.target.style.boxShadow = '0 6px 20px rgba(16, 185, 129, 0.4)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.transform = 'translateY(0)'
+                    e.target.style.boxShadow = '0 4px 15px rgba(16, 185, 129, 0.3)'
+                  }}
+                >
+                  <span style={{ fontSize: '1.1rem' }}>+</span>
+                  Nouvelle
+                </button>
+              </div>
+
+              {/* Grille de recettes améliorée */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+                gap: '24px',
+                marginBottom: '40px'
+              }}>
+                {getFilteredRecipes().map((recipe, index) => (
+                  <div
+                    key={recipe.id}
+                    style={{
+                      position: 'relative',
+                      background: 'white',
+                      borderRadius: '20px',
+                      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+                      border: '1px solid #f3f4f6',
+                      overflow: 'hidden',
+                      transition: 'all 0.3s ease',
+                      animation: `fadeInUp 0.6s ease-out ${index * 0.1}s both`
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-8px)'
+                      e.currentTarget.style.boxShadow = '0 12px 35px rgba(0, 0, 0, 0.15)'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)'
+                      e.currentTarget.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.08)'
+                    }}
+                  >
+                    {/* Badge de participation */}
+                    {participatingRecipes.has(recipe.id) && (
+                      <div style={{
+                        position: 'absolute',
+                        top: '12px',
+                        right: '12px',
+                        background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                        color: 'white',
+                        padding: '6px 12px',
+                        borderRadius: '20px',
+                        fontSize: '0.75rem',
+                        fontWeight: '700',
+                        zIndex: 3,
+                        boxShadow: '0 4px 12px rgba(245, 158, 11, 0.4)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        border: '2px solid white'
+                      }}>
+                        <span>🏆</span>
+                        En concours
+                      </div>
+                    )}
+
+                    {/* Contenu de la RecipeCard */}
+                    <RecipeCard 
+                      recipe={recipe} 
+                      isPhotoOnly={recipe.category === 'Photo partagée'}
+                      onEdit={() => handleEditRecipe(recipe.id)}
+                      onDelete={() => handleDeleteRecipe(recipe.id)}
+                    />
+
+                    {/* Actions de participation flottantes */}
+                    <div style={{
+                      position: 'absolute',
+                      bottom: '16px',
+                      right: '16px',
+                      zIndex: 2
+                    }}>
+                      <button
+                        onClick={() => handleParticipationToggle(
+                          recipe.id, 
+                          !participatingRecipes.has(recipe.id)
+                        )}
+                        disabled={participationLoading}
+                        style={{
+                          background: participatingRecipes.has(recipe.id) 
+                            ? 'linear-gradient(135deg, #ef4444, #dc2626)'
+                            : 'linear-gradient(135deg, #f59e0b, #d97706)',
+                          color: 'white',
+                          border: 'none',
+                          padding: '10px 16px',
+                          borderRadius: '12px',
+                          cursor: 'pointer',
+                          fontWeight: '700',
+                          fontSize: '0.85rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          transition: 'all 0.3s ease',
+                          boxShadow: participatingRecipes.has(recipe.id)
+                            ? '0 4px 15px rgba(239, 68, 68, 0.4)'
+                            : '0 4px 15px rgba(245, 158, 11, 0.4)',
+                          opacity: participationLoading ? 0.7 : 1
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!participationLoading) {
+                            e.target.style.transform = 'translateY(-2px) scale(1.05)'
+                            e.target.style.boxShadow = participatingRecipes.has(recipe.id)
+                              ? '0 6px 20px rgba(239, 68, 68, 0.5)'
+                              : '0 6px 20px rgba(245, 158, 11, 0.5)'
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.transform = 'translateY(0) scale(1)'
+                          e.target.style.boxShadow = participatingRecipes.has(recipe.id)
+                            ? '0 4px 15px rgba(239, 68, 68, 0.4)'
+                            : '0 4px 15px rgba(245, 158, 11, 0.4)'
+                        }}
+                        title={participatingRecipes.has(recipe.id) ? 'Retirer du concours' : 'Inscrire au concours'}
+                      >
+                        <span style={{ fontSize: '0.9rem' }}>
+                          {participatingRecipes.has(recipe.id) ? '✖️' : '🏆'}
+                        </span>
+                        {participatingRecipes.has(recipe.id) ? 'Retirer' : 'Inscrire'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </main>
       </div>
 
       {/* Modal de gestion amélioré */}
@@ -1154,7 +1928,7 @@ export default function MesRecettes() {
       <style jsx>{`
         .${styles.container} {
           min-height: 100vh;
-          background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+          background: linear-gradient(135deg, #fef3e2 0%, #fff5e6 50%, #fef7ed 100%);
           padding: 20px;
         }
 
@@ -1574,440 +2348,30 @@ export default function MesRecettes() {
           50% { transform: translateY(-15px) scale(1.1); opacity: 1; }
         }
 
-        .${styles.emptyState} h3 {
-          color: #1e293b;
-          font-size: 1.8rem;
-          font-weight: 700;
-          margin-bottom: 15px;
+        @keyframes heroLogo {
+          0%, 100% { transform: scale(1) rotate(0deg); }
+          50% { transform: scale(1.05) rotate(2deg); }
         }
 
-        .${styles.emptyState} p {
-          color: #64748b;
-          font-size: 1.1rem;
-          line-height: 1.6;
-          margin-bottom: 30px;
+        @keyframes shine {
+          0%, 100% { opacity: 0.4; transform: scale(1); }
+          50% { opacity: 0.8; transform: scale(1.2); }
         }
 
-        .${styles.createButton} {
-          background: linear-gradient(135deg, #10b981, #059669);
-          color: white;
-          border: none;
-          padding: 16px 32px;
-          border-radius: 12px;
-          cursor: pointer;
-          font-weight: 700;
-          font-size: 1.1rem;
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          transition: all 0.3s ease;
-          box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+        @keyframes expandLine {
+          0%, 100% { transform: scaleX(0.8); }
+          50% { transform: scaleX(1.2); }
         }
 
-        .${styles.createButton}:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
-        }
-
-        /* Modal amélioré */
-        .${styles.modalOverlay} {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0, 0, 0, 0.6);
-          backdrop-filter: blur(4px);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 1000;
-          padding: 20px;
-          animation: fadeIn 0.3s ease;
-        }
-
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-
-        .${styles.modal} {
-          background: white;
-          border-radius: 20px;
-          max-width: 700px;
-          width: 100%;
-          max-height: 85vh;
-          overflow: hidden;
-          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-          animation: slideUp 0.3s ease;
-        }
-
-        @keyframes slideUp {
-          from { transform: translateY(50px); opacity: 0; }
-          to { transform: translateY(0); opacity: 1; }
-        }
-
-        .${styles.modalHeader} {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          padding: 30px;
-          border-bottom: 1px solid #e5e7eb;
-          background: linear-gradient(135deg, #f8fafc, #f1f5f9);
-        }
-
-        .${styles.modalTitleSection} {
-          flex: 1;
-        }
-
-        .${styles.modalTitleSection} h3 {
-          margin: 0 0 8px 0;
-          color: #1e293b;
-          font-size: 1.5rem;
-          font-weight: 700;
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        }
-
-        .${styles.modalIcon} {
-          font-size: 1.3rem;
-        }
-
-        .${styles.modalSubtitle} {
-          margin: 0;
-          color: #64748b;
-          font-size: 0.95rem;
-        }
-
-        .${styles.closeModal} {
-          background: none;
-          border: none;
-          font-size: 1.5rem;
-          cursor: pointer;
-          color: #6b7280;
-          padding: 8px;
-          border-radius: 8px;
-          transition: all 0.2s ease;
-        }
-
-        .${styles.closeModal}:hover {
-          background: #f3f4f6;
-          color: #374151;
-        }
-
-        .${styles.modalContent} {
-          padding: 30px;
-          max-height: 60vh;
-          overflow-y: auto;
-        }
-
-        .${styles.contestInfo} {
-          background: linear-gradient(135deg, #fef3c7, #fde68a);
-          padding: 25px;
-          border-radius: 16px;
-          margin-bottom: 30px;
-          border: 2px solid #f59e0b;
-        }
-
-        .${styles.contestStats} {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 20px;
-          margin-bottom: 20px;
-        }
-
-        .${styles.statItem} {
-          text-align: center;
-        }
-
-        .${styles.statNumber} {
-          display: block;
-          font-size: 2rem;
-          font-weight: 800;
-          color: #92400e;
-        }
-
-        .${styles.statLabel} {
-          display: block;
-          font-size: 0.9rem;
-          color: #92400e;
-          opacity: 0.8;
-        }
-
-        .${styles.statDivider} {
-          font-size: 1.5rem;
-          color: #92400e;
-          opacity: 0.5;
-        }
-
-        .${styles.weekDetails} {
-          text-align: center;
-        }
-
-        .${styles.weekDates} {
-          margin-bottom: 12px;
-        }
-
-        .${styles.dateLabel} {
-          color: #92400e;
-          font-weight: 600;
-          margin-right: 8px;
-        }
-
-        .${styles.dateRange} {
-          color: #92400e;
-          font-weight: 700;
-        }
-
-        .${styles.contestDescription} {
-          margin: 0;
-          color: #92400e;
-          font-size: 0.95rem;
-          line-height: 1.5;
-        }
-
-        .${styles.recipesListTitle} {
-          color: #1e293b;
-          font-size: 1.2rem;
-          font-weight: 700;
-          margin-bottom: 20px;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .${styles.recipesScrollContainer} {
-          max-height: 300px;
-          overflow-y: auto;
-          padding-right: 8px;
-        }
-
-        .${styles.recipeItem} {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 16px;
-          border: 2px solid #e5e7eb;
-          border-radius: 12px;
-          background: #f9fafb;
-          margin-bottom: 12px;
-          transition: all 0.3s ease;
-        }
-
-        .${styles.recipeItem}:hover {
-          border-color: #667eea;
-          background: #f8fafc;
-          transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
-        }
-
-        .${styles.recipeInfo} {
-          display: flex;
-          align-items: center;
-          gap: 16px;
-          flex: 1;
-        }
-
-        .${styles.recipeImageContainer} {
-          position: relative;
-        }
-
-        .${styles.recipeThumb} {
-          width: 50px;
-          height: 50px;
-          border-radius: 10px;
-          object-fit: cover;
-          border: 2px solid #e5e7eb;
-        }
-
-        .${styles.participatingOverlay} {
-          position: absolute;
-          top: -4px;
-          right: -4px;
-          background: #f59e0b;
-          color: white;
-          width: 20px;
-          height: 20px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 0.7rem;
-          border: 2px solid white;
-        }
-
-        .${styles.recipeDetails} {
-          flex: 1;
-        }
-
-        .${styles.recipeTitle} {
-          margin: 0 0 6px 0;
-          color: #1e293b;
-          font-size: 1rem;
-          font-weight: 600;
-        }
-
-        .${styles.recipeMetadata} {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          color: #6b7280;
-          font-size: 0.85rem;
-        }
-
-        .${styles.recipeCategory} {
-          background: #e2e8f0;
-          padding: 2px 8px;
-          border-radius: 6px;
-          font-weight: 500;
-        }
-
-        .${styles.recipeDot} {
-          opacity: 0.5;
-        }
-
-        .${styles.addBtn}, .${styles.removeBtn} {
-          border: none;
-          padding: 10px 16px;
-          border-radius: 10px;
-          font-size: 0.85rem;
-          font-weight: 600;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          transition: all 0.3s ease;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        .${styles.addBtn} {
-          background: linear-gradient(135deg, #f59e0b, #d97706);
-          color: white;
-        }
-
-        .${styles.addBtn}:hover:not(:disabled) {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
-        }
-
-        .${styles.removeBtn} {
-          background: linear-gradient(135deg, #ef4444, #dc2626);
-          color: white;
-        }
-
-        .${styles.removeBtn}:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
-        }
-
-        .${styles.addBtn}:disabled {
-          background: #9ca3af;
-          cursor: not-allowed;
-          transform: none;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        .${styles.btnIcon} {
-          font-size: 0.9rem;
-        }
-
-        /* Responsive Design */
-        @media (max-width: 768px) {
-          .${styles.container} {
-            padding: 15px;
+        @keyframes fadeInUp {
+          from { 
+            opacity: 0; 
+            transform: translateY(30px); 
           }
-
-          .${styles.header} {
-            flex-direction: column;
-            gap: 20px;
-            text-align: center;
-            padding: 20px;
+          to { 
+            opacity: 1; 
+            transform: translateY(0); 
           }
-
-          .${styles.headerTitle} h1 {
-            font-size: 1.6rem;
-          }
-
-          .${styles.headerActions} {
-            flex-direction: column;
-            width: 100%;
-            gap: 10px;
-          }
-
-          .${styles.bannerContent} {
-            flex-direction: column;
-            text-align: center;
-            gap: 12px;
-          }
-
-          .${styles.filters} {
-            flex-direction: column;
-            gap: 10px;
-          }
-
-          .${styles.filter}, .${styles.activeFilter} {
-            min-width: auto;
-          }
-
-          .${styles.recipesGrid} {
-            grid-template-columns: 1fr;
-            gap: 20px;
-          }
-
-          .${styles.modal} {
-            margin: 10px;
-            max-height: 90vh;
-          }
-
-          .${styles.modalHeader} {
-            padding: 20px;
-          }
-
-          .${styles.modalContent} {
-            padding: 20px;
-          }
-
-          .${styles.recipeItem} {
-            flex-direction: column;
-            gap: 12px;
-            text-align: center;
-          }
-
-          .${styles.recipeInfo} {
-            flex-direction: column;
-            gap: 10px;
-          }
-
-          .${styles.emptyState} {
-            padding: 50px 20px;
-            margin: 30px auto;
-          }
-
-          .${styles.emptyIcon} {
-            font-size: 4rem;
-          }
-        }
-
-        /* États de chargement */
-        .${styles.loadingContainer}, .${styles.errorContainer} {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          min-height: 50vh;
-          text-align: center;
-        }
-
-        .${styles.loadingSpinner} {
-          width: 50px;
-          height: 50px;
-          border: 4px solid #f3f4f6;
-          border-top: 4px solid #667eea;
-          border-radius: 50%;
-          animation: spin 1s linear infinite;
-          margin-bottom: 20px;
         }
 
         @keyframes spin {
@@ -2015,263 +2379,61 @@ export default function MesRecettes() {
           100% { transform: rotate(360deg); }
         }
 
-        .${styles.retryButton} {
-          background: linear-gradient(135deg, #667eea, #764ba2);
-          color: white;
-          border: none;
-          padding: 12px 24px;
+        @keyframes pulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.05); }
+        }
+
+        /* Responsive amélioré */
+        @media (max-width: 768px) {
+          .container {
+            padding: 10px !important;
+          }
+          
+          h1 {
+            font-size: 2.2rem !important;
+          }
+          
+          .statsContainer {
+            flex-direction: column !important;
+            gap: 12px !important;
+          }
+          
+          .actionsContainer {
+            flex-direction: column !important;
+            width: 100% !important;
+          }
+          
+          .filtersContainer {
+            flex-direction: column !important;
+            gap: 8px !important;
+          }
+          
+          .recipesGrid {
+            grid-template-columns: 1fr !important;
+            gap: 16px !important;
+          }
+        }
+
+        /* Scrollbar personnalisé */
+        ::-webkit-scrollbar {
+          width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+          background: #f1f5f9;
           border-radius: 10px;
-          cursor: pointer;
-          font-weight: 600;
-          margin-top: 20px;
-          transition: all 0.3s ease;
         }
 
-        .${styles.retryButton}:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-        }
-
-        /* Styles pour la section des logs */
-        .${styles.logsSection} {
-          margin-bottom: 40px;
-        }
-
-        .${styles.logsToggle} {
-          background: #1e293b;
-          color: white;
-          border: none;
-          padding: 12px 20px;
-          border-radius: 12px;
-          cursor: pointer;
-          font-weight: 600;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          transition: all 0.3s ease;
-          box-shadow: 0 2px 10px rgba(30, 41, 59, 0.3);
-          position: relative;
-        }
-
-        .${styles.logsToggle}:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 15px rgba(30, 41, 59, 0.4);
-        }
-
-        .${styles.logsBadge} {
-          background: #10b981;
-          color: white;
-          padding: 4px 8px;
-          border-radius: 10px;
-          font-size: 0.8rem;
-          font-weight: 700;
-          position: absolute;
-          top: 8px;
-          right: 8px;
-          box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
-        }
-
-        .${styles.logsPanel} {
-          background: white;
-          border-radius: 16px;
-          padding: 20px;
-          margin-top: 10px;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-        }
-
-        .${styles.logsHeader} {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 15px;
-        }
-
-        .${styles.logsStats} {
-          display: flex;
-          gap: 15px;
-          font-size: 0.9rem;
-          color: #6b7280;
-        }
-
-        .${styles.logsContent} {
-          max-height: 300px;
-          overflow-y: auto;
-          padding-right: 8px;
-        }
-
-        .${styles.logsContainer} {
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
-        }
-
-        .${styles.logEntry} {
-          padding: 12px 16px;
-          border-radius: 10px;
-          background: #f9fafb;
-          border: 1px solid #e5e7eb;
-          transition: all 0.3s ease;
-        }
-
-        .${styles.logEntry}:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-
-        .${styles.logHeader} {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 6px;
-        }
-
-        .${styles.logLevel} {
-          padding: 4px 8px;
-          border-radius: 10px;
-          font-size: 0.8rem;
-          font-weight: 600;
-          text-transform: uppercase;
-        }
-
-        .${styles.information} {
-          background: #2563eb;
-          color: white;
-        }
-
-        .${styles.success} {
-          background: #10b981;
-          color: white;
-        }
-
-        .${styles.warning} {
-          background: #f59e0b;
-          color: white;
-        }
-
-        .${styles.error} {
-          background: #ef4444;
-          color: white;
-        }
-
-        .${styles.logTime} {
-          font-size: 0.75rem;
-          color: #6b7280;
-        }
-
-        .${styles.logMessage} {
-          margin: 0;
-          color: #1e293b;
-          font-size: 0.9rem;
-        }
-
-        .${styles.logDetails} {
-          margin-top: 8px;
-          padding: 10px;
-          border-radius: 8px;
-          background: #f3f4f6;
-          overflow-x: auto;
-        }
-
-        .${styles.logData} {
-          font-family: monospace;
-          font-size: 0.85rem;
-          color: #374151;
-          white-space: pre;
-        }
-
-        .${styles.logsActions} {
-          display: flex;
-          justify-content: flex-end;
-          gap: 10px;
-          margin-top: 10px;
-        }
-
-        .${styles.clearLogsBtn}, .${styles.copyLogsBtn}, .${styles.refreshBtn} {
-          background: #2563eb;
-          color: white;
-          border: none;
-          padding: 10px 16px;
-          border-radius: 10px;
-          cursor: pointer;
-          font-weight: 600;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          transition: all 0.3s ease;
-          box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
-        }
-
-        .${styles.clearLogsBtn}:hover, .${styles.copyLogsBtn}:hover, .${styles.refreshBtn}:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
-        }
-
-        /* Fin des styles pour la section des logs */
-
-        /* Styles globaux */
-        body {
-          margin: 0;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          background: #f3f4f6;
-          color: #1e293b;
-          line-height: 1.6;
-        }
-
-        h1, h2, h3, h4, h5, h6 {
-          margin: 0;
-          color: #1e293b;
-          font-weight: 700;
-        }
-
-        p {
-          margin: 0;
-          color: #475569;
-          font-size: 1rem;
-        }
-
-        a {
-          color: #2563eb;
-          text-decoration: none;
-          transition: color 0.3s ease;
-        }
-
-        a:hover {
-          color: #1d4ed8;
-        }
-
-        /* Boutons globaux */
-        .btn {
-          display: inline-block;
-          padding: 10px 20px;
-          border-radius: 8px;
-          font-weight: 600;
-          text-align: center;
-          cursor: pointer;
-          transition: all 0.3s ease;
-        }
-
-        .btn-primary {
+        ::-webkit-scrollbar-thumb {
           background: linear-gradient(135deg, #10b981, #059669);
-          color: white;
-          border: none;
+          border-radius: 10px;
+          border: 2px solid #f1f5f9;
         }
 
-        .btn-primary:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+        ::-webkit-scrollbar-thumb:hover {
+          background: linear-gradient(135deg, #059669, #047857);
         }
-
-        .btn-secondary {
-          background: #e2e8f0;
-          color: #1e293b;
-          border: none;
-        }
-
-        .btn-secondary:hover {
-          background: #d1d5db;
-        }
-
-        /* Fin des styles globaux */
       `}</style>
     </div>
   )
