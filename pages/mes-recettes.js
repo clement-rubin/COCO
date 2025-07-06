@@ -28,11 +28,10 @@ export default function MesRecettes() {
   // États pour les logs de debug
   const [debugLogs, setDebugLogs] = useState([])
   const [showLogs, setShowLogs] = useState(false)
-  // Nouveaux états pour la participation au concours
-  const [showParticipationModal, setShowParticipationModal] = useState(false)
   const [participatingRecipes, setParticipatingRecipes] = useState(new Set())
-  const [participationLoading, setParticipationLoading] = useState(false)
   const [weekInfo, setWeekInfo] = useState(null)
+  const [showParticipationModal, setShowParticipationModal] = useState(false)
+  const [participationLoading, setParticipationLoading] = useState(false)
 
   useEffect(() => {
     addDebugLog('INFO', 'Component mounted', {
@@ -49,7 +48,6 @@ export default function MesRecettes() {
     if (user) {
       addDebugLog('INFO', 'User authenticated, loading data')
       loadUserRecipes()
-      loadParticipationStatus()
     }
   }, [user, authLoading, router])
 
@@ -86,16 +84,11 @@ export default function MesRecettes() {
         timestamp: new Date().toISOString()
       })
 
-      // Utilisation directe de Supabase comme dans test-recipes.js
+      // Utilisation directe de Supabase
       const { supabase } = await import('../lib/supabase')
       
       addDebugLog('INFO', 'Supabase client imported successfully', {
         userId: user.id?.substring(0, 8) + '...'
-      })
-
-      logInfo('Supabase client imported successfully', {
-        userId: user.id?.substring(0, 8) + '...',
-        component: 'MesRecettes'
       })
 
       // Requête directe à la table recipes avec filtrage par user_id
@@ -126,49 +119,10 @@ export default function MesRecettes() {
         addDebugLog('ERROR', 'Supabase query error for user recipes', {
           userId: user.id?.substring(0, 8) + '...',
           errorCode: supabaseError.code,
-          errorMessage: supabaseError.message,
-          errorDetails: supabaseError.details,
-          errorHint: supabaseError.hint
-        })
-        logError('Supabase query error for user recipes', supabaseError, {
-          userId: user.id?.substring(0, 8) + '...',
-          errorCode: supabaseError.code,
-          errorMessage: supabaseError.message,
-          errorDetails: supabaseError.details,
-          errorHint: supabaseError.hint
+          errorMessage: supabaseError.message
         })
         throw new Error(`Erreur base de données: ${supabaseError.message}`)
       }
-
-      addDebugLog('INFO', 'Raw Supabase query results', {
-        userId: user.id?.substring(0, 8) + '...',
-        resultCount: userRecipes?.length || 0,
-        isArray: Array.isArray(userRecipes),
-        hasData: !!userRecipes,
-        firstRecipePreview: userRecipes?.[0] ? {
-          id: userRecipes[0].id,
-          title: userRecipes[0].title?.substring(0, 20) + '...',
-          user_id: userRecipes[0].user_id?.substring(0, 8) + '...',
-          category: userRecipes[0].category,
-          form_mode: userRecipes[0].form_mode,
-          created_at: userRecipes[0].created_at
-        } : 'No first recipe'
-      })
-
-      logInfo('Raw Supabase query results', {
-        userId: user.id?.substring(0, 8) + '...',
-        resultCount: userRecipes?.length || 0,
-        isArray: Array.isArray(userRecipes),
-        hasData: !!userRecipes,
-        firstRecipePreview: userRecipes?.[0] ? {
-          id: userRecipes[0].id,
-          title: userRecipes[0].title?.substring(0, 20) + '...',
-          user_id: userRecipes[0].user_id?.substring(0, 8) + '...',
-          category: userRecipes[0].category,
-          form_mode: userRecipes[0].form_mode,
-          created_at: userRecipes[0].created_at
-        } : 'No first recipe'
-      })
 
       // S'assurer que nous avons un tableau valide
       const safeRecipes = Array.isArray(userRecipes) ? userRecipes : []
@@ -186,17 +140,7 @@ export default function MesRecettes() {
               recipeId: recipe?.id,
               hasTitle: !!recipe?.title,
               hasId: !!recipe?.id,
-              userIdMatch: recipe?.user_id === user.id,
-              recipeUserId: recipe?.user_id?.substring(0, 8) + '...',
-              expectedUserId: user.id?.substring(0, 8) + '...'
-            })
-            logWarning('Recipe filtered out during validation', {
-              recipeId: recipe?.id,
-              hasTitle: !!recipe?.title,
-              hasId: !!recipe?.id,
-              userIdMatch: recipe?.user_id === user.id,
-              recipeUserId: recipe?.user_id?.substring(0, 8) + '...',
-              expectedUserId: user.id?.substring(0, 8) + '...'
+              userIdMatch: recipe?.user_id === user.id
             })
           }
 
@@ -224,496 +168,44 @@ export default function MesRecettes() {
           form_mode: recipe.form_mode || 'complete'
         }))
 
-      addDebugLog('SUCCESS', 'Recipes validated and processed', {
-        userId: user.id?.substring(0, 8) + '...',
-        totalFromDB: safeRecipes.length,
-        validatedCount: validatedRecipes.length,
-        filteredOut: safeRecipes.length - validatedRecipes.length,
-        categories: [...new Set(validatedRecipes.map(r => r.category))],
-        formModes: [...new Set(validatedRecipes.map(r => r.form_mode))],
-        hasImages: validatedRecipes.filter(r => r.image).length,
-        recentRecipes: validatedRecipes.slice(0, 3).map(r => ({
-          id: r.id,
-          title: r.title?.substring(0, 25) + '...',
-          category: r.category,
-          form_mode: r.form_mode,
-          created_at: r.created_at
-        }))
-      })
-      
-      logInfo('Recipes validated and processed', {
-        userId: user.id?.substring(0, 8) + '...',
-        totalFromDB: safeRecipes.length,
-        validatedCount: validatedRecipes.length,
-        filteredOut: safeRecipes.length - validatedRecipes.length,
-        categories: [...new Set(validatedRecipes.map(r => r.category))],
-        formModes: [...new Set(validatedRecipes.map(r => r.form_mode))],
-        hasImages: validatedRecipes.filter(r => r.image).length,
-        recentRecipes: validatedRecipes.slice(0, 3).map(r => ({
-          id: r.id,
-          title: r.title?.substring(0, 25) + '...',
-          category: r.category,
-          form_mode: r.form_mode,
-          created_at: r.created_at
-        }))
-      })
-
       setRecipes(validatedRecipes)
 
       const endTime = performance.now()
       const totalDuration = endTime - startTime
 
-      addDebugLog('SUCCESS', 'User recipes loaded successfully via direct Supabase query', {
+      addDebugLog('SUCCESS', 'User recipes loaded successfully', {
         userId: user.id?.substring(0, 8) + '...',
         recipesCount: validatedRecipes.length,
-        loadTime: `${totalDuration.toFixed(2)}ms`,
-        method: 'direct_supabase',
-        success: true
+        loadTime: `${totalDuration.toFixed(2)}ms`
       })
 
-      logSuccess('User recipes loaded successfully via direct Supabase query', {
+      logSuccess('User recipes loaded successfully', {
         userId: user.id?.substring(0, 8) + '...',
         recipesCount: validatedRecipes.length,
         loadTime: `${totalDuration.toFixed(2)}ms`,
-        component: 'MesRecettes',
-        method: 'direct_supabase',
-        success: true
+        component: 'MesRecettes'
       })
 
     } catch (err) {
       const endTime = performance.now()
       const totalDuration = endTime - startTime
 
-      addDebugLog('ERROR', 'Failed to load user recipes via direct query', {
+      addDebugLog('ERROR', 'Failed to load user recipes', {
         userId: user?.id?.substring(0, 8) + '...',
         errorMessage: err.message,
-        errorName: err.name,
-        loadTime: `${totalDuration.toFixed(2)}ms`,
-        method: 'direct_supabase'
+        loadTime: `${totalDuration.toFixed(2)}ms`
       })
 
-      logError('Failed to load user recipes via direct query', err, {
+      logError('Failed to load user recipes', err, {
         userId: user?.id?.substring(0, 8) + '...',
         component: 'MesRecettes',
-        errorMessage: err.message,
-        errorName: err.name,
-        loadTime: `${totalDuration.toFixed(2)}ms`,
-        method: 'direct_supabase'
+        errorMessage: err.message
       })
 
       setError(`Impossible de charger vos recettes: ${err.message}`)
     } finally {
       setLoading(false)
     }
-  }
-
-  // Nouvelle fonction pour charger le statut de participation avec logs détaillés
-  const loadParticipationStatus = async () => {
-    const startTime = performance.now()
-    
-    try {
-      addDebugLog('INFO', 'Starting participation status loading', {
-        userId: user?.id?.substring(0, 8) + '...'
-      })
-      
-      logInfo('Starting participation status loading', {
-        userId: user?.id?.substring(0, 8) + '...',
-        component: 'MesRecettes'
-      })
-      
-      const apiUrl = `/api/weekly-contest-participation?user_id=${user.id}`
-      
-      addDebugLog('INFO', 'Making API call for participation status', {
-        userId: user?.id?.substring(0, 8) + '...',
-        apiUrl: apiUrl,
-        context: 'loadParticipationStatus'
-      })
-      
-      logApiCall('GET', apiUrl, {
-        userId: user?.id?.substring(0, 8) + '...',
-        component: 'MesRecettes',
-        context: 'loadParticipationStatus'
-      })
-      
-      const response = await fetch(apiUrl)
-      
-      addDebugLog('INFO', 'Participation status API response received', {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok,
-        userId: user?.id?.substring(0, 8) + '...',
-        url: apiUrl
-      })
-      
-      logInfo('Participation status API response received', {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok,
-        userId: user?.id?.substring(0, 8) + '...',
-        url: apiUrl
-      })
-      
-      if (!response.ok) {
-        let errorDetails = {}
-        try {
-          const errorData = await response.text()
-          errorDetails = {
-            status: response.status,
-            statusText: response.statusText,
-            responseText: errorData?.substring(0, 500),
-            userId: user?.id?.substring(0, 8) + '...'
-          }
-        } catch (parseError) {
-          errorDetails = {
-            status: response.status,
-            statusText: response.statusText,
-            parseError: parseError.message,
-            userId: user?.id?.substring(0, 8) + '...'
-          }
-        }
-        
-        addDebugLog('ERROR', 'Participation status API call failed', errorDetails)
-        logError('Participation status API call failed', new Error(`HTTP ${response.status}: ${response.statusText}`), errorDetails)
-        
-        // Don't throw error here, just return early to continue with recipe loading
-        return
-      }
-
-      let data
-      try {
-        data = await response.json()
-        
-        addDebugLog('SUCCESS', 'Participation status response parsed successfully', {
-          hasUserCandidates: !!data.userCandidates,
-          userCandidatesCount: data.userCandidates?.length || 0,
-          hasContest: !!data.contest,
-          contestId: data.contest?.id,
-          contestWeekStart: data.contest?.week_start,
-          contestWeekEnd: data.contest?.week_end,
-          userId: user?.id?.substring(0, 8) + '...'
-        })
-        
-        logInfo('Participation status response parsed successfully', {
-          hasUserCandidates: !!data.userCandidates,
-          userCandidatesCount: data.userCandidates?.length || 0,
-          hasContest: !!data.contest,
-          contestId: data.contest?.id,
-          contestWeekStart: data.contest?.week_start,
-          contestWeekEnd: data.contest?.week_end,
-          userId: user?.id?.substring(0, 8) + '...'
-        })
-      } catch (parseError) {
-        addDebugLog('ERROR', 'Failed to parse participation status response', {
-          userId: user?.id?.substring(0, 8) + '...',
-          responseStatus: response.status,
-          parseError: parseError.message
-        })
-        logError('Failed to parse participation status response', parseError, {
-          userId: user?.id?.substring(0, 8) + '...',
-          responseStatus: response.status
-        })
-        return
-      }
-      
-      logDatabaseOperation('SELECT', 'weekly_contest_participation', {
-        userId: user?.id?.substring(0, 8) + '...',
-        userCandidatesCount: data.userCandidates?.length || 0,
-        contestId: data.contest?.id,
-        contestWeekStart: data.contest?.week_start,
-        contestWeekEnd: data.contest?.week_end
-      })
-      
-      // Identifier les recettes déjà participantes dans le concours hebdomadaire
-      const participatingIds = data.userCandidates?.map(c => c.recipe_id) || []
-      
-      setParticipatingRecipes(new Set(participatingIds))
-      setWeekInfo({
-        weekStart: data.contest.week_start,
-        weekEnd: data.contest.week_end,
-        maxCandidates: 5, // Limite fixe pour le concours hebdomadaire
-        currentCandidates: data.contest.total_candidates || 0,
-        contestId: data.contest.id
-      })
-      
-      const endTime = performance.now()
-      
-      addDebugLog('SUCCESS', 'Participation status loaded successfully', {
-        userId: user?.id?.substring(0, 8) + '...',
-        participatingRecipesCount: participatingIds.length,
-        contestId: data.contest?.id,
-        weekStart: data.contest?.week_start,
-        weekEnd: data.contest?.week_end,
-        loadTime: `${(endTime - startTime).toFixed(2)}ms`
-      })
-      
-      logPerformance('Participation status loading', endTime - startTime, {
-        userId: user?.id?.substring(0, 8) + '...',
-        participatingRecipesCount: participatingIds.length,
-        success: true
-      })
-      
-      logSuccess('Participation status loaded successfully', {
-        userId: user?.id?.substring(0, 8) + '...',
-        participatingRecipesCount: participatingIds.length,
-        contestId: data.contest?.id,
-        weekStart: data.contest?.week_start,
-        weekEnd: data.contest?.week_end
-      })
-      
-    } catch (error) {
-      const endTime = performance.now()
-      
-      addDebugLog('ERROR', 'Failed to load participation status', {
-        userId: user?.id?.substring(0, 8) + '...',
-        loadTime: `${(endTime - startTime).toFixed(2)}ms`,
-        errorMessage: error.message,
-        errorStack: error.stack?.substring(0, 500)
-      })
-      
-      logError('Failed to load participation status', error, {
-        userId: user?.id?.substring(0, 8) + '...',
-        loadTime: `${(endTime - startTime).toFixed(2)}ms`,
-        component: 'MesRecettes',
-        errorMessage: error.message,
-        errorStack: error.stack?.substring(0, 500)
-      })
-      
-      // Set default values to prevent UI errors
-      setParticipatingRecipes(new Set())
-      setWeekInfo(null)
-    }
-  }
-
-  // Nouvelle fonction pour gérer la participation au concours hebdomadaire avec logs
-  const handleParticipationToggle = async (recipeId, shouldParticipate) => {
-    if (participationLoading) return
-
-    const startTime = performance.now()
-    
-    addDebugLog('INFO', 'Participation toggle initiated', {
-      recipeId,
-      shouldParticipate,
-      userId: user?.id?.substring(0, 8) + '...',
-      currentParticipatingCount: participatingRecipes.size
-    })
-    
-    logUserInteraction(
-      shouldParticipate ? 'PARTICIPATE_RECIPE_CONTEST' : 'WITHDRAW_RECIPE_CONTEST', 
-      'participation-toggle',
-      {
-        recipeId,
-        shouldParticipate,
-        userId: user?.id?.substring(0, 8) + '...',
-        currentParticipatingCount: participatingRecipes.size
-      }
-    )
-
-    try {
-      setParticipationLoading(true)
-
-      if (shouldParticipate) {
-        // Vérifier la limite avec logs
-        if (weekInfo && participatingRecipes.size >= weekInfo.maxCandidates) {
-          addDebugLog('WARNING', 'Recipe participation limit reached', {
-            currentCount: participatingRecipes.size,
-            maxAllowed: weekInfo.maxCandidates,
-            userId: user?.id?.substring(0, 8) + '...',
-            recipeId
-          })
-          logWarning('Recipe participation limit reached', {
-            currentCount: participatingRecipes.size,
-            maxAllowed: weekInfo.maxCandidates,
-            userId: user?.id?.substring(0, 8) + '...',
-            recipeId
-          })
-          alert(`Vous ne pouvez pas inscrire plus de ${weekInfo.maxCandidates} recettes par semaine.`)
-          return
-        }
-
-        // Inscrire la recette au concours hebdomadaire
-        addDebugLog('INFO', 'Registering recipe for contest', {
-          recipeId,
-          userId: user?.id?.substring(0, 8) + '...',
-          isManualEntry: true
-        })
-        
-        const response = await fetch('/api/weekly-contest-participation', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            recipe_id: recipeId,
-            user_id: user.id,
-            is_manual_entry: true
-          })
-        })
-
-        addDebugLog('INFO', 'Recipe participation API response', {
-          recipeId,
-          userId: user?.id?.substring(0, 8) + '...',
-          isManualEntry: true,
-          status: response.status,
-          statusText: response.statusText,
-          ok: response.ok
-        })
-
-        logApiCall('POST', '/api/weekly-contest-participation', {
-          recipeId,
-          userId: user?.id?.substring(0, 8) + '...',
-          isManualEntry: true,
-          status: response.status
-        })
-
-        if (!response.ok) {
-          const errorData = await response.json()
-          addDebugLog('ERROR', 'Recipe participation API call failed', {
-            recipeId,
-            userId: user?.id?.substring(0, 8) + '...',
-            status: response.status,
-            errorData
-          })
-          logError('Recipe participation API call failed', new Error(errorData.message), {
-            recipeId,
-            userId: user?.id?.substring(0, 8) + '...',
-            status: response.status,
-            errorData
-          })
-          throw new Error(errorData.message || 'Erreur lors de l\'inscription')
-        }
-
-        // Mettre à jour l'état local
-        setParticipatingRecipes(prev => new Set([...prev, recipeId]))
-        showSuccessNotification('🏆 Recette inscrite au concours de la semaine !')
-        
-        addDebugLog('SUCCESS', 'Recipe successfully registered for contest', {
-          recipeId,
-          userId: user?.id?.substring(0, 8) + '...',
-          newParticipatingCount: participatingRecipes.size + 1
-        })
-        
-        logSuccess('Recipe successfully registered for contest', {
-          recipeId,
-          userId: user?.id?.substring(0, 8) + '...',
-          newParticipatingCount: participatingRecipes.size + 1
-        })
-
-      } else {
-        // Retirer la recette du concours hebdomadaire
-        addDebugLog('INFO', 'Withdrawing recipe from contest', {
-          recipeId,
-          userId: user?.id?.substring(0, 8) + '...'
-        })
-        
-        const response = await fetch('/api/weekly-contest-participation', {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            recipe_id: recipeId,
-            user_id: user.id
-          })
-        })
-
-        addDebugLog('INFO', 'Recipe withdrawal API response', {
-          recipeId,
-          userId: user?.id?.substring(0, 8) + '...',
-          status: response.status,
-          statusText: response.statusText,
-          ok: response.ok
-        })
-
-        logApiCall('DELETE', '/api/weekly-contest-participation', {
-          recipeId,
-          userId: user?.id?.substring(0, 8) + '...',
-          status: response.status
-        })
-
-        if (!response.ok) {
-          const errorData = await response.json()
-          addDebugLog('ERROR', 'Recipe withdrawal API call failed', {
-            recipeId,
-            userId: user?.id?.substring(0, 8) + '...',
-            status: response.status,
-            errorData
-          })
-          logError('Recipe withdrawal API call failed', new Error(errorData.message), {
-            recipeId,
-            userId: user?.id?.substring(0, 8) + '...',
-            status: response.status,
-            errorData
-          })
-          throw new Error(errorData.message || 'Erreur lors du retrait')
-        }
-
-        // Mettre à jour l'état local
-        setParticipatingRecipes(prev => {
-          const newSet = new Set(prev)
-          newSet.delete(recipeId)
-          return newSet
-        })
-        showSuccessNotification('✅ Recette retirée du concours')
-        
-        addDebugLog('SUCCESS', 'Recipe successfully withdrawn from contest', {
-          recipeId,
-          userId: user?.id?.substring(0, 8) + '...',
-          newParticipatingCount: participatingRecipes.size - 1
-        })
-        
-        logSuccess('Recipe successfully withdrawn from contest', {
-          recipeId,
-          userId: user?.id?.substring(0, 8) + '...',
-          newParticipatingCount: participatingRecipes.size - 1
-        })
-      }
-
-      // Recharger le statut
-      await loadParticipationStatus()
-
-    } catch (error) {
-      const endTime = performance.now()
-      addDebugLog('ERROR', 'Error toggling participation', {
-        recipeId,
-        shouldParticipate,
-        userId: user?.id?.substring(0, 8) + '...',
-        duration: `${(endTime - startTime).toFixed(2)}ms`,
-        errorMessage: error.message
-      })
-      logError('Error toggling participation', error, {
-        recipeId,
-        shouldParticipate,
-        userId: user?.id?.substring(0, 8) + '...',
-        duration: `${(endTime - startTime).toFixed(2)}ms`
-      })
-      alert('Erreur: ' + error.message)
-    } finally {
-      setParticipationLoading(false)
-      
-      const endTime = performance.now()
-      logPerformance('Participation toggle operation', endTime - startTime, {
-        recipeId,
-        shouldParticipate,
-        success: !error,
-        userId: user?.id?.substring(0, 8) + '...'
-      })
-    }
-  }
-
-  // Fonction pour afficher les notifications
-  const showSuccessNotification = (message) => {
-    const notification = document.createElement('div')
-    notification.textContent = message
-    notification.style.cssText = `
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: #10b981;
-      color: white;
-      padding: 12px 20px;
-      border-radius: 8px;
-      z-index: 10000;
-      font-weight: 600;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    `
-    document.body.appendChild(notification)
-    setTimeout(() => notification.remove(), 3000)
   }
 
   const getFilteredRecipes = () => {
@@ -740,12 +232,6 @@ export default function MesRecettes() {
     const success = await deleteUserRecipe(recipeId, user.id)
     if (success) {
       setRecipes(recipes => recipes.filter(r => r.id !== recipeId))
-      // Retirer aussi de la participation si c'était le cas
-      setParticipatingRecipes(prev => {
-        const newSet = new Set(prev)
-        newSet.delete(recipeId)
-        return newSet
-      })
       
       addDebugLog('SUCCESS', 'Recipe deleted successfully', {
         recipeId,
@@ -781,8 +267,7 @@ export default function MesRecettes() {
       timestamp: new Date().toISOString(),
       logs: debugLogs.slice(0, 20),
       user: user ? { id: user.id?.substring(0, 8) + '...', email: user.email } : null,
-      recipes: recipes.length,
-      participatingRecipes: participatingRecipes.size
+      recipes: recipes.length
     }
     navigator.clipboard.writeText(JSON.stringify(logsData, null, 2))
     alert('Logs copiés dans le presse-papiers !')
@@ -806,343 +291,411 @@ export default function MesRecettes() {
   }
 
   return (
-    <div className={styles.container} style={{
-      background: 'linear-gradient(135deg, #fef3e2 0%, #fff5e6 50%, #fef7ed 100%)',
+    <div style={{
       minHeight: '100vh',
-      position: 'relative'
+      background: 'linear-gradient(135deg, #fef3e2 0%, #fff5e6 50%, #fef7ed 100%)',
+      position: 'relative',
+      overflow: 'hidden'
     }}>
       <Head>
         <title>Mes Recettes - COCO</title>
         <meta name="description" content="Toutes mes recettes sur COCO" />
       </Head>
 
-      {/* Éléments décoratifs de fond */}
+      {/* Particules de fond animées */}
       <div style={{
         position: 'fixed',
-        top: '-40px',
-        right: '-40px',
-        width: '160px',
-        height: '160px',
-        background: 'linear-gradient(45deg, #10b981, #059669)',
-        borderRadius: '50%',
-        opacity: 0.08,
-        animation: 'float 6s ease-in-out infinite'
-      }} />
-      <div style={{
-        position: 'fixed',
-        top: '20%',
-        left: '-60px',
-        width: '120px',
-        height: '120px',
-        background: 'linear-gradient(45deg, #f59e0b, #d97706)',
-        borderRadius: '50%',
-        opacity: 0.06,
-        animation: 'float 8s ease-in-out infinite reverse'
-      }} />
-      <div style={{
-        position: 'fixed',
-        bottom: '-50px',
-        right: '10%',
-        width: '100px',
-        height: '100px',
-        background: 'linear-gradient(45deg, #10b981, #059669)',
-        borderRadius: '50%',
-        opacity: 0.05,
-        animation: 'float 10s ease-in-out infinite'
-      }} />
-
-      {/* Hero section modernisé */}
-      <section style={{
+        top: 0,
+        left: 0,
         width: '100%',
-        background: 'linear-gradient(135deg, #fef3e2 0%, #fff5e6 50%, #fef7ed 100%)',
-        padding: '80px 0 40px 0',
+        height: '100%',
+        pointerEvents: 'none',
+        zIndex: 0
+      }}>
+        {[...Array(12)].map((_, i) => (
+          <div
+            key={i}
+            style={{
+              position: 'absolute',
+              width: `${Math.random() * 100 + 50}px`,
+              height: `${Math.random() * 100 + 50}px`,
+              background: `radial-gradient(circle, ${
+                i % 3 === 0 ? '#10b98150' : 
+                i % 3 === 1 ? '#f59e0b50' : '#8b5cf650'
+              } 0%, transparent 70%)`,
+              borderRadius: '50%',
+              top: `${Math.random() * 100}%`,
+              left: `${Math.random() * 100}%`,
+              animation: `floatParticle ${10 + Math.random() * 10}s ease-in-out infinite`,
+              animationDelay: `${Math.random() * 5}s`
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Hero section ultra-moderne */}
+      <section style={{
+        background: 'linear-gradient(135deg, rgba(254, 243, 226, 0.95) 0%, rgba(255, 245, 230, 0.98) 50%, rgba(254, 247, 237, 0.95) 100%)',
+        backdropFilter: 'blur(20px)',
+        padding: '80px 0 60px 0',
         position: 'relative',
         overflow: 'hidden',
-        marginBottom: 0,
-        marginTop: '-64px'
+        marginBottom: '0',
+        borderRadius: '0 0 40px 40px',
+        zIndex: 1
       }}>
-        {/* Éléments décoratifs spécifiques au hero */}
+        {/* Effets de lumière en arrière-plan */}
         <div style={{
           position: 'absolute',
-          top: '-20px',
-          left: '10%',
-          width: '200px',
-          height: '200px',
-          background: 'radial-gradient(circle at 60% 40%, #10b981 0%, transparent 70%)',
-          opacity: 0.06,
-          animation: 'float 12s ease-in-out infinite'
-        }} />
-        <div style={{
-          position: 'absolute',
-          bottom: '-30px',
-          right: '15%',
-          width: '150px',
-          height: '150px',
-          background: 'radial-gradient(circle at 40% 60%, #f59e0b 0%, transparent 70%)',
-          opacity: 0.08,
-          animation: 'float 10s ease-in-out infinite reverse'
+          top: '-50%',
+          left: '-50%',
+          width: '200%',
+          height: '200%',
+          background: 'conic-gradient(from 0deg at 50% 50%, transparent 0deg, rgba(16, 185, 129, 0.1) 90deg, transparent 180deg, rgba(245, 158, 11, 0.1) 270deg, transparent 360deg)',
+          animation: 'slowRotate 60s linear infinite'
         }} />
 
         <div style={{
-          maxWidth: '500px',
+          maxWidth: '1200px',
           margin: '0 auto',
-          position: 'relative',
-          zIndex: 1,
+          padding: '0 24px',
           textAlign: 'center',
-          padding: '24px 20px 0'
+          position: 'relative',
+          zIndex: 2
         }}>
-          {/* Logo animé COCO-style */}
+          {/* Logo COCO avec effets 3D */}
           <div style={{
-            width: '80px',
-            height: '80px',
-            background: 'linear-gradient(135deg, #10b981, #059669)',
-            borderRadius: '24px',
+            width: '100px',
+            height: '100px',
+            background: 'linear-gradient(145deg, #10b981, #34d399, #059669)',
+            borderRadius: '28px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: '2.5rem',
-            margin: '0 auto 20px',
-            boxShadow: '0 12px 35px rgba(16, 185, 129, 0.3), 0 6px 15px rgba(16, 185, 129, 0.15)',
-            animation: 'heroLogo 3s ease-in-out infinite',
-            border: '3px solid rgba(255, 255, 255, 0.9)',
-            position: 'relative'
+            fontSize: '3rem',
+            margin: '0 auto 32px',
+            boxShadow: `
+              0 20px 40px rgba(16, 185, 129, 0.3),
+              0 10px 20px rgba(16, 185, 129, 0.2),
+              inset 0 2px 0 rgba(255, 255, 255, 0.4),
+              inset 0 -2px 0 rgba(0, 0, 0, 0.1)
+            `,
+            border: '4px solid rgba(255, 255, 255, 0.9)',
+            animation: 'logoFloat3D 4s ease-in-out infinite',
+            position: 'relative',
+            overflow: 'hidden'
           }}>
             👨‍🍳
-            {/* Effet de brillance */}
+            {/* Effet de brillance qui traverse */}
             <div style={{
               position: 'absolute',
-              top: '15%',
-              left: '20%',
-              width: '35%',
-              height: '35%',
-              background: 'radial-gradient(circle, rgba(255, 255, 255, 0.4) 0%, transparent 70%)',
-              borderRadius: '50%',
-              filter: 'blur(4px)',
-              animation: 'shine 2s ease-in-out infinite'
+              top: '-50%',
+              left: '-50%',
+              width: '200%',
+              height: '200%',
+              background: 'linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.3) 50%, transparent 70%)',
+              transform: 'rotate(45deg)',
+              animation: 'shine3D 3s ease-in-out infinite'
             }} />
           </div>
 
-          {/* Titre principal avec effet gradient */}
+          {/* Titre avec effet de dégradé animé */}
           <h1 style={{
-            fontSize: '2.8rem',
+            fontSize: 'clamp(2.5rem, 5vw, 4rem)',
             fontWeight: '900',
-            margin: '0 0 12px 0',
-            background: 'linear-gradient(135deg, #10b981 0%, #059669 50%, #34d399 100%)',
+            margin: '0 0 20px 0',
+            background: 'linear-gradient(135deg, #10b981 0%, #059669 25%, #34d399 50%, #10b981 75%, #059669 100%)',
+            backgroundSize: '300% 300%',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text',
             letterSpacing: '-0.03em',
-            lineHeight: '1',
-            textShadow: '0 2px 10px rgba(16, 185, 129, 0.1)'
+            animation: 'gradientShift 6s ease-in-out infinite',
+            textShadow: '0 4px 8px rgba(16, 185, 129, 0.2)',
+            position: 'relative'
           }}>
             Mes Recettes COCO
+            {/* Effet de lueur */}
+            <div style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: '100%',
+              height: '100%',
+              background: 'linear-gradient(135deg, #10b981, #059669)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              filter: 'blur(2px)',
+              opacity: 0.3,
+              zIndex: -1
+            }} />
           </h1>
 
-          {/* Sous-titre avec animation */}
-          <div style={{ marginBottom: '28px' }}>
-            <h2 style={{
-              fontSize: '1.3rem',
-              fontWeight: '700',
-              margin: '0 0 8px 0',
-              color: '#1f2937',
-              lineHeight: '1.2'
-            }}>
-              Créez.{' '}
-              <span style={{
-                background: 'linear-gradient(135deg, #10b981, #059669)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                position: 'relative'
-              }}>
-                Partagez.
-                <div style={{
-                  position: 'absolute',
-                  bottom: '-2px',
-                  left: '0',
-                  right: '0',
-                  height: '2px',
-                  background: 'linear-gradient(135deg, #10b981, #059669)',
-                  borderRadius: '1px',
-                  animation: 'expandLine 2s ease-in-out infinite'
-                }} />
-              </span>
-              {' '}Inspirez.
-            </h2>
-            <p style={{
-              fontSize: '1rem',
-              color: '#6b7280',
-              margin: 0,
-              lineHeight: '1.4',
-              fontWeight: '500'
+          {/* Sous-titre animé */}
+          <p style={{
+            fontSize: 'clamp(1rem, 2.5vw, 1.3rem)',
+            color: '#059669',
+            margin: '0 0 40px 0',
+            fontWeight: '600',
+            animation: 'fadeInUp 1s ease-out 0.5s both',
+            textShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+          }}>
+            <span style={{
+              background: 'linear-gradient(90deg, #10b981, #f59e0b, #8b5cf6, #10b981)',
+              backgroundSize: '200% 200%',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              animation: 'rainbowText 4s ease-in-out infinite'
             }}>
               Votre collection personnelle de délices culinaires
-            </p>
-          </div>
+            </span>
+          </p>
 
-          {/* Statistiques avec design amélioré */}
+          {/* Statistiques avec design card moderne */}
           <div style={{
-            display: 'flex',
-            justifyContent: 'center',
-            gap: '20px',
-            marginBottom: '28px',
-            flexWrap: 'wrap'
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+            gap: '24px',
+            marginBottom: '40px',
+            maxWidth: '600px',
+            margin: '0 auto 40px'
           }}>
             {[
-              { 
+              {
                 number: recipes.length, 
                 label: 'Recettes', 
                 icon: '🍽️', 
-                color: '#10b981' 
+                color: '#10b981',
+                gradient: 'linear-gradient(145deg, #10b981, #34d399)'
               },
               { 
                 number: getFilteredRecipes().filter(r => r.form_mode === 'quick').length, 
                 label: 'Express', 
                 icon: '⚡', 
-                color: '#f59e0b' 
+                color: '#f59e0b',
+                gradient: 'linear-gradient(145deg, #f59e0b, #fbbf24)'
               },
               { 
-                number: participatingRecipes.size, 
-                label: 'En concours', 
-                icon: '🏆', 
+                number: getFilteredRecipes().filter(r => r.form_mode === 'complete').length, 
+                label: 'Complètes', 
+                icon: '🍳', 
                 color: '#8b5cf6',
-                clickable: participatingRecipes.size > 0,
-                onClick: () => setShowParticipationModal(true)
+                gradient: 'linear-gradient(145deg, #8b5cf6, #a78bfa)'
               }
             ].map((stat, index) => (
               <div 
                 key={index} 
                 style={{
-                  background: 'rgba(255, 255, 255, 0.9)',
-                  backdropFilter: 'blur(15px)',
-                  padding: '16px 20px',
-                  borderRadius: '16px',
-                  border: `2px solid ${stat.color}20`,
-                  minWidth: '80px',
-                  animation: `fadeInUp 0.6s ease-out ${index * 0.15}s both`,
-                  boxShadow: '0 4px 15px rgba(0, 0, 0, 0.05)',
-                  cursor: stat.clickable ? 'pointer' : 'default',
-                  transition: 'all 0.3s ease',
+                  background: 'rgba(255, 255, 255, 0.95)',
+                  backdropFilter: 'blur(20px)',
+                  padding: '28px 20px',
+                  borderRadius: '24px',
+                  border: `2px solid ${stat.color}30`,
+                  animation: `cardFloat 0.8s ease-out ${index * 0.2}s both`,
+                  boxShadow: `
+                    0 8px 32px rgba(0, 0, 0, 0.1),
+                    0 4px 16px rgba(0, 0, 0, 0.05),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.8)
+                  `,
+                  transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                  cursor: 'pointer',
                   position: 'relative',
-                  ...(stat.clickable && {
-                    border: `2px solid ${stat.color}`,
-                    transform: 'scale(1.02)'
-                  })
+                  overflow: 'hidden'
                 }}
-                onClick={stat.onClick}
-                onMouseEnter={stat.clickable ? (e) => {
-                  e.target.style.transform = 'translateY(-3px) scale(1.05)'
-                  e.target.style.boxShadow = '0 8px 25px rgba(0, 0, 0, 0.1)'
-                } : undefined}
-                onMouseLeave={stat.clickable ? (e) => {
-                  e.target.style.transform = 'translateY(0) scale(1.02)'
-                  e.target.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.05)'
-                } : undefined}
+                onMouseEnter={(e) => {
+                  e.target.style.transform = 'translateY(-12px) scale(1.05)'
+                  e.target.style.boxShadow = `
+                    0 20px 60px rgba(0, 0, 0, 0.15),
+                    0 8px 30px rgba(0, 0, 0, 0.1),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.9)
+                  `
+                  e.target.style.borderColor = `${stat.color}60`
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.transform = 'translateY(0) scale(1)'
+                  e.target.style.boxShadow = `
+                    0 8px 32px rgba(0, 0, 0, 0.1),
+                    0 4px 16px rgba(0, 0, 0, 0.05),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.8)
+                  `
+                  e.target.style.borderColor = `${stat.color}30`
+                }}
               >
+                {/* Effet de particules dans la carte */}
+                <div style={{
+                  position: 'absolute',
+                  top: '10px',
+                  right: '10px',
+                  width: '8px',
+                  height: '8px',
+                  background: stat.gradient,
+                  borderRadius: '50%',
+                  animation: `pulse3D 2s ease-in-out infinite ${index * 0.5}s`
+                }} />
+                
                 <div style={{ 
-                  fontSize: '1.4rem', 
-                  marginBottom: '6px',
-                  filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))'
+                  fontSize: '2.5rem', 
+                  marginBottom: '12px',
+                  filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))',
+                  animation: `iconBounce 2s ease-in-out infinite ${index * 0.3}s`
                 }}>
                   {stat.icon}
                 </div>
                 <div style={{
-                  fontSize: '1.2rem',
-                  fontWeight: '800',
-                  color: stat.color,
-                  marginBottom: '4px'
+                  fontSize: '2.5rem',
+                  fontWeight: '900',
+                  background: stat.gradient,
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  marginBottom: '8px',
+                  lineHeight: '1'
                 }}>
                   {stat.number}
                 </div>
                 <div style={{
-                  fontSize: '0.8rem',
+                  fontSize: '0.95rem',
                   color: '#64748b',
-                  fontWeight: '600'
+                  fontWeight: '700',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px'
                 }}>
                   {stat.label}
                 </div>
+                
+                {/* Effet de brillance au survol */}
+                <div style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: '-100%',
+                  width: '100%',
+                  height: '100%',
+                  background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent)',
+                  transition: 'left 0.6s ease'
+                }} className="shine-effect" />
               </div>
             ))}
           </div>
 
-          {/* Actions rapides redessinées */}
+          {/* Actions rapides avec design moderne */}
           <div style={{
             display: 'flex',
-            gap: '12px',
+            gap: '20px',
             justifyContent: 'center',
             flexWrap: 'wrap',
-            marginBottom: '20px'
+            animation: 'fadeInUp 1s ease-out 1s both'
           }}>
             <button
               onClick={() => router.push('/submit-recipe')}
               style={{
-                background: 'linear-gradient(135deg, #10b981, #059669)',
+                background: 'linear-gradient(145deg, #10b981, #059669)',
                 color: 'white',
                 border: 'none',
-                padding: '12px 24px',
-                borderRadius: '16px',
-                fontWeight: '700',
-                fontSize: '0.95rem',
+                padding: '18px 36px',
+                borderRadius: '20px',
+                fontWeight: '800',
+                fontSize: '1.1rem',
                 cursor: 'pointer',
-                transition: 'all 0.3s ease',
-                boxShadow: '0 6px 20px rgba(16, 185, 129, 0.3)',
+                transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                boxShadow: `
+                  0 12px 32px rgba(16, 185, 129, 0.4),
+                  0 6px 16px rgba(16, 185, 129, 0.2),
+                  inset 0 2px 0 rgba(255, 255, 255, 0.3)
+                `,
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px'
+                gap: '12px',
+                position: 'relative',
+                overflow: 'hidden'
               }}
               onMouseEnter={(e) => {
-                e.target.style.transform = 'translateY(-3px)'
-                e.target.style.boxShadow = '0 8px 25px rgba(16, 185, 129, 0.4)'
+                e.target.style.transform = 'translateY(-6px) scale(1.05)'
+                e.target.style.boxShadow = `
+                  0 20px 50px rgba(16, 185, 129, 0.5),
+                  0 10px 25px rgba(16, 185, 129, 0.3),
+                  inset 0 2px 0 rgba(255, 255, 255, 0.4)
+                `
               }}
               onMouseLeave={(e) => {
-                e.target.style.transform = 'translateY(0)'
-                e.target.style.boxShadow = '0 6px 20px rgba(16, 185, 129, 0.3)'
+                e.target.style.transform = 'translateY(0) scale(1)'
+                e.target.style.boxShadow = `
+                  0 12px 32px rgba(16, 185, 129, 0.4),
+                  0 6px 16px rgba(16, 185, 129, 0.2),
+                  inset 0 2px 0 rgba(255, 255, 255, 0.3)
+                `
               }}
             >
-              ✨ Nouvelle Recette
+              <span style={{ 
+                fontSize: '1.4rem',
+                animation: 'sparkle 2s ease-in-out infinite'
+              }}>✨</span>
+              Nouvelle Recette
+              
+              {/* Effet d'onde au clic */}
+              <div style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                width: '0',
+                height: '0',
+                background: 'rgba(255, 255, 255, 0.3)',
+                borderRadius: '50%',
+                transform: 'translate(-50%, -50%)',
+                transition: 'all 0.6s ease'
+              }} className="ripple-effect" />
             </button>
             
-            {participatingRecipes.size > 0 && (
-              <button
-                onClick={() => setShowParticipationModal(true)}
-                style={{
-                  background: 'rgba(255, 255, 255, 0.95)',
-                  color: '#8b5cf6',
-                  border: '2px solid #8b5cf6',
-                  padding: '12px 24px',
-                  borderRadius: '16px',
-                  fontWeight: '700',
-                  fontSize: '0.95rem',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease',
-                  backdropFilter: 'blur(10px)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  position: 'relative'
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.background = '#8b5cf6'
-                  e.target.style.color = 'white'
-                  e.target.style.transform = 'translateY(-3px)'
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.background = 'rgba(255, 255, 255, 0.95)'
-                  e.target.style.color = '#8b5cf6'
-                  e.target.style.transform = 'translateY(0)'
-                }}
-              >
-                🏆 Gérer Concours ({participatingRecipes.size})
-              </button>
-            )}
+            <button 
+              onClick={() => router.back()}
+              style={{
+                background: 'rgba(255, 255, 255, 0.95)',
+                color: '#6b7280',
+                border: '2px solid rgba(107, 114, 128, 0.2)',
+                padding: '18px 36px',
+                borderRadius: '20px',
+                fontWeight: '800',
+                fontSize: '1.1rem',
+                cursor: 'pointer',
+                transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                backdropFilter: 'blur(20px)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                boxShadow: `
+                  0 8px 24px rgba(0, 0, 0, 0.1),
+                  inset 0 1px 0 rgba(255, 255, 255, 0.8)
+                `
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = 'rgba(243, 244, 246, 0.95)'
+                e.target.style.transform = 'translateY(-6px)'
+                e.target.style.borderColor = 'rgba(107, 114, 128, 0.4)'
+                e.target.style.color = '#374151'
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = 'rgba(255, 255, 255, 0.95)'
+                e.target.style.transform = 'translateY(0)'
+                e.target.style.borderColor = 'rgba(107, 114, 128, 0.2)'
+                e.target.style.color = '#6b7280'
+              }}
+            >
+              <span style={{ 
+                fontSize: '1.4rem',
+                transition: 'transform 0.3s ease'
+              }}>←</span>
+              Retour
+            </button>
           </div>
         </div>
       </section>
 
-      {/* Section Logs redessinée */}
-      <div style={{
-        maxWidth: '900px',
-        margin: '-20px auto 20px',
-        padding: '0 20px'
+      {/* Section Logs avec design amélioré */}
+      <div style={{ 
+        maxWidth: '1200px', 
+        margin: '30px auto', 
+        padding: '0 24px',
+        position: 'relative',
+        zIndex: 2
       }}>
         <button 
           onClick={() => setShowLogs(!showLogs)}
@@ -1159,17 +712,14 @@ export default function MesRecettes() {
             alignItems: 'center',
             gap: '8px',
             transition: 'all 0.3s ease',
-            boxShadow: '0 4px 15px rgba(0, 0, 0, 0.05)',
-            position: 'relative'
+            boxShadow: '0 4px 15px rgba(0, 0, 0, 0.05)'
           }}
           onMouseEnter={(e) => {
             e.target.style.transform = 'translateY(-2px)'
-            e.target.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.1)'
             e.target.style.borderColor = '#10b981'
           }}
           onMouseLeave={(e) => {
             e.target.style.transform = 'translateY(0)'
-            e.target.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.05)'
             e.target.style.borderColor = '#e5e7eb'
           }}
         >
@@ -1202,11 +752,7 @@ export default function MesRecettes() {
               overflowY: 'auto',
               paddingRight: '8px'
             }}>
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '10px'
-              }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {debugLogs.slice(0, 15).map(log => (
                   <div key={log.id} className={`${styles.logEntry} ${styles[log.level.toLowerCase()]}`}>
                     <div className={styles.logHeader}>
@@ -1236,13 +782,728 @@ export default function MesRecettes() {
               <button onClick={handleCopyLogs} className={styles.copyLogsBtn}>
                 📋 Copier
               </button>
-              <button onClick={() => {loadUserRecipes(); loadParticipationStatus();}} className={styles.refreshBtn}>
+              <button onClick={loadUserRecipes} className={styles.refreshBtn}>
                 🔄 Actualiser
               </button>
             </div>
           </div>
         )}
       </div>
+
+      {/* Section principale avec transition fluide améliorée */}
+      <div style={{
+        maxWidth: '1200px',
+        margin: '0 auto',
+        background: 'rgba(255, 255, 255, 0.98)',
+        backdropFilter: 'blur(20px)',
+        borderRadius: '32px 32px 0 0',
+        boxShadow: `
+          0 -20px 60px rgba(0,0,0,0.15),
+          0 -8px 30px rgba(0,0,0,0.1),
+          inset 0 1px 0 rgba(255, 255, 255, 0.9)
+        `,
+        overflow: 'hidden',
+        position: 'relative',
+        zIndex: 2,
+        minHeight: '70vh',
+        border: '1px solid rgba(255, 255, 255, 0.5)'
+      }}>
+        {/* Filtres redessinés avec effets glassmorphism */}
+        <nav style={{
+          position: 'sticky',
+          top: 0,
+          zIndex: 10,
+          background: 'rgba(255,255,255,0.95)',
+          backdropFilter: 'blur(25px)',
+          borderBottom: '1px solid rgba(0, 0, 0, 0.05)',
+          padding: '32px 32px 24px'
+        }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            gap: '16px',
+            flexWrap: 'wrap'
+          }}>
+            {[ 
+              { key: 'all', label: 'Toutes', icon: '📋', count: recipes.length, color: '#6366f1' },
+              { key: 'quick', label: 'Express', icon: '⚡', count: recipes.filter(r => r.form_mode === 'quick' || r.category === 'Photo partagée').length, color: '#f59e0b' },
+              { key: 'complete', label: 'Complètes', icon: '🍳', count: recipes.filter(r => r.form_mode === 'complete' || (r.form_mode !== 'quick' && r.category !== 'Photo partagée')).length, color: '#10b981' }
+            ].map((filterOption) => (
+              <button
+                key={filterOption.key}
+                onClick={() => setFilter(filterOption.key)}
+                style={{
+                  position: 'relative',
+                  padding: '16px 28px',
+                  borderRadius: '20px',
+                  fontWeight: '800',
+                  fontSize: '1rem',
+                  color: filter === filterOption.key ? 'white' : '#374151',
+                  background: filter === filterOption.key 
+                    ? `linear-gradient(145deg, ${filterOption.color}, ${filterOption.color}cc)` 
+                    : 'rgba(255, 255, 255, 0.8)',
+                  border: filter === filterOption.key 
+                    ? `2px solid ${filterOption.color}` 
+                    : '2px solid rgba(0, 0, 0, 0.05)',
+                  cursor: 'pointer',
+                  transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  minWidth: '160px',
+                  justifyContent: 'center',
+                  boxShadow: filter === filterOption.key 
+                    ? `0 8px 32px ${filterOption.color}40, 0 4px 16px ${filterOption.color}20` 
+                    : '0 4px 16px rgba(0, 0, 0, 0.05)',
+                  backdropFilter: 'blur(10px)',
+                  overflow: 'hidden'
+                }}
+                onMouseEnter={(e) => {
+                  if (filter !== filterOption.key) {
+                    e.target.style.borderColor = `${filterOption.color}60`
+                    e.target.style.transform = 'translateY(-4px) scale(1.02)'
+                    e.target.style.boxShadow = `0 12px 40px ${filterOption.color}30`
+                    e.target.style.background = `linear-gradient(145deg, ${filterOption.color}20, rgba(255, 255, 255, 0.9))`
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (filter !== filterOption.key) {
+                    e.target.style.borderColor = 'rgba(0, 0, 0, 0.05)'
+                    e.target.style.transform = 'translateY(0) scale(1)'
+                    e.target.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.05)'
+                    e.target.style.background = 'rgba(255, 255, 255, 0.8)'
+                  }
+                }}
+              >
+                {/* Effet de particules dans le bouton actif */}
+                {filter === filterOption.key && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '8px',
+                    right: '8px',
+                    width: '6px',
+                    height: '6px',
+                    background: 'rgba(255, 255, 255, 0.8)',
+                    borderRadius: '50%',
+                    animation: 'pulse3D 1.5s ease-in-out infinite'
+                  }} />
+                )}
+                
+                <span style={{ 
+                  fontSize: '1.3rem',
+                  filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))'
+                }}>
+                  {filterOption.icon}
+                </span>
+                <span>{filterOption.label}</span>
+                <span style={{
+                  background: filter === filterOption.key 
+                    ? 'rgba(255, 255, 255, 0.3)' 
+                    : filterOption.color,
+                  color: filter === filterOption.key ? 'white' : 'white',
+                  padding: '4px 12px',
+                  borderRadius: '12px',
+                  fontSize: '0.85rem',
+                  fontWeight: '900',
+                  marginLeft: '8px',
+                  boxShadow: filter === filterOption.key 
+                    ? 'inset 0 2px 4px rgba(0,0,0,0.1)' 
+                    : `0 2px 8px ${filterOption.color}40`
+                }}>
+                  {filterOption.count}
+                </span>
+              </button>
+            ))}
+          </div>
+        </nav>
+
+        {/* Contenu principal amélioré */}
+        <main style={{ padding: '40px 32px 60px' }}>
+          {loading ? (
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minHeight: '400px',
+              textAlign: 'center'
+            }}>
+              <div style={{
+                width: '80px',
+                height: '80px',
+                background: 'conic-gradient(from 0deg, #10b981, #f59e0b, #8b5cf6, #10b981)',
+                borderRadius: '50%',
+                animation: 'modernSpin 2s linear infinite',
+                marginBottom: '32px',
+                position: 'relative'
+              }}>
+                <div style={{
+                  position: 'absolute',
+                  top: '8px',
+                  left: '8px',
+                  width: '64px',
+                  height: '64px',
+                  background: 'white',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.5rem'
+                }}>
+                  👨‍🍳
+                </div>
+              </div>
+              <h3 style={{
+                color: '#1f2937',
+                fontSize: '1.5rem',
+                fontWeight: '800',
+                margin: '0 0 12px 0',
+                background: 'linear-gradient(135deg, #10b981, #059669)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent'
+              }}>
+                Chargement de vos recettes...
+              </h3>
+              <p style={{
+                color: '#6b7280',
+                margin: 0,
+                fontSize: '1.1rem'
+              }}>
+                Préparation de vos délicieuses créations
+              </p>
+            </div>
+          ) : error ? (
+            // Enhanced error state
+            <div style={{
+              background: 'linear-gradient(135deg, #fef2f2, #fee2e2)',
+              border: '2px solid #ef4444',
+              borderRadius: '24px',
+              padding: '40px',
+              textAlign: 'center',
+              color: '#dc2626',
+              maxWidth: '500px',
+              margin: '40px auto'
+            }}>
+              <div style={{ fontSize: '2rem', marginBottom: '12px' }}>⚠️</div>
+              <h3 style={{ margin: '0 0 8px 0', fontSize: '1.1rem', fontWeight: '600' }}>
+                Erreur de chargement
+              </h3>
+              <p style={{ margin: '0 0 16px 0' }}>{error}</p>
+              <button
+                onClick={() => {loadUserRecipes(); loadParticipationStatus();}}
+                style={{
+                  background: '#ef4444',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 20px',
+                  borderRadius: '10px',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = '#dc2626'
+                  e.target.style.transform = 'translateY(-2px)'
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = '#ef4444'
+                  e.target.style.transform = 'translateY(0)'
+                }}
+              >
+                🔄 Réessayer
+              </button>
+            </div>
+          ) : recipes.length === 0 ? (
+            // Enhanced empty state
+            <div style={{
+              textAlign: 'center',
+              padding: '80px 40px',
+              background: 'linear-gradient(135deg, #f0f9ff, #e0f2fe)',
+              borderRadius: '32px',
+              border: '2px solid #0ea5e9',
+              maxWidth: '600px',
+              margin: '40px auto',
+              position: 'relative',
+              overflow: 'hidden'
+            }}>
+              <div style={{
+                position: 'relative',
+                marginBottom: '30px',
+                display: 'inline-block'
+              }}>
+                <div style={{
+                  fontSize: '4rem',
+                  marginBottom: '16px',
+                  animation: 'float 3s ease-in-out infinite'
+                }}>
+                  👨‍🍳
+                </div>
+                
+                {/* Bulles d'inspiration */}
+                <div style={{
+                  position: 'absolute',
+                  top: '10px',
+                  left: '-20px',
+                  fontSize: '1.5rem',
+                  animation: 'bubble 4s ease-in-out infinite'
+                }}>
+                  🍽️
+                </div>
+                <div style={{
+                  position: 'absolute',
+                  top: '20px',
+                  right: '-15px',
+                  fontSize: '1.2rem',
+                  animation: 'bubble 4s ease-in-out infinite 1s'
+                }}>
+                  ✨
+                </div>
+                <div style={{
+                  position: 'absolute',
+                  bottom: '10px',
+                  left: '10px',
+                  fontSize: '1.3rem',
+                  animation: 'bubble 4s ease-in-out infinite 2s'
+                }}>
+                  🥘
+                </div>
+              </div>
+              
+              <h3 style={{
+                color: '#0369a1',
+                fontSize: '1.8rem',
+                fontWeight: '800',
+                margin: '0 0 16px 0'
+              }}>
+                Votre livre de recettes vous attend !
+              </h3>
+              
+              <p style={{
+                color: '#0284c7',
+                fontSize: '1.1rem',
+                lineHeight: '1.6',
+                margin: '0 0 32px 0',
+                fontWeight: '500'
+              }}>
+                Créez votre première recette et rejoignez notre communauté de passionnés de cuisine. 
+                Chaque chef a commencé par un premier plat !
+              </p>
+              
+              <button 
+                onClick={() => router.push('/submit-recipe')}
+                style={{
+                  background: 'linear-gradient(135deg, #10b981, #059669)',
+                  color: 'white',
+                  border: 'none',
+                  padding: '16px 32px',
+                  borderRadius: '16px',
+                  cursor: 'pointer',
+                  fontWeight: '800',
+                  fontSize: '1.1rem',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  transition: 'all 0.3s ease',
+                  boxShadow: '0 8px 25px rgba(16, 185, 129, 0.4)'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.transform = 'translateY(-3px) scale(1.02)'
+                  e.target.style.boxShadow = '0 12px 35px rgba(16, 185, 129, 0.5)'
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.transform = 'translateY(0) scale(1)'
+                  e.target.style.boxShadow = '0 8px 25px rgba(16, 185, 129, 0.4)'
+                }}
+              >
+                <span style={{ fontSize: '1.3rem' }}>✨</span>
+                Créer ma première recette
+              </button>
+            </div>
+          ) : (
+            <>
+              {/* Enhanced results header */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '40px',
+                padding: '0 8px'
+              }}>
+                <div>
+                  <h2 style={{
+                    margin: '0 0 8px 0',
+                    color: '#1f2937',
+                    fontSize: '1.8rem',
+                    fontWeight: '800'
+                  }}>
+                    {filter === 'all' ? 'Toutes vos recettes' :
+                     filter === 'quick' ? 'Recettes express' : 'Recettes complètes'}
+                  </h2>
+                  <p style={{
+                    margin: 0,
+                    color: '#6b7280',
+                    fontSize: '1rem'
+                  }}>
+                    {getFilteredRecipes().length} recette{getFilteredRecipes().length > 1 ? 's' : ''} trouvée{getFilteredRecipes().length > 1 ? 's' : ''}
+                  </p>
+                </div>
+                
+                <button
+                  onClick={() => router.push('/submit-recipe')}
+                  style={{
+                    background: 'linear-gradient(135deg, #10b981, #059669)',
+                    color: 'white',
+                    border: 'none',
+                    padding: '14px 24px',
+                    borderRadius: '14px',
+                    cursor: 'pointer',
+                    fontWeight: '700',
+                    fontSize: '1rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    transition: 'all 0.3s ease',
+                    boxShadow: '0 6px 20px rgba(16, 185, 129, 0.3)'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.transform = 'translateY(-2px)'
+                    e.target.style.boxShadow = '0 8px 25px rgba(16, 185, 129, 0.4)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.transform = 'translateY(0)'
+                    e.target.style.boxShadow = '0 6px 20px rgba(16, 185, 129, 0.3)'
+                  }}
+                >
+                  <span style={{ fontSize: '1.2rem' }}>+</span>
+                  Nouvelle
+                </button>
+              </div>
+
+              {/* Grille de recettes avec design amélioré */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+                gap: '32px',
+                marginBottom: '60px'
+              }}>
+                {getFilteredRecipes().map((recipe, index) => (
+                  <div
+                    key={recipe.id}
+                    style={{
+                      position: 'relative',
+                      background: 'rgba(255, 255, 255, 0.95)',
+                      backdropFilter: 'blur(20px)',
+                      borderRadius: '28px',
+                      boxShadow: `
+                        0 12px 40px rgba(0, 0, 0, 0.12),
+                        0 6px 20px rgba(0, 0, 0, 0.08),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.9)
+                      `,
+                      border: '1px solid rgba(255, 255, 255, 0.5)',
+                      overflow: 'hidden',
+                      transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+                      animation: `cardSlideIn 0.8s ease-out ${index * 0.1}s both`,
+                      cursor: 'pointer'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-16px) rotateX(5deg) rotateY(2deg)'
+                      e.currentTarget.style.boxShadow = `
+                        0 25px 60px rgba(0, 0, 0, 0.2),
+                        0 12px 30px rgba(0, 0, 0, 0.1),
+                        0 6px 15px rgba(16, 185, 129, 0.1),
+                        inset 0 1px 0 rgba(255, 255, 255, 1)
+                      `
+                      // Effet de brillance
+                      const shine = e.currentTarget.querySelector('.card-shine')
+                      if (shine) shine.style.left = '100%'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0) rotateX(0deg) rotateY(0deg)'
+                      e.currentTarget.style.boxShadow = `
+                        0 12px 40px rgba(0, 0, 0, 0.12),
+                        0 6px 20px rgba(0, 0, 0, 0.08),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.9)
+                      `
+                      // Reset brillance
+                      const shine = e.currentTarget.querySelector('.card-shine')
+                      if (shine) shine.style.left = '-100%'
+                    }}
+                  >
+                    {/* Effet de brillance qui traverse */}
+                    <div 
+                      className="card-shine"
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: '-100%',
+                        width: '100%',
+                        height: '100%',
+                        background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent)',
+                        transition: 'left 0.8s ease',
+                        zIndex: 1,
+                        pointerEvents: 'none'
+                      }}
+                    />
+
+                    {/* Badge de type de recette amélioré */}
+                    <div style={{
+                      position: 'absolute',
+                      top: '20px',
+                      right: '20px',
+                      background: recipe.form_mode === 'quick' 
+                        ? 'linear-gradient(145deg, #f59e0b, #d97706)'
+                        : 'linear-gradient(145deg, #10b981, #059669)',
+                      color: 'white',
+                      padding: '8px 16px',
+                      borderRadius: '16px',
+                      fontSize: '0.8rem',
+                      fontWeight: '800',
+                      zIndex: 3,
+                      boxShadow: `
+                        0 6px 20px rgba(0, 0, 0, 0.2),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.3)
+                      `,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      backdropFilter: 'blur(10px)',
+                      border: '1px solid rgba(255, 255, 255, 0.2)'
+                    }}>
+                      <span style={{
+                        animation: recipe.form_mode === 'quick' ? 'sparkle 1.5s ease-in-out infinite' : 'none'
+                      }}>
+                        {recipe.form_mode === 'quick' ? '⚡' : '🍳'}
+                      </span>
+                      {recipe.form_mode === 'quick' ? 'Express' : 'Complète'}
+                    </div>
+
+                    {/* Contenu de la RecipeCard avec améliorations */}
+                    <RecipeCard 
+                      recipe={recipe} 
+                      isPhotoOnly={recipe.category === 'Photo partagée'}
+                      onEdit={() => handleEditRecipe(recipe.id)}
+                      onDelete={() => handleDeleteRecipe(recipe.id)}
+                    />
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </main>
+      </div>
+
+      {/* Styles avec animations avancées */}
+      <style jsx>{`
+        @keyframes floatParticle {
+          0%, 100% { 
+            transform: translateY(0px) translateX(0px) scale(1);
+            opacity: 0.6;
+          }
+          25% { 
+            transform: translateY(-20px) translateX(10px) scale(1.1);
+            opacity: 0.8;
+          }
+          50% { 
+            transform: translateY(-10px) translateX(-5px) scale(0.9);
+            opacity: 1;
+          }
+          75% { 
+            transform: translateY(-30px) translateX(15px) scale(1.05);
+            opacity: 0.7;
+          }
+        }
+
+        @keyframes slowRotate {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+
+        @keyframes logoFloat3D {
+          0%, 100% { 
+            transform: translateY(0px) rotateX(0deg) rotateY(0deg) scale(1);
+          }
+          25% { 
+            transform: translateY(-8px) rotateX(5deg) rotateY(2deg) scale(1.02);
+          }
+          50% { 
+            transform: translateY(-4px) rotateX(-2deg) rotateY(-1deg) scale(1.05);
+          }
+          75% { 
+            transform: translateY(-12px) rotateX(3deg) rotateY(-3deg) scale(1.03);
+          }
+        }
+
+        @keyframes shine3D {
+          0% { 
+            transform: translateX(-200%) translateY(-200%) rotate(45deg);
+            opacity: 0;
+          }
+          50% { 
+            transform: translateX(0%) translateY(0%) rotate(45deg);
+            opacity: 1;
+          }
+          100% { 
+            transform: translateX(200%) translateY(200%) rotate(45deg);
+            opacity: 0;
+          }
+        }
+
+        @keyframes gradientShift {
+          0%, 100% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+        }
+
+        @keyframes rainbowText {
+          0%, 100% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+        }
+
+        @keyframes cardFloat {
+          0% { 
+            opacity: 0; 
+            transform: translateY(50px) scale(0.9) rotateX(10deg);
+          }
+          100% { 
+            opacity: 1; 
+            transform: translateY(0px) scale(1) rotateX(0deg);
+          }
+        }
+
+        @keyframes pulse3D {
+          0%, 100% { 
+            transform: scale(1);
+            opacity: 0.8;
+            box-shadow: 0 0 0 0 currentColor;
+          }
+          50% { 
+            transform: scale(1.3);
+            opacity: 1;
+            box-shadow: 0 0 20px 10px transparent;
+          }
+        }
+
+        @keyframes iconBounce {
+          0%, 100% { transform: translateY(0px) scale(1); }
+          50% { transform: translateY(-5px) scale(1.1); }
+        }
+
+        @keyframes sparkle {
+          0%, 100% { 
+            transform: scale(1) rotate(0deg);
+            filter: brightness(1);
+          }
+          25% { 
+            transform: scale(1.2) rotate(90deg);
+            filter: brightness(1.3);
+          }
+          50% { 
+            transform: scale(0.9) rotate(180deg);
+            filter: brightness(1.1);
+          }
+          75% { 
+            transform: scale(1.1) rotate(270deg);
+            filter: brightness(1.2);
+          }
+        }
+
+        @keyframes modernSpin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+
+        @keyframes cardSlideIn {
+          0% { 
+            opacity: 0; 
+            transform: translateY(40px) scale(0.95) rotateX(10deg);
+          }
+          100% { 
+            opacity: 1; 
+            transform: translateY(0) scale(1) rotateX(0deg);
+          }
+        }
+
+        @keyframes fadeInUp {
+          0% { 
+            opacity: 0; 
+            transform: translateY(30px);
+          }
+          100% { 
+            opacity: 1; 
+            transform: translateY(0);
+          }
+        }
+
+        /* Effet de brillance au survol des cartes de stats */
+        div:hover .shine-effect {
+          left: 100% !important;
+        }
+
+        /* Responsive amélioré */
+        @media (max-width: 768px) {
+          section {
+            padding: 60px 16px 40px !important;
+          }
+          
+          h1 {
+            font-size: 2.5rem !important;
+          }
+          
+          .statsGrid {
+            grid-template-columns: 1fr !important;
+            gap: 16px !important;
+            max-width: 400px !important;
+          }
+          
+          .actionsContainer {
+            flex-direction: column !important;
+            width: 100% !important;
+            max-width: 300px !important;
+            margin: 0 auto !important;
+          }
+          
+          .filtersContainer {
+            flex-direction: column !important;
+            gap: 12px !important;
+            padding: 24px 16px !important;
+          }
+          
+          .recipesGrid {
+            grid-template-columns: 1fr !important;
+            gap: 24px !important;
+            padding: 24px 16px !important;
+          }
+        }
+
+        @media (max-width: 480px) {
+          h1 {
+            font-size: 2rem !important;
+          }
+          
+          .logoContainer {
+            width: 80px !important;
+            height: 80px !important;
+            fontSize: 2.5rem !important;
+          }
+          
+          .statCard {
+            padding: 20px 16px !important;
+          }
+          
+          .actionButton {
+            padding: 14px 24px !important;
+            fontSize: 0.95rem !important;
+          }
+        }
+
+        /* Améliorations pour les animations sur mobile */
+        @media (prefers-reduced-motion: reduce) {
+          * {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+          }
+        }
+      `}</style>
 
       {/* Indicateur de participation amélioré */}
       {weekInfo && participatingRecipes.size > 0 && (
@@ -1396,8 +1657,12 @@ export default function MesRecettes() {
                   fontWeight: '700',
                   fontSize: '0.95rem',
                   color: filter === filterOption.key ? filterOption.color : '#374151',
-                  background: filter === filterOption.key ? `${filterOption.color}15` : 'rgba(255, 255, 255, 0.8)',
-                  border: `2px solid ${filter === filterOption.key ? filterOption.color : '#e5e7eb'}`,
+                  background: filter === filterOption.key 
+                    ? `linear-gradient(145deg, ${filterOption.color}, ${filterOption.color}cc)` 
+                    : 'rgba(255, 255, 255, 0.8)',
+                  border: filter === filterOption.key 
+                    ? `2px solid ${filterOption.color}` 
+                    : '2px solid rgba(0, 0, 0, 0.05)',
                   cursor: 'pointer',
                   transition: 'all 0.3s ease',
                   display: 'flex',
@@ -1405,24 +1670,30 @@ export default function MesRecettes() {
                   gap: '8px',
                   minWidth: '130px',
                   justifyContent: 'center',
-                  boxShadow: filter === filterOption.key ? `0 4px 15px ${filterOption.color}20` : '0 2px 8px rgba(0, 0, 0, 0.05)'
+                  boxShadow: filter === filterOption.key 
+                    ? `0 4px 15px ${filterOption.color}20` 
+                    : '0 2px 8px rgba(0, 0, 0, 0.05)',
+                  backdropFilter: 'blur(10px)',
+                  overflow: 'hidden'
                 }}
                 onMouseEnter={(e) => {
                   if (filter !== filterOption.key) {
-                    e.target.style.borderColor = filterOption.color
+                    e.target.style.borderColor = `${filterOption.color}60`
                     e.target.style.transform = 'translateY(-2px)'
                     e.target.style.boxShadow = `0 4px 15px ${filterOption.color}15`
+                    e.target.style.background = `linear-gradient(145deg, ${filterOption.color}20, rgba(255, 255, 255, 0.9))`
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (filter !== filterOption.key) {
-                    e.target.style.borderColor = '#e5e7eb'
+                    e.target.style.borderColor = 'rgba(0, 0, 0, 0.05)'
                     e.target.style.transform = 'translateY(0)'
                     e.target.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.05)'
+                    e.target.style.background = 'rgba(255, 255, 255, 0.8)'
                   }
                 }}
               >
-                <span style={{ fontSize: '1.1rem' }}>{filterOption.icon}</span>
+                <span style={{ fontSize: '1.2rem' }}>{filterOption.icon}</span>
                 <span>{filterOption.label}</span>
                 <span style={{
                   background: filter === filterOption.key ? filterOption.color : '#6b7280',
@@ -1452,37 +1723,60 @@ export default function MesRecettes() {
               textAlign: 'center'
             }}>
               <div style={{
-                width: '60px',
-                height: '60px',
-                border: '4px solid #f3f4f6',
-                borderTop: '4px solid #10b981',
+                width: '80px',
+                height: '80px',
+                background: 'conic-gradient(from 0deg, #10b981, #f59e0b, #8b5cf6, #10b981)',
                 borderRadius: '50%',
-                animation: 'spin 1s linear infinite',
-                marginBottom: '20px'
-              }} />
+                animation: 'modernSpin 2s linear infinite',
+                marginBottom: '32px',
+                position: 'relative'
+              }}>
+                <div style={{
+                  position: 'absolute',
+                  top: '8px',
+                  left: '8px',
+                  width: '64px',
+                  height: '64px',
+                  background: 'white',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.5rem'
+                }}>
+                  👨‍🍳
+                </div>
+              </div>
               <h3 style={{
                 color: '#1f2937',
-                fontSize: '1.2rem',
-                fontWeight: '600',
-                margin: '0 0 8px 0'
+                fontSize: '1.5rem',
+                fontWeight: '800',
+                margin: '0 0 12px 0',
+                background: 'linear-gradient(135deg, #10b981, #059669)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent'
               }}>
                 Chargement de vos recettes...
               </h3>
               <p style={{
                 color: '#6b7280',
-                margin: 0
+                margin: 0,
+                fontSize: '1.1rem'
               }}>
                 Préparation de vos délicieuses créations
               </p>
             </div>
           ) : error ? (
+            // Enhanced error state
             <div style={{
               background: 'linear-gradient(135deg, #fef2f2, #fee2e2)',
               border: '2px solid #ef4444',
-              borderRadius: '16px',
-              padding: '24px',
+              borderRadius: '24px',
+              padding: '40px',
               textAlign: 'center',
-              color: '#dc2626'
+              color: '#dc2626',
+              maxWidth: '500px',
+              margin: '40px auto'
             }}>
               <div style={{ fontSize: '2rem', marginBottom: '12px' }}>⚠️</div>
               <h3 style={{ margin: '0 0 8px 0', fontSize: '1.1rem', fontWeight: '600' }}>
@@ -1514,14 +1808,18 @@ export default function MesRecettes() {
               </button>
             </div>
           ) : recipes.length === 0 ? (
+            // Enhanced empty state
             <div style={{
               textAlign: 'center',
-              padding: '60px 40px',
+
+              padding: '80px 40px',
               background: 'linear-gradient(135deg, #f0f9ff, #e0f2fe)',
-              borderRadius: '24px',
+              borderRadius: '32px',
               border: '2px solid #0ea5e9',
-              maxWidth: '500px',
-              margin: '40px auto'
+              maxWidth: '600px',
+              margin: '40px auto',
+              position: 'relative',
+              overflow: 'hidden'
             }}>
               <div style={{
                 position: 'relative',
@@ -1618,19 +1916,19 @@ export default function MesRecettes() {
             </div>
           ) : (
             <>
-              {/* En-tête des résultats */}
+              {/* Enhanced results header */}
               <div style={{
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                marginBottom: '32px',
+                marginBottom: '40px',
                 padding: '0 8px'
               }}>
                 <div>
                   <h2 style={{
-                    margin: '0 0 4px 0',
+                    margin: '0 0 8px 0',
                     color: '#1f2937',
-                    fontSize: '1.5rem',
+                    fontSize: '1.8rem',
                     fontWeight: '800'
                   }}>
                     {filter === 'all' ? 'Toutes vos recettes' :
@@ -1639,7 +1937,7 @@ export default function MesRecettes() {
                   <p style={{
                     margin: 0,
                     color: '#6b7280',
-                    fontSize: '0.95rem'
+                    fontSize: '1rem'
                   }}>
                     {getFilteredRecipes().length} recette{getFilteredRecipes().length > 1 ? 's' : ''} trouvée{getFilteredRecipes().length > 1 ? 's' : ''}
                   </p>
@@ -1651,147 +1949,136 @@ export default function MesRecettes() {
                     background: 'linear-gradient(135deg, #10b981, #059669)',
                     color: 'white',
                     border: 'none',
-                    padding: '12px 20px',
-                    borderRadius: '12px',
+                    padding: '14px 24px',
+                    borderRadius: '14px',
                     cursor: 'pointer',
                     fontWeight: '700',
-                    fontSize: '0.9rem',
+                    fontSize: '1rem',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
                     transition: 'all 0.3s ease',
-                    boxShadow: '0 4px 15px rgba(16, 185, 129, 0.3)'
+                    boxShadow: '0 6px 20px rgba(16, 185, 129, 0.3)'
                   }}
                   onMouseEnter={(e) => {
                     e.target.style.transform = 'translateY(-2px)'
-                    e.target.style.boxShadow = '0 6px 20px rgba(16, 185, 129, 0.4)'
+                    e.target.style.boxShadow = '0 8px 25px rgba(16, 185, 129, 0.4)'
                   }}
                   onMouseLeave={(e) => {
                     e.target.style.transform = 'translateY(0)'
-                    e.target.style.boxShadow = '0 4px 15px rgba(16, 185, 129, 0.3)'
+                    e.target.style.boxShadow = '0 6px 20px rgba(16, 185, 129, 0.3)'
                   }}
                 >
-                  <span style={{ fontSize: '1.1rem' }}>+</span>
+                  <span style={{ fontSize: '1.2rem' }}>+</span>
                   Nouvelle
                 </button>
               </div>
 
-              {/* Grille de recettes améliorée */}
+              {/* Grille de recettes avec design amélioré */}
               <div style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-                gap: '24px',
-                marginBottom: '40px'
+                gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+                gap: '32px',
+                marginBottom: '60px'
               }}>
                 {getFilteredRecipes().map((recipe, index) => (
                   <div
                     key={recipe.id}
                     style={{
                       position: 'relative',
-                      background: 'white',
-                      borderRadius: '20px',
-                      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-                      border: '1px solid #f3f4f6',
+                      background: 'rgba(255, 255, 255, 0.95)',
+                      backdropFilter: 'blur(20px)',
+                      borderRadius: '28px',
+                      boxShadow: `
+                        0 12px 40px rgba(0, 0, 0, 0.12),
+                        0 6px 20px rgba(0, 0, 0, 0.08),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.9)
+                      `,
+                      border: '1px solid rgba(255, 255, 255, 0.5)',
                       overflow: 'hidden',
-                      transition: 'all 0.3s ease',
-                      animation: `fadeInUp 0.6s ease-out ${index * 0.1}s both`
+                      transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+                      animation: `cardSlideIn 0.8s ease-out ${index * 0.1}s both`,
+                      cursor: 'pointer'
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'translateY(-8px)'
-                      e.currentTarget.style.boxShadow = '0 12px 35px rgba(0, 0, 0, 0.15)'
+                      e.currentTarget.style.transform = 'translateY(-16px) rotateX(5deg) rotateY(2deg)'
+                      e.currentTarget.style.boxShadow = `
+                        0 25px 60px rgba(0, 0, 0, 0.2),
+                        0 12px 30px rgba(0, 0, 0, 0.1),
+                        0 6px 15px rgba(16, 185, 129, 0.1),
+                        inset 0 1px 0 rgba(255, 255, 255, 1)
+                      `
+                      // Effet de brillance
+                      const shine = e.currentTarget.querySelector('.card-shine')
+                      if (shine) shine.style.left = '100%'
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'translateY(0)'
-                      e.currentTarget.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.08)'
+                      e.currentTarget.style.transform = 'translateY(0) rotateX(0deg) rotateY(0deg)'
+                      e.currentTarget.style.boxShadow = `
+                        0 12px 40px rgba(0, 0, 0, 0.12),
+                        0 6px 20px rgba(0, 0, 0, 0.08),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.9)
+                      `
+                      // Reset brillance
+                      const shine = e.currentTarget.querySelector('.card-shine')
+                      if (shine) shine.style.left = '-100%'
                     }}
                   >
-                    {/* Badge de participation */}
-                    {participatingRecipes.has(recipe.id) && (
-                      <div style={{
+                    {/* Effet de brillance qui traverse */}
+                    <div 
+                      className="card-shine"
+                      style={{
                         position: 'absolute',
-                        top: '12px',
-                        right: '12px',
-                        background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                        color: 'white',
-                        padding: '6px 12px',
-                        borderRadius: '20px',
-                        fontSize: '0.75rem',
-                        fontWeight: '700',
-                        zIndex: 3,
-                        boxShadow: '0 4px 12px rgba(245, 158, 11, 0.4)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        border: '2px solid white'
-                      }}>
-                        <span>🏆</span>
-                        En concours
-                      </div>
-                    )}
+                        top: 0,
+                        left: '-100%',
+                        width: '100%',
+                        height: '100%',
+                        background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent)',
+                        transition: 'left 0.8s ease',
+                        zIndex: 1,
+                        pointerEvents: 'none'
+                      }}
+                    />
 
-                    {/* Contenu de la RecipeCard */}
+                    {/* Badge de type de recette amélioré */}
+                    <div style={{
+                      position: 'absolute',
+                      top: '20px',
+                      right: '20px',
+                      background: recipe.form_mode === 'quick' 
+                        ? 'linear-gradient(145deg, #f59e0b, #d97706)'
+                        : 'linear-gradient(145deg, #10b981, #059669)',
+                      color: 'white',
+                      padding: '8px 16px',
+                      borderRadius: '16px',
+                      fontSize: '0.8rem',
+                      fontWeight: '800',
+                      zIndex: 3,
+                      boxShadow: `
+                        0 6px 20px rgba(0, 0, 0, 0.2),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.3)
+                      `,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      backdropFilter: 'blur(10px)',
+                      border: '1px solid rgba(255, 255, 255, 0.2)'
+                    }}>
+                      <span style={{
+                        animation: recipe.form_mode === 'quick' ? 'sparkle 1.5s ease-in-out infinite' : 'none'
+                      }}>
+                        {recipe.form_mode === 'quick' ? '⚡' : '🍳'}
+                      </span>
+                      {recipe.form_mode === 'quick' ? 'Express' : 'Complète'}
+                    </div>
+
+                    {/* Contenu de la RecipeCard avec améliorations */}
                     <RecipeCard 
                       recipe={recipe} 
                       isPhotoOnly={recipe.category === 'Photo partagée'}
                       onEdit={() => handleEditRecipe(recipe.id)}
                       onDelete={() => handleDeleteRecipe(recipe.id)}
                     />
-
-                    {/* Actions de participation flottantes */}
-                    <div style={{
-                      position: 'absolute',
-                      bottom: '16px',
-                      right: '16px',
-                      zIndex: 2
-                    }}>
-                      <button
-                        onClick={() => handleParticipationToggle(
-                          recipe.id, 
-                          !participatingRecipes.has(recipe.id)
-                        )}
-                        disabled={participationLoading}
-                        style={{
-                          background: participatingRecipes.has(recipe.id) 
-                            ? 'linear-gradient(135deg, #ef4444, #dc2626)'
-                            : 'linear-gradient(135deg, #f59e0b, #d97706)',
-                          color: 'white',
-                          border: 'none',
-                          padding: '10px 16px',
-                          borderRadius: '12px',
-                          cursor: 'pointer',
-                          fontWeight: '700',
-                          fontSize: '0.85rem',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          transition: 'all 0.3s ease',
-                          boxShadow: participatingRecipes.has(recipe.id)
-                            ? '0 4px 15px rgba(239, 68, 68, 0.4)'
-                            : '0 4px 15px rgba(245, 158, 11, 0.4)',
-                          opacity: participationLoading ? 0.7 : 1
-                        }}
-                        onMouseEnter={(e) => {
-                          if (!participationLoading) {
-                            e.target.style.transform = 'translateY(-2px) scale(1.05)'
-                            e.target.style.boxShadow = participatingRecipes.has(recipe.id)
-                              ? '0 6px 20px rgba(239, 68, 68, 0.5)'
-                              : '0 6px 20px rgba(245, 158, 11, 0.5)'
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          e.target.style.transform = 'translateY(0) scale(1)'
-                          e.target.style.boxShadow = participatingRecipes.has(recipe.id)
-                            ? '0 4px 15px rgba(239, 68, 68, 0.4)'
-                            : '0 4px 15px rgba(245, 158, 11, 0.4)'
-                        }}
-                        title={participatingRecipes.has(recipe.id) ? 'Retirer du concours' : 'Inscrire au concours'}
-                      >
-                        <span style={{ fontSize: '0.9rem' }}>
-                          {participatingRecipes.has(recipe.id) ? '✖️' : '🏆'}
-                        </span>
-                        {participatingRecipes.has(recipe.id) ? 'Retirer' : 'Inscrire'}
-                      </button>
-                    </div>
                   </div>
                 ))}
               </div>
@@ -2379,62 +2666,23 @@ export default function MesRecettes() {
           100% { transform: rotate(360deg); }
         }
 
-        @keyframes pulse {
-          0%, 100% { transform: scale(1); }
-          50% { transform: scale(1.05); }
-        }
-
-        /* Responsive amélioré */
+        /* Responsive */
         @media (max-width: 768px) {
           .container {
             padding: 10px !important;
           }
           
           h1 {
-            font-size: 2.2rem !important;
-          }
-          
-          .statsContainer {
-            flex-direction: column !important;
-            gap: 12px !important;
-          }
-          
-          .actionsContainer {
-            flex-direction: column !important;
-            width: 100% !important;
-          }
-          
-          .filtersContainer {
-            flex-direction: column !important;
-            gap: 8px !important;
+            font-size: 2.5rem !important;
           }
           
           .recipesGrid {
             grid-template-columns: 1fr !important;
-            gap: 16px !important;
+            gap: 20px !important;
           }
-        }
-
-        /* Scrollbar personnalisé */
-        ::-webkit-scrollbar {
-          width: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-          background: #f1f5f9;
-          border-radius: 10px;
-        }
-
-        ::-webkit-scrollbar-thumb {
-          background: linear-gradient(135deg, #10b981, #059669);
-          border-radius: 10px;
-          border: 2px solid #f1f5f9;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-          background: linear-gradient(135deg, #059669, #047857);
-        }
-      `}</style>
-    </div>
-  )
-}
+            }
+          `}</style>
+        </div>
+      )
+    }
+  
