@@ -915,7 +915,6 @@ export default function Amis() {
               Demande envoyée
             </div>
           )}
-
           <div className={styles.avatar}>
             {user.avatar_url ? (
               <img src={user.avatar_url} alt={user.display_name} />
