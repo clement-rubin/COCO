@@ -535,24 +535,16 @@
 }
 
 /* Focus visible pour accessibilité */
-button:focus-visible,
 .actionButton:focus-visible,
 .replyButton:focus-visible,
 .likeButton:focus-visible,
 .showRepliesBtn:focus-visible,
-.commentSubmitBtn:focus-visible,
-textarea:focus-visible {
-  outline: 3px solid #3b82f6;
+.commentSubmitBtn:focus-visible {
+  outline: 2px solid #3b82f6;
   outline-offset: 2px;
   z-index: 2;
   background: #e0e7ff;
   box-shadow: 0 0 0 2px #6366f1;
-}
-
-textarea:focus {
-  outline: 2px solid #3b82f6;
-  outline-offset: 2px;
-  background: #f0f9ff;
 }
 
 .commentForm:focus-within {
@@ -618,6 +610,12 @@ textarea:focus {
   .statNumber {
     font-size: 0.9rem;
   }
+  
+  .showRepliesBtn {
+    padding: 4px 8px;
+    font-size: 0.8rem;
+  }
+  
   
   .showRepliesBtn {
     padding: 4px 8px;
