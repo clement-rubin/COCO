@@ -535,7 +535,13 @@
 }
 
 /* Focus visible pour accessibilité */
-button:focus-visible, .actionButton:focus-visible, .replyButton:focus-visible, .likeButton:focus-visible, .showRepliesBtn:focus-visible, .commentSubmitBtn:focus-visible, textarea:focus-visible {
+button:focus-visible,
+.actionButton:focus-visible,
+.replyButton:focus-visible,
+.likeButton:focus-visible,
+.showRepliesBtn:focus-visible,
+.commentSubmitBtn:focus-visible,
+textarea:focus-visible {
   outline: 3px solid #3b82f6;
   outline-offset: 2px;
   z-index: 2;
