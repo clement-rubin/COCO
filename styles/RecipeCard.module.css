@@ -570,4 +570,11 @@
     font-size: 0.9rem;
   }
 
-  
+.commentBtn {
+  transition: background 0.2s, color 0.2s;
+}
+.commentBtn:hover {
+  background: #e0f2fe;
+  color: #2563eb;
+}
+

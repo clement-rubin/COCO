@@ -1,6 +1,6 @@
 import Image from 'next/image'
 import Link from 'next/link'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/router'
 import { useAuth } from './AuthContext'
 import ShareButton from './ShareButton'
@@ -313,6 +313,49 @@ const RecipeCard = ({
       newMode: isCompactMode ? 'detailed' : 'compact',
       userId: user?.id
     })
+  }
+
+  // Ajout: soumission rapide de commentaire
+  const handleQuickCommentSubmit = async (e) => {
+    e.preventDefault()
+    if (!user) {
+      router.push('/login?redirect=' + encodeURIComponent(router.asPath))
+      return
+    }
+    if (!quickComment.trim()) return
+    setQuickCommentLoading(true)
+    setQuickCommentError('')
+    try {
+      const response = await fetch('/api/comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          recipe_id: recipe.id,
+          user_id: user.id,
+          content: quickComment.trim()
+        })
+      })
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}))
+        throw new Error(err.message || 'Erreur lors de l\'ajout du commentaire')
+      }
+      setQuickComment('')
+      setShowQuickComment(false)
+      // Optionnel: animation de succès
+      const msg = document.createElement('div')
+      msg.innerHTML = '💬 Commentaire publié !'
+      msg.style.cssText = `
+        position: fixed; top: 20px; right: 20px; background: #10b981; color: white;
+        padding: 12px 20px; border-radius: 12px; font-weight: 700; z-index: 10000;
+        box-shadow: 0 8px 25px rgba(16,185,129,0.3); animation: fadeIn 0.5s;
+      `
+      document.body.appendChild(msg)
+      setTimeout(() => msg.remove(), 2000)
+    } catch (err) {
+      setQuickCommentError(err.message)
+    } finally {
+      setQuickCommentLoading(false)
+    }
   }
 
   return (
@@ -689,6 +732,87 @@ const RecipeCard = ({
             </span>
           </div>
         )}
+        
+        {/* Ajout: bouton commenter et champ rapide */}
+        <div style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'center' }}>
+          <button
+            type="button"
+            className={styles.commentBtn}
+            style={{
+              background: '#f3f4f6',
+              border: 'none',
+              borderRadius: '12px',
+              padding: '6px 14px',
+              fontWeight: 600,
+              color: '#3b82f6',
+              cursor: 'pointer',
+              fontSize: '0.97rem'
+            }}
+            onClick={e => {
+              e.stopPropagation()
+              setShowQuickComment(v => !v)
+              setTimeout(() => quickCommentRef.current?.focus(), 100)
+            }}
+            aria-label="Commenter cette recette"
+          >
+            💬 Commenter
+          </button>
+          {showQuickComment && (
+            <form
+              onClick={e => e.stopPropagation()}
+              onSubmit={handleQuickCommentSubmit}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                background: '#fff',
+                border: '1px solid #e5e7eb',
+                borderRadius: '12px',
+                padding: '4px 8px',
+                boxShadow: '0 2px 8px #0001'
+              }}
+            >
+              <input
+                ref={quickCommentRef}
+                type="text"
+                value={quickComment}
+                onChange={e => setQuickComment(e.target.value)}
+                placeholder="Votre commentaire..."
+                maxLength={200}
+                style={{
+                  border: 'none',
+                  outline: 'none',
+                  fontSize: '0.97rem',
+                  padding: '4px 0',
+                  minWidth: 120,
+                  background: 'transparent'
+                }}
+                disabled={quickCommentLoading}
+              />
+              <button
+                type="submit"
+                disabled={quickCommentLoading || !quickComment.trim()}
+                style={{
+                  background: '#10b981',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '4px 10px',
+                  fontWeight: 700,
+                  cursor: quickCommentLoading ? 'not-allowed' : 'pointer'
+                }}
+                aria-label="Envoyer le commentaire"
+              >
+                {quickCommentLoading ? '...' : 'Envoyer'}
+              </button>
+            </form>
+          )}
+          {quickCommentError && (
+            <span style={{ color: '#ef4444', fontSize: '0.92rem', marginLeft: 6 }}>
+              {quickCommentError}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Responsive et hover amélioré */}
