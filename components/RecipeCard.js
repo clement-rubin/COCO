@@ -321,23 +321,66 @@ const RecipeCard = ({
       onClick={navigateToRecipe}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
+      style={{
+        borderRadius: '22px',
+        boxShadow: imageLoading
+          ? '0 2px 12px 0 rgba(16,24,40,0.06)'
+          : '0 8px 32px 0 rgba(16,24,40,0.10)',
+        background: isQuickShare
+          ? 'linear-gradient(135deg, #fff7ed 0%, #fef3c7 100%)'
+          : 'white',
+        border: isQuickShare ? '2px solid #f59e0b' : '1px solid #f3f4f6',
+        transition: 'box-shadow 0.25s, transform 0.18s',
+        cursor: 'pointer',
+        position: 'relative',
+        overflow: 'hidden',
+        minHeight: '320px',
+        maxWidth: '360px',
+        margin: '0 auto'
+      }}
     >
       {/* Badge pour identifier le type de partage */}
       {isQuickShare && (
-        <div className={styles.quickShareBadge}>
+        <div className={styles.quickShareBadge} style={{
+          position: 'absolute',
+          top: 14,
+          left: 14,
+          background: 'linear-gradient(90deg, #f59e0b 60%, #fde68a 100%)',
+          color: '#fff',
+          fontWeight: 700,
+          fontSize: '0.85rem',
+          padding: '6px 16px',
+          borderRadius: '16px',
+          boxShadow: '0 2px 8px #f59e0b22',
+          zIndex: 3,
+          letterSpacing: '0.01em'
+        }}>
           📸 Partage Express
         </div>
       )}
       
-      <div className={styles.imageContainer}>
+      <div className={styles.imageContainer} style={{
+        position: 'relative',
+        width: '100%',
+        height: '180px',
+        borderRadius: '18px 18px 0 0',
+        overflow: 'hidden',
+        background: '#f3f4f6'
+      }}>
         <Image
           src={safeRecipe.image}
           alt={safeRecipe.title}
           fill
-          sizes="(max-width: 768px) 100vw, 300px"
+          sizes="(max-width: 768px) 100vw, 360px"
           priority={false}
           className={styles.image}
           unoptimized={safeRecipe.image.startsWith('data:')}
+          style={{
+            objectFit: 'cover',
+            borderRadius: '18px 18px 0 0',
+            transition: 'filter 0.2s',
+            filter: imageLoading ? 'blur(6px) grayscale(0.2)' : 'none'
+          }}
           onLoad={() => {
             setImageLoading(false)
             logInfo('RecipeCard: Image loaded successfully', {
@@ -348,11 +391,8 @@ const RecipeCard = ({
           onError={(e) => {
             setImageError(true)
             setImageLoading(false)
-            
-            // En cas d'erreur, essayer de charger l'illustration générée
             const fallbackIllustration = getRecipeIllustration(recipe)
             e.target.src = fallbackIllustration
-            
             logError('RecipeCard: Image load failed, using illustration', new Error('Image load failed'), {
               recipeId: safeRecipe.id,
               originalSrc: safeRecipe.image?.substring(0, 50) + '...',
@@ -362,23 +402,41 @@ const RecipeCard = ({
         />
         
         {/* Overlay avec toggle de vue */}
-        <div className={styles.imageOverlay}>
+        <div className={styles.imageOverlay} style={{
+          position: 'absolute',
+          top: 10,
+          right: 10,
+          zIndex: 4
+        }}>
           <button 
             className={styles.viewToggleBtn}
             onClick={toggleViewMode}
             title={isCompactMode ? "Voir les détails" : "Vue compacte"}
+            style={{
+              background: 'rgba(255,255,255,0.85)',
+              border: 'none',
+              borderRadius: '50%',
+              width: 36,
+              height: 36,
+              fontSize: '1.2rem',
+              boxShadow: '0 2px 8px #0001',
+              cursor: 'pointer',
+              transition: 'background 0.2s'
+            }}
           >
             {isCompactMode ? '📋' : '📖'}
           </button>
         </div>
         
-        {isQuickShare && (
-          <div className={styles.photoTag}>
-            📷 Partage Rapide
-          </div>
-        )}
-        
-        <div className={styles.cardActions}>
+        {/* Actions flottantes */}
+        <div className={styles.cardActions} style={{
+          position: 'absolute',
+          bottom: 12,
+          right: 16,
+          display: 'flex',
+          gap: '10px',
+          zIndex: 4
+        }}>
           {/* Bouton de like */
           showLikes && (
             <button 
@@ -387,22 +445,52 @@ const RecipeCard = ({
               disabled={likesLoading}
               aria-label={likesStats.user_has_liked ? "Retirer des likes" : "Ajouter aux likes"}
               title={`${likesStats.likes_count} like${likesStats.likes_count > 1 ? 's' : ''}`}
+              style={{
+                background: likesStats.user_has_liked ? 'linear-gradient(135deg, #ef4444, #f59e0b)' : '#fff',
+                color: likesStats.user_has_liked ? '#fff' : '#ef4444',
+                border: 'none',
+                borderRadius: '50%',
+                width: 38,
+                height: 38,
+                fontSize: '1.25rem',
+                boxShadow: likesStats.user_has_liked ? '0 2px 8px #ef444422' : '0 1px 4px #0001',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'background 0.2s, color 0.2s'
+              }}
             >
               {likesLoading ? '⏳' : (likesStats.user_has_liked ? '❤️' : '🤍')}
               {likesStats.likes_count > 0 && (
-                <span className={styles.likesCount}>{likesStats.likes_count}</span>
+                <span className={styles.likesCount} style={{
+                  marginLeft: 4,
+                  fontWeight: 700,
+                  fontSize: '0.95rem',
+                  color: likesStats.user_has_liked ? '#fff' : '#ef4444'
+                }}>{likesStats.likes_count}</span>
               )}
             </button>
          ) }
 
           {/* Actions du propriétaire */}
           {canEdit && (
-            <div className={styles.ownerActions}>
+            <div className={styles.ownerActions} style={{ display: 'flex', gap: 6 }}>
               <button 
                 className={styles.editBtn}
                 onClick={e => { e.preventDefault(); e.stopPropagation(); onEdit && onEdit(recipe.id); }}
                 title="Modifier la recette"
                 aria-label="Modifier cette recette"
+                style={{
+                  background: '#f3f4f6',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: 32,
+                  height: 32,
+                  fontSize: '1.1rem',
+                  color: '#3b82f6',
+                  cursor: 'pointer'
+                }}
               >
                 ✏️
               </button>
@@ -411,6 +499,16 @@ const RecipeCard = ({
                 onClick={e => { e.preventDefault(); e.stopPropagation(); onDelete && onDelete(recipe.id); }}
                 title="Supprimer la recette"
                 aria-label="Supprimer cette recette"
+                style={{
+                  background: '#f3f4f6',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: 32,
+                  height: 32,
+                  fontSize: '1.1rem',
+                  color: '#ef4444',
+                  cursor: 'pointer'
+                }}
               >
                 🗑️
               </button>
@@ -419,16 +517,37 @@ const RecipeCard = ({
         </div>
       </div>
       
-      <div className={styles.content}>
+      <div className={styles.content} style={{
+        padding: '18px 18px 12px 18px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '8px'
+      }}>
         {/* Titre toujours visible */}
-        <h3 className={styles.recipeTitle}>{safeRecipe.title}</h3>
+        <h3 className={styles.recipeTitle} style={{
+          fontSize: '1.18rem',
+          fontWeight: 700,
+          margin: 0,
+          color: '#1e293b',
+          lineHeight: '1.2',
+          textOverflow: 'ellipsis',
+          overflow: 'hidden',
+          whiteSpace: 'nowrap'
+        }}>{safeRecipe.title}</h3>
         
         {/* Auteur compact toujours visible */}
-        <div className={styles.compactAuthor}>
+        <div className={styles.compactAuthor} style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          fontSize: '0.97rem',
+          color: '#64748b',
+          fontWeight: 500
+        }}>
           <span className={styles.authorEmoji}>👤</span>
           <span className={styles.authorName}>{safeRecipe.author}</span>
           {recipe.created_at && (
-            <span className={styles.compactDate}>
+            <span className={styles.compactDate} style={{ fontSize: '0.88rem', color: '#a1a1aa' }}>
               • {new Date(recipe.created_at).toLocaleDateString('fr-FR', {
                 day: '2-digit',
                 month: 'short'
@@ -437,7 +556,12 @@ const RecipeCard = ({
           )}
           {/* Affichage compact des likes */}
           {showLikes && likesStats.likes_count > 0 && (
-            <span className={styles.compactLikes}>
+            <span className={styles.compactLikes} style={{
+              marginLeft: 6,
+              color: '#ef4444',
+              fontWeight: 600,
+              fontSize: '0.95rem'
+            }}>
               • ❤️ {likesStats.likes_count}
             </span>
           )}
@@ -445,9 +569,22 @@ const RecipeCard = ({
         
         {/* Contenu détaillé - affiché seulement en mode détaillé */}
         {!isCompactMode && (
-          <div className={styles.detailedContent}>
+          <div className={styles.detailedContent} style={{
+            marginTop: 8,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 10
+          }}>
             {safeRecipe.description && !isQuickShare && (
-              <p className={styles.recipeDescription}>
+              <p className={styles.recipeDescription} style={{
+                fontSize: '0.98rem',
+                color: '#374151',
+                margin: 0,
+                lineHeight: 1.4,
+                maxHeight: 60,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis'
+              }}>
                 {safeRecipe.description.length > 100 
                   ? `${safeRecipe.description.substring(0, 100)}...` 
                   : safeRecipe.description}
@@ -455,33 +592,58 @@ const RecipeCard = ({
             )}
             
             {isQuickShare && (
-              <p className={styles.recipeDescription}>
+              <p className={styles.recipeDescription} style={{
+                fontSize: '0.98rem',
+                color: '#374151',
+                margin: 0,
+                lineHeight: 1.4
+              }}>
                 {safeRecipe.description}
               </p>
             )}
             
-            <div className={styles.recipeDetails}>
+            <div className={styles.recipeDetails} style={{
+              display: 'flex',
+              gap: 12,
+              flexWrap: 'wrap',
+              fontSize: '0.95rem'
+            }}>
               {!isQuickShare && recipe.difficulty && (
-                <span className={styles.recipeDifficulty}>
+                <span className={styles.recipeDifficulty} style={{
+                  color: recipe.difficulty === 'Facile' ? '#10b981' : 
+                        recipe.difficulty === 'Moyen' ? '#f59e0b' : '#ef4444',
+                  fontWeight: 600
+                }}>
                   {recipe.difficulty === 'Facile' ? '🟢' : 
                    recipe.difficulty === 'Moyen' ? '🟠' : '🔴'} {recipe.difficulty}
                 </span>
               )}
               
               {!isQuickShare && safeRecipe.prepTime && (
-                <span className={styles.recipeTime}>
+                <span className={styles.recipeTime} style={{
+                  color: '#64748b'
+                }}>
                   ⏱️ {safeRecipe.prepTime}
                 </span>
               )}
               
               {safeRecipe.category && (
-                <span className={styles.recipeCategory}>
+                <span className={styles.recipeCategory} style={{
+                  color: isQuickShare ? '#f59e0b' : '#3b82f6',
+                  fontWeight: 500
+                }}>
                   {isQuickShare ? '📸' : '📂'} {safeRecipe.category}
                 </span>
               )}
             </div>
             
-            <div className={styles.recipeFooter}>
+            <div className={styles.recipeFooter} style={{
+              display: 'flex',
+              gap: 10,
+              alignItems: 'center',
+              fontSize: '0.93rem',
+              color: '#6b7280'
+            }}>
               <span className={styles.recipeAuthor}>
                 👤 {safeRecipe.author || 'Chef Anonyme'}
               </span>
@@ -497,7 +659,10 @@ const RecipeCard = ({
               
               {/* Affichage détaillé des likes */}
               {showLikes && (
-                <span className={styles.detailedLikes}>
+                <span className={styles.detailedLikes} style={{
+                  color: '#ef4444',
+                  fontWeight: 600
+                }}>
                   ❤️ {likesStats.likes_count} like{likesStats.likes_count > 1 ? 's' : ''}
                 </span>
               )}
@@ -507,14 +672,45 @@ const RecipeCard = ({
         
         {/* Mode compact - juste une indication de catégorie */}
         {isCompactMode && safeRecipe.category && (
-          <div className={styles.compactCategory}>
-            <span className={styles.categoryChip}>
+          <div className={styles.compactCategory} style={{
+            marginTop: 6
+          }}>
+            <span className={styles.categoryChip} style={{
+              background: isQuickShare
+                ? 'linear-gradient(90deg, #f59e0b 60%, #fde68a 100%)'
+                : '#f3f4f6',
+              color: isQuickShare ? '#fff' : '#3b82f6',
+              fontWeight: 600,
+              fontSize: '0.93rem',
+              borderRadius: '12px',
+              padding: '4px 12px'
+            }}>
               {isQuickShare ? '📸' : '📂'} {safeRecipe.category}
             </span>
           </div>
         )}
       </div>
 
+      {/* Responsive et hover amélioré */}
+      <style jsx>{`
+        @media (max-width: 480px) {
+          :global(.${styles.card}) {
+            max-width: 98vw !important;
+            min-height: 260px !important;
+          }
+          :global(.${styles.imageContainer}) {
+            height: 120px !important;
+          }
+        }
+        :global(.${styles.card}:hover) {
+          box-shadow: 0 12px 36px 0 rgba(16,24,40,0.16);
+          transform: translateY(-2px) scale(1.02);
+        }
+        :global(.${styles.card}.${styles.photoOnly}:hover) {
+          border-color: #f59e0b;
+          box-shadow: 0 8px 32px #f59e0b33;
+        }
+      `}</style>
       <style jsx>{`
         @keyframes enhancedHeartFloat {
           0% {
