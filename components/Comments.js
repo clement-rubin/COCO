@@ -20,6 +20,7 @@ export default function Comments({
   const [showReplies, setShowReplies] = useState({})
   const [userLikes, setUserLikes] = useState(new Set()) // Track user's likes
   const [likeAnimations, setLikeAnimations] = useState(new Set()) // Track active animations
+  const [ariaLiveMsg, setAriaLiveMsg] = useState('')
 
   const maxLength = 500
   const charCount = newComment.length
@@ -126,6 +127,7 @@ export default function Comments({
 
     try {
       setSubmitting(true)
+      setAriaLiveMsg('Envoi du commentaire en cours...')
       
       // Simulation d'ajout - remplacer par vraie API
       const comment = {
@@ -144,6 +146,7 @@ export default function Comments({
       
       setComments(prev => [comment, ...prev])
       setNewComment('')
+      setAriaLiveMsg('Commentaire publié avec succès !')
       
       // Déclencher une notification pour le propriétaire de la recette
       // Note: Dans une vraie app, vous récupéreriez les infos de la recette depuis l'API
@@ -201,6 +204,7 @@ export default function Comments({
     } catch (err) {
       logError('Failed to submit comment', err, { targetId, targetType })
       setError('Impossible d\'ajouter le commentaire')
+      setAriaLiveMsg('Erreur lors de l\'ajout du commentaire')
     } finally {
       setSubmitting(false)
     }
@@ -361,9 +365,9 @@ export default function Comments({
 
   if (loading) {
     return (
-      <div className={containerClass}>
+      <div className={containerClass} role="region" aria-busy="true" aria-label="Chargement des commentaires">
         <div className={styles.loadingComments}>
-          <div className={styles.loadingSpinner}></div>
+          <div className={styles.loadingSpinner} aria-hidden="true"></div>
           <span className={styles.loadingText}>Chargement des commentaires...</span>
         </div>
       </div>
@@ -371,34 +375,47 @@ export default function Comments({
   }
 
   return (
-    <div className={containerClass}>
+    <div className={containerClass} role="region" aria-label="Section commentaires">
+      {/* Zone ARIA live pour feedback utilisateur */}
+      <div aria-live="polite" aria-atomic="true" style={{position:'absolute',left:'-9999px',height:'1px',width:'1px',overflow:'hidden'}}>{ariaLiveMsg}</div>
+
       {/* Header */}
-      <div className={styles.commentsHeader}>
-        <h3 className={styles.commentsTitle}>
-          <span className={styles.commentsIcon}>💬</span>
+      <header className={styles.commentsHeader} tabIndex={-1}>
+        <h3 className={styles.commentsTitle} id="comments-title">
+          <span className={styles.commentsIcon} aria-hidden="true">💬</span>
           Commentaires
         </h3>
-        <div className={styles.commentsCount}>
+        <div className={styles.commentsCount} aria-label={`${comments.length} commentaire${comments.length > 1 ? 's' : ''}`}>
           {comments.length}
         </div>
-      </div>
+      </header>
 
       {/* Formulaire de nouveau commentaire */}
       {user ? (
-        <div className={styles.commentForm}>
+        <form 
+          className={styles.commentForm}
+          onSubmit={e => { e.preventDefault(); submitComment(); }}
+          aria-labelledby="comments-title"
+        >
+          <label htmlFor="new-comment" className={styles.visuallyHidden}>Votre commentaire</label>
           <textarea
+            id="new-comment"
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             placeholder="Partagez votre avis, vos conseils ou vos questions..."
             className={styles.commentTextarea}
             maxLength={maxLength}
             disabled={submitting}
+            aria-label="Saisir un commentaire"
+            required
+            rows={3}
+            style={{resize:'vertical'}}
           />
           
           <div className={styles.commentActions}>
-            <div className={styles.commentCharCount}>
+            <div className={styles.commentCharCount} aria-live="polite">
               <span>{charCount}/{maxLength}</span>
-              <div className={styles.charProgress}>
+              <div className={styles.charProgress} aria-hidden="true">
                 <div 
                   className={`${styles.charProgressFill} ${getCharProgressClass()}`}
                   style={{ width: `${Math.min(charPercentage, 100)}%` }}
@@ -407,16 +424,18 @@ export default function Comments({
             </div>
             
             <button
+              type="submit"
               onClick={submitComment}
               disabled={!newComment.trim() || charCount > maxLength || submitting}
               className={styles.commentSubmitBtn}
+              aria-label="Publier le commentaire"
             >
               {submitting ? '📤 Envoi...' : '💬 Commenter'}
             </button>
           </div>
-        </div>
+        </form>
       ) : (
-        <div className={styles.commentForm}>
+        <div className={styles.commentForm} tabIndex={0} aria-label="Connexion requise pour commenter">
           <div style={{ 
             textAlign: 'center', 
             padding: '24px',
@@ -424,7 +443,7 @@ export default function Comments({
             fontSize: '1.1rem',
             fontWeight: '600'
           }}>
-            <span style={{ fontSize: '2rem', display: 'block', marginBottom: '12px' }}>🔐</span>
+            <span style={{ fontSize: '2rem', display: 'block', marginBottom: '12px' }} aria-hidden="true">🔐</span>
             Connectez-vous pour rejoindre la conversation
           </div>
         </div>
@@ -432,45 +451,50 @@ export default function Comments({
 
       {/* Erreur */}
       {error && (
-        <div style={{
-          background: '#fef2f2',
-          border: '2px solid #fecaca',
-          borderRadius: '12px',
-          padding: '16px',
-          margin: '16px 0',
-          color: '#dc2626',
-          fontWeight: '600',
-          textAlign: 'center'
-        }}>
+        <div
+          style={{
+            background: '#fef2f2',
+            border: '2px solid #fecaca',
+            borderRadius: '12px',
+            padding: '16px',
+            margin: '16px 0',
+            color: '#dc2626',
+            fontWeight: '600',
+            textAlign: 'center'
+          }}
+          role="alert"
+        >
           {error}
         </div>
       )}
 
       {/* Liste des commentaires */}
       {comments.length > 0 ? (
-        <div className={styles.commentsList}>
+        <ul className={styles.commentsList} aria-labelledby="comments-title">
           {comments.map((comment) => (
-            <div 
+            <li 
               key={comment.id} 
               className={`${styles.comment} ${comment.isNew ? styles.new : ''}`}
               data-comment-id={comment.id}
+              tabIndex={0}
+              aria-label={`Commentaire de ${comment.user_name}, ${formatTimeAgo(comment.created_at)}`}
             >
               {comment.isNew && (
-                <div className={styles.newCommentBadge}>
+                <div className={styles.newCommentBadge} aria-label="Nouveau commentaire">
                   ✨ Nouveau
                 </div>
               )}
               
               <div className={styles.commentHeader}>
                 <div className={styles.commentUser}>
-                  <div className={styles.userAvatar}>
+                  <div className={styles.userAvatar} aria-hidden="true">
                     {comment.user_avatar}
                   </div>
                   <div className={styles.userInfo}>
                     <span className={styles.userName}>
                       {comment.user_name}
                       {comment.user_id === 'user2' && (
-                        <span className={styles.verifiedBadge}>✅</span>
+                        <span className={styles.verifiedBadge} title="Utilisateur vérifié" aria-label="Utilisateur vérifié">✅</span>
                       )}
                     </span>
                     <span className={styles.commentTime}>
@@ -486,13 +510,18 @@ export default function Comments({
                       userLikes.has(comment.id) ? styles.liked : ''
                     } ${likeAnimations.has(comment.id) ? styles.animating : ''}`}
                     title={userLikes.has(comment.id) ? "Ne plus aimer" : "J'aime ce commentaire"}
+                    aria-pressed={userLikes.has(comment.id)}
+                    aria-label={userLikes.has(comment.id) ? "Retirer le like" : "Aimer ce commentaire"}
                     disabled={likeAnimations.has(comment.id)}
+                    tabIndex={0}
                   >
                     {userLikes.has(comment.id) ? '❤️' : '🤍'}
                   </button>
                   <button
                     className={`${styles.actionButton} ${styles.replyButton}`}
                     title="Répondre"
+                    aria-label="Répondre à ce commentaire"
+                    tabIndex={0}
                   >
                     💬
                   </button>
@@ -505,7 +534,7 @@ export default function Comments({
 
               <div className={styles.commentStats}>
                 <span className={styles.statItem}>
-                  <span className={styles.statIcon}>❤️</span>
+                  <span className={styles.statIcon} aria-hidden="true">❤️</span>
                   <span className={`${styles.statNumber} ${userLikes.has(comment.id) ? styles.highlighted : ''}`}>
                     {comment.likes}
                   </span>
@@ -515,7 +544,7 @@ export default function Comments({
                 </span>
                 {comment.replies.length > 0 && (
                   <span className={styles.statItem}>
-                    <span className={styles.statIcon}>💬</span>
+                    <span className={styles.statIcon} aria-hidden="true">💬</span>
                     <span className={styles.statNumber}>{comment.replies.length}</span>
                     <span className={styles.statLabel}>
                       {comment.replies.length === 1 ? 'réponse' : 'réponses'}
@@ -527,6 +556,8 @@ export default function Comments({
                   <button
                     onClick={() => toggleReplies(comment.id)}
                     className={styles.showRepliesBtn}
+                    aria-expanded={!!showReplies[comment.id]}
+                    aria-controls={`replies-${comment.id}`}
                   >
                     {showReplies[comment.id] ? '▼ Masquer' : '▶ Voir'} les réponses
                   </button>
@@ -535,18 +566,18 @@ export default function Comments({
 
               {/* Réponses avec like system */}
               {showReplies[comment.id] && comment.replies.length > 0 && (
-                <div className={styles.replies}>
+                <ul className={styles.replies} id={`replies-${comment.id}`} aria-label={`Réponses à ${comment.user_name}`}>
                   {comment.replies.map((reply) => (
-                    <div key={reply.id} className={styles.reply} data-comment-id={reply.id}>
+                    <li key={reply.id} className={styles.reply} data-comment-id={reply.id} tabIndex={0}>
                       <div className={styles.commentHeader}>
                         <div className={styles.commentUser}>
-                          <div className={styles.userAvatar} style={{ width: '36px', height: '36px' }}>
+                          <div className={styles.userAvatar} style={{ width: '36px', height: '36px' }} aria-hidden="true">
                             {reply.user_avatar}
                           </div>
                           <div className={styles.userInfo}>
                             <span className={styles.userName}>
                               {reply.user_name}
-                              <span className={styles.verifiedBadge}>✅</span>
+                              <span className={styles.verifiedBadge} title="Utilisateur vérifié" aria-label="Utilisateur vérifié">✅</span>
                             </span>
                             <span className={styles.commentTime}>
                               {formatTimeAgo(reply.created_at)}
@@ -560,6 +591,9 @@ export default function Comments({
                               userLikes.has(reply.id) ? styles.liked : ''
                             }`}
                             title={userLikes.has(reply.id) ? "Ne plus aimer" : "J'aime cette réponse"}
+                            aria-pressed={userLikes.has(reply.id)}
+                            aria-label={userLikes.has(reply.id) ? "Retirer le like" : "Aimer cette réponse"}
+                            tabIndex={0}
                           >
                             {userLikes.has(reply.id) ? '❤️' : '🤍'}
                           </button>
@@ -570,28 +604,28 @@ export default function Comments({
                       </div>
                       <div className={styles.commentStats}>
                         <span className={styles.statItem}>
-                          <span className={styles.statIcon}>❤️</span>
+                          <span className={styles.statIcon} aria-hidden="true">❤️</span>
                           <span className={`${styles.statNumber} ${userLikes.has(reply.id) ? styles.highlighted : ''}`}>
                             {reply.likes}
                           </span>
                         </span>
                       </div>
-                    </div>
+                    </li>
                   ))}
-                </div>
+                </ul>
               )}
-            </div>
+            </li>
           ))}
 
-          <div className={styles.loadMoreContainer}>
-            <button className={styles.loadMoreButton}>
+          <li className={styles.loadMoreContainer}>
+            <button className={styles.loadMoreButton} aria-label="Charger plus de commentaires">
               📚 Charger plus de commentaires
             </button>
-          </div>
-        </div>
+          </li>
+        </ul>
       ) : (
-        <div className={styles.emptyComments}>
-          <div className={styles.emptyIcon}>💭</div>
+        <div className={styles.emptyComments} tabIndex={0} aria-label="Aucun commentaire pour le moment">
+          <div className={styles.emptyIcon} aria-hidden="true">💭</div>
           <h4 className={styles.emptyTitle}>Aucun commentaire pour le moment</h4>
           <p className={styles.emptyMessage}>
             Soyez le premier à partager votre avis ! Vos commentaires aident la communauté à découvrir de nouvelles saveurs.
@@ -600,6 +634,7 @@ export default function Comments({
             <button
               onClick={() => document.querySelector(`.${styles.commentTextarea}`)?.focus()}
               className={styles.startConversationBtn}
+              aria-label="Commencer la conversation"
             >
               💬 Commencer la conversation
             </button>

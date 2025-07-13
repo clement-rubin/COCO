@@ -522,6 +522,79 @@
   box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
 }
 
+/* Accessibilité et Contraste Améliorés */
+.visuallyHidden {
+  position: absolute !important;
+  height: 1px; width: 1px;
+  overflow: hidden;
+  clip: rect(1px, 1px, 1px, 1px);
+  white-space: nowrap;
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+
+/* Focus visible pour accessibilité */
+button:focus-visible, .actionButton:focus-visible, .replyButton:focus-visible, .likeButton:focus-visible, .showRepliesBtn:focus-visible, .commentSubmitBtn:focus-visible, textarea:focus-visible {
+  outline: 3px solid #3b82f6;
+  outline-offset: 2px;
+  z-index: 2;
+  background: #e0e7ff;
+  box-shadow: 0 0 0 2px #6366f1;
+}
+
+textarea:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+  background: #f0f9ff;
+}
+
+.commentForm:focus-within {
+  box-shadow: 0 0 0 2px #3b82f6;
+  border-radius: 12px;
+}
+
+.comment:focus-within, .reply:focus-within {
+  box-shadow: 0 0 0 2px #f59e0b;
+  border-radius: 18px;
+}
+
+.comment:focus, .reply:focus {
+  outline: 2px solid #f59e0b;
+  outline-offset: 2px;
+}
+
+.loadMoreButton:focus-visible, .startConversationBtn:focus-visible {
+  outline: 2px solid #10b981;
+  outline-offset: 2px;
+  background: #d1fae5;
+}
+
+.showRepliesBtn:focus-visible {
+  outline: 2px solid #0ea5e9;
+  outline-offset: 2px;
+  background: #e0f2fe;
+}
+
+.commentSubmitBtn:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+  background: #e0e7ff;
+}
+
+.actionButton:focus-visible {
+  outline: 2px solid #f59e0b;
+  outline-offset: 2px;
+  background: #fef3c7;
+}
+
+@media (prefers-contrast: more) {
+  .actionButton:focus-visible, .replyButton:focus-visible, .likeButton:focus-visible, .showRepliesBtn:focus-visible, .commentSubmitBtn:focus-visible {
+    outline: 3px solid #000;
+    background: #fff;
+  }
+}
+
 /* Responsive Enhancements */
 @media (max-width: 640px) {
   .commentStats {
