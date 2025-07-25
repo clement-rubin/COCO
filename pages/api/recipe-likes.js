@@ -1,5 +1,5 @@
 import { supabase } from '../../lib/supabase'
-import { logInfo, logError, logDebug } from '../../utils/logger'
+import { logInfo, logError, logDebug, logHttpError } from '../../utils/logger'
 
 export default async function handler(req, res) {
   const startTime = Date.now()
@@ -22,6 +22,16 @@ export default async function handler(req, res) {
       hasBody: !!req.body,
       userAgent: req.headers['user-agent']?.substring(0, 100)
     })
+
+    // Validation de la connexion Supabase
+    if (!supabase) {
+      logError('Supabase client not initialized', null, { requestId })
+      return res.status(500).json({
+        error: 'Configuration error',
+        message: 'Database connection not available',
+        requestId
+      })
+    }
 
     // GET - Obtenir les likes d'une recette ou de plusieurs recettes
     if (req.method === 'GET') {
@@ -58,7 +68,7 @@ export default async function handler(req, res) {
               // Vérifier si l'utilisateur actuel a liké (si connecté)
               let userHasLiked = false
               if (req.headers.authorization || req.headers['x-user-id']) {
-                // Dans une vraie app, récupérer l'user_id depuis l'auth
+                // Dans une vraie app, récupérer l'auth
                 // Pour l'instant, pas de vérification user_has_liked pour les requêtes multiples
               }
 
@@ -138,10 +148,34 @@ export default async function handler(req, res) {
     if (req.method === 'POST') {
       const { recipe_id, user_id } = req.body
 
+      // Validation des paramètres
       if (!recipe_id || !user_id) {
+        logError('Missing required parameters', { recipe_id, user_id }, { requestId })
         return res.status(400).json({
           error: 'Paramètres manquants',
-          message: 'recipe_id et user_id sont requis'
+          message: 'recipe_id et user_id sont requis',
+          requestId,
+          received: { recipe_id: !!recipe_id, user_id: !!user_id }
+        })
+      }
+
+      // Validation du format UUID
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+      if (!uuidRegex.test(recipe_id)) {
+        logError('Invalid recipe_id format', { recipe_id }, { requestId })
+        return res.status(400).json({
+          error: 'Format invalide',
+          message: 'recipe_id doit être un UUID valide',
+          requestId
+        })
+      }
+
+      if (!uuidRegex.test(user_id)) {
+        logError('Invalid user_id format', { user_id }, { requestId })
+        return res.status(400).json({
+          error: 'Format invalide', 
+          message: 'user_id doit être un UUID valide',
+          requestId
         })
       }
 
@@ -152,6 +186,25 @@ export default async function handler(req, res) {
           userId: user_id.substring(0, 8) + '...'
         })
 
+        // Vérifier que la recette existe
+        const { data: recipe, error: recipeError } = await supabase
+          .from('recipes')
+          .select('id, title, user_id')
+          .eq('id', recipe_id)
+          .single()
+
+        if (recipeError) {
+          logError('Error checking recipe existence', recipeError, { requestId, recipe_id })
+          if (recipeError.code === 'PGRST116') {
+            return res.status(404).json({
+              error: 'Recette non trouvée',
+              message: 'La recette spécifiée n\'existe pas',
+              requestId
+            })
+          }
+          throw recipeError
+        }
+
         // Vérifier si le like existe déjà
         const { data: existingLike, error: checkError } = await supabase
           .from('recipe_likes')
@@ -161,6 +214,7 @@ export default async function handler(req, res) {
           .single()
 
         if (checkError && checkError.code !== 'PGRST116') {
+          logError('Error checking existing like', checkError, { requestId })
           throw checkError
         }
 
@@ -172,11 +226,12 @@ export default async function handler(req, res) {
           })
           return res.status(409).json({
             error: 'Like déjà existant',
-            message: 'Vous avez déjà liké cette recette'
+            message: 'Vous avez déjà liké cette recette',
+            requestId
           })
         }
 
-        // Ajouter le like - LE TRIGGER VA AUTOMATIQUEMENT INCRÉMENTER likes_count
+        // Ajouter le like
         const { data: newLike, error: insertError } = await supabase
           .from('recipe_likes')
           .insert([{
@@ -188,6 +243,7 @@ export default async function handler(req, res) {
           .single()
 
         if (insertError) {
+          logError('Error inserting like', insertError, { requestId })
           throw insertError
         }
 
@@ -195,14 +251,15 @@ export default async function handler(req, res) {
         await new Promise(resolve => setTimeout(resolve, 100))
 
         // Récupérer le compteur mis à jour automatiquement par le trigger
-        const { data: recipeData, error: recipeError } = await supabase
+        const { data: recipeData, error: recipeError2 } = await supabase
           .from('recipes')
           .select('likes_count')
           .eq('id', recipe_id)
           .single()
 
-        if (recipeError) {
-          logError('Error getting updated recipe likes count', recipeError, { requestId })
+        if (recipeError2) {
+          logError('Error getting updated recipe likes count', recipeError2, { requestId })
+          // Continue with fallback
         }
 
         const updatedLikesCount = recipeData?.likes_count || 1
@@ -224,19 +281,78 @@ export default async function handler(req, res) {
           stats: {
             likes_count: updatedLikesCount,
             user_has_liked: true
-          }
+          },
+          requestId
         })
 
       } catch (error) {
-        logError('Error adding like', error, {
+        // Log détaillé de l'erreur d'ajout de like
+        logError('Complete error details when adding like in API', error, {
           requestId,
           recipeId: recipe_id,
-          userId: user_id?.substring(0, 8) + '...'
+          userId: user_id?.substring(0, 8) + '...',
+          errorCode: error.code,
+          errorMessage: error.message,
+          errorDetails: error.details,
+          errorHint: error.hint,
+          postgresError: {
+            code: error.code,
+            severity: error.severity,
+            detail: error.detail,
+            hint: error.hint,
+            position: error.position,
+            internalPosition: error.internalPosition,
+            internalQuery: error.internalQuery,
+            where: error.where,
+            schema: error.schema,
+            table: error.table,
+            column: error.column,
+            dataType: error.dataType,
+            constraint: error.constraint,
+            file: error.file,
+            line: error.line,
+            routine: error.routine
+          },
+          supabaseContext: {
+            timestamp: new Date().toISOString(),
+            operation: 'INSERT recipe_like',
+            table: 'recipe_likes'
+          },
+          requestContext: {
+            method: req.method,
+            headers: {
+              'user-agent': req.headers['user-agent'],
+              'content-type': req.headers['content-type'],
+              'origin': req.headers.origin,
+              'referer': req.headers.referer
+            },
+            body: req.body,
+            query: req.query,
+            ip: req.connection?.remoteAddress || req.socket?.remoteAddress,
+            startTime,
+            duration: Date.now() - startTime
+          },
+          recipeContext: recipe ? {
+            id: recipe.id,
+            title: recipe.title,
+            user_id: recipe.user_id,
+            created_at: recipe.created_at
+          } : null
         })
 
+        // Return specific error information
         return res.status(500).json({
           error: 'Erreur lors de l\'ajout du like',
-          message: error.message
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          requestId,
+          timestamp: new Date().toISOString(),
+          debugInfo: process.env.NODE_ENV === 'development' ? {
+            stack: error.stack,
+            hint: error.hint,
+            severity: error.severity
+          } : undefined
         })
       }
     }
@@ -318,15 +434,41 @@ export default async function handler(req, res) {
         })
 
       } catch (error) {
-        logError('Error removing like', error, {
+        // Log détaillé de l'erreur de suppression de like
+        logError('Complete error details when removing like in API', error, {
           requestId,
           recipeId: recipe_id,
-          userId: user_id?.substring(0, 8) + '...'
+          userId: user_id?.substring(0, 8) + '...',
+          errorCode: error.code,
+          errorMessage: error.message,
+          errorDetails: error.details,
+          postgresError: {
+            code: error.code,
+            severity: error.severity,
+            detail: error.detail,
+            hint: error.hint,
+            constraint: error.constraint,
+            table: error.table
+          },
+          requestContext: {
+            method: req.method,
+            headers: {
+              'user-agent': req.headers['user-agent'],
+              'origin': req.headers.origin,
+              'referer': req.headers.referer
+            },
+            query: req.query,
+            ip: req.connection?.remoteAddress || req.socket?.remoteAddress,
+            duration: Date.now() - startTime
+          }
         })
 
         return res.status(500).json({
           error: 'Erreur lors de la suppression du like',
-          message: error.message
+          message: error.message,
+          code: error.code,
+          requestId,
+          timestamp: new Date().toISOString()
         })
       }
     }
@@ -339,15 +481,45 @@ export default async function handler(req, res) {
 
   } catch (globalError) {
     const duration = Date.now() - startTime
-    logError('Global error in recipe likes API', globalError, {
+    // Log global complet avec tous les détails
+    logError('Complete global error details in recipe likes API', globalError, {
       requestId,
       method: req.method,
-      duration: `${duration}ms`
+      url: req.url,
+      duration: `${duration}ms`,
+      errorCode: globalError.code,
+      errorMessage: globalError.message,
+      errorStack: globalError.stack,
+      requestDetails: {
+        headers: req.headers,
+        body: req.body,
+        query: req.query,
+        cookies: req.cookies,
+        ip: req.connection?.remoteAddress || req.socket?.remoteAddress
+      },
+      serverContext: {
+        nodeEnv: process.env.NODE_ENV,
+        timestamp: new Date().toISOString(),
+        memoryUsage: process.memoryUsage(),
+        uptime: process.uptime()
+      },
+      supabaseStatus: {
+        clientInitialized: !!supabase,
+        url: process.env.NEXT_PUBLIC_SUPABASE_URL ? 'configured' : 'missing',
+        anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'configured' : 'missing'
+      }
     })
 
     return res.status(500).json({
       error: 'Erreur serveur interne',
-      message: 'Une erreur inattendue s\'est produite'
+      message: globalError.message || 'Une erreur inattendue s\'est produite',
+      code: globalError.code,
+      requestId,
+      timestamp: new Date().toISOString(),
+      debugInfo: process.env.NODE_ENV === 'development' ? {
+        stack: globalError.stack,
+        duration: `${duration}ms`
+      } : undefined
     })
   }
 }

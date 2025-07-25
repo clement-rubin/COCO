@@ -1,4 +1,4 @@
-import { logInfo, logError, logDebug } from './logger'
+import { logInfo, logError, logDebug, logHttpError } from './logger'
 import { showRecipeLikeInteractionNotification } from './notificationUtils'
 import { useState, useEffect, useCallback } from 'react'
 
@@ -82,8 +82,22 @@ export const getMultipleRecipesLikesStats = async (recipeIds) => {
  * Ajouter un like à une recette
  */
 export async function addRecipeLike(recipeId, userId, recipe = null, user = null) {
+  const requestId = `add-like-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`
+  const requestDetails = {
+    method: 'POST',
+    url: '/api/recipe-likes',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ recipe_id: recipeId, user_id: userId })
+  }
+
   try {
+    // Validation des paramètres côté client
+    if (!recipeId || !userId) {
+      throw new Error('recipeId et userId sont requis')
+    }
+
     logDebug('Adding like to recipe', {
+      requestId,
       recipeId,
       userId: userId?.substring(0, 8) + '...',
       hasRecipeData: !!recipe,
@@ -102,10 +116,68 @@ export async function addRecipeLike(recipeId, userId, recipe = null, user = null
       })
     })
 
-    const data = await response.json()
+    // Parse response before checking ok status to get error details
+    let data
+    let responseText
+    try {
+      responseText = await response.text()
+      data = responseText ? JSON.parse(responseText) : {}
+    } catch (parseError) {
+      logHttpError('Error parsing response JSON', parseError, requestDetails, {
+        requestId,
+        recipeId,
+        userId: userId?.substring(0, 8) + '...',
+        responseStatus: response.status,
+        responseStatusText: response.statusText,
+        responseText: responseText?.substring(0, 500),
+        responseHeaders: Object.fromEntries(response.headers.entries())
+      })
+      throw new Error('Réponse serveur invalide')
+    }
 
     if (!response.ok) {
-      throw new Error(data.message || `HTTP ${response.status}: ${response.statusText}`)
+      const errorDetails = {
+        requestId,
+        recipeId,
+        userId: userId?.substring(0, 8) + '...',
+        status: response.status,
+        statusText: response.statusText,
+        responseData: data,
+        responseHeaders: Object.fromEntries(response.headers.entries()),
+        requestBody: requestDetails.body,
+        url: response.url,
+        timestamp: new Date().toISOString()
+      }
+
+      logHttpError('API error response when adding like', {
+        name: 'HTTPError',
+        message: data.message || `HTTP ${response.status}: ${response.statusText}`,
+        status: response.status,
+        statusText: response.statusText,
+        code: data.code,
+        requestId: data.requestId,
+        response: response
+      }, requestDetails, errorDetails)
+
+      // Provide more specific error messages based on status code
+      let errorMessage = data.message || `HTTP ${response.status}: ${response.statusText}`
+      
+      if (response.status === 400) {
+        errorMessage = 'Paramètres invalides: ' + errorMessage
+      } else if (response.status === 404) {
+        errorMessage = 'Recette non trouvée'
+      } else if (response.status === 409) {
+        errorMessage = 'Vous avez déjà liké cette recette'
+      } else if (response.status >= 500) {
+        errorMessage = 'Erreur serveur. Veuillez réessayer plus tard.'
+      }
+
+      const error = new Error(errorMessage)
+      error.status = response.status
+      error.code = data.code
+      error.requestId = data.requestId
+      error.response = response
+      throw error
     }
 
     // Déclencher une notification si les données sont disponibles
@@ -127,7 +199,8 @@ export async function addRecipeLike(recipeId, userId, recipe = null, user = null
       recipeId,
       userId: userId?.substring(0, 8) + '...',
       newLikesCount: data.stats?.likes_count,
-      previousCount: recipe?.likes_count || 0
+      previousCount: recipe?.likes_count || 0,
+      requestId: data.requestId
     })
 
     return {
@@ -136,14 +209,38 @@ export async function addRecipeLike(recipeId, userId, recipe = null, user = null
       stats: data.stats
     }
   } catch (error) {
-    logError('Error adding recipe like', error, {
+    // Log complet de l'erreur avec tous les détails
+    logHttpError('Complete error details when adding recipe like', error, requestDetails, {
+      requestId,
       recipeId,
-      userId: userId?.substring(0, 8) + '...'
+      userId: userId?.substring(0, 8) + '...',
+      errorName: error.name,
+      errorMessage: error.message,
+      errorStack: error.stack,
+      status: error.status,
+      code: error.code,
+      requestIdFromError: error.requestId,
+      recipeData: recipe ? {
+        id: recipe.id,
+        title: recipe.title?.substring(0, 50),
+        user_id: recipe.user_id,
+        likes_count: recipe.likes_count
+      } : null,
+      userData: user ? {
+        id: user.id?.substring(0, 8) + '...',
+        username: user.username
+      } : null,
+      timestamp: new Date().toISOString(),
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
+      currentUrl: typeof window !== 'undefined' ? window.location.href : undefined
     })
     
     return {
       success: false,
-      error: error.message
+      error: error.message,
+      status: error.status,
+      code: error.code,
+      requestId: error.requestId || requestId
     }
   }
 }
@@ -152,8 +249,15 @@ export async function addRecipeLike(recipeId, userId, recipe = null, user = null
  * Supprimer un like d'une recette
  */
 export async function removeRecipeLike(recipeId, userId) {
+  const requestId = `remove-like-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`
+  const requestDetails = {
+    method: 'DELETE',
+    url: `/api/recipe-likes?recipe_id=${recipeId}&user_id=${userId}`
+  }
+
   try {
     logDebug('Removing like from recipe', {
+      requestId,
       recipeId,
       userId: userId?.substring(0, 8) + '...'
     })
@@ -162,9 +266,38 @@ export async function removeRecipeLike(recipeId, userId) {
       method: 'DELETE'
     })
 
-    const data = await response.json()
+    let data
+    let responseText
+    try {
+      responseText = await response.text()
+      data = responseText ? JSON.parse(responseText) : {}
+    } catch (parseError) {
+      logHttpError('Error parsing response JSON when removing like', parseError, requestDetails, {
+        requestId,
+        recipeId,
+        userId: userId?.substring(0, 8) + '...',
+        responseStatus: response.status,
+        responseStatusText: response.statusText,
+        responseText: responseText?.substring(0, 500)
+      })
+      throw new Error('Réponse serveur invalide')
+    }
 
     if (!response.ok) {
+      logHttpError('API error response when removing like', {
+        name: 'HTTPError',
+        message: data.message || `HTTP ${response.status}: ${response.statusText}`,
+        status: response.status,
+        statusText: response.statusText,
+        response: response
+      }, requestDetails, {
+        requestId,
+        recipeId,
+        userId: userId?.substring(0, 8) + '...',
+        responseData: data,
+        responseHeaders: Object.fromEntries(response.headers.entries())
+      })
+
       throw new Error(data.message || `HTTP ${response.status}: ${response.statusText}`)
     }
 
@@ -179,9 +312,14 @@ export async function removeRecipeLike(recipeId, userId) {
       stats: data.stats
     }
   } catch (error) {
-    logError('Error removing recipe like', error, {
+    logHttpError('Complete error details when removing recipe like', error, requestDetails, {
+      requestId,
       recipeId,
-      userId: userId?.substring(0, 8) + '...'
+      userId: userId?.substring(0, 8) + '...',
+      errorName: error.name,
+      errorMessage: error.message,
+      errorStack: error.stack,
+      timestamp: new Date().toISOString()
     })
     
     return {
@@ -371,8 +509,15 @@ export function useRecipeLikes(recipeId, initialStats = null) {
       return
     }
 
+    // Validation des paramètres
+    if (!recipeId || !user.id) {
+      setError('Paramètres manquants pour effectuer cette action')
+      return
+    }
+
     const isCurrentlyLiked = stats.user_has_liked
     const action = isCurrentlyLiked ? 'remove' : 'add'
+    const toggleRequestId = `toggle-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`
     
     setOptimisticLoading(true)
     setError(null)
@@ -397,60 +542,69 @@ export function useRecipeLikes(recipeId, initialStats = null) {
     try {
       setLoading(true)
       
-      let response
+      let result
       if (isCurrentlyLiked) {
-        // Unlike: utiliser DELETE
-        response = await fetch(`/api/recipe-likes?recipe_id=${recipeId}&user_id=${user.id}`, {
-          method: 'DELETE'
-        })
+        result = await removeRecipeLike(recipeId, user.id)
       } else {
-        // Like: utiliser POST
-        response = await fetch('/api/recipe-likes', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            recipe_id: recipeId,
-            user_id: user.id
-          })
-        })
+        result = await addRecipeLike(recipeId, user.id, recipeData, user)
       }
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || 'Erreur lors de la mise à jour du like')
+      if (!result.success) {
+        throw new Error(result.error || 'Erreur lors de la mise à jour du like')
       }
-
-      const result = await response.json()
       
-      // Update with real data from server (le compteur est maintenant automatique)
+      // Update with real data from server
       setStats({
-        likes_count: result.recipe?.likes_count || result.stats?.likes_count || stats.likes_count,
+        likes_count: result.stats?.likes_count || stats.likes_count,
         user_has_liked: !isCurrentlyLiked
       })
 
-      // Send notification if liked and not own recipe
-      if (!isCurrentlyLiked && recipeData?.user_id !== user.id) {
-        try {
-          showRecipeLikeInteractionNotification(
-            {
-              ...recipeData,
-              likes_count: result.recipe?.likes_count || result.stats?.likes_count || stats.likes_count
-            },
-            user
-          )
-        } catch (notificationError) {
-          logError('Error showing like notification', notificationError, {
-            recipeId,
-            userId: user.id?.substring(0, 8) + '...'
-          })
-        }
-      }
-
     } catch (err) {
-      logError('Error toggling like', err, {
+      // Log complet de l'erreur dans le hook
+      logHttpError('Complete error details in toggleLike hook', err, {
+        method: action === 'add' ? 'POST' : 'DELETE',
+        url: action === 'add' ? '/api/recipe-likes' : `/api/recipe-likes?recipe_id=${recipeId}&user_id=${user.id}`,
+        action
+      }, {
+        toggleRequestId,
         recipeId,
         userId: user.id?.substring(0, 8) + '...',
-        action
+        action,
+        isCurrentlyLiked,
+        currentStats: stats,
+        recipeData: recipeData ? {
+          id: recipeData.id,
+          title: recipeData.title?.substring(0, 50),
+          user_id: recipeData.user_id,
+          likes_count: recipeData.likes_count
+        } : null,
+        userData: {
+          id: user.id?.substring(0, 8) + '...',
+          username: user.username
+        },
+        errorDetails: {
+          name: err.name,
+          message: err.message,
+          stack: err.stack?.substring(0, 1000),
+          status: err.status,
+          code: err.code,
+          requestId: err.requestId
+        },
+        browserContext: {
+          userAgent: navigator.userAgent,
+          url: window.location.href,
+          timestamp: new Date().toISOString(),
+          viewport: {
+            width: window.innerWidth,
+            height: window.innerHeight
+          }
+        },
+        eventDetails: event ? {
+          type: event.type,
+          target: event.target?.tagName,
+          clientX: event.clientX,
+          clientY: event.clientY
+        } : null
       })
       
       // Revert optimistic update on error
@@ -459,7 +613,17 @@ export function useRecipeLikes(recipeId, initialStats = null) {
         user_has_liked: isCurrentlyLiked
       }))
       
-      setError('Impossible de mettre à jour le like. Réessayez.')
+      // Show more specific error messages
+      let errorMessage = 'Impossible de mettre à jour le like. Réessayez.'
+      if (err.status === 404) {
+        errorMessage = 'Cette recette n\'existe plus.'
+      } else if (err.status === 400) {
+        errorMessage = 'Paramètres invalides. Rechargez la page.'
+      } else if (err.status >= 500) {
+        errorMessage = 'Erreur serveur. Réessayez plus tard.'
+      }
+      
+      setError(errorMessage)
       
       // Show error animation
       if (event?.target) {

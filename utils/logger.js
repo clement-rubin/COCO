@@ -59,7 +59,25 @@ const createLog = (level, type, message, data = {}, error = null) => {
       name: error.name || 'Unknown Error',
       message: error.message || 'No error message',
       stack: error.stack || 'No stack trace',
-      cause: error.cause
+      cause: error.cause,
+      // Capturer des détails supplémentaires pour les erreurs HTTP
+      status: error.status,
+      statusText: error.statusText,
+      code: error.code,
+      requestId: error.requestId,
+      // Capturer les détails de la réponse si disponibles
+      response: error.response ? {
+        status: error.response.status,
+        statusText: error.response.statusText,
+        url: error.response.url,
+        headers: error.response.headers ? Object.fromEntries(error.response.headers.entries?.() || []) : undefined
+      } : undefined,
+      // Capturer les détails de la requête si disponibles
+      request: error.request ? {
+        method: error.request.method,
+        url: error.request.url,
+        headers: error.request.headers
+      } : undefined
     } : null,
     userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Server',
     url: typeof window !== 'undefined' ? window.location.href : 'Server'
@@ -177,6 +195,30 @@ export const logImageProcessing = (action, imageData, processedUrl, data = {}) =
   })
 }
 
+// Fonction spécialisée pour les erreurs de fetch/HTTP
+export const logHttpError = (message, error, requestDetails = {}, data = {}) => {
+  const enhancedData = {
+    ...data,
+    requestDetails: {
+      method: requestDetails.method,
+      url: requestDetails.url,
+      headers: requestDetails.headers,
+      body: requestDetails.body ? 
+        (typeof requestDetails.body === 'string' ? requestDetails.body.substring(0, 500) : 'Non-string body') 
+        : undefined,
+      ...requestDetails
+    },
+    errorContext: {
+      type: 'HTTP_ERROR',
+      timestamp: new Date().toISOString(),
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Server',
+      url: typeof window !== 'undefined' ? window.location.href : 'Server'
+    }
+  }
+  
+  return createLog(LOG_LEVELS.ERROR, LOG_TYPES.FRONTEND_ERROR, message, enhancedData, error)
+}
+
 // Fonctions utilitaires
 export const getLogs = (filter = {}) => {
   let filteredLogs = [...logHistory]
@@ -231,6 +273,7 @@ export default {
   warning: logWarning,
   error: logError,
   critical: logCritical,
+  httpError: logHttpError,
   userInteraction: logUserInteraction,
   apiCall: logApiCall,
   componentEvent: logComponentEvent,
