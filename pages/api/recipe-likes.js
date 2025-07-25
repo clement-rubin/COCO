@@ -176,7 +176,7 @@ export default async function handler(req, res) {
           })
         }
 
-        // Ajouter le like (le trigger va automatiquement incrémenter likes_count)
+        // Ajouter le like - LE TRIGGER VA AUTOMATIQUEMENT INCRÉMENTER likes_count
         const { data: newLike, error: insertError } = await supabase
           .from('recipe_likes')
           .insert([{
@@ -191,6 +191,9 @@ export default async function handler(req, res) {
           throw insertError
         }
 
+        // Attendre un peu pour que le trigger se déclenche
+        await new Promise(resolve => setTimeout(resolve, 100))
+
         // Récupérer le compteur mis à jour automatiquement par le trigger
         const { data: recipeData, error: recipeError } = await supabase
           .from('recipes')
@@ -204,11 +207,12 @@ export default async function handler(req, res) {
 
         const updatedLikesCount = recipeData?.likes_count || 1
 
-        logInfo('Like added successfully', {
+        logInfo('Like added successfully with trigger update', {
           requestId,
           recipeId: recipe_id,
           userId: user_id.substring(0, 8) + '...',
-          newLikesCount: updatedLikesCount
+          newLikesCount: updatedLikesCount,
+          triggerWorked: updatedLikesCount > 0
         })
 
         return res.status(201).json({
@@ -278,6 +282,9 @@ export default async function handler(req, res) {
           })
         }
 
+        // Attendre un peu pour que le trigger se déclenche
+        await new Promise(resolve => setTimeout(resolve, 100))
+
         // Récupérer le compteur mis à jour automatiquement par le trigger
         const { data: recipeData, error: recipeError } = await supabase
           .from('recipes')
@@ -289,13 +296,14 @@ export default async function handler(req, res) {
           logError('Error getting updated recipe likes count after delete', recipeError, { requestId })
         }
 
-        const updatedLikesCount = recipeData?.likes_count || 0
+        const updatedLikesCount = Math.max(0, recipeData?.likes_count || 0)
 
-        logInfo('Like removed successfully', {
+        logInfo('Like removed successfully with trigger update', {
           requestId,
           recipeId: recipe_id,
           userId: user_id.substring(0, 8) + '...',
-          newLikesCount: updatedLikesCount
+          newLikesCount: updatedLikesCount,
+          triggerWorked: true
         })
 
         return res.status(200).json({

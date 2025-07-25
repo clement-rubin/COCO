@@ -572,61 +572,76 @@ export function formatLikeCount(count) {
  * @returns {Object} Actionable insights
  */
 export function getLikeInsights(content) {
-  const { likes = [], views = 0, shares = 0 } = content
+  const { likes_count = 0, created_at, category } = content
   
-  const analytics = getLikeAnalytics(likes)
-  const velocity = calculateLikeVelocity(likes)
-  const engagementRate = views > 0 ? (likes.length / views) * 100 : 0
-  
-  const insights = []
-  
-  if (analytics.trend === 'rising') {
-    insights.push({
-      type: 'positive',
-      message: 'Votre contenu gagne en popularité ! 📈',
-      suggestion: 'Continuez sur cette lancée en publiant du contenu similaire.'
-    })
+  const insights = {
+    performance: 'normal',
+    recommendations: [],
+    metrics: {
+      likes_per_day: 0,
+      engagement_rate: 0,
+      category_performance: 'average'
+    }
   }
   
-  if (velocity > 5) {
-    insights.push({
-      type: 'positive',
-      message: 'Excellent taux d\'engagement ! 🔥',
-      suggestion: 'Votre contenu est viral. Profitez-en pour interagir avec votre audience.'
-    })
+  // Calculate likes per day since creation
+  if (created_at) {
+    const createdDate = new Date(created_at)
+    const now = new Date()
+    const daysSinceCreation = Math.max(1, Math.floor((now - createdDate) / (1000 * 60 * 60 * 24)))
+    insights.metrics.likes_per_day = (likes_count / daysSinceCreation).toFixed(2)
   }
   
-  if (engagementRate < 2) {
-    insights.push({
-      type: 'improvement',
-      message: 'Le taux d\'engagement pourrait être amélioré 🎯',
-      suggestion: 'Essayez des titres plus accrocheurs ou publiez à des heures différentes.'
-    })
+  // Performance analysis
+  if (likes_count === 0) {
+    insights.performance = 'needs_attention'
+    insights.recommendations.push('Améliorer la présentation visuelle')
+    insights.recommendations.push('Ajouter des hashtags pertinents')
+  } else if (likes_count < 5) {
+    insights.performance = 'growing'
+    insights.recommendations.push('Partager sur les réseaux sociaux')
+  } else if (likes_count >= 20) {
+    insights.performance = 'excellent'
+    insights.recommendations.push('Créer plus de contenu similaire')
   }
   
-  if (analytics.peakHour !== null) {
-    insights.push({
-      type: 'info',
-      message: `Votre audience est plus active à ${analytics.peakHour}h ⏰`,
-      suggestion: 'Planifiez vos publications à cette heure pour plus d\'impact.'
+  return insights
+}
+
+/**
+ * Fonction pour vérifier et corriger les incohérences de compteurs
+ */
+export async function verifyAndFixLikesCounts() {
+  try {
+    const response = await fetch('/api/admin/verify-likes-counts', {
+      method: 'POST'
     })
-  }
-  
-  return {
-    analytics,
-    velocity,
-    engagementRate: Math.round(engagementRate * 10) / 10,
-    insights
+    
+    if (!response.ok) {
+      throw new Error('Erreur lors de la vérification des compteurs')
+    }
+    
+    const result = await response.json()
+    
+    logInfo('Likes counts verification completed', {
+      fixed: result.fixed,
+      errors: result.errors
+    })
+    
+    return result
+  } catch (error) {
+    logError('Error verifying likes counts', error)
+    return { success: false, error: error.message }
   }
 }
 
 /**
- * Hook React amélioré pour gérer les likes et commentaires d'une recette
+ * Hook React pour gérer les statistiques d'engagement d'une recette
  */
-export function useRecipeEngagement(recipeId, initialStats = null) {
+export function useRecipeEngagementStats(recipeId) {
   const [loading, setLoading] = useState(false)
-  const [stats, setStats] = useState(initialStats || { 
-    likes_count: 0, 
+  const [stats, setStats] = useState({
+    likes_count: 0,
     user_has_liked: false,
     comments_count: 0,
     engagement_score: 0
