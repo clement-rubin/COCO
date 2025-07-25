@@ -11,18 +11,23 @@ import { useState, useEffect, useCallback } from 'react'
  */
 export async function getRecipeLikesStats(recipeId) {
   try {
-    const response = await fetch(`/api/recipe-likes?recipe_id=${recipeId}`)
+    // Récupérer directement depuis la table recipes avec le compteur automatique
+    const [recipeResponse, userLikeResponse] = await Promise.all([
+      fetch(`/api/recipes/${recipeId}/stats`),
+      fetch(`/api/recipe-likes/user-status?recipe_id=${recipeId}`)
+    ])
     
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+    if (!recipeResponse.ok) {
+      throw new Error(`HTTP ${recipeResponse.status}: ${recipeResponse.statusText}`)
     }
     
-    const data = await response.json()
+    const recipeData = await recipeResponse.json()
+    const userLikeData = userLikeResponse.ok ? await userLikeResponse.json() : { user_has_liked: false }
     
     return {
       success: true,
-      likes_count: data.likes_count || 0,
-      user_has_liked: data.user_has_liked || false
+      likes_count: recipeData.likes_count || 0,
+      user_has_liked: userLikeData.user_has_liked || false
     }
   } catch (error) {
     logError('Error getting recipe likes stats', error, { recipeId })
@@ -417,10 +422,10 @@ export function useRecipeLikes(recipeId, initialStats = null) {
 
       const result = await response.json()
       
-      // Update with real data from server
+      // Update with real data from server (le compteur est maintenant automatique)
       setStats({
-        likes_count: result.stats?.likes_count || 0,
-        user_has_liked: result.stats?.user_has_liked || false
+        likes_count: result.recipe?.likes_count || result.stats?.likes_count || stats.likes_count,
+        user_has_liked: !isCurrentlyLiked
       })
 
       // Send notification if liked and not own recipe
@@ -429,7 +434,7 @@ export function useRecipeLikes(recipeId, initialStats = null) {
           showRecipeLikeInteractionNotification(
             {
               ...recipeData,
-              likes_count: result.stats?.likes_count || 0
+              likes_count: result.recipe?.likes_count || result.stats?.likes_count || stats.likes_count
             },
             user
           )

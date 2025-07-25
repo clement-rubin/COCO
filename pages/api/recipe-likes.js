@@ -176,7 +176,7 @@ export default async function handler(req, res) {
           })
         }
 
-        // Ajouter le like
+        // Ajouter le like (le trigger va automatiquement incrémenter likes_count)
         const { data: newLike, error: insertError } = await supabase
           .from('recipe_likes')
           .insert([{
@@ -191,26 +191,36 @@ export default async function handler(req, res) {
           throw insertError
         }
 
-        // Obtenir les nouvelles statistiques
-        const { data: stats, error: statsError } = await supabase.rpc('get_recipe_likes_stats', {
-          recipe_uuid: recipe_id
-        })
+        // Récupérer le compteur mis à jour automatiquement par le trigger
+        const { data: recipeData, error: recipeError } = await supabase
+          .from('recipes')
+          .select('likes_count')
+          .eq('id', recipe_id)
+          .single()
 
-        if (statsError) {
-          logError('Error getting updated stats after like', statsError, { requestId })
+        if (recipeError) {
+          logError('Error getting updated recipe likes count', recipeError, { requestId })
         }
+
+        const updatedLikesCount = recipeData?.likes_count || 1
 
         logInfo('Like added successfully', {
           requestId,
           recipeId: recipe_id,
           userId: user_id.substring(0, 8) + '...',
-          newLikesCount: stats?.likes_count || 'unknown'
+          newLikesCount: updatedLikesCount
         })
 
         return res.status(201).json({
           success: true,
           like: newLike,
-          stats: stats || { likes_count: 1, user_has_liked: true }
+          recipe: {
+            likes_count: updatedLikesCount
+          },
+          stats: {
+            likes_count: updatedLikesCount,
+            user_has_liked: true
+          }
         })
 
       } catch (error) {
@@ -268,25 +278,35 @@ export default async function handler(req, res) {
           })
         }
 
-        // Obtenir les nouvelles statistiques
-        const { data: stats, error: statsError } = await supabase.rpc('get_recipe_likes_stats', {
-          recipe_uuid: recipe_id
-        })
+        // Récupérer le compteur mis à jour automatiquement par le trigger
+        const { data: recipeData, error: recipeError } = await supabase
+          .from('recipes')
+          .select('likes_count')
+          .eq('id', recipe_id)
+          .single()
 
-        if (statsError) {
-          logError('Error getting updated stats after unlike', statsError, { requestId })
+        if (recipeError) {
+          logError('Error getting updated recipe likes count after delete', recipeError, { requestId })
         }
+
+        const updatedLikesCount = recipeData?.likes_count || 0
 
         logInfo('Like removed successfully', {
           requestId,
           recipeId: recipe_id,
           userId: user_id.substring(0, 8) + '...',
-          newLikesCount: stats?.likes_count || 'unknown'
+          newLikesCount: updatedLikesCount
         })
 
         return res.status(200).json({
           success: true,
-          stats: stats || { likes_count: 0, user_has_liked: false }
+          recipe: {
+            likes_count: updatedLikesCount
+          },
+          stats: {
+            likes_count: updatedLikesCount,
+            user_has_liked: false
+          }
         })
 
       } catch (error) {
