@@ -164,6 +164,10 @@ export async function addRecipeLike(recipeId, userId, recipe = null, user = null
       
       if (response.status === 400) {
         errorMessage = 'Paramètres invalides: ' + errorMessage
+      } else if (response.status === 401) {
+        errorMessage = 'Authentification requise. Veuillez vous reconnecter.'
+      } else if (response.status === 403) {
+        errorMessage = 'Accès refusé. Vous n\'avez pas les permissions nécessaires.'
       } else if (response.status === 404) {
         errorMessage = 'Recette non trouvée'
       } else if (response.status === 409) {
@@ -228,7 +232,7 @@ export async function addRecipeLike(recipeId, userId, recipe = null, user = null
       } : null,
       userData: user ? {
         id: user.id?.substring(0, 8) + '...',
-        username: user.username
+        display_name: user.display_name || user.user_metadata?.display_name || 'Unknown'
       } : null,
       timestamp: new Date().toISOString(),
       userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined,

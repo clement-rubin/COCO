@@ -20,7 +20,8 @@ export default async function handler(req, res) {
       method: req.method,
       query: req.query,
       hasBody: !!req.body,
-      userAgent: req.headers['user-agent']?.substring(0, 100)
+      userAgent: req.headers['user-agent']?.substring(0, 100),
+      hasAuth: !!req.headers.authorization
     })
 
     // Validation de la connexion Supabase
@@ -186,8 +187,21 @@ export default async function handler(req, res) {
           userId: user_id.substring(0, 8) + '...'
         })
 
+        // Create a new Supabase client with service role for admin operations
+        const { createClient } = await import('@supabase/supabase-js')
+        const supabaseAdmin = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL,
+          process.env.SUPABASE_SERVICE_ROLE_KEY,
+          {
+            auth: {
+              autoRefreshToken: false,
+              persistSession: false
+            }
+          }
+        )
+
         // Vérifier que la recette existe
-        const { data: recipe, error: recipeError } = await supabase
+        const { data: recipe, error: recipeError } = await supabaseAdmin
           .from('recipes')
           .select('id, title, user_id')
           .eq('id', recipe_id)
@@ -206,7 +220,7 @@ export default async function handler(req, res) {
         }
 
         // Vérifier si le like existe déjà
-        const { data: existingLike, error: checkError } = await supabase
+        const { data: existingLike, error: checkError } = await supabaseAdmin
           .from('recipe_likes')
           .select('id')
           .eq('recipe_id', recipe_id)
@@ -231,8 +245,8 @@ export default async function handler(req, res) {
           })
         }
 
-        // Ajouter le like
-        const { data: newLike, error: insertError } = await supabase
+        // Ajouter le like using admin client
+        const { data: newLike, error: insertError } = await supabaseAdmin
           .from('recipe_likes')
           .insert([{
             recipe_id,
@@ -243,7 +257,23 @@ export default async function handler(req, res) {
           .single()
 
         if (insertError) {
-          logError('Error inserting like', insertError, { requestId })
+          logError('Error inserting like with admin client', insertError, { 
+            requestId,
+            errorCode: insertError.code,
+            errorMessage: insertError.message,
+            errorDetails: insertError.details,
+            errorHint: insertError.hint
+          })
+          
+          // Return more specific error based on the error code
+          if (insertError.code === '23505') {
+            return res.status(409).json({
+              error: 'Like déjà existant',
+              message: 'Vous avez déjà liké cette recette',
+              requestId
+            })
+          }
+          
           throw insertError
         }
 
@@ -251,7 +281,7 @@ export default async function handler(req, res) {
         await new Promise(resolve => setTimeout(resolve, 100))
 
         // Récupérer le compteur mis à jour automatiquement par le trigger
-        const { data: recipeData, error: recipeError2 } = await supabase
+        const { data: recipeData, error: recipeError2 } = await supabaseAdmin
           .from('recipes')
           .select('likes_count')
           .eq('id', recipe_id)
@@ -264,7 +294,7 @@ export default async function handler(req, res) {
 
         const updatedLikesCount = recipeData?.likes_count || 1
 
-        logInfo('Like added successfully with trigger update', {
+        logInfo('Like added successfully with admin client', {
           requestId,
           recipeId: recipe_id,
           userId: user_id.substring(0, 8) + '...',
@@ -287,7 +317,7 @@ export default async function handler(req, res) {
 
       } catch (error) {
         // Log détaillé de l'erreur d'ajout de like
-        logError('Complete error details when adding like in API', error, {
+        logError('Complete error details when adding like in API with admin client', error, {
           requestId,
           recipeId: recipe_id,
           userId: user_id?.substring(0, 8) + '...',
@@ -316,7 +346,8 @@ export default async function handler(req, res) {
           supabaseContext: {
             timestamp: new Date().toISOString(),
             operation: 'INSERT recipe_like',
-            table: 'recipe_likes'
+            table: 'recipe_likes',
+            usingAdminClient: true
           },
           requestContext: {
             method: req.method,
@@ -324,20 +355,15 @@ export default async function handler(req, res) {
               'user-agent': req.headers['user-agent'],
               'content-type': req.headers['content-type'],
               'origin': req.headers.origin,
-              'referer': req.headers.referer
+              'referer': req.headers.referer,
+              'authorization': req.headers.authorization ? 'present' : 'missing'
             },
             body: req.body,
             query: req.query,
             ip: req.connection?.remoteAddress || req.socket?.remoteAddress,
             startTime,
             duration: Date.now() - startTime
-          },
-          recipeContext: recipe ? {
-            id: recipe.id,
-            title: recipe.title,
-            user_id: recipe.user_id,
-            created_at: recipe.created_at
-          } : null
+          }
         })
 
         // Return specific error information
@@ -351,7 +377,8 @@ export default async function handler(req, res) {
           debugInfo: process.env.NODE_ENV === 'development' ? {
             stack: error.stack,
             hint: error.hint,
-            severity: error.severity
+            severity: error.severity,
+            usingAdminClient: true
           } : undefined
         })
       }
@@ -375,7 +402,20 @@ export default async function handler(req, res) {
           userId: user_id.substring(0, 8) + '...'
         })
 
-        const { data: deletedLike, error: deleteError } = await supabase
+        // Create a new Supabase client with service role for admin operations
+        const { createClient } = await import('@supabase/supabase-js')
+        const supabaseAdmin = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL,
+          process.env.SUPABASE_SERVICE_ROLE_KEY,
+          {
+            auth: {
+              autoRefreshToken: false,
+              persistSession: false
+            }
+          }
+        )
+
+        const { data: deletedLike, error: deleteError } = await supabaseAdmin
           .from('recipe_likes')
           .delete()
           .eq('recipe_id', recipe_id)
@@ -383,6 +423,7 @@ export default async function handler(req, res) {
           .select()
 
         if (deleteError) {
+          logError('Error deleting like with admin client', deleteError, { requestId })
           throw deleteError
         }
 
@@ -402,7 +443,7 @@ export default async function handler(req, res) {
         await new Promise(resolve => setTimeout(resolve, 100))
 
         // Récupérer le compteur mis à jour automatiquement par le trigger
-        const { data: recipeData, error: recipeError } = await supabase
+        const { data: recipeData, error: recipeError } = await supabaseAdmin
           .from('recipes')
           .select('likes_count')
           .eq('id', recipe_id)
@@ -414,7 +455,7 @@ export default async function handler(req, res) {
 
         const updatedLikesCount = Math.max(0, recipeData?.likes_count || 0)
 
-        logInfo('Like removed successfully with trigger update', {
+        logInfo('Like removed successfully with admin client', {
           requestId,
           recipeId: recipe_id,
           userId: user_id.substring(0, 8) + '...',
@@ -435,7 +476,7 @@ export default async function handler(req, res) {
 
       } catch (error) {
         // Log détaillé de l'erreur de suppression de like
-        logError('Complete error details when removing like in API', error, {
+        logError('Complete error details when removing like in API with admin client', error, {
           requestId,
           recipeId: recipe_id,
           userId: user_id?.substring(0, 8) + '...',
@@ -455,12 +496,14 @@ export default async function handler(req, res) {
             headers: {
               'user-agent': req.headers['user-agent'],
               'origin': req.headers.origin,
-              'referer': req.headers.referer
+              'referer': req.headers.referer,
+              'authorization': req.headers.authorization ? 'present' : 'missing'
             },
             query: req.query,
             ip: req.connection?.remoteAddress || req.socket?.remoteAddress,
             duration: Date.now() - startTime
-          }
+          },
+          usingAdminClient: true
         })
 
         return res.status(500).json({

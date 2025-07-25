@@ -219,20 +219,43 @@ const RecipeCard = ({
           action: result.stats.user_has_liked ? 'like' : 'unlike',
           newLikesCount: result.stats.likes_count
         })
+      } else {
+        // Handle authentication or other API errors
+        if (result.status === 401 || result.error?.includes('auth')) {
+          // Authentication error - redirect to login
+          const wantsToLogin = window.confirm('Votre session a expiré. Reconnectez-vous pour continuer.')
+          if (wantsToLogin) {
+            router.push('/login?redirect=' + encodeURIComponent(router.asPath))
+          }
+        } else {
+          // Other errors - show error message
+          console.error('Like toggle failed:', result.error)
+        }
       }
     } catch (error) {
       logError('Error toggling like in recipe card', error, {
         recipeId: recipe.id,
-        userId: user?.id
+        userId: user?.id,
+        errorStatus: error.status,
+        errorMessage: error.message
       })
       
-      // Animation d'erreur
-      const likeButton = e.target.closest(`.${styles.likeBtn}`)
-      if (likeButton) {
-        likeButton.style.animation = 'shake 0.5s ease-in-out'
-        setTimeout(() => {
-          if (likeButton) likeButton.style.animation = ''
-        }, 500)
+      // Handle specific error types
+      if (error.status === 401) {
+        // Authentication error
+        const wantsToLogin = window.confirm('Votre session a expiré. Reconnectez-vous pour continuer.')
+        if (wantsToLogin) {
+          router.push('/login?redirect=' + encodeURIComponent(router.asPath))
+        }
+      } else {
+        // Animation d'erreur
+        const likeButton = e.target.closest(`.${styles.likeBtn}`)
+        if (likeButton) {
+          likeButton.style.animation = 'shake 0.5s ease-in-out'
+          setTimeout(() => {
+            if (likeButton) likeButton.style.animation = ''
+          }, 500)
+        }
       }
     } finally {
       setEngagementLoading(false)
