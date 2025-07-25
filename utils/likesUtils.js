@@ -367,7 +367,7 @@ export function useRecipeLikes(recipeId, initialStats = null) {
     }
 
     const isCurrentlyLiked = stats.user_has_liked
-    const action = isCurrentlyLiked ? 'unlike' : 'like'
+    const action = isCurrentlyLiked ? 'remove' : 'add'
     
     setOptimisticLoading(true)
     setError(null)
@@ -392,43 +392,62 @@ export function useRecipeLikes(recipeId, initialStats = null) {
     try {
       setLoading(true)
       
-      // Simulate API call with proper delay
-      await new Promise(resolve => setTimeout(resolve, 300))
-      
-      const response = await fetch('/api/recipes/like', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          recipeId,
-          userId: user.id,
-          action
+      let response
+      if (isCurrentlyLiked) {
+        // Unlike: utiliser DELETE
+        response = await fetch(`/api/recipe-likes?recipe_id=${recipeId}&user_id=${user.id}`, {
+          method: 'DELETE'
         })
-      })
+      } else {
+        // Like: utiliser POST
+        response = await fetch('/api/recipe-likes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            recipe_id: recipeId,
+            user_id: user.id
+          })
+        })
+      }
 
       if (!response.ok) {
-        throw new Error('Erreur lors de la mise à jour du like')
+        const errorData = await response.json()
+        throw new Error(errorData.message || 'Erreur lors de la mise à jour du like')
       }
 
       const result = await response.json()
       
       // Update with real data from server
       setStats({
-        likes_count: result.likes_count,
-        user_has_liked: result.user_has_liked
+        likes_count: result.stats?.likes_count || 0,
+        user_has_liked: result.stats?.user_has_liked || false
       })
 
       // Send notification if liked and not own recipe
       if (!isCurrentlyLiked && recipeData?.user_id !== user.id) {
-        showRecipeLikeInteractionNotification(
-          recipeData,
-          {
-            user_id: user.id,
-            display_name: user.user_metadata?.display_name || user.email?.split('@')[0] || 'Utilisateur'
-          }
-        )
+        try {
+          showRecipeLikeInteractionNotification(
+            {
+              ...recipeData,
+              likes_count: result.stats?.likes_count || 0
+            },
+            user
+          )
+        } catch (notificationError) {
+          logError('Error showing like notification', notificationError, {
+            recipeId,
+            userId: user.id?.substring(0, 8) + '...'
+          })
+        }
       }
 
     } catch (err) {
+      logError('Error toggling like', err, {
+        recipeId,
+        userId: user.id?.substring(0, 8) + '...',
+        action
+      })
+      
       // Revert optimistic update on error
       setStats(prev => ({
         likes_count: prev.likes_count + (isCurrentlyLiked ? 1 : -1),

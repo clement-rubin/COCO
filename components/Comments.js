@@ -117,9 +117,19 @@ export default function Comments({
     }
   }
 
+  const toggleReplies = (commentId) => {
+    setShowReplies(prev => ({
+      ...prev,
+      [commentId]: !prev[commentId]
+    }))
+  }
+
   const submitComment = async () => {
     if (!user) {
-      alert('Connectez-vous pour commenter')
+      const shouldLogin = window.confirm('Connectez-vous pour commenter. Aller à la page de connexion?')
+      if (shouldLogin) {
+        window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname)
+      }
       return
     }
 
@@ -397,6 +407,11 @@ export default function Comments({
           onSubmit={e => { e.preventDefault(); submitComment(); }}
           aria-labelledby="comments-title"
         >
+          <div className={styles.quickCommentPrompt}>
+            <span className={styles.quickCommentIcon}>⚡</span>
+            <span>Astuce: Utilisez le commentaire rapide depuis la page d'accueil !</span>
+          </div>
+          
           <label htmlFor="new-comment" className={styles.visuallyHidden}>Votre commentaire</label>
           <textarea
             id="new-comment"
@@ -445,6 +460,16 @@ export default function Comments({
           }}>
             <span style={{ fontSize: '2rem', display: 'block', marginBottom: '12px' }} aria-hidden="true">🔐</span>
             Connectez-vous pour rejoindre la conversation
+            <div style={{ 
+              marginTop: '16px',
+              padding: '12px 20px',
+              background: 'rgba(251, 146, 60, 0.1)',
+              borderRadius: '12px',
+              border: '2px solid rgba(251, 146, 60, 0.2)',
+              fontSize: '0.9rem'
+            }}>
+              💡 Ou utilisez le <strong>commentaire rapide</strong> depuis la page d'accueil !
+            </div>
           </div>
         </div>
       )}

@@ -102,14 +102,20 @@ export default async function handler(req, res) {
             throw error
           }
 
+          // Assurer une structure cohérente
+          const result = {
+            likes_count: data?.likes_count || 0,
+            user_has_liked: data?.user_has_liked || false
+          }
+
           logInfo('Single recipe likes retrieved', {
             requestId,
             recipeId: recipe_id,
-            likesCount: data?.likes_count || 0,
-            userHasLiked: data?.user_has_liked || false
+            likesCount: result.likes_count,
+            userHasLiked: result.user_has_liked
           })
 
-          return res.status(200).json(data)
+          return res.status(200).json(result)
         } catch (error) {
           logError('Error getting single recipe likes', error, { 
             requestId, 
