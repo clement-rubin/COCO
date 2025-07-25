@@ -22,7 +22,7 @@ export default async function handler(req, res) {
     })
 
     if (req.method === 'GET') {
-      const { recipe_id } = req.query
+      const { recipe_id, count_only } = req.query
 
       if (!recipe_id) {
         return res.status(400).json({
@@ -32,6 +32,26 @@ export default async function handler(req, res) {
       }
 
       try {
+        // Si on demande seulement le compte
+        if (count_only === 'true') {
+          const { count, error: countError } = await supabase
+            .from('comments')
+            .select('*', { count: 'exact', head: true })
+            .eq('recipe_id', recipe_id)
+
+          if (countError) {
+            throw countError
+          }
+
+          logInfo('Comments count retrieved successfully', {
+            requestId,
+            recipeId: recipe_id,
+            commentsCount: count || 0
+          })
+
+          return res.status(200).json({ count: count || 0 })
+        }
+
         // Vérifier d'abord si la table comments existe
         const { data: tableCheck, error: tableError } = await supabase
           .from('comments')

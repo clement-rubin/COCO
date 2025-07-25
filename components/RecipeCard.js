@@ -18,7 +18,8 @@ const RecipeCard = ({
   onDelete, 
   showActions = true,
   defaultCompact = true,
-  showLikes = true // Nouveau prop pour afficher/masquer les likes
+  showLikes = true,
+  showComments = true // Nouveau prop pour afficher/masquer les commentaires
 }) => {
   const router = useRouter()
   const { user } = useAuth()
@@ -28,48 +29,53 @@ const RecipeCard = ({
   const [isDeleting, setIsDeleting] = useState(false)
   const [isCompactMode, setIsCompactMode] = useState(defaultCompact)
   
-  // États pour le système de likes - utiliser les vraies données
-  const [likesStats, setLikesStats] = useState({ 
+  // États pour le système de likes et commentaires - utiliser les vraies données
+  const [engagementStats, setEngagementStats] = useState({ 
     likes_count: recipe.likes_count || 0, 
-    user_has_liked: false 
+    user_has_liked: false,
+    comments_count: 0
   })
-  const [likesLoading, setLikesLoading] = useState(false)
+  const [engagementLoading, setEngagementLoading] = useState(false)
 
   // Defensive programming: ensure recipe exists and has required properties
   if (!recipe) {
     return null;
   }
 
-  // Charger les statistiques de likes au montage du composant
+  // Charger les statistiques d'engagement au montage du composant
   useEffect(() => {
-    if (recipe.id && showLikes) {
-      loadLikesStats()
+    if (recipe.id && (showLikes || showComments)) {
+      loadEngagementStats()
     }
-  }, [recipe.id, showLikes])
+  }, [recipe.id, showLikes, showComments])
 
-  const loadLikesStats = async () => {
+  const loadEngagementStats = async () => {
     try {
-      const result = await getRecipeLikesStats(recipe.id)
+      const { getRecipeEngagementStats } = await import('../utils/likesUtils')
+      const result = await getRecipeEngagementStats(recipe.id)
       if (result.success) {
-        setLikesStats({
+        setEngagementStats({
           likes_count: result.likes_count,
-          user_has_liked: result.user_has_liked
+          user_has_liked: result.user_has_liked,
+          comments_count: result.comments_count
         })
       } else {
         // Fallback sur les données de la recette si l'API échoue
-        setLikesStats({
+        setEngagementStats({
           likes_count: recipe.likes_count || 0,
-          user_has_liked: false
+          user_has_liked: false,
+          comments_count: 0
         })
       }
     } catch (error) {
-      logError('Error loading likes stats for recipe card', error, {
+      logError('Error loading engagement stats for recipe card', error, {
         recipeId: recipe.id
       })
       // Utiliser les données de la recette en fallback
-      setLikesStats({
+      setEngagementStats({
         likes_count: recipe.likes_count || 0,
-        user_has_liked: false
+        user_has_liked: false,
+        comments_count: 0
       })
     }
   }
@@ -142,15 +148,16 @@ const RecipeCard = ({
       return
     }
 
-    if (likesLoading) return
+    if (engagementLoading) return
 
-    setLikesLoading(true)
+    setEngagementLoading(true)
     
     try {
+      const { toggleRecipeLike } = await import('../utils/likesUtils')
       const result = await toggleRecipeLike(
         recipe.id,
         user.id,
-        likesStats.user_has_liked,
+        engagementStats.user_has_liked,
         {
           id: recipe.id,
           title: recipe.title,
@@ -164,10 +171,11 @@ const RecipeCard = ({
       )
 
       if (result.success && result.stats) {
-        setLikesStats({
+        setEngagementStats(prev => ({
+          ...prev,
           likes_count: result.stats.likes_count,
           user_has_liked: result.stats.user_has_liked
-        })
+        }))
 
         // Animation de like améliorée
         if (result.stats.user_has_liked) {
@@ -227,7 +235,7 @@ const RecipeCard = ({
         }, 500)
       }
     } finally {
-      setLikesLoading(false)
+      setEngagementLoading(false)
     }
   }
 
@@ -440,20 +448,20 @@ const RecipeCard = ({
           {/* Bouton de like */
           showLikes && (
             <button 
-              className={`${styles.likeBtn} ${likesStats.user_has_liked ? styles.liked : ''} ${likesLoading ? styles.loading : ''}`}
+              className={`${styles.likeBtn} ${engagementStats.user_has_liked ? styles.liked : ''} ${engagementLoading ? styles.loading : ''}`}
               onClick={toggleLike}
-              disabled={likesLoading}
-              aria-label={likesStats.user_has_liked ? "Retirer des likes" : "Ajouter aux likes"}
-              title={`${likesStats.likes_count} like${likesStats.likes_count > 1 ? 's' : ''}`}
+              disabled={engagementLoading}
+              aria-label={engagementStats.user_has_liked ? "Retirer des likes" : "Ajouter aux likes"}
+              title={`${engagementStats.likes_count} like${engagementStats.likes_count > 1 ? 's' : ''}`}
               style={{
-                background: likesStats.user_has_liked ? 'linear-gradient(135deg, #ef4444, #f59e0b)' : '#fff',
-                color: likesStats.user_has_liked ? '#fff' : '#ef4444',
+                background: engagementStats.user_has_liked ? 'linear-gradient(135deg, #ef4444, #f59e0b)' : '#fff',
+                color: engagementStats.user_has_liked ? '#fff' : '#ef4444',
                 border: 'none',
                 borderRadius: '50%',
                 width: 38,
                 height: 38,
                 fontSize: '1.25rem',
-                boxShadow: likesStats.user_has_liked ? '0 2px 8px #ef444422' : '0 1px 4px #0001',
+                boxShadow: engagementStats.user_has_liked ? '0 2px 8px #ef444422' : '0 1px 4px #0001',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -461,17 +469,49 @@ const RecipeCard = ({
                 transition: 'background 0.2s, color 0.2s'
               }}
             >
-              {likesLoading ? '⏳' : (likesStats.user_has_liked ? '❤️' : '🤍')}
-              {likesStats.likes_count > 0 && (
+              {engagementLoading ? '⏳' : (engagementStats.user_has_liked ? '❤️' : '🤍')}
+              {engagementStats.likes_count > 0 && (
                 <span className={styles.likesCount} style={{
                   marginLeft: 4,
                   fontWeight: 700,
                   fontSize: '0.95rem',
-                  color: likesStats.user_has_liked ? '#fff' : '#ef4444'
-                }}>{likesStats.likes_count}</span>
+                  color: engagementStats.user_has_liked ? '#fff' : '#ef4444'
+                }}>{engagementStats.likes_count}</span>
               )}
             </button>
          ) }
+
+          {/* Bouton de commentaires avec vraies données */}
+          {showComments && engagementStats.comments_count > 0 && (
+            <button 
+              className={styles.commentsBtn}
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigateToRecipe(); }}
+              title={`${engagementStats.comments_count} commentaire${engagementStats.comments_count > 1 ? 's' : ''}`}
+              style={{
+                background: '#fff',
+                color: '#3b82f6',
+                border: 'none',
+                borderRadius: '50%',
+                width: 38,
+                height: 38,
+                fontSize: '1.25rem',
+                boxShadow: '0 1px 4px #0001',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'background 0.2s, color 0.2s'
+              }}
+            >
+              💬
+              <span className={styles.commentsCount} style={{
+                marginLeft: 4,
+                fontWeight: 700,
+                fontSize: '0.95rem',
+                color: '#3b82f6'
+              }}>{engagementStats.comments_count}</span>
+            </button>
+          )}
 
           {/* Actions du propriétaire */}
           {canEdit && (
@@ -554,15 +594,25 @@ const RecipeCard = ({
               })}
             </span>
           )}
-          {/* Affichage compact des likes */}
-          {showLikes && likesStats.likes_count > 0 && (
+          {/* Affichage compact des statistiques d'engagement RÉELLES */}
+          {showLikes && engagementStats.likes_count > 0 && (
             <span className={styles.compactLikes} style={{
               marginLeft: 6,
               color: '#ef4444',
               fontWeight: 600,
               fontSize: '0.95rem'
             }}>
-              • ❤️ {likesStats.likes_count}
+              • ❤️ {engagementStats.likes_count}
+            </span>
+          )}
+          {showComments && engagementStats.comments_count > 0 && (
+            <span className={styles.compactComments} style={{
+              marginLeft: 6,
+              color: '#3b82f6',
+              fontWeight: 600,
+              fontSize: '0.95rem'
+            }}>
+              • 💬 {engagementStats.comments_count}
             </span>
           )}
         </div>
@@ -657,13 +707,22 @@ const RecipeCard = ({
                 </span>
               )}
               
-              {/* Affichage détaillé des likes */}
+              {/* Affichage détaillé des statistiques d'engagement RÉELLES */}
               {showLikes && (
                 <span className={styles.detailedLikes} style={{
                   color: '#ef4444',
                   fontWeight: 600
                 }}>
-                  ❤️ {likesStats.likes_count} like{likesStats.likes_count > 1 ? 's' : ''}
+                  ❤️ {engagementStats.likes_count} like{engagementStats.likes_count > 1 ? 's' : ''}
+                </span>
+              )}
+              
+              {showComments && (
+                <span className={styles.detailedComments} style={{
+                  color: '#3b82f6',
+                  fontWeight: 600
+                }}>
+                  💬 {engagementStats.comments_count} commentaire{engagementStats.comments_count > 1 ? 's' : ''}
                 </span>
               )}
             </div>
@@ -690,7 +749,127 @@ const RecipeCard = ({
           </div>
         )}
       </div>
+      
+      {/* Actions flottantes avec vraies données */}
+      <div className={styles.cardActions} style={{
+        position: 'absolute',
+        bottom: 12,
+        right: 16,
+        display: 'flex',
+        gap: '10px',
+        zIndex: 4
+      }}>
+        {/* Bouton de like avec vraies données */}
+        {showLikes && (
+          <button 
+            className={`${styles.likeBtn} ${engagementStats.user_has_liked ? styles.liked : ''} ${engagementLoading ? styles.loading : ''}`}
+            onClick={toggleLike}
+            disabled={engagementLoading}
+            aria-label={engagementStats.user_has_liked ? "Retirer des likes" : "Ajouter aux likes"}
+            title={`${engagementStats.likes_count} like${engagementStats.likes_count > 1 ? 's' : ''}`}
+            style={{
+              background: engagementStats.user_has_liked ? 'linear-gradient(135deg, #ef4444, #f59e0b)' : '#fff',
+              color: engagementStats.user_has_liked ? '#fff' : '#ef4444',
+              border: 'none',
+              borderRadius: '50%',
+              width: 38,
+              height: 38,
+              fontSize: '1.25rem',
+              boxShadow: engagementStats.user_has_liked ? '0 2px 8px #ef444422' : '0 1px 4px #0001',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'background 0.2s, color 0.2s'
+            }}
+          >
+            {engagementLoading ? '⏳' : (engagementStats.user_has_liked ? '❤️' : '🤍')}
+            {engagementStats.likes_count > 0 && (
+              <span className={styles.likesCount} style={{
+                marginLeft: 4,
+                fontWeight: 700,
+                fontSize: '0.95rem',
+                color: engagementStats.user_has_liked ? '#fff' : '#ef4444'
+              }}>{engagementStats.likes_count}</span>
+            )}
+          </button>
+        )}
 
+        {/* Bouton de commentaires avec vraies données */}
+        {showComments && engagementStats.comments_count > 0 && (
+          <button 
+            className={styles.commentsBtn}
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigateToRecipe(); }}
+            title={`${engagementStats.comments_count} commentaire${engagementStats.comments_count > 1 ? 's' : ''}`}
+            style={{
+              background: '#fff',
+              color: '#3b82f6',
+              border: 'none',
+              borderRadius: '50%',
+              width: 38,
+              height: 38,
+              fontSize: '1.25rem',
+              boxShadow: '0 1px 4px #0001',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'background 0.2s, color 0.2s'
+            }}
+          >
+            💬
+            <span className={styles.commentsCount} style={{
+              marginLeft: 4,
+              fontWeight: 700,
+              fontSize: '0.95rem',
+              color: '#3b82f6'
+            }}>{engagementStats.comments_count}</span>
+          </button>
+        )}
+
+        {/* Actions du propriétaire */}
+        {canEdit && (
+          <div className={styles.ownerActions} style={{ display: 'flex', gap: 6 }}>
+            <button 
+              className={styles.editBtn}
+              onClick={e => { e.preventDefault(); e.stopPropagation(); onEdit && onEdit(recipe.id); }}
+              title="Modifier la recette"
+              aria-label="Modifier cette recette"
+              style={{
+                background: '#f3f4f6',
+                border: 'none',
+                borderRadius: '50%',
+                width: 32,
+                height: 32,
+                fontSize: '1.1rem',
+                color: '#3b82f6',
+                cursor: 'pointer'
+              }}
+            >
+              ✏️
+            </button>
+            <button 
+              className={styles.deleteBtn}
+              onClick={e => { e.preventDefault(); e.stopPropagation(); onDelete && onDelete(recipe.id); }}
+              title="Supprimer la recette"
+              aria-label="Supprimer cette recette"
+              style={{
+                background: '#f3f4f6',
+                border: 'none',
+                borderRadius: '50%',
+                width: 32,
+                height: 32,
+                fontSize: '1.1rem',
+                color: '#ef4444',
+                cursor: 'pointer'
+              }}
+            >
+              🗑️
+            </button>
+          </div>
+        )}
+      </div>
+      
       {/* Responsive et hover amélioré */}
       <style jsx>{`
         @media (max-width: 480px) {

@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { useAuth } from './AuthContext'
 import { logUserInteraction, logError, logInfo, logDebug } from '../utils/logger'
 import { showRecipeLikeInteractionNotification } from '../utils/notificationUtils'
+import { getMultipleRecipesEngagementStats } from '../utils/likesUtils'
 import styles from '../styles/AddictiveFeed.module.css'
 import { supabase } from '../lib/supabase'
 
@@ -49,13 +50,18 @@ export default function AddictiveFeed() {
         const recipesData = await response.json()
         
         if (recipesData && recipesData.length > 0) {
+          // Charger les vraies statistiques d'engagement
+          const recipeIds = recipesData.map(r => r.id)
+          const engagementStats = await getMultipleRecipesEngagementStats(recipeIds)
+          
           logInfo('Public recipes loaded successfully', {
             userId: user.id,
             recipesCount: recipesData.length,
+            hasEngagementStats: engagementStats.success,
             component: 'AddictiveFeed'
           })
           
-          const formattedRecipes = recipesData.map(recipe => formatRecipeData(recipe))
+          const formattedRecipes = recipesData.map(recipe => formatRecipeData(recipe, engagementStats.data[recipe.id]))
           setRecipes(formattedRecipes)
           setPage(1)
           setError(null)
@@ -85,8 +91,13 @@ export default function AddictiveFeed() {
         }
         
         const recipesData = await response.json()
+        
+        // Charger les statistiques même pour les utilisateurs non connectés
+        const recipeIds = recipesData.map(r => r.id)
+        const engagementStats = await getMultipleRecipesEngagementStats(recipeIds)
+        
         const formattedRecipes = recipesData.map(recipe => {
-          const formatted = formatRecipeData(recipe)
+          const formatted = formatRecipeData(recipe, engagementStats.data[recipe.id])
           formatted.isPreview = true
           return formatted
         })
@@ -163,7 +174,11 @@ export default function AddictiveFeed() {
         return
       }
       
-      const formattedRecipes = recipesData.map(recipe => formatRecipeData(recipe))
+      // Charger les vraies statistiques d'engagement pour les nouvelles recettes
+      const newRecipeIds = recipesData.map(r => r.id)
+      const engagementStats = await getMultipleRecipesEngagementStats(newRecipeIds)
+      
+      const formattedRecipes = recipesData.map(recipe => formatRecipeData(recipe, engagementStats.data[recipe.id]))
       setRecipes(prev => [...prev, ...formattedRecipes])
       setPage(prev => prev + 1)
     } catch (err) {
@@ -178,8 +193,8 @@ export default function AddictiveFeed() {
     }
   }
 
-  // Helper to format recipe data from API to feed format - VERSION SIMPLIFIÉE
-  const formatRecipeData = (apiRecipe) => {
+  // Helper to format recipe data from API to feed format - VERSION AVEC VRAIES DONNÉES
+  const formatRecipeData = (apiRecipe, engagementStats = null) => {
     let imageUrl = '/placeholder-recipe.jpg'
     
     if (apiRecipe.image) {
@@ -192,16 +207,6 @@ export default function AddictiveFeed() {
             (processedUrl.startsWith('data:image/') || processedUrl.startsWith('http'))) {
           imageUrl = processedUrl
         }
-        
-        logDebug('AddictiveFeed: Image processed', {
-          recipeId: apiRecipe.id,
-          originalImageType: typeof apiRecipe.image,
-          isArray: Array.isArray(apiRecipe.image),
-          arrayLength: Array.isArray(apiRecipe.image) ? apiRecipe.image.length : null,
-          processedUrl: imageUrl?.substring(0, 50) + '...',
-          isDataUrl: imageUrl?.startsWith('data:'),
-          isFallback: imageUrl === '/placeholder-recipe.jpg'
-        })
       } catch (err) {
         logError('Error processing image in AddictiveFeed', err, { 
           recipeId: apiRecipe.id,
@@ -213,22 +218,30 @@ export default function AddictiveFeed() {
       }
     }
 
-    // Utiliser le nom d'auteur de la recette (qui vient maintenant du profil)
+    // Utiliser le nom d'auteur de la recette
     const authorName = apiRecipe.author || 'Chef Anonyme'
     const authorEmoji = getAuthorEmoji(apiRecipe.category)
     
-    // Simplification : calcul basique sans détails techniques
-    const likesBase = 25 + Math.floor(Math.random() * 50)
-    const commentsBase = 2 + Math.floor(Math.random() * 8)
+    // UTILISER LES VRAIES DONNÉES D'ENGAGEMENT
+    const realLikes = engagementStats?.likes_count || apiRecipe.likes_count || 0
+    const realComments = engagementStats?.comments_count || 0
     
     const created = apiRecipe.created_at ? new Date(apiRecipe.created_at) : new Date()
     const timeAgo = getTimeAgo(created)
+    
+    logDebug('Formatting recipe with real engagement data', {
+      recipeId: apiRecipe.id,
+      realLikes,
+      realComments,
+      hasEngagementStats: !!engagementStats,
+      userHasLiked: engagementStats?.user_has_liked || false
+    })
     
     return {
       id: apiRecipe.id,
       user: {
         id: apiRecipe.user_id || `author_${authorName.replace(/\s+/g, '_').toLowerCase()}`,
-        name: authorName, // Utilise directement le nom d'auteur de la recette
+        name: authorName,
         avatar: authorEmoji,
         verified: Math.random() > 0.7 // Simplification du système de vérification
       },
@@ -238,12 +251,12 @@ export default function AddictiveFeed() {
         description: apiRecipe.description || "Une délicieuse recette à découvrir !",
         image: imageUrl,
         category: apiRecipe.category || 'Autre',
-        // Suppression des métadonnées complexes (difficulty, prepTime, cookTime, portions)
-        likes: likesBase,
-        comments: commentsBase
+        // VRAIES DONNÉES AU LIEU DE VALEURS ALÉATOIRES
+        likes: realLikes,
+        comments: realComments,
+        user_has_liked: engagementStats?.user_has_liked || false
       },
       timeAgo,
-      // Suppression des ingrédients et instructions pour simplifier
       isQuickShare: apiRecipe.form_mode === 'quick' || apiRecipe.category === 'Photo partagée'
     }
   }
@@ -265,29 +278,6 @@ export default function AddictiveFeed() {
     return emojiMap[category] || '👨‍🍳'
   }
   
-  const generateTags = (category, title) => {
-    const tags = []
-    if (category) {
-      tags.push(`#${category.toLowerCase().replace(/\s+/g, '')}`)
-    }
-    
-    // Extract potential keywords from title
-    const keywords = title.toLowerCase().split(/\s+/)
-    const commonTags = ['fait-maison', 'cuisine', 'recette', 'délice']
-    
-    // Add a common tag
-    tags.push(`#${commonTags[Math.floor(Math.random() * commonTags.length)]}`)
-    
-    // Add a tag from the title if it's long enough
-    keywords.forEach(word => {
-      if (word.length > 4 && !tags.includes(`#${word}`)) {
-        tags.push(`#${word}`)
-      }
-    })
-    
-    return tags.slice(0, 4) // Limit to 4 tags
-  }
-  
   const getTimeAgo = (date) => {
     const now = new Date()
     const diffMs = now - date
@@ -302,7 +292,7 @@ export default function AddictiveFeed() {
     return 'à l\'instant'
   }
 
-  // Actions utilisateur
+  // Actions utilisateur - MISE À JOUR POUR SYNCHRONISER AVEC LA BASE
   const toggleLike = useCallback(async (recipeId) => {
     if (!user) {
       const wantsToLogin = window.confirm('Connectez-vous pour aimer cette recette. Aller à la page de connexion?')
@@ -313,12 +303,13 @@ export default function AddictiveFeed() {
     }
     
     const recipe = recipes.find(r => r.id === recipeId)
-    const isLiking = !userActions.likes.has(recipeId)
+    const isCurrentlyLiked = recipe?.recipe?.user_has_liked || userActions.likes.has(recipeId)
     
+    // Mise à jour optimiste de l'UI
     setUserActions(prev => {
       const newLikes = new Set(prev.likes)
       
-      if (isLiking) {
+      if (!isCurrentlyLiked) {
         newLikes.add(recipeId)
         
         // Déclencher une notification pour le propriétaire de la recette
@@ -328,7 +319,7 @@ export default function AddictiveFeed() {
               id: recipe.recipe.id,
               title: recipe.recipe.title,
               image: recipe.recipe.image,
-              likes_count: recipe.recipe.likes_count || 0 // Inclure le nombre de likes réels
+              likes_count: recipe.recipe.likes + 1
             },
             {
               user_id: user.id,
@@ -337,7 +328,7 @@ export default function AddictiveFeed() {
           )
         }
         
-        // Animation de like simple
+        // Animation de like
         const heart = document.createElement('div')
         heart.innerHTML = '❤️'
         heart.style.cssText = `
@@ -360,31 +351,77 @@ export default function AddictiveFeed() {
         newLikes.delete(recipeId)
       }
       
-      try {
-        localStorage.setItem('userLikedRecipes', JSON.stringify([...newLikes]))
-      } catch (err) {
-        console.error('Failed to save likes to localStorage', err)
-      }
-      
       return { ...prev, likes: newLikes }
     })
     
+    // Mise à jour de l'UI immédiate
     setRecipes(prev => prev.map(recipe => {
       if (recipe.id === recipeId) {
         return {
           ...recipe,
           recipe: {
             ...recipe.recipe,
-            likes: recipe.recipe.likes + (isLiking ? 1 : -1)
+            likes: recipe.recipe.likes + (isCurrentlyLiked ? -1 : 1),
+            user_has_liked: !isCurrentlyLiked
           }
         }
       }
       return recipe
     }))
+
+    // Appel à l'API pour synchroniser avec la base de données
+    try {
+      const { toggleRecipeLike } = await import('../utils/likesUtils')
+      const result = await toggleRecipeLike(recipeId, user.id, isCurrentlyLiked)
+      
+      if (!result.success) {
+        // Reverser les changements optimistes si l'API échoue
+        setUserActions(prev => {
+          const newLikes = new Set(prev.likes)
+          if (isCurrentlyLiked) {
+            newLikes.add(recipeId)
+          } else {
+            newLikes.delete(recipeId)
+          }
+          return { ...prev, likes: newLikes }
+        })
+        
+        setRecipes(prev => prev.map(recipe => {
+          if (recipe.id === recipeId) {
+            return {
+              ...recipe,
+              recipe: {
+                ...recipe.recipe,
+                likes: recipe.recipe.likes + (isCurrentlyLiked ? 1 : -1),
+                user_has_liked: isCurrentlyLiked
+              }
+            }
+          }
+          return recipe
+        }))
+      } else {
+        // Mettre à jour avec les vraies données de l'API
+        setRecipes(prev => prev.map(recipe => {
+          if (recipe.id === recipeId) {
+            return {
+              ...recipe,
+              recipe: {
+                ...recipe.recipe,
+                likes: result.stats?.likes_count || recipe.recipe.likes,
+                user_has_liked: result.stats?.user_has_liked !== undefined ? result.stats.user_has_liked : !isCurrentlyLiked
+              }
+            }
+          }
+          return recipe
+        }))
+      }
+    } catch (error) {
+      logError('Error syncing like with database', error, { recipeId, userId: user.id })
+    }
     
     logUserInteraction('TOGGLE_LIKE', 'addictive-feed', {
       recipeId,
-      action: isLiking ? 'like' : 'unlike',
+      action: isCurrentlyLiked ? 'unlike' : 'like',
       userId: user?.id
     })
   }, [user, router, userActions.likes, recipes])
@@ -452,7 +489,7 @@ export default function AddictiveFeed() {
             </div>
           </div>
           <div className={styles.festinText}>
-            <span>Préparation du festin culinaire...</span>
+            <span>Chargement des vraies données culinaires...</span>
           </div>
         </div>
         <style jsx>{`
@@ -666,7 +703,7 @@ export default function AddictiveFeed() {
         <div className={styles.feedInfoIcon}>🍳</div>
         <div className={styles.feedInfoText}>
           <strong>Feed communautaire</strong>
-          <p>Découvrez toutes les recettes de COCO</p>
+          <p>Recettes avec vraies statistiques d'engagement</p>
         </div>
         <button 
           onClick={() => router.push('/amis')} 
@@ -746,13 +783,13 @@ export default function AddictiveFeed() {
                 {post.isQuickShare && <span className={styles.metaItem}>📸 Partage express</span>}
               </div>
 
-              {/* Actions - GARDÉ SIMPLE */}
+              {/* Actions avec vraies données */}
               <div className={styles.recipeActions}>
                 <button
                   onClick={() => toggleLike(post.id)}
-                  className={`${styles.actionBtn} ${userActions.likes.has(post.id) ? styles.liked : ''}`}
+                  className={`${styles.actionBtn} ${post.recipe.user_has_liked || userActions.likes.has(post.id) ? styles.liked : ''}`}
                 >
-                  {userActions.likes.has(post.id) ? '❤️' : '🤍'} {post.recipe.likes}
+                  {post.recipe.user_has_liked || userActions.likes.has(post.id) ? '❤️' : '🤍'} {post.recipe.likes}
                 </button>
                 
                 <button 
@@ -778,7 +815,7 @@ export default function AddictiveFeed() {
       {loadingMore && (
         <div className={styles.loadingMore}>
           <div className={styles.spinner}></div>
-          <p>Chargement de nouvelles recettes de vos amis...</p>
+          <p>Chargement de nouvelles recettes avec statistiques réelles...</p>
         </div>
       )}
 

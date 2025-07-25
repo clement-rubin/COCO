@@ -218,6 +218,118 @@ export async function toggleRecipeLike(recipeId, userId, currentlyLiked, recipe 
 }
 
 /**
+ * Obtenir les statistiques complètes de likes et commentaires pour une recette
+ */
+export async function getRecipeEngagementStats(recipeId) {
+  try {
+    const [likesResult, commentsResult] = await Promise.all([
+      getRecipeLikesStats(recipeId),
+      getRecipeCommentsStats(recipeId)
+    ])
+    
+    return {
+      success: true,
+      likes_count: likesResult.success ? likesResult.likes_count : 0,
+      user_has_liked: likesResult.success ? likesResult.user_has_liked : false,
+      comments_count: commentsResult.success ? commentsResult.comments_count : 0,
+      engagement_score: (likesResult.likes_count || 0) + (commentsResult.comments_count || 0) * 2
+    }
+  } catch (error) {
+    logError('Error getting recipe engagement stats', error, { recipeId })
+    return {
+      success: false,
+      likes_count: 0,
+      user_has_liked: false,
+      comments_count: 0,
+      engagement_score: 0,
+      error: error.message
+    }
+  }
+}
+
+/**
+ * Obtenir les statistiques de commentaires pour une recette
+ */
+export async function getRecipeCommentsStats(recipeId) {
+  try {
+    const response = await fetch(`/api/comments?recipe_id=${recipeId}&count_only=true`)
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+    }
+    
+    const data = await response.json()
+    
+    return {
+      success: true,
+      comments_count: Array.isArray(data) ? data.length : (data.count || 0)
+    }
+  } catch (error) {
+    logError('Error getting recipe comments stats', error, { recipeId })
+    return {
+      success: false,
+      comments_count: 0,
+      error: error.message
+    }
+  }
+}
+
+/**
+ * Obtenir les statistiques d'engagement pour plusieurs recettes
+ */
+export async function getMultipleRecipesEngagementStats(recipeIds) {
+  if (!recipeIds || recipeIds.length === 0) {
+    return { success: true, data: {} }
+  }
+
+  try {
+    // Charger les likes
+    const likesResult = await getMultipleRecipesLikesStats(recipeIds)
+    
+    // Charger les commentaires pour chaque recette
+    const commentsPromises = recipeIds.map(async (recipeId) => {
+      const commentsResult = await getRecipeCommentsStats(recipeId)
+      return {
+        recipeId,
+        comments_count: commentsResult.success ? commentsResult.comments_count : 0
+      }
+    })
+    
+    const commentsResults = await Promise.all(commentsPromises)
+    
+    // Combiner les données
+    const combinedData = {}
+    recipeIds.forEach(recipeId => {
+      const likesData = likesResult.data[recipeId] || { likes_count: 0, user_has_liked: false }
+      const commentsData = commentsResults.find(c => c.recipeId === recipeId) || { comments_count: 0 }
+      
+      combinedData[recipeId] = {
+        likes_count: likesData.likes_count,
+        user_has_liked: likesData.user_has_liked,
+        comments_count: commentsData.comments_count,
+        engagement_score: likesData.likes_count + (commentsData.comments_count * 2)
+      }
+    })
+    
+    return {
+      success: true,
+      data: combinedData
+    }
+  } catch (error) {
+    logError('Error getting multiple recipes engagement stats', error, {
+      recipeIds: recipeIds.slice(0, 5),
+      recipeIdsCount: recipeIds.length
+    })
+    
+    return {
+      success: false,
+      error: error.message,
+      data: {}
+    }
+  }
+}
+
+/**
  * Hook React pour gérer les likes d'une recette
  */
 export function useRecipeLikes(recipeId, initialStats = null) {
@@ -481,5 +593,169 @@ export function getLikeInsights(content) {
     velocity,
     engagementRate: Math.round(engagementRate * 10) / 10,
     insights
+  }
+}
+
+/**
+ * Hook React amélioré pour gérer les likes et commentaires d'une recette
+ */
+export function useRecipeEngagement(recipeId, initialStats = null) {
+  const [loading, setLoading] = useState(false)
+  const [stats, setStats] = useState(initialStats || { 
+    likes_count: 0, 
+    user_has_liked: false,
+    comments_count: 0,
+    engagement_score: 0
+  })
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    if (recipeId) {
+      loadEngagementStats()
+    }
+  }, [recipeId])
+
+  const loadEngagementStats = async () => {
+    setLoading(true)
+    try {
+      const result = await getRecipeEngagementStats(recipeId)
+      if (result.success) {
+        setStats(result)
+        setError(null)
+      } else {
+        setError(result.error || 'Erreur lors du chargement des statistiques')
+      }
+    } catch (err) {
+      setError('Erreur lors du chargement des statistiques')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return {
+    loading,
+    stats,
+    error
+  }
+}
+
+/**
+ * Obtenir les statistiques de partage pour une recette
+ */
+export async function getRecipeSharesStats(recipeId) {
+  try {
+    const response = await fetch(`/api/shares?recipe_id=${recipeId}&count_only=true`)
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+    }
+    
+    const data = await response.json()
+    
+    return {
+      success: true,
+      shares_count: Array.isArray(data) ? data.length : (data.count || 0)
+    }
+  } catch (error) {
+    logError('Error getting recipe shares stats', error, { recipeId })
+    return {
+      success: false,
+      shares_count: 0,
+      error: error.message
+    }
+  }
+}
+
+/**
+ * Obtenir les statistiques d'engagement complètes pour une recette
+ */
+export async function getRecipeFullEngagementStats(recipeId) {
+  try {
+    const [likesStats, commentsStats, sharesStats] = await Promise.all([
+      getRecipeLikesStats(recipeId),
+      getRecipeCommentsStats(recipeId),
+      getRecipeSharesStats(recipeId)
+    ])
+    
+    return {
+      success: true,
+      likes_count: likesStats.success ? likesStats.likes_count : 0,
+      user_has_liked: likesStats.success ? likesStats.user_has_liked : false,
+      comments_count: commentsStats.success ? commentsStats.comments_count : 0,
+      shares_count: sharesStats.success ? sharesStats.shares_count : 0,
+      engagement_score: (likesStats.likes_count || 0) + (commentsStats.comments_count || 0) * 2 + (sharesStats.shares_count || 0) * 3
+    }
+  } catch (error) {
+    logError('Error getting recipe full engagement stats', error, { recipeId })
+    return {
+      success: false,
+      likes_count: 0,
+      user_has_liked: false,
+      comments_count: 0,
+      shares_count: 0,
+      engagement_score: 0,
+      error: error.message
+    }
+  }
+}
+
+/**
+ * Obtenir les statistiques d'engagement pour plusieurs recettes (version complète)
+ */
+export async function getMultipleRecipesFullEngagementStats(recipeIds) {
+  if (!recipeIds || recipeIds.length === 0) {
+    return { success: true, data: {} }
+  }
+
+  try {
+    // Charger les likes
+    const likesResult = await getMultipleRecipesLikesStats(recipeIds)
+    
+    // Charger les commentaires et partages pour chaque recette
+    const engagementPromises = recipeIds.map(async (recipeId) => {
+      const [commentsResult, sharesResult] = await Promise.all([
+        getRecipeCommentsStats(recipeId),
+        getRecipeSharesStats(recipeId)
+      ])
+      
+      return {
+        recipeId,
+        comments_count: commentsResult.success ? commentsResult.comments_count : 0,
+        shares_count: sharesResult.success ? sharesResult.shares_count : 0
+      }
+    })
+    
+    const engagementResults = await Promise.all(engagementPromises)
+    
+    // Combiner les données
+    const combinedData = {}
+    recipeIds.forEach(recipeId => {
+      const likesData = likesResult.data[recipeId] || { likes_count: 0, user_has_liked: false }
+      const engagementData = engagementResults.find(e => e.recipeId === recipeId) || { comments_count: 0, shares_count: 0 }
+      
+      combinedData[recipeId] = {
+        likes_count: likesData.likes_count,
+        user_has_liked: likesData.user_has_liked,
+        comments_count: engagementData.comments_count,
+        shares_count: engagementData.shares_count,
+        engagement_score: likesData.likes_count + (engagementData.comments_count * 2) + (engagementData.shares_count * 3)
+      }
+    })
+    
+    return {
+      success: true,
+      data: combinedData
+    }
+  } catch (error) {
+    logError('Error getting multiple recipes full engagement stats', error, {
+      recipeIds: recipeIds.slice(0, 5),
+      recipeIdsCount: recipeIds.length
+    })
+    
+    return {
+      success: false,
+      error: error.message,
+      data: {}
+    }
   }
 }
