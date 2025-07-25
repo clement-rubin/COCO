@@ -118,13 +118,13 @@ export default async function handler(req, res) {
             .select('id')
             .eq('weekly_contest_id', weeklyContest.id)
             .eq('voter_id', user_id)
-            .maybeSingle() // Use maybeSingle instead of single to avoid 406 error
+            .limit(1) // CORRECTION: Utiliser limit(1) au lieu de maybeSingle()
 
-          if (voteError && voteError.code !== 'PGRST116') {
+          if (voteError) {
             logWarning('Error checking user vote', voteError, { requestId })
           }
 
-          hasUserVoted = !!userVote
+          hasUserVoted = !!(userVote && userVote.length > 0) // CORRECTION: Vérifier la longueur du tableau
         }
 
         // Enrichir les candidats

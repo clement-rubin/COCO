@@ -105,6 +105,39 @@ export async function addRecipeLike(recipeId, userId, recipe = null, user = null
       currentLikesCount: recipe?.likes_count || 0
     })
 
+    // Vérifier d'abord si le like existe déjà - CORRECTION ICI
+    const { data: existingLike, error: checkError } = await supabase
+      .from('recipe_likes')
+      .select('id')
+      .eq('recipe_id', recipeId)
+      .eq('user_id', userId)
+      .maybeSingle() // Utiliser maybeSingle au lieu de single
+
+    if (checkError && checkError.code !== 'PGRST116') {
+      logError('Error checking existing like', checkError, { requestId })
+      throw checkError
+    }
+
+    if (existingLike) {
+      logInfo('Like already exists', {
+        requestId,
+        recipeId,
+        userId: userId.substring(0, 8) + '...'
+      })
+      
+      // Retourner les stats actuelles au lieu d'une erreur
+      const currentStats = await getRecipeLikesStats(recipeId)
+      return {
+        success: true,
+        like: existingLike,
+        stats: {
+          likes_count: currentStats.likes_count,
+          user_has_liked: true
+        },
+        message: 'Like déjà existant'
+      }
+    }
+
     const response = await fetch('/api/recipe-likes', {
       method: 'POST',
       headers: {

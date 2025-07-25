@@ -219,20 +219,20 @@ export default async function handler(req, res) {
           throw recipeError
         }
 
-        // Vérifier si le like existe déjà
+        // Vérifier si le like existe déjà - CORRECTION
         const { data: existingLike, error: checkError } = await supabaseAdmin
           .from('recipe_likes')
           .select('id')
           .eq('recipe_id', recipe_id)
           .eq('user_id', user_id)
-          .single()
+          .limit(1) // Utiliser limit(1) au lieu de single() pour éviter 406
 
-        if (checkError && checkError.code !== 'PGRST116') {
+        if (checkError) {
           logError('Error checking existing like', checkError, { requestId })
           throw checkError
         }
 
-        if (existingLike) {
+        if (existingLike && existingLike.length > 0) {
           logInfo('Like already exists', {
             requestId,
             recipeId: recipe_id,

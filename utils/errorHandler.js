@@ -149,7 +149,7 @@ const USER_FRIENDLY_MESSAGES = {
   '23514': 'Données non valides pour cette opération.',
   '42P01': 'Table non trouvée - le système est en cours d\'initialisation.',
   'PGRST301': 'Requête mal formée. Veuillez réessayer.',
-  '406': 'Format de requête non acceptable.',
+  '406': 'Format de requête non acceptable - veuillez réessayer.',
   '409': 'Conflit - cette relation existe déjà.',
 
   // Erreurs spécifiques aux contraintes d'amitié
