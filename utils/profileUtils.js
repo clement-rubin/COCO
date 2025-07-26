@@ -995,4 +995,4 @@ export async function getMutualFriendsCount(userId1, userId2) {
     return 0;
   }
 }
-}
+

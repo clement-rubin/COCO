@@ -1064,4 +1064,3 @@ export async function canManuallyUnlockTrophy(userId, trophyId) {
     return { canUnlock: false, progress: 0, reason: 'Erreur lors de la vérification' }
   }
 }
-}
