@@ -67,21 +67,51 @@ export async function safeCountRecipeLikes(recipeId) {
  * @returns {Promise<{likes_count: number, user_has_liked: boolean}>}
  */
 export async function safeGetRecipeLikesStats(recipeId, userId = null) {
+  if (!recipeId) {
+    return { likes_count: 0, user_has_liked: false }
+  }
+
   try {
-    const [likesCount, userHasLiked] = await Promise.all([
-      safeCountRecipeLikes(recipeId),
-      userId ? safeCheckUserLike(recipeId, userId) : Promise.resolve(false)
-    ])
+    // Importer supabase et logError depuis les autres fichiers
+    const { supabase } = await import('../lib/supabase')
+    const { logError } = await import('./logger')
+
+    // Compter les likes totaux
+    const { count, error: countError } = await supabase
+      .from('recipe_likes')
+      .select('*', { count: 'exact', head: true })
+      .eq('recipe_id', recipeId)
+
+    if (countError) {
+      logError('Error counting recipe likes safely', countError, { recipeId })
+      return { likes_count: 0, user_has_liked: false }
+    }
+
+    const likesCount = count || 0
+    let userHasLiked = false
+
+    // Vérifier si l'utilisateur a liké (si connecté)
+    if (userId) {
+      const { data: userLike, error: userError } = await supabase
+        .from('recipe_likes')
+        .select('id')
+        .eq('recipe_id', recipeId)
+        .eq('user_id', userId)
+        .limit(1)
+
+      if (!userError && userLike && userLike.length > 0) {
+        userHasLiked = true
+      }
+    }
 
     return {
       likes_count: likesCount,
       user_has_liked: userHasLiked
     }
+
   } catch (err) {
-    logError('Error getting recipe likes stats safely', err, { recipeId, userId })
-    return {
-      likes_count: 0,
-      user_has_liked: false
-    }
+    const { logError } = await import('./logger')
+    logError('Exception getting recipe likes stats safely', err, { recipeId, userId })
+    return { likes_count: 0, user_has_liked: false }
   }
 }

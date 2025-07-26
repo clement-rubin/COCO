@@ -11,7 +11,9 @@ import {
   getMultipleRecipesLikesStats, 
   addRecipeLike, 
   removeRecipeLike,
-  useRecipeLikes 
+  useRecipeLikes,
+  logSocialInteraction,
+  logCommentAction
 } from '../utils/likesUtils'
 import { 
   showRecipeLikedNotification, 
@@ -303,9 +305,17 @@ export default function TestCommunityLikes() {
       return
     }
 
-    addLog('info', '💬 Test d\'intégration avec les commentaires...')
+    addLog('info', '💬 Test d\'intégration avancé avec les commentaires...')
 
     try {
+      // Log de l'action d'intégration
+      logCommentAction('integration_test', {
+        targetId: selectedPost.id,
+        targetType: 'recipe',
+        userId: user?.id || 'test-user',
+        testType: 'notification_integration'
+      })
+
       // Déclencher une notification de commentaire test
       showRecipeCommentNotification(
         selectedPost,
@@ -315,15 +325,52 @@ export default function TestCommunityLikes() {
         },
         {
           id: Date.now(),
-          text: 'Ceci est un commentaire de test pour vérifier l\'intégration likes/commentaires!'
+          text: 'Test d\'intégration likes/commentaires avec logging détaillé! 🔄',
+          created_at: new Date().toISOString()
         }
       )
 
-      addLog('info', '✅ Test d\'intégration commentaires réussi')
+      // Log du succès avec métriques
+      logSocialInteraction('comment', 'integration_test', {
+        targetId: selectedPost.id,
+        targetType: 'recipe',
+        userId: user?.id || 'test-user',
+        success: true,
+        duration: 0,
+        likes_count: likesData[selectedPost.id]?.likes_count || 0,
+        comments_count: 1, // Test comment
+        engagement_score: (likesData[selectedPost.id]?.likes_count || 0) + 2
+      })
+
+      addLog('info', '✅ Test d\'intégration commentaires réussi avec logging détaillé', {
+        postId: selectedPost.id.substring(0, 8),
+        postTitle: selectedPost.title.substring(0, 30),
+        currentLikes: likesData[selectedPost.id]?.likes_count || 0,
+        integrationFeatures: [
+          'notification_system',
+          'logging_detailed',
+          'metrics_tracking',
+          'error_handling'
+        ]
+      })
       setTestResults(prev => ({ ...prev, commentsIntegration: 'success' }))
 
     } catch (error) {
-      addLog('error', '❌ Erreur lors du test d\'intégration', error)
+      logSocialInteraction('comment', 'integration_test', {
+        targetId: selectedPost.id,
+        targetType: 'recipe',
+        userId: user?.id || 'test-user',
+        success: false,
+        error: error.message,
+        duration: 0
+      })
+
+      addLog('error', '❌ Erreur lors du test d\'intégration commentaires', {
+        error: error.message,
+        postId: selectedPost.id.substring(0, 8),
+        errorType: error.name,
+        stack: error.stack?.substring(0, 300)
+      })
       setTestResults(prev => ({ ...prev, commentsIntegration: 'error' }))
     }
   }
@@ -563,27 +610,44 @@ export default function TestCommunityLikes() {
                 {logs.map((log) => (
                   <div
                     key={log.id}
-                    className={`p-3 rounded text-sm border-l-4 ${
+                    className={`p-3 rounded text-sm border-l-4 transition-all duration-200 ${
                       log.type === 'error' ? 'bg-red-50 border-red-500 text-red-800' :
                       log.type === 'warning' ? 'bg-yellow-50 border-yellow-500 text-yellow-800' :
                       'bg-blue-50 border-blue-500 text-blue-800'
                     }`}
                   >
-                    <div className="flex justify-between items-start">
-                      <span className="font-mono text-xs text-gray-500">{log.timestamp}</span>
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${
-                        log.type === 'error' ? 'bg-red-200 text-red-800' :
-                        log.type === 'warning' ? 'bg-yellow-200 text-yellow-800' :
-                        'bg-blue-200 text-blue-800'
-                      }`}>
-                        {log.type.toUpperCase()}
+                    <div className="flex justify-between items-start mb-2">
+                      <span className="font-mono text-xs text-gray-500 bg-white px-2 py-1 rounded">
+                        {log.timestamp}
                       </span>
+                      <div className="flex items-center space-x-2">
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${
+                          log.type === 'error' ? 'bg-red-200 text-red-800' :
+                          log.type === 'warning' ? 'bg-yellow-200 text-yellow-800' :
+                          'bg-blue-200 text-blue-800'
+                        }`}>
+                          {log.type.toUpperCase()}
+                        </span>
+                        {log.data && (
+                          <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded">
+                            DÉTAILS
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <p className="mt-1 font-medium">{log.message}</p>
+                    <p className="font-medium mb-2 leading-relaxed">{log.message}</p>
                     {log.data && (
-                      <pre className="mt-2 text-xs bg-gray-100 p-2 rounded overflow-auto max-h-32">
-                        {log.data}
-                      </pre>
+                      <details className="mt-3 border-t pt-2">
+                        <summary className="cursor-pointer text-xs font-medium text-gray-600 hover:text-gray-800 flex items-center">
+                          <span className="mr-2">🔍</span>
+                          Données techniques et métriques (cliquer pour afficher)
+                        </summary>
+                        <div className="mt-2 bg-white rounded border">
+                          <pre className="text-xs p-3 overflow-auto max-h-48 leading-relaxed">
+                            {log.data}
+                          </pre>
+                        </div>
+                      </details>
                     )}
                   </div>
                 ))}
@@ -716,13 +780,24 @@ export default function TestCommunityLikes() {
 
           {/* Info panel */}
           <div className="mt-8 bg-blue-50 rounded-lg p-6">
-            <h3 className="font-semibold text-blue-800 mb-3">ℹ️ Informations de Test</h3>
-            <div className="text-sm text-blue-700 space-y-2">
-              <p>• <strong>Likes:</strong> Testez l'ajout/suppression de likes sur les vrais posts de la communauté</p>
-              <p>• <strong>Simulation:</strong> Mode automatique pour tester la performance et les notifications</p>
-              <p>• <strong>Intégration:</strong> Test complet avec Comments et SocialFeed</p>
-              <p>• <strong>Temps réel:</strong> Les statistiques se mettent à jour automatiquement</p>
-              <p>• <strong>API:</strong> Utilise les vraies APIs de likes et la base de données Supabase</p>
+            <h3 className="font-semibold text-blue-800 mb-3">ℹ️ Système de Logging Détaillé</h3>
+            <div className="text-sm text-blue-700 space-y-3">
+              <div>
+                <p className="font-medium mb-1">📊 Métriques de Performance:</p>
+                <p>• Temps de réponse API, durée des opérations, métriques d'engagement</p>
+              </div>
+              <div>
+                <p className="font-medium mb-1">🔍 Debugging Avancé:</p>
+                <p>• Stack traces complètes, context détaillé, IDs de requête pour traçabilité</p>
+              </div>
+              <div>
+                <p className="font-medium mb-1">🎯 Tests d'Intégration:</p>
+                <p>• Interactions likes/commentaires, notifications temps réel, SocialFeed complet</p>
+              </div>
+              <div>
+                <p className="font-medium mb-1">⚡ Optimisations:</p>
+                <p>• Updates optimistes, gestion d'erreurs robuste, retry automatique</p>
+              </div>
             </div>
           </div>
         </div>

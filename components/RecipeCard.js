@@ -48,17 +48,27 @@ const RecipeCard = ({
     if (recipe.id && (showLikes || showComments)) {
       loadEngagementStats()
     }
-  }, [recipe.id, showLikes, showComments])
+  }, [recipe.id, showLikes, showComments, user?.id]) // Ajouter user?.id comme dépendance
 
   const loadEngagementStats = async () => {
     try {
+      setEngagementLoading(true) // Ajouter loading state
+      
       const { getRecipeEngagementStats } = await import('../utils/likesUtils')
-      const result = await getRecipeEngagementStats(recipe.id)
+      const result = await getRecipeEngagementStats(recipe.id, user?.id) // Passer l'userId
+      
       if (result.success) {
         setEngagementStats({
           likes_count: result.likes_count,
           user_has_liked: result.user_has_liked,
           comments_count: result.comments_count
+        })
+        
+        logDebug('Engagement stats loaded successfully', {
+          recipeId: recipe.id,
+          likesCount: result.likes_count,
+          userHasLiked: result.user_has_liked,
+          hasUser: !!user?.id
         })
       } else {
         // Fallback sur les données de la recette si l'API échoue
@@ -78,6 +88,8 @@ const RecipeCard = ({
         user_has_liked: false,
         comments_count: 0
       })
+    } finally {
+      setEngagementLoading(false)
     }
   }
 

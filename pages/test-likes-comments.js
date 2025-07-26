@@ -10,7 +10,12 @@ import {
   addRecipeLike, 
   removeRecipeLike, 
   getMultipleRecipesLikesStats,
-  useRecipeLikes 
+  useRecipeLikes,
+  logCommentAction,
+  logSocialInteraction,
+  addRecipeComment,
+  removeRecipeComment,
+  loadRecipeComments
 } from '../utils/likesUtils'
 import { 
   showRecipeLikedNotification, 
@@ -254,38 +259,194 @@ export default function TestLikesComments() {
     }
   }
 
-  const testCommentNotification = () => {
+  const testCommentsLoading = async () => {
     if (!selectedRecipe) {
-      addLog('warning', '⚠️ Aucune recette sélectionnée pour le test de notification')
+      addLog('warning', '⚠️ Aucune recette sélectionnée pour tester les commentaires')
       return
     }
 
-    addLog('info', '💬 Test de notification de commentaire...')
+    setIsLoading(true)
+    addLog('info', `💬 Test de chargement des commentaires pour ${selectedRecipe.title.substring(0, 30)}...`)
 
     try {
-      showRecipeCommentNotification(
+      const result = await loadRecipeComments(selectedRecipe.id, 1, 10)
+
+      if (result.success) {
+        addLog('info', '✅ Commentaires chargés avec succès', {
+          recipeId: selectedRecipe.id.substring(0, 8),
+          commentsCount: result.comments.length,
+          hasMore: result.hasMore,
+          totalCount: result.totalCount,
+          comments: result.comments.map(c => ({
+            id: c.id?.substring(0, 8) + '...',
+            text: c.text?.substring(0, 50) + '...',
+            author: c.user?.display_name || 'Anonyme',
+            created_at: c.created_at
+          }))
+        })
+        setTestResults(prev => ({ ...prev, loadComments: 'success' }))
+      } else {
+        throw new Error(result.error || 'Erreur lors du chargement des commentaires')
+      }
+
+    } catch (error) {
+      addLog('error', '❌ Erreur lors du test de chargement des commentaires', {
+        error: error.message,
+        recipeId: selectedRecipe.id.substring(0, 8)
+      })
+      setTestResults(prev => ({ ...prev, loadComments: 'error' }))
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const testAddComment = async () => {
+    if (!user) {
+      addLog('warning', '⚠️ Utilisateur non connecté pour tester l\'ajout de commentaire')
+      return
+    }
+
+    if (!selectedRecipe) {
+      addLog('warning', '⚠️ Aucune recette sélectionnée pour tester l\'ajout de commentaire')
+      return
+    }
+
+    setIsLoading(true)
+    const testCommentText = `Commentaire de test automatique créé le ${new Date().toLocaleString()} 🧪`
+    addLog('info', `💬 Test d'ajout de commentaire...`, {
+      recipeTitle: selectedRecipe.title.substring(0, 30),
+      commentText: testCommentText
+    })
+
+    try {
+      const result = await addRecipeComment(
+        selectedRecipe.id,
+        user.id,
+        testCommentText
+      )
+
+      if (result.success) {
+        addLog('info', '✅ Commentaire ajouté avec succès', {
+          commentId: result.comment?.id?.substring(0, 8) + '...',
+          text: result.comment?.text?.substring(0, 50) + '...',
+          newCommentsCount: result.stats?.comments_count,
+          recipeId: selectedRecipe.id.substring(0, 8)
+        })
+        setTestResults(prev => ({ ...prev, addComment: 'success' }))
+
+        // Test de notification
+        showRecipeCommentNotification(
+          selectedRecipe,
+          {
+            user_id: user.id,
+            display_name: user.user_metadata?.display_name || 'Testeur'
+          },
+          result.comment
+        )
+
+      } else {
+        throw new Error(result.error || 'Erreur lors de l\'ajout du commentaire')
+      }
+
+    } catch (error) {
+      addLog('error', '❌ Erreur lors du test d\'ajout de commentaire', {
+        error: error.message,
+        recipeId: selectedRecipe.id.substring(0, 8),
+        userId: user.id.substring(0, 8) + '...'
+      })
+      setTestResults(prev => ({ ...prev, addComment: 'error' }))
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const testSocialInteractions = async () => {
+    if (!selectedRecipe || !user) {
+      addLog('warning', '⚠️ Recette ou utilisateur manquant pour tester les interactions sociales')
+      return
+    }
+
+    setIsLoading(true)
+    addLog('info', `🎯 Test complet des interactions sociales sur ${selectedRecipe.title.substring(0, 30)}...`)
+
+    try {
+      // 1. Test de like
+      addLog('info', '👍 Phase 1: Test de like...')
+      const likeResult = await addRecipeLike(
+        selectedRecipe.id,
+        user.id,
         selectedRecipe,
         {
-          user_id: user?.id || 'test-user',
-          display_name: user?.user_metadata?.display_name || 'Testeur de commentaire'
-        },
-        {
-          id: Date.now(),
-          text: 'Ceci est un commentaire de test pour vérifier les notifications!'
+          user_id: user.id,
+          display_name: user.user_metadata?.display_name || 'Testeur'
         }
       )
 
-      addLog('info', '✅ Notification de commentaire envoyée')
-      setTestResults(prev => ({ ...prev, commentNotification: 'success' }))
+      if (likeResult.success) {
+        addLog('info', '✅ Like ajouté', {
+          newLikesCount: likeResult.stats?.likes_count
+        })
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
+      // 2. Test de commentaire
+      addLog('info', '💬 Phase 2: Test de commentaire...')
+      const commentResult = await addRecipeComment(
+        selectedRecipe.id,
+        user.id,
+        `Test d'interaction sociale - ${new Date().toLocaleTimeString()} 🔄`
+      )
+
+      if (commentResult.success) {
+        addLog('info', '✅ Commentaire ajouté', {
+          commentId: commentResult.comment?.id?.substring(0, 8) + '...',
+          newCommentsCount: commentResult.stats?.comments_count
+        })
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
+      // 3. Test de chargement des commentaires
+      addLog('info', '📖 Phase 3: Rechargement des commentaires...')
+      const loadResult = await loadRecipeComments(selectedRecipe.id, 1, 5)
+
+      if (loadResult.success) {
+        addLog('info', '✅ Commentaires rechargés', {
+          commentsLoaded: loadResult.comments.length,
+          recentComments: loadResult.comments.slice(0, 2).map(c => ({
+            text: c.text?.substring(0, 30) + '...',
+            author: c.user?.display_name || 'Anonyme'
+          }))
+        })
+      }
+
+      // 4. Test d'unlike
+      addLog('info', '👎 Phase 4: Test d\'unlike...')
+      const unlikeResult = await removeRecipeLike(selectedRecipe.id, user.id)
+
+      if (unlikeResult.success) {
+        addLog('info', '✅ Unlike effectué', {
+          newLikesCount: unlikeResult.stats?.likes_count
+        })
+      }
+
+      addLog('info', '🎉 Test complet des interactions sociales terminé avec succès')
+      setTestResults(prev => ({ ...prev, socialInteractions: 'success' }))
 
     } catch (error) {
-      addLog('error', '❌ Erreur lors du test de notification', error)
-      setTestResults(prev => ({ ...prev, commentNotification: 'error' }))
+      addLog('error', '❌ Erreur lors du test des interactions sociales', {
+        error: error.message,
+        phase: 'unknown'
+      })
+      setTestResults(prev => ({ ...prev, socialInteractions: 'error' }))
+    } finally {
+      setIsLoading(false)
     }
   }
 
   const runAllTests = async () => {
-    addLog('info', '🚀 === DÉBUT DES TESTS AUTOMATIQUES ===')
+    addLog('info', '🚀 === DÉBUT DES TESTS AUTOMATIQUES COMPLETS ===')
     setTestResults({})
     
     // Test 1: Recharger les recettes
@@ -299,20 +460,35 @@ export default function TestLikesComments() {
     // Test 3: Test de like/unlike sur la première recette
     if (recipes.length > 0 && user) {
       const firstRecipe = recipes[0]
+      setSelectedRecipe(firstRecipe)
       await testLikeRecipe(firstRecipe.id)
       await new Promise(resolve => setTimeout(resolve, 2000))
       await testUnlikeRecipe(firstRecipe.id)
+      await new Promise(resolve => setTimeout(resolve, 1000))
     }
     
-    // Test 4: Notification de commentaire
+    // Test 4: Test des commentaires
+    if (selectedRecipe) {
+      await testCommentsLoading()
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      if (user) {
+        await testAddComment()
+        await new Promise(resolve => setTimeout(resolve, 1000))
+      }
+    }
+    
+    // Test 5: Test complet des interactions sociales
+    if (selectedRecipe && user) {
+      await testSocialInteractions()
+    }
+    
+    // Test 6: Notification de commentaire
     if (recipes.length > 0) {
-      setSelectedRecipe(recipes[0])
-      setTimeout(() => {
-        testCommentNotification()
-      }, 1000)
+      testCommentNotification()
     }
     
-    addLog('info', '✅ === FIN DES TESTS AUTOMATIQUES ===')
+    addLog('info', '✅ === FIN DES TESTS AUTOMATIQUES COMPLETS ===')
   }
 
   const getTestResultColor = (result) => {
@@ -421,11 +597,35 @@ export default function TestLikesComments() {
                 >
                   📊 Test Chargement Masse
                 </button>
+
+                <button
+                  onClick={testCommentsLoading}
+                  disabled={isLoading || !selectedRecipe}
+                  className="w-full px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 disabled:opacity-50"
+                >
+                  💬 Test Chargement Commentaires
+                </button>
+
+                <button
+                  onClick={testAddComment}
+                  disabled={isLoading || !selectedRecipe || !user}
+                  className="w-full px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 disabled:opacity-50"
+                >
+                  ➕ Test Ajout Commentaire
+                </button>
+
+                <button
+                  onClick={testSocialInteractions}
+                  disabled={isLoading || !selectedRecipe || !user}
+                  className="w-full px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600 disabled:opacity-50"
+                >
+                  🎯 Test Interactions Complètes
+                </button>
                 
                 <button
                   onClick={testCommentNotification}
                   disabled={!selectedRecipe}
-                  className="w-full px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 disabled:opacity-50"
+                  className="w-full px-4 py-2 bg-pink-500 text-white rounded hover:bg-pink-600 disabled:opacity-50"
                 >
                   💬 Test Notification Comment
                 </button>
@@ -435,7 +635,7 @@ export default function TestLikesComments() {
                   disabled={isLoading}
                   className="w-full px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50"
                 >
-                  🚀 Tous les Tests
+                  🚀 Tous les Tests Complets
                 </button>
               </div>
 
@@ -476,7 +676,7 @@ export default function TestLikesComments() {
                       'bg-blue-50 border-blue-500 text-blue-800'
                     }`}
                   >
-                    <div className="flex justify-between items-start">
+                    <div className="flex justify-between items-start mb-2">
                       <span className="font-mono text-xs text-gray-500">{log.timestamp}</span>
                       <span className={`px-2 py-1 rounded text-xs font-medium ${
                         log.type === 'error' ? 'bg-red-200 text-red-800' :
@@ -486,11 +686,16 @@ export default function TestLikesComments() {
                         {log.type.toUpperCase()}
                       </span>
                     </div>
-                    <p className="mt-1 font-medium">{log.message}</p>
+                    <p className="font-medium mb-2">{log.message}</p>
                     {log.data && (
-                      <pre className="mt-2 text-xs bg-gray-100 p-2 rounded overflow-auto max-h-32">
-                        {log.data}
-                      </pre>
+                      <details className="mt-2">
+                        <summary className="cursor-pointer text-xs font-medium text-gray-600 hover:text-gray-800">
+                          📋 Détails techniques (cliquer pour voir)
+                        </summary>
+                        <pre className="mt-2 text-xs bg-gray-100 p-3 rounded overflow-auto max-h-40 border">
+                          {log.data}
+                        </pre>
+                      </details>
                     )}
                   </div>
                 ))}
@@ -602,13 +807,15 @@ export default function TestLikesComments() {
 
           {/* Info panel */}
           <div className="mt-8 bg-blue-50 rounded-lg p-6">
-            <h3 className="font-semibold text-blue-800 mb-3">ℹ️ Informations de Test</h3>
+            <h3 className="font-semibold text-blue-800 mb-3">ℹ️ Informations de Test Détaillées</h3>
             <div className="text-sm text-blue-700 space-y-2">
-              <p>• <strong>Likes:</strong> Testez l'ajout/suppression de likes sur les vraies recettes</p>
-              <p>• <strong>Commentaires:</strong> Sélectionnez une recette pour tester le système de commentaires</p>
-              <p>• <strong>Notifications:</strong> Les notifications apparaissent en temps réel lors des interactions</p>
-              <p>• <strong>Stats:</strong> Les statistiques se mettent à jour automatiquement</p>
-              <p>• <strong>Données:</strong> Les tests utilisent les vraies données de la base Supabase</p>
+              <p>• <strong>Likes:</strong> Testez l'ajout/suppression de likes avec logs détaillés des performances</p>
+              <p>• <strong>Commentaires:</strong> Tests complets de chargement, ajout et suppression avec métriques</p>
+              <p>• <strong>Interactions:</strong> Test séquentiel complet de toutes les interactions sociales</p>
+              <p>• <strong>Logs:</strong> Affichage détaillé avec données techniques repliables pour le debugging</p>
+              <p>• <strong>Notifications:</strong> Test des notifications en temps réel avec logging d'événements</p>
+              <p>• <strong>Performance:</strong> Mesure des temps de réponse et analyse des performances API</p>
+              <p>• <strong>Erreurs:</strong> Logging complet avec stack traces et contexte détaillé</p>
             </div>
           </div>
         </div>

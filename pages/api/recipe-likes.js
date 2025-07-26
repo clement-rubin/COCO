@@ -278,38 +278,60 @@ export default async function handler(req, res) {
         }
 
         // Attendre un peu pour que le trigger se déclenche
-        await new Promise(resolve => setTimeout(resolve, 100))
+        await new Promise(resolve => setTimeout(resolve, 200)) // Augmenté à 200ms
 
         // Récupérer le compteur mis à jour automatiquement par le trigger
         const { data: recipeData, error: recipeError2 } = await supabaseAdmin
           .from('recipes')
-          .select('likes_count')
+          .select('likes_count, title')
           .eq('id', recipe_id)
           .single()
 
         if (recipeError2) {
           logError('Error getting updated recipe likes count', recipeError2, { requestId })
-          // Continue with fallback
+          // Continue avec fallback
         }
 
-        const updatedLikesCount = recipeData?.likes_count || 1
+        // CORRECTION: S'assurer que le compteur est correct
+        let finalLikesCount = recipeData?.likes_count || 1
+
+        // Vérification supplémentaire si le trigger n'a pas fonctionné
+        if (!recipeData?.likes_count || recipeData.likes_count === 0) {
+          const { count: manualCount, error: countError } = await supabaseAdmin
+            .from('recipe_likes')
+            .select('*', { count: 'exact', head: true })
+            .eq('recipe_id', recipe_id)
+
+          if (!countError && typeof manualCount === 'number') {
+            finalLikesCount = manualCount
+            
+            // Mettre à jour la table recipes si nécessaire
+            if (finalLikesCount !== recipeData?.likes_count) {
+              await supabaseAdmin
+                .from('recipes')
+                .update({ likes_count: finalLikesCount })
+                .eq('id', recipe_id)
+            }
+          }
+        }
 
         logInfo('Like added successfully with admin client', {
           requestId,
           recipeId: recipe_id,
           userId: user_id.substring(0, 8) + '...',
-          newLikesCount: updatedLikesCount,
-          triggerWorked: updatedLikesCount > 0
+          finalLikesCount,
+          triggerWorked: recipeData?.likes_count > 0,
+          manualCountUsed: !recipeData?.likes_count
         })
 
         return res.status(201).json({
           success: true,
           like: newLike,
           recipe: {
-            likes_count: updatedLikesCount
+            likes_count: finalLikesCount
           },
           stats: {
-            likes_count: updatedLikesCount,
+            likes_count: finalLikesCount,
             user_has_liked: true
           },
           requestId

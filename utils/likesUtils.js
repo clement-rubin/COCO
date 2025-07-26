@@ -1,80 +1,238 @@
-import { logInfo, logError, logDebug, logHttpError } from './logger'
-import { showRecipeLikeInteractionNotification } from './notificationUtils'
-import { useState, useEffect, useCallback } from 'react'
+import { supabase } from '../lib/supabase'
+import { logInfo, logError, logDebug } from './logger'
+import { safeGetRecipeLikesStats } from './safeLikesUtils'
 
 /**
- * Utility functions pour gérer les likes des recettes
+ * Obtenir les statistiques de likes d'une recette avec fallback sécurisé
+ * @param {string} recipeId - ID de la recette
+ * @param {string} userId - ID de l'utilisateur (optionnel)
+ * @returns {Promise<{success: boolean, likes_count: number, user_has_liked: boolean}>}
  */
-
-/**
- * Obtenir les statistiques de likes pour une recette
- */
-export async function getRecipeLikesStats(recipeId) {
+export async function getRecipeLikesStats(recipeId, userId = null) {
   try {
-    // Récupérer directement depuis la table recipes avec le compteur automatique
-    const [recipeResponse, userLikeResponse] = await Promise.all([
-      fetch(`/api/recipes/${recipeId}/stats`),
-      fetch(`/api/recipe-likes/user-status?recipe_id=${recipeId}`)
-    ])
-    
-    if (!recipeResponse.ok) {
-      throw new Error(`HTTP ${recipeResponse.status}: ${recipeResponse.statusText}`)
+    logDebug('Getting recipe likes stats', { recipeId, hasUserId: !!userId })
+
+    // Essayer d'abord l'API optimisée
+    try {
+      let apiUrl = `/api/recipe-likes?recipe_id=${recipeId}`
+      if (userId) {
+        apiUrl += `&user_id=${userId}`
+      }
+
+      const response = await fetch(apiUrl)
+      if (response.ok) {
+        const data = await response.json()
+        logDebug('Recipe likes stats from API', { 
+          recipeId, 
+          likes_count: data.likes_count,
+          user_has_liked: data.user_has_liked 
+        })
+        
+        return {
+          success: true,
+          likes_count: data.likes_count || 0,
+          user_has_liked: data.user_has_liked || false
+        }
+      }
+    } catch (apiError) {
+      logError('API call failed, using fallback', apiError, { recipeId })
     }
-    
-    const recipeData = await recipeResponse.json()
-    const userLikeData = userLikeResponse.ok ? await userLikeResponse.json() : { user_has_liked: false }
+
+    // Fallback vers la méthode sécurisée directe
+    const stats = await safeGetRecipeLikesStats(recipeId, userId)
     
     return {
       success: true,
-      likes_count: recipeData.likes_count || 0,
-      user_has_liked: userLikeData.user_has_liked || false
+      likes_count: stats.likes_count,
+      user_has_liked: stats.user_has_liked
     }
+
   } catch (error) {
-    logError('Error getting recipe likes stats', error, { recipeId })
+    logError('Error getting recipe likes stats', error, { recipeId, userId })
     return {
       success: false,
       likes_count: 0,
-      user_has_liked: false,
-      error: error.message
+      user_has_liked: false
     }
   }
 }
 
 /**
- * Obtenir les statistiques de likes pour plusieurs recettes
+ * Toggle le like d'une recette avec synchronisation complète
+ * @param {string} recipeId - ID de la recette
+ * @param {string} userId - ID de l'utilisateur
+ * @param {boolean} currentlyLiked - État actuel du like
+ * @param {Object} recipeData - Données de la recette (optionnel)
+ * @param {Object} userData - Données de l'utilisateur (optionnel)
+ * @returns {Promise<{success: boolean, stats: Object, error?: string}>}
  */
-export const getMultipleRecipesLikesStats = async (recipeIds) => {
-  if (!recipeIds || recipeIds.length === 0) {
-    return { success: true, data: {} }
-  }
-
+export async function toggleRecipeLike(recipeId, userId, currentlyLiked, recipeData = null, userData = null) {
   try {
-    const response = await fetch('/api/recipe-likes?' + new URLSearchParams({
-      recipe_ids: recipeIds.join(',')
-    }))
+    logInfo('Toggling recipe like', { 
+      recipeId, 
+      userId: userId?.substring(0, 8) + '...',
+      currentlyLiked,
+      action: currentlyLiked ? 'unlike' : 'like'
+    })
+
+    const method = currentlyLiked ? 'DELETE' : 'POST'
+    const apiUrl = currentlyLiked 
+      ? `/api/recipe-likes?recipe_id=${recipeId}&user_id=${userId}`
+      : '/api/recipe-likes'
+
+    const requestBody = currentlyLiked ? undefined : {
+      recipe_id: recipeId,
+      user_id: userId
+    }
+
+    const response = await fetch(apiUrl, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: requestBody ? JSON.stringify(requestBody) : undefined
+    })
+
+    const result = await response.json()
 
     if (!response.ok) {
-      const errorText = await response.text()
-      throw new Error(`HTTP ${response.status}: ${errorText}`)
+      logError('API error toggling like', new Error(result.message || 'API Error'), {
+        recipeId,
+        userId: userId?.substring(0, 8) + '...',
+        status: response.status,
+        error: result
+      })
+      
+      return {
+        success: false,
+        error: result.message || 'Erreur lors de la modification du like',
+        stats: null
+      }
     }
 
-    const data = await response.json()
-    
+    // Récupérer les stats mises à jour
+    const updatedStats = result.stats || {
+      likes_count: result.recipe?.likes_count || 0,
+      user_has_liked: !currentlyLiked
+    }
+
+    logInfo('Recipe like toggled successfully', {
+      recipeId,
+      userId: userId?.substring(0, 8) + '...',
+      newLikesCount: updatedStats.likes_count,
+      newUserHasLiked: updatedStats.user_has_liked
+    })
+
     return {
       success: true,
-      data: data || {}
+      stats: updatedStats,
+      error: null
     }
+
   } catch (error) {
-    logError('Error getting multiple recipes likes stats', error, {
-      recipeIds: recipeIds.slice(0, 5),
-      recipeIdsCount: recipeIds.length
-    })
+    logError('Exception toggling recipe like', error, { recipeId, userId })
     
     return {
       success: false,
-      error: error.message,
-      data: {}
+      error: 'Erreur de connexion lors de la modification du like',
+      stats: null
     }
+  }
+}
+
+/**
+ * Récupérer les statistiques d'engagement complètes (likes + commentaires)
+ * @param {string} recipeId - ID de la recette
+ * @param {string} userId - ID de l'utilisateur (optionnel)
+ * @returns {Promise<{success: boolean, likes_count: number, user_has_liked: boolean, comments_count: number}>}
+ */
+export async function getRecipeEngagementStats(recipeId, userId = null) {
+  try {
+    // Récupérer les likes
+    const likesStats = await getRecipeLikesStats(recipeId, userId)
+    
+    // Pour l'instant, les commentaires sont à 0 (à implémenter plus tard)
+    const commentsCount = 0
+
+    return {
+      success: likesStats.success,
+      likes_count: likesStats.likes_count,
+      user_has_liked: likesStats.user_has_liked,
+      comments_count: commentsCount
+    }
+
+  } catch (error) {
+    logError('Error getting recipe engagement stats', error, { recipeId, userId })
+    return {
+      success: false,
+      likes_count: 0,
+      user_has_liked: false,
+      comments_count: 0
+    }
+  }
+}
+
+/**
+ * Récupérer les statistiques pour plusieurs recettes
+ * @param {Array<string>} recipeIds - Liste des IDs de recettes
+ * @param {string} userId - ID de l'utilisateur (optionnel)
+ * @returns {Promise<{success: boolean, data: Object}>}
+ */
+export async function getMultipleRecipesEngagementStats(recipeIds, userId = null) {
+  try {
+    if (!recipeIds || recipeIds.length === 0) {
+      return { success: true, data: {} }
+    }
+
+    logDebug('Getting multiple recipes engagement stats', { 
+      recipesCount: recipeIds.length,
+      hasUserId: !!userId 
+    })
+
+    // Essayer l'API batch d'abord
+    try {
+      let apiUrl = `/api/recipe-likes?recipe_ids=${recipeIds.join(',')}`
+      if (userId) {
+        apiUrl += `&user_id=${userId}`
+      }
+
+      const response = await fetch(apiUrl)
+      if (response.ok) {
+        const data = await response.json()
+        
+        // Ajouter les commentaires (pour l'instant 0)
+        const enrichedData = {}
+        Object.keys(data).forEach(recipeId => {
+          enrichedData[recipeId] = {
+            ...data[recipeId],
+            comments_count: 0
+          }
+        })
+        
+        return { success: true, data: enrichedData }
+      }
+    } catch (apiError) {
+      logError('Batch API failed, using individual calls', apiError)
+    }
+
+    // Fallback: appels individuels
+    const results = {}
+    const promises = recipeIds.map(async recipeId => {
+      const stats = await getRecipeEngagementStats(recipeId, userId)
+      results[recipeId] = {
+        likes_count: stats.likes_count,
+        user_has_liked: stats.user_has_liked,
+        comments_count: stats.comments_count
+      }
+    })
+
+    await Promise.all(promises)
+
+    return { success: true, data: results }
+
+  } catch (error) {
+    logError('Error getting multiple recipes engagement stats', error)
+    return { success: false, data: {} }
   }
 }
 
@@ -85,63 +243,20 @@ export async function addRecipeLike(recipeId, userId, recipe = null, user = null
   const requestId = `add-like-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`
   const requestDetails = {
     method: 'POST',
-    url: '/api/recipe-likes',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ recipe_id: recipeId, user_id: userId })
+    url: '/api/recipe-likes'
   }
 
   try {
-    // Validation des paramètres côté client
-    if (!recipeId || !userId) {
-      throw new Error('recipeId et userId sont requis')
-    }
-
     logDebug('Adding like to recipe', {
       requestId,
       recipeId,
-      userId: userId?.substring(0, 8) + '...',
-      hasRecipeData: !!recipe,
-      hasUserData: !!user,
-      currentLikesCount: recipe?.likes_count || 0
+      userId: userId?.substring(0, 8) + '...'
     })
-
-    // Vérifier d'abord si le like existe déjà - CORRECTION ICI
-    const { data: existingLike, error: checkError } = await supabase
-      .from('recipe_likes')
-      .select('id')
-      .eq('recipe_id', recipeId)
-      .eq('user_id', userId)
-      .maybeSingle() // Utiliser maybeSingle au lieu de single
-
-    if (checkError && checkError.code !== 'PGRST116') {
-      logError('Error checking existing like', checkError, { requestId })
-      throw checkError
-    }
-
-    if (existingLike) {
-      logInfo('Like already exists', {
-        requestId,
-        recipeId,
-        userId: userId.substring(0, 8) + '...'
-      })
-      
-      // Retourner les stats actuelles au lieu d'une erreur
-      const currentStats = await getRecipeLikesStats(recipeId)
-      return {
-        success: true,
-        like: existingLike,
-        stats: {
-          likes_count: currentStats.likes_count,
-          user_has_liked: true
-        },
-        message: 'Like déjà existant'
-      }
-    }
 
     const response = await fetch('/api/recipe-likes', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         recipe_id: recipeId,
@@ -149,94 +264,35 @@ export async function addRecipeLike(recipeId, userId, recipe = null, user = null
       })
     })
 
-    // Parse response before checking ok status to get error details
     let data
     let responseText
     try {
       responseText = await response.text()
       data = responseText ? JSON.parse(responseText) : {}
     } catch (parseError) {
-      logHttpError('Error parsing response JSON', parseError, requestDetails, {
+      logHttpError('Error parsing response JSON when adding like', parseError, requestDetails, {
         requestId,
         recipeId,
         userId: userId?.substring(0, 8) + '...',
         responseStatus: response.status,
         responseStatusText: response.statusText,
-        responseText: responseText?.substring(0, 500),
-        responseHeaders: Object.fromEntries(response.headers.entries())
+        responseText: responseText?.substring(0, 500)
       })
       throw new Error('Réponse serveur invalide')
     }
 
     if (!response.ok) {
-      const errorDetails = {
-        requestId,
-        recipeId,
-        userId: userId?.substring(0, 8) + '...',
-        status: response.status,
-        statusText: response.statusText,
-        responseData: data,
-        responseHeaders: Object.fromEntries(response.headers.entries()),
-        requestBody: requestDetails.body,
-        url: response.url,
-        timestamp: new Date().toISOString()
-      }
-
-      logHttpError('API error response when adding like', {
-        name: 'HTTPError',
-        message: data.message || `HTTP ${response.status}: ${response.statusText}`,
-        status: response.status,
-        statusText: response.statusText,
-        code: data.code,
-        requestId: data.requestId,
-        response: response
-      }, requestDetails, errorDetails)
-
-      // Provide more specific error messages based on status code
-      let errorMessage = data.message || `HTTP ${response.status}: ${response.statusText}`
-      
-      if (response.status === 400) {
-        errorMessage = 'Paramètres invalides: ' + errorMessage
-      } else if (response.status === 401) {
-        errorMessage = 'Authentification requise. Veuillez vous reconnecter.'
-      } else if (response.status === 403) {
-        errorMessage = 'Accès refusé. Vous n\'avez pas les permissions nécessaires.'
-      } else if (response.status === 404) {
-        errorMessage = 'Recette non trouvée'
-      } else if (response.status === 409) {
-        errorMessage = 'Vous avez déjà liké cette recette'
-      } else if (response.status >= 500) {
-        errorMessage = 'Erreur serveur. Veuillez réessayer plus tard.'
-      }
-
-      const error = new Error(errorMessage)
+      const error = new Error(data.message || `HTTP ${response.status}: ${response.statusText}`)
       error.status = response.status
       error.code = data.code
-      error.requestId = data.requestId
-      error.response = response
+      error.requestId = data.requestId || requestId
       throw error
-    }
-
-    // Déclencher une notification si les données sont disponibles
-    if (recipe && user && recipe.user_id && recipe.user_id !== userId) {
-      try {
-        showRecipeLikeInteractionNotification({
-          ...recipe,
-          likes_count: data.stats?.likes_count || recipe.likes_count || 0
-        }, user)
-      } catch (notificationError) {
-        logError('Error showing like notification', notificationError, {
-          recipeId,
-          userId: userId?.substring(0, 8) + '...'
-        })
-      }
     }
 
     logInfo('Like added successfully', {
       recipeId,
       userId: userId?.substring(0, 8) + '...',
       newLikesCount: data.stats?.likes_count,
-      previousCount: recipe?.likes_count || 0,
       requestId: data.requestId
     })
 
@@ -431,7 +487,14 @@ export async function getRecipeEngagementStats(recipeId) {
  * Obtenir les statistiques de commentaires pour une recette
  */
 export async function getRecipeCommentsStats(recipeId) {
+  const startTime = Date.now()
+  
   try {
+    logCommentAction('load_stats_start', {
+      targetId: recipeId,
+      targetType: 'recipe'
+    })
+    
     const response = await fetch(`/api/comments?recipe_id=${recipeId}&count_only=true`)
     
     if (!response.ok) {
@@ -439,13 +502,38 @@ export async function getRecipeCommentsStats(recipeId) {
     }
     
     const data = await response.json()
+    const endTime = Date.now()
+    const responseTime = endTime - startTime
+    
+    const commentsCount = Array.isArray(data) ? data.length : (data.count || 0)
+    
+    logCommentAction('load_stats_success', {
+      targetId: recipeId,
+      targetType: 'recipe',
+      comments_count: commentsCount,
+      responseTime,
+      dataType: Array.isArray(data) ? 'array' : 'object'
+    })
     
     return {
       success: true,
-      comments_count: Array.isArray(data) ? data.length : (data.count || 0)
+      comments_count: commentsCount
     }
   } catch (error) {
-    logError('Error getting recipe comments stats', error, { recipeId })
+    const endTime = Date.now()
+    const responseTime = endTime - startTime
+    
+    logCommentAction('load_stats_error', {
+      targetId: recipeId,
+      targetType: 'recipe',
+      error: error.message,
+      responseTime,
+      errorName: error.name,
+      errorStack: error.stack?.substring(0, 500)
+    })
+    
+    logError('Error getting recipe comments stats', error, { recipeId, responseTime })
+    
     return {
       success: false,
       comments_count: 0,
@@ -455,363 +543,331 @@ export async function getRecipeCommentsStats(recipeId) {
 }
 
 /**
- * Obtenir les statistiques d'engagement pour plusieurs recettes
+ * Ajouter un commentaire avec logging détaillé
  */
-export async function getMultipleRecipesEngagementStats(recipeIds) {
-  if (!recipeIds || recipeIds.length === 0) {
-    return { success: true, data: {} }
-  }
-
+export async function addRecipeComment(recipeId, userId, text, parentId = null) {
+  const startTime = Date.now()
+  const commentId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`
+  
   try {
-    // Charger les likes
-    const likesResult = await getMultipleRecipesLikesStats(recipeIds)
-    
-    // Charger les commentaires pour chaque recette
-    const commentsPromises = recipeIds.map(async (recipeId) => {
-      const commentsResult = await getRecipeCommentsStats(recipeId)
-      return {
-        recipeId,
-        comments_count: commentsResult.success ? commentsResult.comments_count : 0
-      }
+    logCommentAction('add_comment_start', {
+      commentId,
+      targetId: recipeId,
+      targetType: 'recipe',
+      userId,
+      text,
+      parentId,
+      hasParent: !!parentId
     })
     
-    const commentsResults = await Promise.all(commentsPromises)
+    const response = await fetch('/api/comments', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        recipe_id: recipeId,
+        user_id: userId,
+        text,
+        parent_id: parentId
+      })
+    })
     
-    // Combiner les données
-    const combinedData = {}
-    recipeIds.forEach(recipeId => {
-      const likesData = likesResult.data[recipeId] || { likes_count: 0, user_has_liked: false }
-      const commentsData = commentsResults.find(c => c.recipeId === recipeId) || { comments_count: 0 }
-      
-      combinedData[recipeId] = {
-        likes_count: likesData.likes_count,
-        user_has_liked: likesData.user_has_liked,
-        comments_count: commentsData.comments_count,
-        engagement_score: likesData.likes_count + (commentsData.comments_count * 2)
-      }
+    const data = await response.json()
+    const endTime = Date.now()
+    const responseTime = endTime - startTime
+    
+    if (!response.ok) {
+      throw new Error(data.message || `HTTP ${response.status}: ${response.statusText}`)
+    }
+    
+    logCommentAction('add_comment_success', {
+      commentId: data.comment?.id,
+      targetId: recipeId,
+      targetType: 'recipe',
+      userId,
+      text,
+      parentId,
+      responseTime,
+      serverCommentId: data.comment?.id?.substring(0, 8) + '...',
+      commentsCount: data.stats?.comments_count
+    })
+    
+    logSocialInteraction('comment', 'add', {
+      targetId: recipeId,
+      targetType: 'recipe',
+      userId,
+      success: true,
+      duration: responseTime,
+      comments_count: data.stats?.comments_count,
+      engagement_score: data.stats?.engagement_score
     })
     
     return {
       success: true,
-      data: combinedData
+      comment: data.comment,
+      stats: data.stats
     }
   } catch (error) {
-    logError('Error getting multiple recipes engagement stats', error, {
-      recipeIds: recipeIds.slice(0, 5),
-      recipeIdsCount: recipeIds.length
+    const endTime = Date.now()
+    const responseTime = endTime - startTime
+    
+    logCommentAction('add_comment_error', {
+      commentId,
+      targetId: recipeId,
+      targetType: 'recipe',
+      userId,
+      text: text?.substring(0, 50) + '...',
+      parentId,
+      error: error.message,
+      responseTime,
+      errorName: error.name,
+      errorStack: error.stack?.substring(0, 500)
+    })
+    
+    logSocialInteraction('comment', 'add', {
+      targetId: recipeId,
+      targetType: 'recipe',
+      userId,
+      success: false,
+      error: error.message,
+      duration: responseTime
     })
     
     return {
       success: false,
-      error: error.message,
-      data: {}
+      error: error.message
     }
   }
 }
 
 /**
- * Hook React pour gérer les likes d'une recette
+ * Supprimer un commentaire avec logging détaillé
  */
-export function useRecipeLikes(recipeId, initialStats = null) {
-  const [loading, setLoading] = useState(false)
-  const [optimisticLoading, setOptimisticLoading] = useState(false)
-  const [stats, setStats] = useState(initialStats || { likes_count: 0, user_has_liked: false })
-  const [error, setError] = useState(null)
-  const [lastAction, setLastAction] = useState(null)
-
-  // Animation states
-  const [showHeartAnimation, setShowHeartAnimation] = useState(false)
-  const [heartPosition, setHeartPosition] = useState({ x: 0, y: 0 })
-
-  const createHeartAnimation = useCallback((event) => {
-    if (event?.target) {
-      const rect = event.target.getBoundingClientRect()
-      setHeartPosition({
-        x: rect.left + rect.width / 2,
-        y: rect.top + rect.height / 2
-      })
-      setShowHeartAnimation(true)
-      setTimeout(() => setShowHeartAnimation(false), 1000)
-    }
-  }, [])
-
-  const toggleLike = useCallback(async (event, user, recipeData) => {
-    if (loading || optimisticLoading) return
-
-    if (!user) {
-      const wantsToLogin = window.confirm('Connectez-vous pour aimer cette recette. Aller à la page de connexion?')
-      if (wantsToLogin) {
-        window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname)
-      }
-      return
-    }
-
-    // Validation des paramètres
-    if (!recipeId || !user.id) {
-      setError('Paramètres manquants pour effectuer cette action')
-      return
-    }
-
-    const isCurrentlyLiked = stats.user_has_liked
-    const action = isCurrentlyLiked ? 'remove' : 'add'
-    const toggleRequestId = `toggle-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`
+export async function removeRecipeComment(commentId, userId) {
+  const startTime = Date.now()
+  
+  try {
+    logCommentAction('remove_comment_start', {
+      commentId,
+      userId
+    })
     
-    setOptimisticLoading(true)
-    setError(null)
-    setLastAction(action)
+    const response = await fetch(`/api/comments?comment_id=${commentId}&user_id=${userId}`, {
+      method: 'DELETE'
+    })
 
-    // Optimistic update
-    setStats(prev => ({
-      likes_count: prev.likes_count + (isCurrentlyLiked ? -1 : 1),
-      user_has_liked: !isCurrentlyLiked
-    }))
-
-    // Create animation for like action
-    if (!isCurrentlyLiked) {
-      createHeartAnimation(event)
-      
-      // Haptic feedback on mobile
-      if (navigator.vibrate) {
-        navigator.vibrate([30])
-      }
+    const data = await response.json()
+    const endTime = Date.now()
+    const responseTime = endTime - startTime
+    
+    if (!response.ok) {
+      throw new Error(data.message || `HTTP ${response.status}: ${response.statusText}`)
     }
-
-    try {
-      setLoading(true)
-      
-      let result
-      if (isCurrentlyLiked) {
-        result = await removeRecipeLike(recipeId, user.id)
-      } else {
-        result = await addRecipeLike(recipeId, user.id, recipeData, user)
-      }
-
-      if (!result.success) {
-        throw new Error(result.error || 'Erreur lors de la mise à jour du like')
-      }
-      
-      // Update with real data from server
-      setStats({
-        likes_count: result.stats?.likes_count || stats.likes_count,
-        user_has_liked: !isCurrentlyLiked
-      })
-
-    } catch (err) {
-      // Log complet de l'erreur dans le hook
-      logHttpError('Complete error details in toggleLike hook', err, {
-        method: action === 'add' ? 'POST' : 'DELETE',
-        url: action === 'add' ? '/api/recipe-likes' : `/api/recipe-likes?recipe_id=${recipeId}&user_id=${user.id}`,
-        action
-      }, {
-        toggleRequestId,
-        recipeId,
-        userId: user.id?.substring(0, 8) + '...',
-        action,
-        isCurrentlyLiked,
-        currentStats: stats,
-        recipeData: recipeData ? {
-          id: recipeData.id,
-          title: recipeData.title?.substring(0, 50),
-          user_id: recipeData.user_id,
-          likes_count: recipeData.likes_count
-        } : null,
-        userData: {
-          id: user.id?.substring(0, 8) + '...',
-          username: user.username
-        },
-        errorDetails: {
-          name: err.name,
-          message: err.message,
-          stack: err.stack?.substring(0, 1000),
-          status: err.status,
-          code: err.code,
-          requestId: err.requestId
-        },
-        browserContext: {
-          userAgent: navigator.userAgent,
-          url: window.location.href,
-          timestamp: new Date().toISOString(),
-          viewport: {
-            width: window.innerWidth,
-            height: window.innerHeight
-          }
-        },
-        eventDetails: event ? {
-          type: event.type,
-          target: event.target?.tagName,
-          clientX: event.clientX,
-          clientY: event.clientY
-        } : null
-      })
-      
-      // Revert optimistic update on error
-      setStats(prev => ({
-        likes_count: prev.likes_count + (isCurrentlyLiked ? 1 : -1),
-        user_has_liked: isCurrentlyLiked
-      }))
-      
-      // Show more specific error messages
-      let errorMessage = 'Impossible de mettre à jour le like. Réessayez.'
-      if (err.status === 404) {
-        errorMessage = 'Cette recette n\'existe plus.'
-      } else if (err.status === 400) {
-        errorMessage = 'Paramètres invalides. Rechargez la page.'
-      } else if (err.status >= 500) {
-        errorMessage = 'Erreur serveur. Réessayez plus tard.'
-      }
-      
-      setError(errorMessage)
-      
-      // Show error animation
-      if (event?.target) {
-        event.target.style.animation = 'shake 0.3s ease-in-out'
-        setTimeout(() => {
-          if (event.target) event.target.style.animation = ''
-        }, 300)
-      }
-    } finally {
-      setLoading(false)
-      setOptimisticLoading(false)
-      setTimeout(() => setLastAction(null), 2000)
+    
+    logCommentAction('remove_comment_success', {
+      commentId,
+      userId,
+      responseTime,
+      commentsCount: data.stats?.comments_count
+    })
+    
+    logSocialInteraction('comment', 'remove', {
+      targetId: data.recipe_id,
+      targetType: 'recipe',
+      userId,
+      success: true,
+      duration: responseTime,
+      comments_count: data.stats?.comments_count
+    })
+    
+    return {
+      success: true,
+      stats: data.stats
     }
-  }, [loading, optimisticLoading, stats, recipeId, createHeartAnimation])
-
-  const clearError = useCallback(() => {
-    setError(null)
-  }, [])
-
-  return {
-    loading,
-    optimisticLoading,
-    stats,
-    error,
-    lastAction,
-    toggleLike,
-    clearError,
-    showHeartAnimation,
-    heartPosition
+  } catch (error) {
+    const endTime = Date.now()
+    const responseTime = endTime - startTime
+    
+    logCommentAction('remove_comment_error', {
+      commentId,
+      userId,
+      error: error.message,
+      responseTime,
+      errorName: error.name
+    })
+    
+    logSocialInteraction('comment', 'remove', {
+      userId,
+      success: false,
+      error: error.message,
+      duration: responseTime
+    })
+    
+    return {
+      success: false,
+      error: error.message
+    }
   }
 }
 
-// Component for floating heart animation
-export function FloatingHeart({ show, position, onComplete }) {
-  useEffect(() => {
-    if (show) {
-      const timer = setTimeout(onComplete, 1000)
-      return () => clearTimeout(timer)
+/**
+ * Charger les commentaires d'une recette avec logging détaillé
+ */
+export async function loadRecipeComments(recipeId, page = 1, limit = 20) {
+  const startTime = Date.now()
+  
+  try {
+    logCommentAction('load_comments_start', {
+      targetId: recipeId,
+      targetType: 'recipe',
+      page,
+      limit
+    })
+    
+    const response = await fetch(`/api/comments?recipe_id=${recipeId}&page=${page}&limit=${limit}`)
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
     }
-  }, [show, onComplete])
-
-  if (!show) return null
-
-  return (
-    <div
-      style={{
-        position: 'fixed',
-        left: position.x,
-        top: position.y,
-        fontSize: '2rem',
-        pointerEvents: 'none',
-        zIndex: 10000,
-        transform: 'translate(-50%, -50%)',
-        animation: 'floatingHeart 1s ease-out forwards'
-      }}
-    >
-      ❤️
-    </div>
-  )
+    
+    const data = await response.json()
+    const endTime = Date.now()
+    const responseTime = endTime - startTime
+    
+    const comments = Array.isArray(data) ? data : (data.comments || [])
+    
+    logCommentAction('load_comments_success', {
+      targetId: recipeId,
+      targetType: 'recipe',
+      page,
+      limit,
+      commentsLoaded: comments.length,
+      responseTime,
+      hasMore: data.hasMore,
+      totalCount: data.totalCount
+    })
+    
+    return {
+      success: true,
+      comments,
+      hasMore: data.hasMore || false,
+      totalCount: data.totalCount || comments.length
+    }
+  } catch (error) {
+    const endTime = Date.now()
+    const responseTime = endTime - startTime
+    
+    logCommentAction('load_comments_error', {
+      targetId: recipeId,
+      targetType: 'recipe',
+      page,
+      limit,
+      error: error.message,
+      responseTime,
+      errorName: error.name
+    })
+    
+    return {
+      success: false,
+      comments: [],
+      error: error.message
+    }
+  }
 }
 
 /**
- * Detect suspicious like activity patterns
- * @param {Array} likes - Array of like objects with timestamps
- * @returns {Object} Analysis result with suspicious flag and reasons
+ * Fonction de logging spécialisée pour les erreurs HTTP avec détails complets
  */
-export function detectSuspiciousLikeActivity(likes) {
-  let suspicious = false;
-  const reasons = [];
-  
-  // Analyze timing patterns between consecutive likes
-  const timestamps = likes.map(like => new Date(like.created_at).getTime()).sort();
-  const timeDiffs = [];
-  
-  for (let i = 1; i < timestamps.length; i++) {
-    timeDiffs.push(timestamps[i] - timestamps[i-1]);
+function logHttpError(message, error, requestDetails, additionalContext = {}) {
+  const errorDetails = {
+    message,
+    error: {
+      name: error.name,
+      message: error.message,
+      stack: error.stack?.substring(0, 2000), // Limiter la stack trace
+      status: error.status,
+      code: error.code,
+      requestId: error.requestId
+    },
+    request: requestDetails,
+    context: additionalContext,
+    timestamp: new Date().toISOString(),
+    userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Server',
+    url: typeof window !== 'undefined' ? window.location.href : 'N/A'
   }
   
-  // Check for suspiciously regular intervals
-  const avgDiff = timeDiffs.reduce((sum, diff) => sum + diff, 0) / timeDiffs.length;
-  const standardDeviation = Math.sqrt(
-    timeDiffs.reduce((sum, diff) => sum + Math.pow(diff - avgDiff, 2), 0) / timeDiffs.length
-  );
-  
-  // If standard deviation is very low compared to average, timing might be suspiciously regular
-  const suspiciouslyRegular = standardDeviation / avgDiff < 0.1;
-  
-  if (suspiciouslyRegular && timeDiffs.length > 5) {
-    suspicious = true
-    reasons.push('Suspiciously regular timing')
+  logError(message, error, errorDetails)
+}
+
+/**
+ * Fonction de logging détaillé pour les commentaires
+ */
+export function logCommentAction(action, details) {
+  const logData = {
+    action,
+    timestamp: new Date().toISOString(),
+    details: {
+      commentId: details.commentId?.substring(0, 8) + '...',
+      targetId: details.targetId?.substring(0, 8) + '...',
+      targetType: details.targetType,
+      userId: details.userId?.substring(0, 8) + '...',
+      text: details.text?.substring(0, 100) + (details.text?.length > 100 ? '...' : ''),
+      parentId: details.parentId?.substring(0, 8) + '...',
+      ...details
+    },
+    performance: {
+      loadTime: details.loadTime,
+      responseTime: details.responseTime
+    },
+    context: {
+      page: typeof window !== 'undefined' ? window.location.pathname : 'unknown',
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown'
+    }
   }
-
-  return { suspicious, reasons, confidence: suspicious ? 'high' : 'low' }
-}
-
-/**
- * Format like count for display with appropriate abbreviations
- * @param {number} count - Number of likes
- * @returns {string} Formatted like count
- */
-export function formatLikeCount(count) {
-  if (count < 1000) return count.toString()
-  if (count < 1000000) return `${(count / 1000).toFixed(1)}k`
-  return `${(count / 1000000).toFixed(1)}M`
-}
-
-/**
- * Get like insights for content creators
- * @param {Object} content - Content with like data
- * @returns {Object} Actionable insights
- */
-export function getLikeInsights(content) {
-  const { likes_count = 0, created_at, category } = content
   
-  const insights = {
-    performance: 'normal',
-    recommendations: [],
+  logInfo(`Comment ${action}`, logData)
+}
+
+/**
+ * Fonction de logging pour les interactions sociales (likes + comments)
+ */
+export function logSocialInteraction(type, action, details) {
+  const logData = {
+    interactionType: type, // 'like' ou 'comment'
+    action, // 'add', 'remove', 'update', 'load'
+    timestamp: new Date().toISOString(),
+    details: {
+      targetId: details.targetId?.substring(0, 8) + '...',
+      targetType: details.targetType,
+      userId: details.userId?.substring(0, 8) + '...',
+      before: details.beforeState,
+      after: details.afterState,
+      duration: details.duration,
+      success: details.success,
+      error: details.error?.substring(0, 200)
+    },
     metrics: {
-      likes_per_day: 0,
-      engagement_rate: 0,
-      category_performance: 'average'
+      likes_count: details.likes_count,
+      comments_count: details.comments_count,
+      engagement_score: details.engagement_score
+    },
+    context: {
+      page: typeof window !== 'undefined' ? window.location.pathname : 'unknown',
+      referrer: typeof document !== 'undefined' ? document.referrer : 'unknown',
+      timestamp: Date.now()
     }
   }
   
-  // Calculate likes per day since creation
-  if (created_at) {
-    const createdDate = new Date(created_at)
-    const now = new Date()
-    const daysSinceCreation = Math.max(1, Math.floor((now - createdDate) / (1000 * 60 * 60 * 24)))
-    insights.metrics.likes_per_day = (likes_count / daysSinceCreation).toFixed(2)
+  if (details.success) {
+    logInfo(`Social ${type} ${action} success`, logData)
+  } else {
+    logError(`Social ${type} ${action} failed`, new Error(details.error || 'Unknown error'), logData)
   }
-  
-  // Performance analysis
-  if (likes_count === 0) {
-    insights.performance = 'needs_attention'
-    insights.recommendations.push('Améliorer la présentation visuelle')
-    insights.recommendations.push('Ajouter des hashtags pertinents')
-  } else if (likes_count < 5) {
-    insights.performance = 'growing'
-    insights.recommendations.push('Partager sur les réseaux sociaux')
-  } else if (likes_count >= 20) {
-    insights.performance = 'excellent'
-    insights.recommendations.push('Créer plus de contenu similaire')
-  }
-  
-  return insights
 }
 
-/**
- * Fonction pour vérifier et corriger les incohérences de compteurs
- */
+//# sourceMappingURL=likesUtils.js.map
+
 export async function verifyAndFixLikesCounts() {
   try {
     const response = await fetch('/api/admin/verify-likes-counts', {
