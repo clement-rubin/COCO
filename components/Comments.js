@@ -40,7 +40,7 @@ export default function Comments({
         setUserLikes(new Set(JSON.parse(savedLikes)))
       }
     } catch (err) {
-      console.error('Error loading saved likes', err)
+      logError('Error loading saved comment likes from localStorage', err, { userId: user?.id })
     }
   }, [user?.id])
 
@@ -50,7 +50,7 @@ export default function Comments({
       try {
         localStorage.setItem(`commentLikes_${user.id}`, JSON.stringify([...likesSet]))
       } catch (err) {
-        console.error('Error saving likes to localStorage', err)
+        logError('Error saving comment likes to localStorage', err, { userId: user.id })
       }
     }
   }
@@ -682,4 +682,3 @@ export default function Comments({
   - /pages/posts/[id].js (for post comments)
   - Any page that imports: import Comments from '../components/Comments'
 */
-      

@@ -60,10 +60,10 @@ async function getUserStatsOptimized(userId) {
       profileResult,
       userAuthResult
     ] = await Promise.allSettled([
-      // Compter les recettes
+      // CORRECTION: Utiliser select normal au lieu de count avec head
       supabase
         .from('recipes')
-        .select('id', { count: 'exact', head: true })
+        .select('id')
         .eq('user_id', userId),
       
       // Compter les vrais amis (relations acceptées)
@@ -96,9 +96,9 @@ async function getUserStatsOptimized(userId) {
       hasProfile: false
     }
 
-    // Recettes
+    // CORRECTION: Compter manuellement les recettes
     if (recipesResult.status === 'fulfilled' && !recipesResult.value.error) {
-      stats.recipesCount = recipesResult.value.count || 0
+      stats.recipesCount = recipesResult.value.data?.length || 0
     }
 
     // Amitié - compter le vrai nombre d'amis

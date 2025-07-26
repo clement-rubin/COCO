@@ -299,10 +299,9 @@ async function getUserStatsForTrophiesFallback(userId) {
       .or(`user_id.eq.${userId},friend_id.eq.${userId}`)
       .eq('status', 'accepted');
       
-    const { count: recipesCount } = await supabase
-      .from('recipes')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId);
+    // CORRECTION: Utiliser safeCountQuery au lieu de count avec head
+    const { safeCountQuery } = await import('./supabaseUtils')
+    const recipesCount = await safeCountQuery('recipes', { user_id: userId })
 
     // Calculer la complétude du profil
     let profileCompleteness = 0;
@@ -1064,4 +1063,5 @@ export async function canManuallyUnlockTrophy(userId, trophyId) {
     logError('Error checking if trophy can be unlocked', error)
     return { canUnlock: false, progress: 0, reason: 'Erreur lors de la vérification' }
   }
+}
 }

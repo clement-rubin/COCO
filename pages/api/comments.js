@@ -48,10 +48,10 @@ export default async function handler(req, res) {
       }
 
       try {
-        // First, get the comments
-        const { data: comments, error: commentsError, count } = await supabaseAdmin
+        // First, get the comments - CORRECTION: Ne pas utiliser count avec select
+        const { data: comments, error: commentsError } = await supabaseAdmin
           .from('recipe_comments')
-          .select('id, text, created_at, updated_at, user_id, recipe_id, likes_count', { count: 'exact' })
+          .select('id, text, created_at, updated_at, user_id, recipe_id, likes_count')
           .eq('recipe_id', recipe_id)
           .order('created_at', { ascending: false })
           .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1)
@@ -59,6 +59,20 @@ export default async function handler(req, res) {
         if (commentsError) {
           logError('Error fetching comments', commentsError, { requestId, recipe_id })
           throw commentsError
+        }
+
+        // Obtenir le count total séparément si nécessaire
+        let totalCount = 0
+        try {
+          const { data: countData } = await supabaseAdmin
+            .from('recipe_comments')
+            .select('id')
+            .eq('recipe_id', recipe_id)
+          
+          totalCount = countData?.length || 0
+        } catch (countError) {
+          // Ignorer l'erreur de count, utiliser la longueur des données
+          totalCount = comments?.length || 0
         }
 
         // Then get user info for each comment separately
@@ -118,17 +132,17 @@ export default async function handler(req, res) {
           requestId,
           recipe_id,
           commentsCount: formattedComments.length,
-          totalCount: count
+          totalCount
         })
 
         return res.status(200).json({
           success: true,
           comments: formattedComments,
           pagination: {
-            total: count || 0,
+            total: totalCount,
             limit: parseInt(limit),
             offset: parseInt(offset),
-            hasMore: (parseInt(offset) + parseInt(limit)) < (count || 0)
+            hasMore: (parseInt(offset) + parseInt(limit)) < totalCount
           },
           requestId
         })

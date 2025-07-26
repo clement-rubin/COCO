@@ -32,7 +32,7 @@ export default function FriendsFeed({ feedType = 'featured' }) {
         setLikedRecipes(new Set(JSON.parse(savedLikes)))
       }
     } catch (err) {
-      console.error('Error loading saved likes', err)
+      logError('Error loading saved likes from localStorage', err)
     }
   }, [])
 
