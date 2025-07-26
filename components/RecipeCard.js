@@ -19,7 +19,8 @@ const RecipeCard = ({
   showActions = true,
   defaultCompact = true,
   showLikes = true,
-  showComments = true // Nouveau prop pour afficher/masquer les commentaires
+  showComments = true,
+  onQuickComment = null // Nouveau prop pour le commentaire rapide
 }) => {
   const router = useRouter()
   const { user } = useAuth()
@@ -344,6 +345,20 @@ const RecipeCard = ({
       newMode: isCompactMode ? 'detailed' : 'compact',
       userId: user?.id
     })
+  }
+
+  const handleQuickComment = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    if (onQuickComment) {
+      onQuickComment({
+        id: safeRecipe.id,
+        title: safeRecipe.title,
+        image: safeRecipe.image,
+        user_id: recipe.user_id
+      })
+    }
   }
 
   return (
@@ -773,15 +788,50 @@ const RecipeCard = ({
         )}
       </div>
       
-      {/* Actions flottantes avec vraies données */}
+      {/* Actions flottantes avec bouton de commentaire rapide */}
       <div className={styles.cardActions} style={{
         position: 'absolute',
         bottom: 12,
         right: 16,
         display: 'flex',
-        gap: '10px',
-        zIndex: 4
+        gap: '8px',
+        zIndex: 4,
+        flexDirection: 'column'
       }}>
+        {/* Bouton de commentaire rapide flottant */}
+        {onQuickComment && (
+          <button
+            onClick={handleQuickComment}
+            className={styles.quickCommentBtnFloat}
+            title="Commentaire rapide"
+            style={{
+              background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '50%',
+              width: 38,
+              height: 38,
+              fontSize: '1.1rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.3s ease',
+              boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
+            }}
+            onMouseOver={(e) => {
+              e.target.style.transform = 'scale(1.1)'
+              e.target.style.boxShadow = '0 6px 16px rgba(59, 130, 246, 0.4)'
+            }}
+            onMouseOut={(e) => {
+              e.target.style.transform = 'scale(1)'
+              e.target.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)'
+            }}
+          >
+            ⚡
+          </button>
+        )}
+
         {/* Bouton de like avec vraies données */}
         {showLikes && (
           <button 

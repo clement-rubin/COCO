@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import ShareButton from './ShareButton'
 import UserProfilePreview from './UserProfilePreview'
+import QuickCommentModal from './QuickCommentModal'
 import { toggleRecipeLike, getMultipleRecipesLikesStats } from '../utils/likesUtils'
 import { useAuth } from './AuthContext'
 import styles from '../styles/SocialFeed.module.css'
@@ -19,6 +20,12 @@ export default function SocialFeed() {
     isVisible: false,
     user: null,
     position: null
+  })
+  
+  // États pour le commentaire rapide
+  const [quickCommentModal, setQuickCommentModal] = useState({
+    isOpen: false,
+    recipe: null
   })
 
   // Charger les posts et leurs likes
@@ -233,6 +240,56 @@ export default function SocialFeed() {
     })
   }
 
+  const handleQuickComment = (post) => {
+    setQuickCommentModal({
+      isOpen: true,
+      recipe: {
+        id: post.recipe.id,
+        title: post.recipe.title,
+        image: post.recipe.image,
+        user_id: post.user.id
+      }
+    })
+  }
+
+  const handleQuickCommentAdded = (comment) => {
+    // Ajouter le commentaire au post local
+    setComments(prev => ({
+      ...prev,
+      [quickCommentModal.recipe.id]: [
+        ...(prev[quickCommentModal.recipe.id] || []),
+        {
+          id: comment.id,
+          user: comment.user_name,
+          text: comment.text,
+          timeAgo: 'maintenant'
+        }
+      ]
+    }))
+
+    // Fermer le modal
+    setQuickCommentModal({ isOpen: false, recipe: null })
+
+    // Animation de succès
+    const successMessage = document.createElement('div')
+    successMessage.innerHTML = '🎉 Commentaire publié avec succès!'
+    successMessage.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white;
+      padding: 16px 24px;
+      border-radius: 16px;
+      font-weight: 600;
+      z-index: 10000;
+      box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+      animation: slideInRight 0.5s ease-out;
+    `
+    document.body.appendChild(successMessage)
+    setTimeout(() => successMessage.remove(), 3000)
+  }
+
   if (loading) {
     return (
       <div className={styles.loading}>
@@ -322,6 +379,14 @@ export default function SocialFeed() {
                 >
                   💬 Commenter
                 </button>
+
+                <button 
+                  className={styles.actionBtn}
+                  onClick={() => handleQuickComment(post)}
+                  title="Commentaire rapide"
+                >
+                  ⚡ Rapide
+                </button>
                 
                 <ShareButton 
                   recipe={post.recipe}
@@ -369,6 +434,14 @@ export default function SocialFeed() {
           position={profilePreview.position}
         />
       </div>
+
+      {/* Quick Comment Modal */}
+      <QuickCommentModal
+        isOpen={quickCommentModal.isOpen}
+        onClose={() => setQuickCommentModal({ isOpen: false, recipe: null })}
+        recipe={quickCommentModal.recipe}
+        onCommentAdded={handleQuickCommentAdded}
+      />
       
       <style jsx>{`
         @keyframes heartFloat {
@@ -385,7 +458,19 @@ export default function SocialFeed() {
             opacity: 0;
           }
         }
+
+        @keyframes slideInRight {
+          from {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
       `}</style>
     </>
   )
 }
+  

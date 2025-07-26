@@ -65,48 +65,86 @@ export default function QuickCommentModal({
     try {
       setSubmitting(true)
       
-      // Simulate API call - replace with real API
-      const newComment = {
-        id: Date.now(),
-        user_id: user.id,
-        user_name: user.user_metadata?.display_name || 'Utilisateur',
-        text: comment.trim(),
-        created_at: new Date().toISOString(),
-        recipe_id: recipe?.id
-      }
-      
-      await new Promise(resolve => setTimeout(resolve, 800))
-      
-      // Show success animation
-      setSuccess(true)
-      
-      // Call parent callback
-      if (onCommentAdded) {
-        onCommentAdded(newComment)
-      }
-      
-      // Send notification if not own recipe
-      if (recipe && recipe.user_id !== user.id) {
-        showRecipeCommentNotification(recipe, {
+      // Real API call instead of simulation
+      const response = await fetch('/api/comments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          recipe_id: recipe?.id,
           user_id: user.id,
-          display_name: user.user_metadata?.display_name || 'Utilisateur'
-        }, newComment)
-      }
-      
-      logUserInteraction('QUICK_COMMENT_SUBMIT', 'quick-comment-modal', {
-        recipeId: recipe?.id,
-        commentLength: comment.length
+          text: comment.trim(),
+          user_name: user.user_metadata?.display_name || user.email?.split('@')[0] || 'Utilisateur'
+        })
       })
-      
-      // Reset and close after delay
-      setTimeout(() => {
-        setComment('')
-        setSuccess(false)
-        onClose()
-      }, 1500)
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.message || 'Erreur lors de l\'ajout du commentaire')
+      }
+
+      if (result.success) {
+        // Show success animation
+        setSuccess(true)
+        
+        // Call parent callback with the real comment data
+        if (onCommentAdded) {
+          onCommentAdded(result.comment)
+        }
+        
+        // Send notification if not own recipe
+        if (recipe && recipe.user_id !== user.id) {
+          showRecipeCommentNotification(recipe, {
+            user_id: user.id,
+            display_name: user.user_metadata?.display_name || 'Utilisateur'
+          }, result.comment)
+        }
+        
+        logUserInteraction('QUICK_COMMENT_SUBMIT', 'quick-comment-modal', {
+          recipeId: recipe?.id,
+          commentLength: comment.length,
+          commentId: result.comment.id
+        })
+        
+        // Reset and close after delay
+        setTimeout(() => {
+          setComment('')
+          setSuccess(false)
+          onClose()
+        }, 1500)
+      } else {
+        throw new Error(result.message || 'Erreur inconnue')
+      }
       
     } catch (error) {
-      logError('Failed to submit quick comment', error, { recipeId: recipe?.id })
+      logError('Failed to submit quick comment', error, { 
+        recipeId: recipe?.id,
+        errorMessage: error.message,
+        errorStatus: error.status
+      })
+      
+      // Show user-friendly error message
+      let errorMessage = 'Impossible d\'ajouter le commentaire. '
+      
+      if (error.message.includes('not found') || error.message.includes('non trouvé')) {
+        errorMessage += 'La recette n\'existe plus.'
+      } else if (error.message.includes('trop long')) {
+        errorMessage += 'Le commentaire est trop long.'
+      } else if (error.message.includes('unauthorized') || error.message.includes('auth')) {
+        errorMessage += 'Problème d\'autorisation. Veuillez vous reconnecter.'
+        // Optionally redirect to login
+        setTimeout(() => {
+          window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname)
+        }, 2000)
+      } else {
+        errorMessage += 'Veuillez réessayer dans quelques instants.'
+      }
+      
+      // Show error message to user (you can replace alert with a better UI)
+      alert(errorMessage)
+      
     } finally {
       setSubmitting(false)
     }

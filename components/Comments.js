@@ -59,56 +59,19 @@ export default function Comments({
     try {
       setLoading(true)
       
-      // Simulation de chargement - remplacer par vraie API
-      const mockComments = [
-        {
-          id: 1,
-          user_id: 'user1',
-          user_name: 'Marie Dubois',
-          user_avatar: '👩‍🍳',
-          text: 'Cette recette a l\'air délicieuse ! 🤤',
-          created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          likes_count: 12,
-          userHasLiked: userLikes.has(1),
-          replies: [
-            {
-              id: 101,
-              user_id: 'user2',
-              user_name: 'Chef Pierre',
-              user_avatar: '👨‍🍳',
-              text: 'Merci ! N\'hésitez pas si vous avez des questions !',
-              created_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-              likes: 3,
-              userHasLiked: userLikes.has(101)
-            }
-          ]
-        },
-        {
-          id: 2,
-          user_id: 'user3',
-          user_name: 'Sophie Laurent',
-          user_avatar: '👩‍🦳',
-          text: 'J\'ai testé hier soir, un vrai régal ! 🌟',
-          created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-          likes: 8,
-          userHasLiked: userLikes.has(2),
-          replies: []
-        },
-        {
-          id: 3,
-          user_id: 'user4',
-          user_name: 'Thomas Martin',
-          user_avatar: '👨‍🦱',
-          text: 'Parfait pour un dîner en famille ! 👨‍👩‍👧‍👦',
-          created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-          likes: 5,
-          userHasLiked: userLikes.has(3),
-          replies: []
-        }
-      ]
+      // Real API call instead of mock data
+      const response = await fetch(`/api/comments?recipe_id=${targetId}&limit=20&offset=0`)
+      const result = await response.json()
       
-      await new Promise(resolve => setTimeout(resolve, 800)) // Simulation réseau
-      setComments(mockComments)
+      if (!response.ok) {
+        throw new Error(result.message || 'Erreur lors du chargement des commentaires')
+      }
+      
+      if (result.success) {
+        setComments(result.comments || [])
+      } else {
+        throw new Error(result.message || 'Erreur lors du chargement des commentaires')
+      }
     } catch (err) {
       logError('Failed to load comments', err, { targetId, targetType })
       setError('Impossible de charger les commentaires')
@@ -139,81 +102,98 @@ export default function Comments({
       setSubmitting(true)
       setAriaLiveMsg('Envoi du commentaire en cours...')
       
-      // Simulation d'ajout - remplacer par vraie API
-      const comment = {
-        id: Date.now(),
-        user_id: user.id,
-        user_name: user.user_metadata?.display_name || 'Utilisateur',
-        user_avatar: '👤',
-        text: newComment.trim(),
-        created_at: new Date().toISOString(),
-        likes: 0,
-        replies: [],
-        isNew: true // Marquer comme nouveau commentaire
-      }
-      
-      await new Promise(resolve => setTimeout(resolve, 500))
-      
-      setComments(prev => [comment, ...prev])
-      setNewComment('')
-      setAriaLiveMsg('Commentaire publié avec succès !')
-      
-      // Déclencher une notification pour le propriétaire de la recette
-      // Note: Dans une vraie app, vous récupéreriez les infos de la recette depuis l'API
-      const mockRecipe = {
-        id: targetId,
-        title: 'Recette délicieuse', // À remplacer par la vraie recette
-        image: '/placeholder-recipe.jpg'
-      }
-      
-      const mockRecipeOwner = {
-        user_id: 'recipe_owner_id', // À remplacer par le vrai propriétaire
-        display_name: 'Propriétaire de la recette'
-      }
-      
-      // Envoyer la notification seulement si ce n'est pas l'auteur qui commente sa propre recette
-      if (user.id !== mockRecipeOwner.user_id) {
-        showRecipeCommentNotification(mockRecipe, {
+      // Real API call instead of simulation
+      const response = await fetch('/api/comments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          recipe_id: targetId,
           user_id: user.id,
-          display_name: user.user_metadata?.display_name || 'Utilisateur'
-        }, comment)
-      }
-      
-      // Animation de succès
-      const successMessage = document.createElement('div')
-      successMessage.innerHTML = '🎉 Commentaire publié avec succès!'
-      successMessage.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: linear-gradient(135deg, #10b981, #059669);
-        color: white;
-        padding: 16px 24px;
-        border-radius: 16px;
-        font-weight: 600;
-        z-index: 10000;
-        box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
-        animation: slideInRight 0.5s ease-out;
-      `
-      document.body.appendChild(successMessage)
-      
-      // Retirer l'indicateur "nouveau" après 5 secondes
-      setTimeout(() => {
-        setComments(prev => prev.map(c => 
-          c.id === comment.id ? { ...c, isNew: false } : c
-        ))
-      }, 5000)
-      
-      setTimeout(() => successMessage.remove(), 3000)
-      
-      logUserInteraction('SUBMIT_COMMENT', 'comment-form', {
-        targetId,
-        targetType,
-        commentLength: comment.text.length
+          text: newComment.trim(),
+          user_name: user.user_metadata?.display_name || user.email?.split('@')[0] || 'Utilisateur'
+        })
       })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.message || 'Erreur lors de l\'ajout du commentaire')
+      }
+
+      if (result.success) {
+        // Add the new comment to the state
+        const formattedComment = {
+          ...result.comment,
+          isNew: true // Mark as new for animation
+        }
+        
+        setComments(prev => [formattedComment, ...prev])
+        setNewComment('')
+        setAriaLiveMsg('Commentaire publié avec succès !')
+        
+        // Send notification if not own recipe
+        if (result.recipe && result.recipe.user_id !== user.id) {
+          showRecipeCommentNotification(result.recipe, {
+            user_id: user.id,
+            display_name: user.user_metadata?.display_name || 'Utilisateur'
+          }, result.comment)
+        }
+        
+        // Success animation
+        const successMessage = document.createElement('div')
+        successMessage.innerHTML = '🎉 Commentaire publié avec succès!'
+        successMessage.style.cssText = `
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          background: linear-gradient(135deg, #10b981, #059669);
+          color: white;
+          padding: 16px 24px;
+          border-radius: 16px;
+          font-weight: 600;
+          z-index: 10000;
+          box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+          animation: slideInRight 0.5s ease-out;
+        `
+        document.body.appendChild(successMessage)
+        
+        // Remove new indicator after 5 seconds
+        setTimeout(() => {
+          setComments(prev => prev.map(c => 
+            c.id === result.comment.id ? { ...c, isNew: false } : c
+          ))
+        }, 5000)
+        
+        setTimeout(() => successMessage.remove(), 3000)
+        
+        logUserInteraction('SUBMIT_COMMENT', 'comment-form', {
+          targetId,
+          targetType,
+          commentLength: result.comment.text.length,
+          commentId: result.comment.id
+        })
+      } else {
+        throw new Error(result.message || 'Erreur inconnue')
+      }
     } catch (err) {
       logError('Failed to submit comment', err, { targetId, targetType })
-      setError('Impossible d\'ajouter le commentaire')
+      
+      // Show user-friendly error message
+      let errorMessage = 'Impossible d\'ajouter le commentaire. '
+      
+      if (err.message.includes('not found') || err.message.includes('non trouvé')) {
+        errorMessage += 'La recette n\'existe plus.'
+      } else if (err.message.includes('trop long')) {
+        errorMessage += 'Le commentaire est trop long.'
+      } else if (err.message.includes('unauthorized') || err.message.includes('auth')) {
+        errorMessage += 'Problème d\'autorisation. Veuillez vous reconnecter.'
+      } else {
+        errorMessage += 'Veuillez réessayer dans quelques instants.'
+      }
+      
+      setError(errorMessage)
       setAriaLiveMsg('Erreur lors de l\'ajout du commentaire')
     } finally {
       setSubmitting(false)
@@ -702,3 +682,4 @@ export default function Comments({
   - /pages/posts/[id].js (for post comments)
   - Any page that imports: import Comments from '../components/Comments'
 */
+      
