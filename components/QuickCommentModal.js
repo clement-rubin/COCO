@@ -65,7 +65,7 @@ export default function QuickCommentModal({
     try {
       setSubmitting(true)
       
-      // Real API call instead of simulation
+      // Real API call with better error handling
       const response = await fetch('/api/comments', {
         method: 'POST',
         headers: {
@@ -79,11 +79,12 @@ export default function QuickCommentModal({
         })
       })
 
-      const result = await response.json()
-
       if (!response.ok) {
-        throw new Error(result.message || 'Erreur lors de l\'ajout du commentaire')
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.message || `Erreur ${response.status}: ${response.statusText}`)
       }
+
+      const result = await response.json()
 
       if (result.success) {
         // Show success animation
@@ -122,7 +123,7 @@ export default function QuickCommentModal({
       logError('Failed to submit quick comment', error, { 
         recipeId: recipe?.id,
         errorMessage: error.message,
-        errorStatus: error.status
+        userAgent: navigator.userAgent
       })
       
       // Show user-friendly error message
@@ -134,16 +135,34 @@ export default function QuickCommentModal({
         errorMessage += 'Le commentaire est trop long.'
       } else if (error.message.includes('unauthorized') || error.message.includes('auth')) {
         errorMessage += 'Problème d\'autorisation. Veuillez vous reconnecter.'
-        // Optionally redirect to login
         setTimeout(() => {
           window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname)
         }, 2000)
+      } else if (error.message.includes('500')) {
+        errorMessage += 'Problème de serveur. Veuillez réessayer dans quelques minutes.'
       } else {
         errorMessage += 'Veuillez réessayer dans quelques instants.'
       }
       
-      // Show error message to user (you can replace alert with a better UI)
-      alert(errorMessage)
+      // Create error toast instead of alert
+      const errorToast = document.createElement('div')
+      errorToast.innerHTML = '❌ ' + errorMessage
+      errorToast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        color: white;
+        padding: 16px 24px;
+        border-radius: 16px;
+        font-weight: 600;
+        z-index: 10000;
+        box-shadow: 0 8px 25px rgba(239, 68, 68, 0.4);
+        animation: slideInRight 0.5s ease-out;
+        max-width: 400px;
+      `
+      document.body.appendChild(errorToast)
+      setTimeout(() => errorToast.remove(), 5000)
       
     } finally {
       setSubmitting(false)

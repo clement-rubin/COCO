@@ -23,16 +23,6 @@ export default async function handler(req, res) {
       userAgent: req.headers['user-agent']?.substring(0, 100)
     })
 
-    // Validation de la connexion Supabase
-    if (!supabase) {
-      logError('Supabase client not initialized', null, { requestId })
-      return res.status(500).json({
-        error: 'Configuration error',
-        message: 'Database connection not available',
-        requestId
-      })
-    }
-
     // Create admin client for database operations
     const { createClient } = await import('@supabase/supabase-js')
     const supabaseAdmin = createClient(
@@ -58,47 +48,71 @@ export default async function handler(req, res) {
       }
 
       try {
-        // Récupérer les commentaires avec les informations utilisateur
-        const { data: comments, error, count } = await supabaseAdmin
+        // First, get the comments
+        const { data: comments, error: commentsError, count } = await supabaseAdmin
           .from('recipe_comments')
-          .select(`
-            id,
-            text,
-            created_at,
-            updated_at,
-            user_id,
-            recipe_id,
-            likes_count,
-            users!inner(
-              id,
-              email,
-              user_metadata
-            )
-          `, { count: 'exact' })
+          .select('id, text, created_at, updated_at, user_id, recipe_id, likes_count', { count: 'exact' })
           .eq('recipe_id', recipe_id)
           .order('created_at', { ascending: false })
           .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1)
 
-        if (error) {
-          logError('Error fetching comments', error, { requestId, recipe_id })
-          throw error
+        if (commentsError) {
+          logError('Error fetching comments', commentsError, { requestId, recipe_id })
+          throw commentsError
         }
 
-        // Formater les commentaires pour l'affichage
-        const formattedComments = comments.map(comment => ({
-          id: comment.id,
-          text: comment.text,
-          created_at: comment.created_at,
-          updated_at: comment.updated_at,
-          user_id: comment.user_id,
-          user_name: comment.users?.user_metadata?.display_name || 
-                   comment.users?.email?.split('@')[0] || 
-                   'Utilisateur',
-          user_avatar: comment.users?.user_metadata?.avatar_url || null,
-          likes_count: comment.likes_count || 0,
-          userHasLiked: false, // TODO: Implement user like check
-          replies: [] // TODO: Implement replies if needed
-        }))
+        // Then get user info for each comment separately
+        const formattedComments = []
+        
+        for (const comment of comments || []) {
+          try {
+            // Get user info from auth.users
+            const { data: userData, error: userError } = await supabaseAdmin.auth.admin.getUserById(comment.user_id)
+            
+            let userName = 'Utilisateur'
+            let userAvatar = null
+            
+            if (!userError && userData?.user) {
+              userName = userData.user.user_metadata?.display_name || 
+                        userData.user.email?.split('@')[0] || 
+                        'Utilisateur'
+              userAvatar = userData.user.user_metadata?.avatar_url || null
+            }
+
+            formattedComments.push({
+              id: comment.id,
+              text: comment.text,
+              created_at: comment.created_at,
+              updated_at: comment.updated_at,
+              user_id: comment.user_id,
+              user_name: userName,
+              user_avatar: userAvatar,
+              likes_count: comment.likes_count || 0,
+              userHasLiked: false,
+              replies: []
+            })
+          } catch (userError) {
+            logError('Error fetching user data for comment', userError, { 
+              requestId, 
+              commentId: comment.id,
+              userId: comment.user_id 
+            })
+            
+            // Add comment with fallback user info
+            formattedComments.push({
+              id: comment.id,
+              text: comment.text,
+              created_at: comment.created_at,
+              updated_at: comment.updated_at,
+              user_id: comment.user_id,
+              user_name: 'Utilisateur',
+              user_avatar: null,
+              likes_count: comment.likes_count || 0,
+              userHasLiked: false,
+              replies: []
+            })
+          }
+        }
 
         logInfo('Comments retrieved successfully', {
           requestId,
@@ -111,10 +125,10 @@ export default async function handler(req, res) {
           success: true,
           comments: formattedComments,
           pagination: {
-            total: count,
+            total: count || 0,
             limit: parseInt(limit),
             offset: parseInt(offset),
-            hasMore: (parseInt(offset) + parseInt(limit)) < count
+            hasMore: (parseInt(offset) + parseInt(limit)) < (count || 0)
           },
           requestId
         })
@@ -189,36 +203,14 @@ export default async function handler(req, res) {
             recipe_id,
             user_id,
             text: text.trim(),
-            created_at: new Date().toISOString(),
             likes_count: 0
           }])
-          .select(`
-            id,
-            text,
-            created_at,
-            user_id,
-            recipe_id,
-            likes_count
-          `)
+          .select('id, text, created_at, user_id, recipe_id, likes_count')
           .single()
 
         if (insertError) {
           logError('Error inserting comment', insertError, { requestId })
           throw insertError
-        }
-
-        // Attendre un peu pour les triggers
-        await new Promise(resolve => setTimeout(resolve, 100))
-
-        // Mettre à jour le compteur de commentaires sur la recette
-        const { error: updateError } = await supabaseAdmin
-          .rpc('increment_recipe_comments_count', {
-            recipe_uuid: recipe_id
-          })
-
-        if (updateError) {
-          logError('Error updating recipe comments count', updateError, { requestId })
-          // Continue même si l'update échoue
         }
 
         // Formater la réponse
@@ -247,7 +239,8 @@ export default async function handler(req, res) {
           comment: formattedComment,
           recipe: {
             id: recipe.id,
-            title: recipe.title
+            title: recipe.title,
+            user_id: recipe.user_id
           },
           requestId
         })
@@ -264,71 +257,6 @@ export default async function handler(req, res) {
           error: 'Erreur lors de la création du commentaire',
           message: error.message,
           code: error.code,
-          requestId
-        })
-      }
-    }
-
-    // PUT - Modifier un commentaire
-    if (req.method === 'PUT') {
-      const { comment_id } = req.query
-      const { text, user_id } = req.body
-
-      if (!comment_id || !text || !user_id) {
-        return res.status(400).json({
-          error: 'Paramètres manquants',
-          message: 'comment_id, text et user_id sont requis'
-        })
-      }
-
-      try {
-        // Vérifier que le commentaire existe et appartient à l'utilisateur
-        const { data: existingComment, error: checkError } = await supabaseAdmin
-          .from('recipe_comments')
-          .select('id, user_id, text')
-          .eq('id', comment_id)
-          .eq('user_id', user_id)
-          .single()
-
-        if (checkError || !existingComment) {
-          return res.status(404).json({
-            error: 'Commentaire non trouvé',
-            message: 'Commentaire non trouvé ou vous n\'êtes pas autorisé à le modifier'
-          })
-        }
-
-        // Mettre à jour le commentaire
-        const { data: updatedComment, error: updateError } = await supabaseAdmin
-          .from('recipe_comments')
-          .update({
-            text: text.trim(),
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', comment_id)
-          .select()
-          .single()
-
-        if (updateError) {
-          throw updateError
-        }
-
-        logInfo('Comment updated successfully', {
-          requestId,
-          commentId: comment_id,
-          userId: user_id.substring(0, 8) + '...'
-        })
-
-        return res.status(200).json({
-          success: true,
-          comment: updatedComment,
-          requestId
-        })
-
-      } catch (error) {
-        logError('Error updating comment', error, { requestId, comment_id })
-        return res.status(500).json({
-          error: 'Erreur lors de la modification du commentaire',
-          message: error.message,
           requestId
         })
       }
@@ -363,18 +291,6 @@ export default async function handler(req, res) {
             error: 'Commentaire non trouvé',
             message: 'Commentaire non trouvé ou vous n\'êtes pas autorisé à le supprimer'
           })
-        }
-
-        // Décrémenter le compteur de commentaires
-        if (deletedComment[0]?.recipe_id) {
-          const { error: updateError } = await supabaseAdmin
-            .rpc('decrement_recipe_comments_count', {
-              recipe_uuid: deletedComment[0].recipe_id
-            })
-
-          if (updateError) {
-            logError('Error updating recipe comments count after deletion', updateError, { requestId })
-          }
         }
 
         logInfo('Comment deleted successfully', {
