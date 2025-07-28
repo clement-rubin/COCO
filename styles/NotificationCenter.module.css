@@ -7,7 +7,7 @@
 
 .notificationCenter {
   position: relative;
-  z-index: 1000;
+  z-index: 1000; /* S'assurer que les notifications sont au-dessus */
 }
 
 /*
@@ -129,6 +129,8 @@
   overflow: hidden;
   animation: panelSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   backdrop-filter: blur(20px);
+  /* Ajuster pour mobile */
+  z-index: 10001;
 }
 
 @keyframes panelSlideIn {
@@ -478,6 +480,7 @@
   .notificationPanel {
     width: 320px;
     right: -20px;
+    max-height: 400px;
   }
   
   .panelHeader {

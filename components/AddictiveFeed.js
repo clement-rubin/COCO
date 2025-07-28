@@ -760,6 +760,43 @@ export default function AddictiveFeed() {
         </div>
       </div>
 
+      {/* Section des statistiques remplaçant l'image */}
+      <div className={styles.statsSection}>
+        <div className={styles.statCard}>
+          <span className={styles.statIcon}>🍽️</span>
+          <span className={styles.statNumber}>{recipes.length}</span>
+          <span className={styles.statLabel}>Recettes</span>
+          <div className={styles.statSubtext}>Partagées par vos amis</div>
+        </div>
+        
+        <div className={styles.statCard}>
+          <span className={styles.statIcon}>❤️</span>
+          <span className={styles.statNumber}>
+            {recipes.reduce((total, recipe) => total + recipe.recipe.likes, 0)}
+          </span>
+          <span className={styles.statLabel}>Likes</span>
+          <div className={styles.statSubtext}>Total des appréciations</div>
+        </div>
+        
+        <div className={styles.statCard}>
+          <span className={styles.statIcon}>💬</span>
+          <span className={styles.statNumber}>
+            {recipes.reduce((total, recipe) => total + recipe.recipe.comments, 0)}
+          </span>
+          <span className={styles.statLabel}>Commentaires</span>
+          <div className={styles.statSubtext}>Interactions de la communauté</div>
+        </div>
+        
+        <div className={styles.statCard}>
+          <span className={styles.statIcon}>👥</span>
+          <span className={styles.statNumber}>
+            {new Set(recipes.map(r => r.user.id)).size}
+          </span>
+          <span className={styles.statLabel}>Chefs actifs</span>
+          <div className={styles.statSubtext}>Amis qui partagent</div>
+        </div>
+      </div>
+
       <div className={styles.recipesGrid}>
         {recipes.map((post) => (
           <div key={post.id} className={styles.recipeCard}>
