@@ -696,19 +696,68 @@ export default function AddictiveFeed() {
 
   return (
     <div className={styles.feedContainer} ref={containerRef}>
-      {/* Bannière d'information pour clarifier que c'est le feed des amis */}
-      <div className={styles.feedInfo}>
-        <div className={styles.feedInfoIcon}>🍳</div>
-        <div className={styles.feedInfoText}>
-          <strong>Feed communautaire</strong>
-          <p>Recettes avec vraies statistiques d'engagement</p>
+      {/* Header principal amélioré */}
+      <div className={styles.feedHeader}>
+        <div className={styles.headerContent}>
+          <div className={styles.headerLeft}>
+            <div className={styles.headerIcon}>🍳</div>
+            <div className={styles.headerText}>
+              <h2 className={styles.headerTitle}>Feed Communautaire COCO</h2>
+              <p className={styles.headerSubtitle}>
+                {user ? `${recipes.length} recettes de vos amis` : 'Découvrez les recettes de la communauté'}
+              </p>
+            </div>
+          </div>
+          
+          <div className={styles.headerRight}>
+            <div className={styles.headerStats}>
+              <div className={styles.statItem}>
+                <span className={styles.statNumber}>{recipes.length}</span>
+                <span className={styles.statLabel}>Recettes</span>
+              </div>
+              <div className={styles.statItem}>
+                <span className={styles.statNumber}>
+                  {recipes.reduce((total, recipe) => total + recipe.recipe.likes, 0)}
+                </span>
+                <span className={styles.statLabel}>❤️ Likes</span>
+              </div>
+              <div className={styles.statItem}>
+                <span className={styles.statNumber}>
+                  {recipes.reduce((total, recipe) => total + recipe.recipe.comments, 0)}
+                </span>
+                <span className={styles.statLabel}>💬 Commentaires</span>
+              </div>
+            </div>
+            
+            <div className={styles.headerActions}>
+              <button 
+                onClick={() => router.push('/amis')} 
+                className={styles.friendsBtn}
+              >
+                👥 Mes amis
+              </button>
+              {user && (
+                <button 
+                  onClick={() => router.push('/submit-recipe')} 
+                  className={styles.addRecipeBtn}
+                >
+                  ➕ Ajouter
+                </button>
+              )}
+            </div>
+          </div>
         </div>
-        <button 
-          onClick={() => router.push('/amis')} 
-          className={styles.exploreAllBtn}
-        >
-          👥 Mes amis
-        </button>
+        
+        {/* Indicateur de statut */}
+        <div className={styles.statusIndicator}>
+          <div className={styles.liveIndicator}>
+            <span className={styles.liveDot}></span>
+            <span className={styles.liveText}>Données en temps réel</span>
+          </div>
+          <div className={styles.updateTime}>
+            Dernière mise à jour: il y a quelques instants
+          </div>
+        </div>
       </div>
 
       <div className={styles.recipesGrid}>
