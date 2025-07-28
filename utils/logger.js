@@ -219,6 +219,190 @@ export const logHttpError = (message, error, requestDetails = {}, data = {}) => 
   return createLog(LOG_LEVELS.ERROR, LOG_TYPES.FRONTEND_ERROR, message, enhancedData, error)
 }
 
+/**
+ * Logger spécialisé pour les interactions sociales (likes, commentaires, etc.)
+ */
+export const logSocialInteraction = (action, target, details = {}) => {
+  const timestamp = new Date().toISOString()
+  const sessionId = getSessionId()
+  
+  const socialLog = {
+    id: `social_${timestamp}_${Math.random().toString(36).substring(2, 10)}`,
+    timestamp,
+    sessionId,
+    type: 'SOCIAL_INTERACTION',
+    action, // 'LIKE_ADD', 'LIKE_REMOVE', 'COMMENT_ADD', 'COMMENT_LIKE', etc.
+    target, // 'recipe', 'comment', 'user'
+    details: {
+      ...details,
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Unknown',
+      url: typeof window !== 'undefined' ? window.location.href : 'Unknown',
+      referrer: typeof document !== 'undefined' ? document.referrer : 'Unknown',
+      viewport: typeof window !== 'undefined' ? {
+        width: window.innerWidth,
+        height: window.innerHeight
+      } : null,
+      deviceType: getDeviceType()
+    }
+  }
+
+  // Stocker dans localStorage pour persistance
+  try {
+    const existingLogs = JSON.parse(localStorage.getItem('coco_social_logs') || '[]')
+    existingLogs.push(socialLog)
+    
+    // Garder seulement les 500 derniers logs
+    if (existingLogs.length > 500) {
+      existingLogs.splice(0, existingLogs.length - 500)
+    }
+    
+    localStorage.setItem('coco_social_logs', JSON.stringify(existingLogs))
+  } catch (error) {
+    console.error('Error storing social log:', error)
+  }
+
+  // Log console pour debug
+  console.log(`🔍 SOCIAL: ${action} on ${target}`, socialLog)
+  
+  return socialLog
+}
+
+/**
+ * Logger pour les erreurs d'interactions sociales
+ */
+export const logSocialError = (action, error, context = {}) => {
+  const timestamp = new Date().toISOString()
+  const sessionId = getSessionId()
+  
+  const errorLog = {
+    id: `social_error_${timestamp}_${Math.random().toString(36).substring(2, 10)}`,
+    timestamp,
+    sessionId,
+    type: 'SOCIAL_ERROR',
+    action,
+    error: {
+      name: error?.name || 'Unknown',
+      message: error?.message || 'Unknown error',
+      stack: error?.stack?.substring(0, 1000) || null,
+      status: error?.status || null,
+      code: error?.code || null
+    },
+    context: {
+      ...context,
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Unknown',
+      url: typeof window !== 'undefined' ? window.location.href : 'Unknown',
+      timestamp: timestamp,
+      severity: determineSeverity(error)
+    }
+  }
+
+  // Stocker les erreurs séparément
+  try {
+    const existingErrors = JSON.parse(localStorage.getItem('coco_social_errors') || '[]')
+    existingErrors.push(errorLog)
+    
+    // Garder seulement les 100 dernières erreurs
+    if (existingErrors.length > 100) {
+      existingErrors.splice(0, existingErrors.length - 100)
+    }
+    
+    localStorage.setItem('coco_social_errors', JSON.stringify(existingErrors))
+  } catch (storageError) {
+    console.error('Error storing social error log:', storageError)
+  }
+
+  console.error(`🚨 SOCIAL ERROR: ${action}`, errorLog)
+  
+  return errorLog
+}
+
+/**
+ * Logger pour les performances d'interactions sociales
+ */
+export const logSocialPerformance = (action, timing, metrics = {}) => {
+  const timestamp = new Date().toISOString()
+  
+  const performanceLog = {
+    id: `social_perf_${timestamp}_${Math.random().toString(36).substring(2, 10)}`,
+    timestamp,
+    type: 'SOCIAL_PERFORMANCE',
+    action,
+    timing: {
+      start: timing.start,
+      end: timing.end,
+      duration: timing.end - timing.start,
+      ...timing
+    },
+    metrics: {
+      ...metrics,
+      memoryUsage: getMemoryUsage(),
+      connectionType: getConnectionType()
+    }
+  }
+
+  // Stocker les métriques de performance
+  try {
+    const existingPerf = JSON.parse(localStorage.getItem('coco_social_performance') || '[]')
+    existingPerf.push(performanceLog)
+    
+    // Garder seulement les 200 dernières métriques
+    if (existingPerf.length > 200) {
+      existingPerf.splice(0, existingPerf.length - 200)
+    }
+    
+    localStorage.setItem('coco_social_performance', JSON.stringify(existingPerf))
+  } catch (error) {
+    console.error('Error storing performance log:', error)
+  }
+
+  console.log(`⚡ SOCIAL PERF: ${action} (${performanceLog.timing.duration}ms)`, performanceLog)
+  
+  return performanceLog
+}
+
+/**
+ * Récupérer tous les logs sociaux
+ */
+export const getSocialLogs = () => {
+  try {
+    const logs = JSON.parse(localStorage.getItem('coco_social_logs') || '[]')
+    const errors = JSON.parse(localStorage.getItem('coco_social_errors') || '[]')
+    const performance = JSON.parse(localStorage.getItem('coco_social_performance') || '[]')
+    
+    return {
+      interactions: logs,
+      errors,
+      performance,
+      total: logs.length + errors.length + performance.length
+    }
+  } catch (error) {
+    console.error('Error retrieving social logs:', error)
+    return {
+      interactions: [],
+      errors: [],
+      performance: [],
+      total: 0
+    }
+  }
+}
+
+/**
+ * Nettoyer les logs sociaux
+ */
+export const clearSocialLogs = () => {
+  try {
+    localStorage.removeItem('coco_social_logs')
+    localStorage.removeItem('coco_social_errors')
+    localStorage.removeItem('coco_social_performance')
+    
+    logInfo('Social logs cleared successfully')
+    return true
+  } catch (error) {
+    logError('Error clearing social logs', error)
+    return false
+  }
+}
+
 // Fonctions utilitaires
 export const getLogs = (filter = {}) => {
   let filteredLogs = [...logHistory]
@@ -267,6 +451,63 @@ export const logSuccess = (message, data = {}) => {
   return createLog(LOG_LEVELS.INFO, 'SUCCESS', message, data)
 }
 
+// Fonctions utilitaires
+const getSessionId = () => {
+  if (typeof window === 'undefined') return 'server'
+  
+  let sessionId = sessionStorage.getItem('coco_session_id')
+  if (!sessionId) {
+    sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`
+    sessionStorage.setItem('coco_session_id', sessionId)
+  }
+  return sessionId
+}
+
+const getDeviceType = () => {
+  if (typeof window === 'undefined') return 'server'
+  
+  const userAgent = navigator.userAgent.toLowerCase()
+  if (userAgent.includes('mobile') || userAgent.includes('android') || userAgent.includes('iphone')) {
+    return 'mobile'
+  } else if (userAgent.includes('tablet') || userAgent.includes('ipad')) {
+    return 'tablet'
+  } else {
+    return 'desktop'
+  }
+}
+
+const determineSeverity = (error) => {
+  if (!error) return 'low'
+  
+  if (error.status >= 500) return 'critical'
+  if (error.status >= 400) return 'high'
+  if (error.message?.includes('network') || error.message?.includes('timeout')) return 'medium'
+  
+  return 'low'
+}
+
+const getMemoryUsage = () => {
+  if (typeof performance !== 'undefined' && performance.memory) {
+    return {
+      used: Math.round(performance.memory.usedJSHeapSize / 1024 / 1024 * 100) / 100,
+      total: Math.round(performance.memory.totalJSHeapSize / 1024 / 1024 * 100) / 100,
+      limit: Math.round(performance.memory.jsHeapSizeLimit / 1024 / 1024 * 100) / 100
+    }
+  }
+  return null
+}
+
+const getConnectionType = () => {
+  if (typeof navigator !== 'undefined' && navigator.connection) {
+    return {
+      effectiveType: navigator.connection.effectiveType,
+      downlink: navigator.connection.downlink,
+      rtt: navigator.connection.rtt
+    }
+  }
+  return null
+}
+
 export default {
   debug: logDebug,
   info: logInfo,
@@ -286,5 +527,10 @@ export default {
   getLogs,
   clearLogs,
   exportLogs,
-  success: logSuccess
+  success: logSuccess,
+  socialInteraction: logSocialInteraction,
+  socialError: logSocialError,
+  socialPerformance: logSocialPerformance,
+  getSocialLogs,
+  clearSocialLogs
 }

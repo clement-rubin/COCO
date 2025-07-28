@@ -67,6 +67,28 @@ export default function Home() {
     }
   }, [user, loading, router])
 
+  // Accès discret aux logs (seulement pour les développeurs/admins)
+  const [secretClickCount, setSecretClickCount] = useState(0)
+  const [showSecretMenu, setShowSecretMenu] = useState(false)
+
+  const handleLogoClick = () => {
+    setSecretClickCount(prev => prev + 1)
+    
+    // Accès après 7 clics sur le logo
+    if (secretClickCount >= 6) {
+      setShowSecretMenu(true)
+      setTimeout(() => setShowSecretMenu(false), 5000)
+      setSecretClickCount(0)
+    }
+  }
+
+  const hasAdminAccess = user && (
+    user.email === 'admin@coco.com' || 
+    user.user_metadata?.role === 'admin' ||
+    user.user_metadata?.role === 'developer' ||
+    user.email?.includes('clement.rubin')
+  )
+
   // Afficher un écran de chargement pendant la vérification
   if (loading) {
     return (
@@ -986,6 +1008,48 @@ export default function Home() {
         </div>
       </main>
       
+      {/* Logo cliquable pour accès secret */}
+      <div onClick={handleLogoClick} style={{ cursor: 'pointer' }}>
+        {/* Votre logo existant */}
+      </div>
+
+      {/* Menu secret pour les logs */}
+      {showSecretMenu && hasAdminAccess && (
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          right: '20px',
+          background: 'rgba(0, 0, 0, 0.9)',
+          color: 'white',
+          padding: '16px',
+          borderRadius: '12px',
+          zIndex: 9999,
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255, 255, 255, 0.2)',
+          animation: 'fadeIn 0.3s ease'
+        }}>
+          <div style={{ fontSize: '0.8rem', marginBottom: '8px', opacity: 0.7 }}>
+            🔒 Menu Développeur
+          </div>
+          <button
+            onClick={() => router.push('/social-logs')}
+            style={{
+              background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+              color: 'white',
+              border: 'none',
+              padding: '8px 16px',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '0.9rem',
+              fontWeight: '600',
+              width: '100%'
+            }}
+          >
+            🔍 Logs Sociaux
+          </button>
+        </div>
+      )}
+
       <style jsx>{`
         @keyframes heroLogo {
           0%, 100% { 

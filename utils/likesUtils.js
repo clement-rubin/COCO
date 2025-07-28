@@ -1,4 +1,4 @@
-import { logInfo, logError, logDebug, logHttpError } from './logger'
+import { logInfo, logError, logDebug, logHttpError, logSocialInteraction, logSocialError, logSocialPerformance } from './logger'
 import { showRecipeLikeInteractionNotification } from './notificationUtils'
 import { useState, useEffect, useCallback } from 'react'
 
@@ -369,30 +369,143 @@ export async function removeRecipeLike(recipeId, userId) {
 /**
  * Toggle like sur une recette (ajouter ou supprimer)
  */
-export async function toggleRecipeLike(recipeId, userId, currentlyLiked, recipe = null, user = null) {
+export async function toggleRecipeLike(recipeId, userId, currentlyLiked, recipeData = null, userData = null) {
+  const startTime = performance.now()
+  const action = currentlyLiked ? 'LIKE_REMOVE' : 'LIKE_ADD'
+  
+  // Log début de l'interaction
+  logSocialInteraction(action + '_START', 'recipe', {
+    recipeId,
+    userId: userId?.substring(0, 8) + '...',
+    currentlyLiked,
+    hasRecipeData: !!recipeData,
+    hasUserData: !!userData,
+    recipeTitle: recipeData?.title?.substring(0, 50),
+    userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : null
+  })
+
   try {
-    logDebug('Toggling recipe like', {
-      recipeId,
+    logInfo('Toggling recipe like', { 
+      recipeId, 
       userId: userId?.substring(0, 8) + '...',
       currentlyLiked,
-      action: currentlyLiked ? 'remove' : 'add'
+      action: currentlyLiked ? 'unlike' : 'like'
     })
 
-    if (currentlyLiked) {
-      return await removeRecipeLike(recipeId, userId)
-    } else {
-      return await addRecipeLike(recipeId, userId, recipe, user)
+    const method = currentlyLiked ? 'DELETE' : 'POST'
+    const apiUrl = currentlyLiked 
+      ? `/api/recipe-likes?recipe_id=${recipeId}&user_id=${userId}`
+      : '/api/recipe-likes'
+
+    const requestBody = currentlyLiked ? undefined : {
+      recipe_id: recipeId,
+      user_id: userId
     }
-  } catch (error) {
-    logError('Error toggling recipe like', error, {
+
+    const response = await fetch(apiUrl, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: requestBody ? JSON.stringify(requestBody) : undefined
+    })
+
+    const result = await response.json()
+    const endTime = performance.now()
+
+    if (!response.ok) {
+      // Log erreur détaillée
+      logSocialError(action, new Error(result.message || 'API Error'), {
+        recipeId,
+        userId: userId?.substring(0, 8) + '...',
+        status: response.status,
+        responseData: result,
+        requestBody,
+        apiUrl,
+        method,
+        duration: endTime - startTime
+      })
+      
+      logError('API error toggling like', new Error(result.message || 'API Error'), {
+        recipeId,
+        userId: userId?.substring(0, 8) + '...',
+        status: response.status,
+        error: result
+      })
+      
+      return {
+        success: false,
+        error: result.message || 'Erreur lors de la modification du like',
+        stats: null
+      }
+    }
+
+    // Récupérer les stats mises à jour
+    const updatedStats = result.stats || {
+      likes_count: result.recipe?.likes_count || 0,
+      user_has_liked: !currentlyLiked
+    }
+
+    // Log succès avec métriques de performance
+    logSocialPerformance(action + '_SUCCESS', {
+      start: startTime,
+      end: endTime,
+      duration: endTime - startTime
+    }, {
       recipeId,
       userId: userId?.substring(0, 8) + '...',
-      currentlyLiked
+      previousLikes: recipeData?.likes_count || 0,
+      newLikes: updatedStats.likes_count,
+      likesChange: updatedStats.likes_count - (recipeData?.likes_count || 0),
+      responseSize: JSON.stringify(result).length,
+      httpStatus: response.status
     })
+
+    // Log interaction complète
+    logSocialInteraction(action + '_SUCCESS', 'recipe', {
+      recipeId,
+      userId: userId?.substring(0, 8) + '...',
+      previousLikes: recipeData?.likes_count || 0,
+      newLikes: updatedStats.likes_count,
+      likesChange: updatedStats.likes_count - (recipeData?.likes_count || 0),
+      duration: endTime - startTime,
+      responseTime: endTime - startTime,
+      success: true
+    })
+
+    logInfo('Recipe like toggled successfully', {
+      recipeId,
+      userId: userId?.substring(0, 8) + '...',
+      newLikesCount: updatedStats.likes_count,
+      newUserHasLiked: updatedStats.user_has_liked
+    })
+
+    return {
+      success: true,
+      stats: updatedStats,
+      error: null
+    }
+
+  } catch (error) {
+    const endTime = performance.now()
+    
+    // Log erreur exception
+    logSocialError(action + '_EXCEPTION', error, {
+      recipeId,
+      userId: userId?.substring(0, 8) + '...',
+      duration: endTime - startTime,
+      errorType: 'exception',
+      errorName: error.name,
+      errorMessage: error.message,
+      stack: error.stack?.substring(0, 500)
+    })
+    
+    logError('Exception toggling recipe like', error, { recipeId, userId })
     
     return {
       success: false,
-      error: error.message
+      error: 'Erreur de connexion lors de la modification du like',
+      stats: null
     }
   }
 }
