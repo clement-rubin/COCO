@@ -3,7 +3,7 @@ import { useRouter } from 'next/router'
 import Image from 'next/image'
 import { useAuth } from './AuthContext'
 import { logUserInteraction, logError, logInfo, logDebug } from '../utils/logger'
-import { showRecipeLikeInteractionNotification } from '../utils/notificationUtils'
+import { showRecipeLikedNotification } from '../utils/notificationUtils'
 import { getMultipleRecipesEngagementStats } from '../utils/likesUtils'
 import styles from '../styles/AddictiveFeed.module.css'
 import { supabase } from '../lib/supabase'
@@ -327,12 +327,12 @@ export default function AddictiveFeed() {
     if (!isCurrentlyLiked) {
       // Déclencher une notification pour le propriétaire de la recette
       if (recipe && recipe.user && recipe.user.id !== user.id) {
-        showRecipeLikeInteractionNotification(
+        showRecipeLikedNotification(
           {
             id: recipe.recipe.id,
             title: recipe.recipe.title,
             image: recipe.recipe.image,
-            likes_count: recipe.recipe.likes + 1
+            user_id: recipe.user.id
           },
           {
             user_id: user.id,

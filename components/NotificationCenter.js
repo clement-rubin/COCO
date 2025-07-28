@@ -58,23 +58,23 @@ const NotificationCenter = () => {
 
   // Debug: ajouter des notifications de test en développement
   useEffect(() => {
-    if (process.env.NODE_ENV === 'development' && isInitialized && notifications.length === 0) {
-      // Ajouter quelques notifications de test après un délai
-      setTimeout(() => {
-        const testNotification = {
-          type: 'recipe_liked',
-          title: '❤️ Test - Votre recette a été aimée !',
-          body: 'Un utilisateur test aime votre recette "Test Tarte aux pommes"',
-          data: { 
-            recipeId: 'test-recipe',
-            type: 'like',
-            likerName: 'Utilisateur Test'
-          }
+    if (process.env.NODE_ENV === 'development' && isInitialized) {
+      // Forcer le rechargement des notifications toutes les 2 secondes en dev
+      const interval = setInterval(() => {
+        const currentNotifications = notificationManager.getStoredNotifications()
+        if (currentNotifications.length !== notifications.length) {
+          console.log('🔔 NotificationCenter: Rechargement des notifications', {
+            stored: currentNotifications.length,
+            displayed: notifications.length
+          })
+          setNotifications(currentNotifications)
+          updateUnreadCount()
         }
-        notificationManager.addNotification(testNotification)
       }, 2000)
+      
+      return () => clearInterval(interval)
     }
-  }, [isInitialized])
+  }, [isInitialized, notifications.length])
 
   const loadNotifications = () => {
     setLoading(true)

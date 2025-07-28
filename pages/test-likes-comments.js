@@ -6,10 +6,8 @@ import Comments from '../components/Comments'
 import { supabase } from '../lib/supabase'
 import { logInfo, logError, logWarning } from '../utils/logger'
 import { 
-  getRecipeLikesStats, 
-  addRecipeLike, 
-  removeRecipeLike, 
-  getMultipleRecipesLikesStats,
+  toggleRecipeLike, 
+  getMultipleRecipesLikesStats, 
   useRecipeLikes 
 } from '../utils/likesUtils'
 import { 

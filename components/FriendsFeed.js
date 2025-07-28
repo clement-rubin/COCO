@@ -3,7 +3,7 @@ import { useRouter } from 'next/router'
 import Image from 'next/image'
 import { useAuth } from './AuthContext'
 import { logUserInteraction, logError, logDebug } from '../utils/logger'
-import { showRecipeLikeInteractionNotification } from '../utils/notificationUtils'
+import { showRecipeLikeInteractionNotification, showRecipeLikedNotification } from '../utils/notificationUtils'
 import { getRecipeIllustration } from '../utils/recipeIllustrations'
 import { getMultipleRecipesLikesStats } from '../utils/likesUtils' // Ajouter cette import
 import styles from '../styles/FriendsFeed.module.css'
@@ -217,11 +217,12 @@ export default function FriendsFeed({ feedType = 'featured' }) {
         newSet.add(recipeId)
         
         if (recipe && recipe.chef !== user.user_metadata?.display_name) {
-          showRecipeLikeInteractionNotification(
+          showRecipeLikedNotification(
             {
               id: recipe.id,
               title: recipe.name,
-              image: recipe.image
+              image: recipe.image,
+              user_id: recipe.user_id || 'unknown'
             },
             {
               user_id: user.id,

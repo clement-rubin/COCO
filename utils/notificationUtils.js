@@ -683,24 +683,37 @@ export const showRecipeCommentNotification = (recipe, fromUser, comment) => {
 }
 
 export const showRecipeLikeInteractionNotification = (recipe, fromUser) => {
+  // UTILISER addNotification au lieu de show pour s'assurer que ça arrive dans le centre
+  const notification = {
+    type: 'recipe_liked',
+    title: '❤️ Votre recette a été aimée !',
+    body: `${fromUser.display_name || fromUser.name || 'Un utilisateur'} aime votre recette "${recipe.title}"`,
+    icon: '/icons/heart.png',
+    data: { 
+      recipeId: recipe.id, 
+      userId: fromUser.user_id || fromUser.id,
+      type: 'like',
+      action: 'view_recipe',
+      likerName: fromUser.display_name || fromUser.name,
+      recipeTitle: recipe.title,
+      timestamp: new Date().toISOString(),
+      currentLikes: recipe.likes_count || 0
+    }
+  }
+
+  // IMPORTANT: Utiliser addNotification ET show pour double assurance
+  const storedNotification = notificationManager.addNotification(notification)
+  
+  // Aussi afficher la notification fallback
   return notificationManager.show(
-    NOTIFICATION_TYPES.RECIPE_LIKED,
-    '❤️ Votre recette a été aimée !',
+    notification.type,
+    notification.title,
     {
-      body: `${fromUser.display_name || fromUser.name || 'Un utilisateur'} aime votre recette "${recipe.title}"`,
-      icon: '/icons/heart.png',
-      data: { 
-        recipeId: recipe.id, 
-        userId: fromUser.user_id || fromUser.id,
-        type: 'like',
-        action: 'view_recipe',
-        likerName: fromUser.display_name || fromUser.name,
-        recipeTitle: recipe.title,
-        timestamp: new Date().toISOString(),
-        currentLikes: recipe.likes_count || 0
-      },
+      body: notification.body,
+      icon: notification.icon,
+      data: notification.data,
       forceFallback: true,
-      duration: 6000 // Plus long pour laisser le temps de lire
+      duration: 6000
     }
   )
 }

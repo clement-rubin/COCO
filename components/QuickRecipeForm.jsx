@@ -2,7 +2,7 @@ import { useState, useRef } from 'react'
 import { useRouter } from 'next/router'
 import { useAuth } from './AuthContext'
 import { uploadImageToSupabaseAndGetUrl } from '../utils/imageUtils'
-import { showRecipeLikeInteractionNotification } from '../utils/notificationUtils'
+import { showTrophyNotification } from '../utils/notificationUtils'
 import styles from '../styles/QuickRecipe.module.css'
 
 export default function QuickRecipeForm() {
@@ -112,11 +112,14 @@ export default function QuickRecipeForm() {
 
       const result = await response.json()
 
-      // Notification de succès
-      showRecipeLikeInteractionNotification(
-        { id: result.id, title: result.title, image: result.image },
-        { display_name: authorName, user_id: user.id }
-      )
+      // Notification de succès - UTILISER LE BON TYPE
+      showTrophyNotification({
+        id: 'recipe_shared',
+        name: 'Recette partagée !',
+        description: `Votre recette "${result.title}" a été partagée avec succès`,
+        image: '/icons/recipe-icon.png',
+        points: 10
+      })
 
       // Redirection rapide
       setTimeout(() => router.push('/'), 1500)

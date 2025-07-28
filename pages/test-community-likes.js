@@ -9,7 +9,6 @@ import { logInfo, logError, logWarning } from '../utils/logger'
 import { 
   toggleRecipeLike, 
   getMultipleRecipesLikesStats, 
-  addRecipeLike, 
   removeRecipeLike,
   useRecipeLikes 
 } from '../utils/likesUtils'
