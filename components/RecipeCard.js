@@ -153,12 +153,21 @@ const RecipeCard = ({
 
     setEngagementLoading(true)
     
+    const isCurrentlyLiked = engagementStats.user_has_liked
+    
+    // Mise à jour optimiste - UNE SEULE FOIS
+    setEngagementStats(prev => ({
+      ...prev,
+      likes_count: prev.likes_count + (isCurrentlyLiked ? -1 : 1),
+      user_has_liked: !isCurrentlyLiked
+    }))
+    
     try {
       const { toggleRecipeLike } = await import('../utils/likesUtils')
       const result = await toggleRecipeLike(
         recipe.id,
         user.id,
-        engagementStats.user_has_liked,
+        isCurrentlyLiked,
         {
           id: recipe.id,
           title: recipe.title,
@@ -172,14 +181,15 @@ const RecipeCard = ({
       )
 
       if (result.success && result.stats) {
+        // Mettre à jour avec les vraies données de l'API - CORRECTION
         setEngagementStats(prev => ({
           ...prev,
           likes_count: result.stats.likes_count,
           user_has_liked: result.stats.user_has_liked
         }))
 
-        // Animation de like améliorée
-        if (result.stats.user_has_liked) {
+        // Animation de like améliorée - seulement pour les nouveaux likes
+        if (result.stats.user_has_liked && !isCurrentlyLiked) {
           // Créer une animation de coeur flottant plus sophistiquée
           const heart = document.createElement('div')
           heart.innerHTML = '❤️'
@@ -221,6 +231,13 @@ const RecipeCard = ({
           newLikesCount: result.stats.likes_count
         })
       } else {
+        // Revert optimistic update si l'API échoue
+        setEngagementStats(prev => ({
+          ...prev,
+          likes_count: prev.likes_count + (isCurrentlyLiked ? 1 : -1),
+          user_has_liked: isCurrentlyLiked
+        }))
+        
         // Handle authentication or other API errors
         if (result.status === 401 || result.error?.includes('auth')) {
           // Authentication error - redirect to login
@@ -240,6 +257,13 @@ const RecipeCard = ({
         errorStatus: error.status,
         errorMessage: error.message
       })
+      
+      // Revert optimistic update en cas d'erreur
+      setEngagementStats(prev => ({
+        ...prev,
+        likes_count: prev.likes_count + (isCurrentlyLiked ? 1 : -1),
+        user_has_liked: isCurrentlyLiked
+      }))
       
       // Handle specific error types
       if (error.status === 401) {

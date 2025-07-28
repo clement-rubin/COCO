@@ -113,13 +113,13 @@ export default function SocialFeed() {
     if (!post) return
 
     const currentLikesData = likesData[postId] || { 
-      likes_count: posts.find(p => p.id === postId)?.recipe?.likes_count || 0, 
+      likes_count: 0, 
       user_has_liked: false 
     }
     const isCurrentlyLiked = currentLikesData.user_has_liked
 
     try {
-      // Optimistic update
+      // Optimistic update - UNE SEULE FOIS
       setLikesData(prev => ({
         ...prev,
         [postId]: {
@@ -145,7 +145,7 @@ export default function SocialFeed() {
       )
 
       if (result.success && result.stats) {
-        // Mettre à jour avec les vraies données du serveur
+        // Mettre à jour avec les vraies données du serveur - CORRECTION
         setLikesData(prev => ({
           ...prev,
           [postId]: {
@@ -154,8 +154,8 @@ export default function SocialFeed() {
           }
         }))
 
-        // Animation de like
-        if (result.stats.user_has_liked) {
+        // Animation de like uniquement si c'est un nouveau like
+        if (result.stats.user_has_liked && !isCurrentlyLiked) {
           const heart = document.createElement('div')
           heart.innerHTML = '❤️'
           heart.style.cssText = `
@@ -473,4 +473,3 @@ export default function SocialFeed() {
     </>
   )
 }
-  

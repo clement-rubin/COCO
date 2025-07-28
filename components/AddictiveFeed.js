@@ -292,7 +292,7 @@ export default function AddictiveFeed() {
     return 'à l\'instant'
   }
 
-  // Actions utilisateur - MISE À JOUR POUR SYNCHRONISER AVEC LA BASE
+  // Actions utilisateur - CORRECTION POUR ÉVITER DOUBLE AJOUT
   const toggleLike = useCallback(async (recipeId) => {
     if (!user) {
       const wantsToLogin = window.confirm('Connectez-vous pour aimer cette recette. Aller à la page de connexion?')
@@ -303,58 +303,12 @@ export default function AddictiveFeed() {
     }
     
     const recipe = recipes.find(r => r.id === recipeId)
-    const isCurrentlyLiked = recipe?.recipe?.user_has_liked || userActions.likes.has(recipeId)
+    const isCurrentlyLiked = recipe?.recipe?.user_has_liked || false
     
-    // Mise à jour optimiste de l'UI
-    setUserActions(prev => {
-      const newLikes = new Set(prev.likes)
-      
-      if (!isCurrentlyLiked) {
-        newLikes.add(recipeId)
-        
-        // Déclencher une notification pour le propriétaire de la recette
-        if (recipe && recipe.user && recipe.user.id !== user.id) {
-          showRecipeLikeInteractionNotification(
-            {
-              id: recipe.recipe.id,
-              title: recipe.recipe.title,
-              image: recipe.recipe.image,
-              likes_count: recipe.recipe.likes + 1
-            },
-            {
-              user_id: user.id,
-              display_name: user.user_metadata?.display_name || user.email?.split('@')[0] || 'Utilisateur'
-            }
-          )
-        }
-        
-        // Animation de like
-        const heart = document.createElement('div')
-        heart.innerHTML = '❤️'
-        heart.style.cssText = `
-          position: fixed;
-          font-size: 2rem;
-          z-index: 10000;
-          pointer-events: none;
-          animation: heartFloat 1.2s ease-out forwards;
-          left: 50%;
-          top: 50%;
-          transform: translate(-50%, -50%);
-        `
-        document.body.appendChild(heart)
-        setTimeout(() => heart.remove(), 1200)
-        
-        if (navigator.vibrate) {
-          navigator.vibrate(30)
-        }
-      } else {
-        newLikes.delete(recipeId)
-      }
-      
-      return { ...prev, likes: newLikes }
-    })
+    // SUPPRESSION DE LA MISE À JOUR OPTIMISTE DES ACTIONS UTILISATEUR
+    // Ne plus gérer userActions.likes ici car c'est redondant avec recipe.user_has_liked
     
-    // Mise à jour de l'UI immédiate
+    // Mise à jour optimiste UNIQUEMENT de l'UI de la recette
     setRecipes(prev => prev.map(recipe => {
       if (recipe.id === recipeId) {
         return {
@@ -369,6 +323,45 @@ export default function AddictiveFeed() {
       return recipe
     }))
 
+    // Animation uniquement si c'est un like (pas un unlike)
+    if (!isCurrentlyLiked) {
+      // Déclencher une notification pour le propriétaire de la recette
+      if (recipe && recipe.user && recipe.user.id !== user.id) {
+        showRecipeLikeInteractionNotification(
+          {
+            id: recipe.recipe.id,
+            title: recipe.recipe.title,
+            image: recipe.recipe.image,
+            likes_count: recipe.recipe.likes + 1
+          },
+          {
+            user_id: user.id,
+            display_name: user.user_metadata?.display_name || user.email?.split('@')[0] || 'Utilisateur'
+          }
+        )
+      }
+      
+      // Animation de like
+      const heart = document.createElement('div')
+      heart.innerHTML = '❤️'
+      heart.style.cssText = `
+        position: fixed;
+        font-size: 2rem;
+        z-index: 10000;
+        pointer-events: none;
+        animation: heartFloat 1.2s ease-out forwards;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+      `
+      document.body.appendChild(heart)
+      setTimeout(() => heart.remove(), 1200)
+      
+      if (navigator.vibrate) {
+        navigator.vibrate(30)
+      }
+    }
+
     // Appel à l'API pour synchroniser avec la base de données
     try {
       const { toggleRecipeLike } = await import('../utils/likesUtils')
@@ -376,16 +369,6 @@ export default function AddictiveFeed() {
       
       if (!result.success) {
         // Reverser les changements optimistes si l'API échoue
-        setUserActions(prev => {
-          const newLikes = new Set(prev.likes)
-          if (isCurrentlyLiked) {
-            newLikes.add(recipeId)
-          } else {
-            newLikes.delete(recipeId)
-          }
-          return { ...prev, likes: newLikes }
-        })
-        
         setRecipes(prev => prev.map(recipe => {
           if (recipe.id === recipeId) {
             return {
@@ -400,7 +383,7 @@ export default function AddictiveFeed() {
           return recipe
         }))
       } else {
-        // Mettre à jour avec les vraies données de l'API
+        // Mettre à jour avec les vraies données de l'API (correction finale)
         setRecipes(prev => prev.map(recipe => {
           if (recipe.id === recipeId) {
             return {
@@ -417,6 +400,21 @@ export default function AddictiveFeed() {
       }
     } catch (error) {
       logError('Error syncing like with database', error, { recipeId, userId: user.id })
+      
+      // Reverser les changements optimistes en cas d'erreur
+      setRecipes(prev => prev.map(recipe => {
+        if (recipe.id === recipeId) {
+          return {
+            ...recipe,
+            recipe: {
+              ...recipe.recipe,
+              likes: recipe.recipe.likes + (isCurrentlyLiked ? 1 : -1),
+              user_has_liked: isCurrentlyLiked
+            }
+          }
+        }
+        return recipe
+      }))
     }
     
     logUserInteraction('TOGGLE_LIKE', 'addictive-feed', {
@@ -424,7 +422,7 @@ export default function AddictiveFeed() {
       action: isCurrentlyLiked ? 'unlike' : 'like',
       userId: user?.id
     })
-  }, [user, router, userActions.likes, recipes])
+  }, [user, router, recipes])
 
   const openRecipe = useCallback((recipeId) => {
     router.push(`/recipe/${recipeId}`)
@@ -783,13 +781,13 @@ export default function AddictiveFeed() {
                 {post.isQuickShare && <span className={styles.metaItem}>📸 Partage express</span>}
               </div>
 
-              {/* Actions avec vraies données */}
+              {/* Actions avec vraies données - CORRECTION DE L'AFFICHAGE */}
               <div className={styles.recipeActions}>
                 <button
                   onClick={() => toggleLike(post.id)}
-                  className={`${styles.actionBtn} ${post.recipe.user_has_liked || userActions.likes.has(post.id) ? styles.liked : ''}`}
+                  className={`${styles.actionBtn} ${post.recipe.user_has_liked ? styles.liked : ''}`}
                 >
-                  {post.recipe.user_has_liked || userActions.likes.has(post.id) ? '❤️' : '🤍'} {post.recipe.likes}
+                  {post.recipe.user_has_liked ? '❤️' : '🤍'} {post.recipe.likes}
                 </button>
                 
                 <button 

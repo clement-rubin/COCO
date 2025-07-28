@@ -155,7 +155,7 @@ export default function TestCommunityLikes() {
       const currentLikesData = likesData[postId] || { likes_count: 0, user_has_liked: false }
       const isCurrentlyLiked = currentLikesData.user_has_liked
 
-      // Optimistic update
+      // Optimistic update - UNE SEULE FOIS
       setLikesData(prev => ({
         ...prev,
         [postId]: {
@@ -164,17 +164,23 @@ export default function TestCommunityLikes() {
         }
       }))
 
-      const result = isCurrentlyLiked 
-        ? await removeRecipeLike(postId, user.id)
-        : await addRecipeLike(postId, user.id, {
-            id: post.id,
-            title: post.title,
-            image: post.image,
-            user_id: post.user_id
-          }, {
-            user_id: user.id,
-            display_name: user.user_metadata?.display_name || 'Testeur'
-          })
+      // UTILISER toggleRecipeLike pour cohérence
+      const { toggleRecipeLike } = await import('../utils/likesUtils')
+      const result = await toggleRecipeLike(
+        postId,
+        user.id,
+        isCurrentlyLiked,
+        {
+          id: post.id,
+          title: post.title,
+          image: post.image,
+          user_id: post.user_id
+        },
+        {
+          user_id: user.id,
+          display_name: user.user_metadata?.display_name || 'Testeur'
+        }
+      )
 
       if (result.success) {
         // Mettre à jour avec les vraies données du serveur
@@ -182,26 +188,22 @@ export default function TestCommunityLikes() {
           ...prev,
           [postId]: {
             likes_count: result.stats?.likes_count || currentLikesData.likes_count,
-            user_has_liked: result.stats?.user_has_liked || !isCurrentlyLiked
+            user_has_liked: result.stats?.user_has_liked !== undefined ? result.stats.user_has_liked : !isCurrentlyLiked
           }
         }))
 
         addLog('info', `✅ ${isCurrentlyLiked ? 'Unlike' : 'Like'} effectué avec succès`, {
           postId: postId.substring(0, 8),
-          action: isCurrentlyLiked ? 'unlike' : 'like',
+          action: result.stats?.user_has_liked ? 'like' : 'unlike',
           newLikesCount: result.stats?.likes_count
         })
         setTestResults(prev => ({ ...prev, [`like_${postId}`]: 'success' }))
 
-        // Notification si c'est un like
-        if (!isCurrentlyLiked) {
+        // Notification et animation si c'est un nouveau like
+        if (result.stats?.user_has_liked && !isCurrentlyLiked) {
           showRecipeLikedNotification(post, {
             display_name: user.user_metadata?.display_name || 'Testeur'
           })
-        }
-
-        // Animation
-        if (!isCurrentlyLiked) {
           createLikeAnimation(postId)
         }
 
@@ -216,7 +218,7 @@ export default function TestCommunityLikes() {
       // Revert optimistic update
       setLikesData(prev => ({
         ...prev,
-        [postId]: likesData[postId] || { likes_count: 0, user_has_liked: false }
+        [postId]: currentLikesData
       }))
     } finally {
       setIsLoading(false)

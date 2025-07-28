@@ -149,9 +149,12 @@ export default function TestLikesComments() {
         throw new Error('Recette non trouvée')
       }
 
-      const result = await addRecipeLike(
+      // UTILISER toggleRecipeLike au lieu d'addRecipeLike pour éviter la confusion
+      const { toggleRecipeLike } = await import('../utils/likesUtils')
+      const result = await toggleRecipeLike(
         recipeId,
         user.id,
+        recipe.user_has_liked || false, // État actuel du like
         recipe,
         {
           user_id: user.id,
@@ -160,23 +163,30 @@ export default function TestLikesComments() {
       )
 
       if (result.success) {
-        // Mettre à jour la recette localement
+        // Mettre à jour la recette localement avec les vraies données
         setRecipes(prev => prev.map(r => 
           r.id === recipeId 
-            ? { ...r, likes_count: result.stats?.likes_count || r.likes_count + 1, user_has_liked: true }
+            ? { 
+                ...r, 
+                likes_count: result.stats?.likes_count || 0, 
+                user_has_liked: result.stats?.user_has_liked || false 
+              }
             : r
         ))
 
-        addLog('info', '✅ Like ajouté avec succès', {
+        addLog('info', '✅ Like toggleé avec succès', {
           recipeId: recipeId.substring(0, 8),
+          action: result.stats?.user_has_liked ? 'liked' : 'unliked',
           newLikesCount: result.stats?.likes_count
         })
         setTestResults(prev => ({ ...prev, [`like_${recipeId}`]: 'success' }))
 
-        // Test de notification
-        showRecipeLikedNotification(recipe, {
-          display_name: user.user_metadata?.display_name || 'Testeur'
-        })
+        // Test de notification uniquement si c'est un nouveau like
+        if (result.stats?.user_has_liked) {
+          showRecipeLikedNotification(recipe, {
+            display_name: user.user_metadata?.display_name || 'Testeur'
+          })
+        }
 
       } else {
         throw new Error(result.error || 'Erreur inconnue')
@@ -200,13 +210,33 @@ export default function TestLikesComments() {
     addLog('info', `💔 Test d'unlike sur la recette ${recipeId.substring(0, 8)}...`)
 
     try {
-      const result = await removeRecipeLike(recipeId, user.id)
+      const recipe = recipes.find(r => r.id === recipeId)
+      if (!recipe) {
+        throw new Error('Recette non trouvée')
+      }
+
+      // UTILISER toggleRecipeLike avec état "liked" pour simuler un unlike
+      const { toggleRecipeLike } = await import('../utils/likesUtils')
+      const result = await toggleRecipeLike(
+        recipeId,
+        user.id,
+        true, // Force unlike (état actuel = liked)
+        recipe,
+        {
+          user_id: user.id,
+          display_name: user.user_metadata?.display_name || user.email?.split('@')[0] || 'Testeur'
+        }
+      )
 
       if (result.success) {
         // Mettre à jour la recette localement
         setRecipes(prev => prev.map(r => 
           r.id === recipeId 
-            ? { ...r, likes_count: Math.max(0, (result.stats?.likes_count || r.likes_count - 1)), user_has_liked: false }
+            ? { 
+                ...r, 
+                likes_count: result.stats?.likes_count || 0, 
+                user_has_liked: result.stats?.user_has_liked || false 
+              }
             : r
         ))
 
