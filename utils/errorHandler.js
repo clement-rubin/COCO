@@ -169,12 +169,6 @@ const USER_FRIENDLY_MESSAGES = {
   'Friend not in group': 'Cet ami n\'est pas dans ce groupe.',
   'Notification not found': 'Notification introuvable.',
   'Invalid notification type': 'Type de notification invalide.',
-  'Search query too complex': 'Requête de recherche trop complexe.',
-  'Advanced search not available': 'Recherche avancée temporairement indisponible.',
-  'Suggestion generation failed': 'Impossible de générer des suggestions.',
-  'Online status update failed': 'Échec de la mise à jour du statut en ligne.',
-  'Interaction history full': 'Historique des interactions plein.',
-  'Invalid interaction type': 'Type d\'interaction invalide.',
   'Notification permission denied': 'Permission de notification refusée.',
   'Notification not supported': 'Notifications non supportées par ce navigateur.',
   'Notification send failed': 'Échec de l\'envoi de la notification.',
@@ -557,24 +551,3 @@ export function setupGlobalErrorHandling() {
     }))
   })
 }
-
-// Make sure the error messages are within an object definition like:
-
-const errorMessages = {
-  // Authentication errors
-  'Invalid credentials': 'Identifiants invalides. Vérifiez votre email et mot de passe.',
-  // ...other authentication errors...
-
-  // Rate limiting
-  'Too Many Requests': 'Trop de tentatives. Attendez avant de réessayer.',
-
-  // Database/API errors
-  'Failed to fetch data': 'Impossible de récupérer les données. Réessayez plus tard.',
-  'Database error': 'Problème d\'accès aux données. Réessayez dans quelques instants.',
-  'Connection timeout': 'La connexion au serveur a été trop longue. Vérifiez votre internet.',
-  'Query timeout': 'La recherche a pris trop de temps. Réessayez avec un filtre plus précis.',
-  // ...other errors...
-};
-
-// Then export the error messages
-export default errorMessages;

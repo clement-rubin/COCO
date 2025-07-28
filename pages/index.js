@@ -1142,6 +1142,24 @@ export default function Home() {
           }
         }
         
+        /* Animations pour les notifications intégrées */
+        @keyframes notificationSlide {
+          from {
+            opacity: 0;
+            transform: translateY(-20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        /* Effet de survol pour les éléments interactifs */
+        .notification-trigger:hover {
+          transform: scale(1.05);
+          filter: brightness(1.1);
+        }
+        
         @keyframes welcomeSlide {
           from {
             opacity: 0;
@@ -1370,4 +1388,3 @@ export default function Home() {
     </div>
   )
 }
-        

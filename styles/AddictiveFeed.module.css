@@ -9,6 +9,12 @@
   z-index: 1;
 }
 
+/* Éviter que le feed passe par-dessus les notifications */
+.feedContainer * {
+  position: relative;
+  z-index: auto;
+}
+
 .recipesGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
