@@ -495,6 +495,8 @@ class NotificationManager {
    */
   onNotificationAdded(callback) {
     this.notificationCenter = callback
+    // Ajouter aussi dans les listeners pour compatibilité
+    this.listeners.set('notificationCenter', callback)
   }
 
   // Charger les notifications depuis localStorage
