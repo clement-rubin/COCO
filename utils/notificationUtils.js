@@ -14,7 +14,9 @@ export const NOTIFICATION_TYPES = {
   RECIPE_LIKED: 'recipe_liked',
   COOKING_REMINDER: 'cooking_reminder',
   ERROR: 'error',
-  SUCCESS: 'success'
+  SUCCESS: 'success',
+  RECIPE_COMMENTED: 'recipe_commented',
+  TROPHY_UNLOCKED: 'trophy_unlocked'
 }
 
 // Durées par défaut
@@ -45,7 +47,9 @@ class NotificationManager {
     this.isInitialized = false
     this.fallbackContainer = null
     this.notificationCenter = null
-    this.addedListeners = new Set() // Nouveau: tracker les listeners
+    this.notifications = []
+    this.maxNotifications = 50
+    this.loadFromStorage()
   }
 
   /**
@@ -54,35 +58,18 @@ class NotificationManager {
   init() {
     if (this.isInitialized) return
     
-    if (typeof window === 'undefined') return
+    if (typeof window === 'undefined') {
+      logDebug('NotificationManager: Environnement serveur détecté')
+      return
+    }
 
     this.isInitialized = true
     this.createFallbackContainer()
-  }
-
-  /**
-   * Écouter les nouvelles notifications ajoutées
-   */
-  onNotificationAdded(callback) {
-    const id = Math.random().toString(36).substr(2, 9)
-    this.addedListeners.add(callback)
+    this.setupNotificationCenterListener()
     
-    // Retourner une fonction de désabonnement
-    return () => {
-      this.addedListeners.delete(callback)
-    }
-  }
-
-  /**
-   * Notifier tous les listeners d'une nouvelle notification
-   */
-  notifyListeners(notification) {
-    this.addedListeners.forEach(callback => {
-      try {
-        callback(notification)
-      } catch (error) {
-        console.error('Error in notification listener:', error)
-      }
+    logInfo('NotificationManager initialisé', {
+      hasNativeSupport: 'Notification' in window,
+      permission: this.getPermissionStatus().permission
     })
   }
 
@@ -106,128 +93,171 @@ class NotificationManager {
   }
 
   /**
-   * Affiche une notification
+   * Configure l'écoute pour le centre de notifications
    */
-  async show(type, title, options = {}) {
-    const notification = {
-      id: Date.now() + Math.random(),
-      type,
-      title,
-      body: options.body || '',
-      data: options.data || {},
-      timestamp: Date.now(),
-      read: false
-    }
-
-    // Sauvegarder la notification
-    this.saveNotification(notification)
-    
-    // Notifier les listeners (centres de notifications)
-    this.notifyListeners(notification)
-
-    // Afficher la notification native/fallback si demandé
-    if (!options.centerOnly) {
-      await this.showNativeOrFallback(notification, options)
-    }
-
-    return { success: true, notification }
+  setupNotificationCenterListener() {
+    this.listeners.set('notificationCenter', (callback) => {
+      this.notificationCenter = callback
+    })
   }
 
   /**
-   * Sauvegarder une notification dans le localStorage
+   * Stocke une notification dans le localStorage
    */
-  saveNotification(notification) {
+  storeNotification(notification) {
     try {
-      const stored = JSON.parse(localStorage.getItem('coco_notifications') || '[]')
-      stored.unshift(notification)
+      const stored = this.getStoredNotifications()
+      const newNotification = {
+        id: notification.id || Date.now() + Math.random(),
+        type: notification.type,
+        title: notification.title,
+        body: notification.body,
+        icon: notification.icon,
+        timestamp: new Date().toISOString(),
+        read: false,
+        data: notification.data || {}
+      }
+
+      stored.unshift(newNotification)
       
-      // Garder seulement les 50 dernières notifications
-      const limited = stored.slice(0, 50)
-      localStorage.setItem('coco_notifications', JSON.stringify(limited))
+      // Limiter le nombre de notifications stockées
+      if (stored.length > MAX_STORED_NOTIFICATIONS) {
+        stored.splice(MAX_STORED_NOTIFICATIONS)
+      }
+
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(stored))
+      
+      // Notifier le centre de notifications
+      if (this.notificationCenter) {
+        this.notificationCenter(newNotification)
+      }
+
+      logDebug('Notification stockée', { id: newNotification.id, type: newNotification.type })
+      return newNotification
+
     } catch (error) {
-      console.error('Error saving notification:', error)
+      logError('Erreur lors du stockage de la notification', error)
+      return null
     }
   }
 
   /**
-   * Récupérer les notifications stockées
+   * Récupère les notifications stockées
    */
   getStoredNotifications() {
     try {
-      return JSON.parse(localStorage.getItem('coco_notifications') || '[]')
+      const stored = localStorage.getItem(STORAGE_KEY)
+      return stored ? JSON.parse(stored) : []
     } catch (error) {
-      console.error('Error loading notifications:', error)
+      logError('Erreur lors de la récupération des notifications', error)
       return []
     }
   }
 
   /**
-   * Marquer toutes les notifications comme lues
+   * Marque une notification comme lue
    */
-  markAllAsRead() {
+  markAsRead(notificationId) {
     try {
       const stored = this.getStoredNotifications()
-      const updated = stored.map(n => ({ ...n, read: true }))
-      localStorage.setItem('coco_notifications', JSON.stringify(updated))
+      const notification = stored.find(n => n.id === notificationId)
+      
+      if (notification) {
+        notification.read = true
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(stored))
+        logDebug('Notification marquée comme lue', { id: notificationId })
+      }
     } catch (error) {
-      console.error('Error marking notifications as read:', error)
+      logError('Erreur lors du marquage de lecture', error)
     }
   }
 
   /**
-   * Supprimer une notification
+   * Marque toutes les notifications comme lues
+   */
+  markAllAsRead() {
+    try {
+      const stored = this.getStoredNotifications()
+      stored.forEach(n => n.read = true)
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(stored))
+      logDebug('Toutes les notifications marquées comme lues')
+    } catch (error) {
+      logError('Erreur lors du marquage de toutes les notifications', error)
+    }
+  }
+
+  /**
+   * Supprime une notification
    */
   deleteNotification(notificationId) {
     try {
       const stored = this.getStoredNotifications()
       const filtered = stored.filter(n => n.id !== notificationId)
-      localStorage.setItem('coco_notifications', JSON.stringify(filtered))
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered))
+      logDebug('Notification supprimée', { id: notificationId })
     } catch (error) {
-      console.error('Error deleting notification:', error)
+      logError('Erreur lors de la suppression', error)
     }
   }
 
   /**
-   * Effacer toutes les notifications
+   * Vide toutes les notifications
    */
   clearAll() {
     try {
-      localStorage.removeItem('coco_notifications')
+      localStorage.setItem(STORAGE_KEY, JSON.stringify([]))
+      logDebug('Toutes les notifications supprimées')
     } catch (error) {
-      console.error('Error clearing notifications:', error)
+      logError('Erreur lors du vidage des notifications', error)
     }
   }
 
   /**
-   * Obtenir le nombre de notifications non lues
+   * Compte les notifications non lues
    */
   getUnreadCount() {
     try {
       const stored = this.getStoredNotifications()
       return stored.filter(n => !n.read).length
     } catch (error) {
-      console.error('Error getting unread count:', error)
+      logError('Erreur lors du comptage des non lues', error)
       return 0
     }
   }
 
   /**
-   * Affiche une notification native ou fallback
+   * Affiche une notification
    */
-  async showNativeOrFallback(notification, options) {
+  async show(type, title, options = {}) {
+    this.init()
+    
+    const notification = {
+      id: options.id || Date.now() + Math.random(),
+      type,
+      title,
+      body: options.body || '',
+      icon: options.icon || '/icons/coco-icon-96.png',
+      data: options.data || {},
+      duration: options.duration || DEFAULT_DURATIONS[type] || 5000,
+      forceFallback: options.forceFallback || false
+    }
+
+    // Stocker la notification
+    const storedNotification = this.storeNotification(notification)
+
     // Tenter l'affichage natif sauf si forceFallback
-    if (!options.forceFallback && this.canShowNative()) {
+    if (!notification.forceFallback && this.canShowNative()) {
       try {
-        const nativeNotif = new Notification(notification.title, {
+        const nativeNotif = new Notification(title, {
           body: notification.body,
-          icon: options.icon || '/icons/coco-icon-96.png',
+          icon: notification.icon,
           tag: notification.id,
-          requireInteraction: notification.type === NOTIFICATION_TYPES.FRIEND_REQUEST
+          requireInteraction: type === NOTIFICATION_TYPES.FRIEND_REQUEST
         })
 
         logInfo('Notification native affichée', { 
-          type: notification.type, 
-          title: notification.title.substring(0, 50) 
+          type, 
+          title: title.substring(0, 50) 
         })
 
         return {
@@ -459,109 +489,160 @@ class NotificationManager {
       return 'denied'
     }
   }
+
+  /**
+   * Enregistre un listener pour le centre de notifications
+   */
+  onNotificationAdded(callback) {
+    this.notificationCenter = callback
+  }
+
+  // Charger les notifications depuis localStorage
+  loadFromStorage() {
+    try {
+      const stored = localStorage.getItem('coco_notifications')
+      if (stored) {
+        this.notifications = JSON.parse(stored).slice(0, this.maxNotifications)
+      }
+    } catch (error) {
+      logError('Échec du chargement des notifications depuis le stockage', error)
+      this.notifications = []
+    }
+  }
+
+  // Sauvegarder dans localStorage
+  saveToStorage() {
+    try {
+      localStorage.setItem('coco_notifications', JSON.stringify(this.notifications))
+    } catch (error) {
+      logError('Échec de la sauvegarde des notifications dans le stockage', error)
+    }
+  }
+
+  // Ajouter une nouvelle notification
+  addNotification(notification) {
+    const id = 'notif_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+    
+    const newNotification = {
+      id,
+      timestamp: Date.now(),
+      read: false,
+      ...notification
+    }
+
+    // Éviter les doublons récents (même type + même recette dans les 30 secondes)
+    const isDuplicate = this.notifications.some(n => 
+      n.type === newNotification.type &&
+      n.data?.recipeId === newNotification.data?.recipeId &&
+      (Date.now() - n.timestamp) < 30000
+    )
+
+    if (isDuplicate) {
+      logInfo('Doublon de notification évité', { type: notification.type, recipeId: notification.data?.recipeId })
+      return
+    }
+
+    // Ajouter en début de liste
+    this.notifications.unshift(newNotification)
+
+    // Limiter le nombre de notifications
+    if (this.notifications.length > this.maxNotifications) {
+      this.notifications = this.notifications.slice(0, this.maxNotifications)
+    }
+
+    this.saveToStorage()
+    this.notifyListeners(newNotification)
+
+    logInfo('Nouvelle notification ajoutée', {
+      id: newNotification.id,
+      type: newNotification.type,
+      totalNotifications: this.notifications.length
+    })
+
+    return newNotification
+  }
+
+  // Notifier tous les listeners
+  notifyListeners(notification) {
+    this.listeners.forEach(listener => {
+      try {
+        listener(notification)
+      } catch (error) {
+        logError('Erreur dans le listener de notification', error)
+      }
+    })
+  }
 }
 
 // Instance globale
 export const notificationManager = new NotificationManager()
 
-// Fonctions utilitaires spécialisées avec intégration au centre de notifications
-export async function showTrophyNotification(trophy, options = {}) {
-  return await notificationManager.show(
+// Fonctions utilitaires
+export const showTrophyNotification = (trophy) => {
+  return notificationManager.show(
     NOTIFICATION_TYPES.TROPHY,
-    `🏆 Nouveau trophée débloqué !`,
+    'Nouveau trophée débloqué !',
     {
-      body: `Félicitations ! Vous avez obtenu le trophée "${trophy.name}".`,
-      data: { 
-        type: 'trophy',
-        trophyId: trophy.id,
-        trophyName: trophy.name,
-        ...options.data 
-      },
-      ...options
+      body: `Vous avez obtenu : ${trophy.name}`,
+      image: trophy.image,
+      data: { trophyId: trophy.id }
     }
   )
 }
 
-export async function showRecipeLikeWithStatsNotification(recipe, user, likersStats, options = {}) {
-  const message = likersStats.total_likers === 1 
-    ? `${user.display_name} a aimé votre recette "${recipe.title}"`
-    : `${user.display_name} et ${likersStats.total_likers - 1} autre${likersStats.total_likers > 2 ? 's' : ''} ont aimé votre recette "${recipe.title}"`
+export const showFriendRequestNotification = (fromUser) => {
+  return notificationManager.show(
+    NOTIFICATION_TYPES.FRIEND_REQUEST,
+    'Nouvelle demande d\'ami',
+    {
+      body: `${fromUser.display_name} souhaite devenir votre ami`,
+      data: { userId: fromUser.user_id }
+    }
+  )
+}
 
-  return await notificationManager.show(
+export const showFriendAcceptedNotification = (user) => {
+  return notificationManager.show(
+    NOTIFICATION_TYPES.FRIEND_ACCEPTED,
+    'Demande d\'ami acceptée',
+    {
+      body: `${user.display_name} a accepté votre demande d'ami`,
+      data: { userId: user.user_id }
+    }
+  )
+}
+
+export const showRecipeSharedNotification = (recipe, fromUser) => {
+  return notificationManager.show(
+    NOTIFICATION_TYPES.RECIPE_SHARED,
+    'Recette partagée',
+    {
+      body: `${fromUser.display_name} a partagé : ${recipe.title}`,
+      image: recipe.image,
+      data: { recipeId: recipe.id, userId: fromUser.user_id }
+    }
+  )
+}
+
+export const showRecipeLikedNotification = (recipe, fromUser) => {
+  return notificationManager.show(
     NOTIFICATION_TYPES.RECIPE_LIKED,
-    `💖 ${recipe.likes_count} like${recipe.likes_count > 1 ? 's' : ''} sur votre recette !`,
+    'Votre recette a été aimée',
     {
-      body: message,
-      data: { 
-        type: 'like_with_stats',
-        recipeId: recipe.id,
-        recipeName: recipe.title,
-        totalLikes: recipe.likes_count,
-        recentLikers: likersStats.recent_likers || [],
-        ...options.data 
-      },
-      ...options
+      body: `${fromUser.display_name} aime votre recette : ${recipe.title}`,
+      image: recipe.image,
+      data: { recipeId: recipe.id, userId: fromUser.user_id }
     }
   )
 }
 
-export async function showRecipeCommentNotification(recipe, user, comment, options = {}) {
-  return await notificationManager.show(
-    NOTIFICATION_TYPES.RECIPE_COMMENT,
-    `💬 Nouveau commentaire`,
+export const showCookingReminderNotification = (recipe, step) => {
+  return notificationManager.show(
+    NOTIFICATION_TYPES.COOKING_REMINDER,
+    'Rappel de cuisson',
     {
-      body: `${user.display_name} a commenté votre recette "${recipe.title}": "${comment.text.substring(0, 100)}${comment.text.length > 100 ? '...' : ''}"`,
-      data: { 
-        type: 'comment',
-        recipeId: recipe.id,
-        recipeName: recipe.title,
-        commentId: comment.id,
-        commentText: comment.text,
-        ...options.data 
-      },
-      ...options
-    }
-  )
-}
-
-// Ajouter les styles CSS dynamiquement
-if (typeof document !== 'undefined') {
-  const style = document.createElement('style')
-  style.textContent = `
-    @keyframes slideInRight {
-      from {
-        transform: translateX(100%);
-        opacity: 0;
-      }
-      to {
-        transform: translateX(0);
-        opacity: 1;
-      }
-    }
-
-    @keyframes slideOutRight {
-      from {
-        transform: translateX(0);
-        opacity: 1;
-      }
-      to {
-        transform: translateX(100%);
-        opacity: 0;
-      }
-    }
-
-    @keyframes progress {
-      from { width: 0%; }
-      to { width: 100%; }
-    }
-
-    .coco-notification-fallback:hover {
-      transform: translateX(-5px);
-      transition: transform 0.2s ease;
-    }
-  `
-  document.head.appendChild(style)
-}
+      body: `${recipe.title} - ${step}`,
+      image: recipe.image,
       data: { recipeId: recipe.id, step }
     }
   )

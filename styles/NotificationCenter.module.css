@@ -7,76 +7,66 @@
 
 .notificationCenter {
   position: relative;
-  z-index: 1000;
   display: inline-block;
 }
 
-/* Positionnement en haut à droite (par défaut) */
-.topRight .notificationPanel {
-  right: 0;
-  left: auto;
-}
-
-/* Positionnement en haut à gauche */
-.topLeft .notificationPanel {
-  left: 0;
-  right: auto;
-}
-
+/* Bouton cloche principal */
 .bellButton {
   position: relative;
-  background: linear-gradient(135deg, #fff 0%, #f9fafb 100%);
-  border: 2px solid #e5e7eb;
-  border-radius: 16px;
-  width: 48px;
-  height: 48px;
+  background: transparent;
+  border: none;
   cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  transition: all 0.3s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  backdrop-filter: blur(10px);
+  width: 44px;
+  height: 44px;
 }
 
 .bellButton:hover {
-  border-color: #ff6b35;
-  background: linear-gradient(135deg, #fff 0%, #fef7ed 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.15);
-}
-
-.bellButton:active {
-  transform: translateY(0);
+  background: rgba(255, 107, 53, 0.1);
+  transform: scale(1.05);
 }
 
 .bellButton.active {
-  background: linear-gradient(135deg, #ff6b35, #f7931e);
-  border-color: #ff6b35;
-  color: white;
-  box-shadow: 0 4px 16px rgba(255, 107, 53, 0.3);
+  background: rgba(255, 107, 53, 0.15);
+  transform: scale(0.95);
 }
 
+/* Animation pour nouvelle notification */
 .bellButton.newNotification {
-  animation: bellRing 2s ease-in-out;
+  animation: bellRing 0.6s ease-in-out;
 }
 
+@keyframes bellRing {
+  0%, 50%, 100% { transform: rotate(0deg); }
+  10%, 30% { transform: rotate(-10deg); }
+  20%, 40% { transform: rotate(10deg); }
+}
+
+/* Icône de la cloche */
 .bellIcon {
-  font-size: 1.3rem;
-  transition: transform 0.3s ease;
+  font-size: 1.4rem;
+  color: #374151;
+  transition: color 0.3s ease;
 }
 
-.bellButton:hover .bellIcon {
-  transform: rotate(15deg) scale(1.1);
+.bellButton:hover .bellIcon,
+.bellButton.active .bellIcon {
+  color: #ff6b35;
 }
 
+/* Badge de compteur */
 .badge {
   position: absolute;
-  top: -8px;
-  right: -8px;
+  top: 0;
+  right: 0;
   background: linear-gradient(135deg, #ef4444, #dc2626);
   color: white;
-  border-radius: 12px;
+  border-radius: 50%;
   min-width: 20px;
   height: 20px;
   display: flex;
@@ -89,42 +79,63 @@
   animation: badgePulse 2s infinite;
 }
 
-.notificationPanel {
-  position: absolute;
-  top: calc(100% + 12px);
-  width: 380px;
-  max-width: 95vw;
-  background: white;
-  border-radius: 20px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1), 0 8px 32px rgba(0, 0, 0, 0.08);
-  border: 1px solid #e5e7eb;
-  backdrop-filter: blur(20px);
-  z-index: 1001;
-  animation: panelSlideIn 0.3s ease-out;
-  overflow: hidden;
+@keyframes badgePulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
 }
 
+/* Panel principal des notifications */
+.notificationPanel {
+  position: absolute;
+  top: 52px;
+  right: 0;
+  width: 380px;
+  max-height: 500px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 
+    0 10px 40px rgba(0, 0, 0, 0.1),
+    0 4px 20px rgba(0, 0, 0, 0.05),
+    0 0 0 1px rgba(0, 0, 0, 0.05);
+  z-index: 1000;
+  animation: panelSlideIn 0.3s ease-out;
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+}
+
+@keyframes panelSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Header du panel */
 .panelHeader {
-  padding: 20px 24px 16px;
-  border-bottom: 1px solid #f3f4f6;
-  background: linear-gradient(135deg, #fafafa 0%, #ffffff 100%);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #f3f4f6;
+  background: linear-gradient(135deg, #fef3e2, #fff5e6);
 }
 
 .panelTitle {
-  margin: 0;
-  font-size: 1.2rem;
-  font-weight: 700;
-  color: #1f2937;
   display: flex;
   align-items: center;
   gap: 8px;
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1f2937;
 }
 
 .titleIcon {
-  font-size: 1.1rem;
+  font-size: 1.2rem;
 }
 
 .headerActions {
@@ -134,19 +145,19 @@
 
 .clearAllBtn {
   background: transparent;
-  border: 1px solid #e5e7eb;
-  color: #6b7280;
-  padding: 8px 12px;
-  border-radius: 10px;
-  font-size: 0.8rem;
+  border: none;
   cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  color: #6b7280;
   transition: all 0.2s ease;
+  font-size: 1rem;
 }
 
 .clearAllBtn:hover:not(:disabled) {
-  background: #fef2f2;
-  border-color: #fecaca;
-  color: #dc2626;
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  transform: scale(1.1);
 }
 
 .clearAllBtn:disabled {
@@ -154,53 +165,46 @@
   cursor: not-allowed;
 }
 
+/* Filtres par onglets */
 .filterTabs {
   display: flex;
-  padding: 0 20px;
-  background: #fafafa;
-  border-bottom: 1px solid #f3f4f6;
-  overflow-x: auto;
+  background: #f9fafb;
+  padding: 4px;
+  margin: 12px 16px;
+  border-radius: 12px;
+  gap: 4px;
 }
 
 .filterTab {
+  flex: 1;
   background: transparent;
   border: none;
-  padding: 12px 16px;
-  font-size: 0.85rem;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.8rem;
   font-weight: 600;
   color: #6b7280;
   cursor: pointer;
-  border-radius: 8px 8px 0 0;
   transition: all 0.2s ease;
-  white-space: nowrap;
-  position: relative;
-  flex-shrink: 0;
-}
-
-.filterTab:hover {
-  color: #374151;
-  background: rgba(255, 107, 53, 0.05);
+  text-align: center;
 }
 
 .filterTab.active {
-  color: #ff6b35;
   background: white;
-  border-bottom: 2px solid #ff6b35;
+  color: #ff6b35;
+  box-shadow: 0 2px 8px rgba(255, 107, 53, 0.2);
 }
 
-.filterTab.active::after {
-  content: '';
-  position: absolute;
-  bottom: -1px;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: #ff6b35;
+.filterTab:hover:not(.active) {
+  color: #374151;
+  background: rgba(255, 255, 255, 0.5);
 }
 
+/* Liste des notifications */
 .notificationsList {
-  max-height: 400px;
+  max-height: 350px;
   overflow-y: auto;
+  padding: 0 8px 8px;
 }
 
 .notificationsList::-webkit-scrollbar {
@@ -208,34 +212,30 @@
 }
 
 .notificationsList::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: #f3f4f6;
+  border-radius: 3px;
 }
 
 .notificationsList::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #d1d5db;
   border-radius: 3px;
 }
 
 .notificationsList::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #9ca3af;
 }
 
+/* Item de notification */
 .notificationItem {
   display: flex;
-  padding: 16px 20px;
-  border-bottom: 1px solid #f1f5f9;
-  transition: all 0.2s ease;
+  align-items: flex-start;
   gap: 12px;
+  padding: 12px;
+  margin: 4px 0;
+  border-radius: 12px;
+  transition: all 0.2s ease;
   position: relative;
-}
-
-.notificationItem:hover {
-  background: #f8fafc;
-}
-
-.notificationItem.unread {
-  background: linear-gradient(90deg, #fff7ed 0%, #ffffff 100%);
-  border-left: 4px solid #ff6b35;
+  cursor: default;
 }
 
 .notificationItem.clickable {
@@ -243,21 +243,42 @@
 }
 
 .notificationItem.clickable:hover {
-  background: #f1f5f9;
+  background: rgba(255, 107, 53, 0.05);
+  transform: translateX(2px);
 }
 
+.notificationItem.unread {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(99, 102, 241, 0.05));
+  border: 1px solid rgba(59, 130, 246, 0.1);
+}
+
+.notificationItem.unread::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 4px;
+  background: #3b82f6;
+  border-radius: 50%;
+}
+
+/* Icône de notification */
 .notificationIcon {
-  font-size: 1.5rem;
+  font-size: 1.8rem;
   flex-shrink: 0;
   width: 40px;
   height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f3f4f6;
-  border-radius: 50%;
+  background: linear-gradient(135deg, #fef3e2, #fff5e6);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 107, 53, 0.2);
 }
 
+/* Contenu de notification */
 .notificationContent {
   flex: 1;
   min-width: 0;
@@ -267,7 +288,7 @@
   font-weight: 600;
   color: #1f2937;
   font-size: 0.9rem;
-  margin-bottom: 4px;
+  margin: 0 0 4px 0;
   line-height: 1.3;
 }
 
@@ -275,9 +296,16 @@
   color: #6b7280;
   font-size: 0.85rem;
   line-height: 1.4;
-  margin-bottom: 6px;
+  margin: 0 0 6px 0;
 }
 
+.notificationTime {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  font-weight: 500;
+}
+
+/* Contenu enrichi pour les likes avec statistiques */
 .enrichedNotificationBody {
   display: flex;
   flex-direction: column;
@@ -295,84 +323,90 @@
   align-items: center;
   gap: 8px;
   padding: 8px;
-  background: #f8fafc;
+  background: rgba(255, 107, 53, 0.05);
   border-radius: 8px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid rgba(255, 107, 53, 0.1);
 }
 
 .likersAvatars {
   display: flex;
-  gap: 4px;
+  gap: 2px;
 }
 
 .likerAvatar {
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
-  background: #e2e8f0;
+  background: linear-gradient(135deg, #ff6b35, #f7931e);
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: #64748b;
-  border: 2px solid white;
+  border: 1px solid white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .likersText {
+  flex: 1;
   font-size: 0.75rem;
-  color: #64748b;
-  font-weight: 500;
+  color: #ff6b35;
+  font-weight: 600;
 }
 
-.notificationTime {
-  color: #9ca3af;
-  font-size: 0.75rem;
-}
-
+/* Bouton de suppression */
 .deleteBtn {
-  background: none;
+  background: transparent;
   border: none;
-  color: #9ca3af;
   cursor: pointer;
   padding: 4px;
-  border-radius: 4px;
+  border-radius: 6px;
+  color: #9ca3af;
+  font-size: 0.9rem;
   transition: all 0.2s ease;
   flex-shrink: 0;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.9rem;
-  position: absolute;
-  top: 12px;
-  right: 12px;
+  opacity: 0;
+  transform: scale(0.8);
+}
+
+.notificationItem:hover .deleteBtn {
+  opacity: 1;
+  transform: scale(1);
 }
 
 .deleteBtn:hover {
-  background: #fef2f2;
-  color: #dc2626;
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  transform: scale(1.1);
 }
 
+/* Loading state */
 .loading {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 40px 20px;
-  gap: 12px;
   color: #6b7280;
 }
 
 .loadingSpinner {
-  width: 20px;
-  height: 20px;
-  border: 2px solid #e5e7eb;
-  border-top: 2px solid #ff6b35;
+  width: 32px;
+  height: 32px;
+  border: 3px solid #f3f4f6;
+  border-top: 3px solid #ff6b35;
   border-radius: 50%;
   animation: spin 1s linear infinite;
+  margin-bottom: 12px;
 }
 
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* État vide */
 .emptyState {
   text-align: center;
   padding: 40px 20px;
@@ -381,20 +415,21 @@
 
 .emptyIcon {
   font-size: 3rem;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
   opacity: 0.5;
 }
 
 .emptyMessage {
-  margin: 0;
   font-size: 0.9rem;
-  font-weight: 500;
+  line-height: 1.5;
+  margin: 0;
 }
 
+/* Footer du panel */
 .panelFooter {
   padding: 12px 20px;
-  border-top: 1px solid #f1f5f9;
-  background: #fafafa;
+  border-top: 1px solid #f3f4f6;
+  background: #f9fafb;
   text-align: center;
 }
 
@@ -404,234 +439,77 @@
   font-weight: 500;
 }
 
-/* Animations */
-@keyframes bellRing {
-  0%, 100% { transform: rotate(0deg); }
-  10%, 30%, 50%, 70%, 90% { transform: rotate(-10deg); }
-  20%, 40%, 60%, 80% { transform: rotate(10deg); }
-}
-
-@keyframes badgePulse {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.1); opacity: 0.8; }
-}
-
-@keyframes panelSlideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
 /* Responsive */
 @media (max-width: 480px) {
   .notificationPanel {
-    width: 350px;
-    max-width: 92vw;
+    width: calc(100vw - 40px);
+    right: -160px;
+    max-width: 360px;
   }
   
   .filterTabs {
-    padding: 0 12px;
-  }
-  
-  .filterTab {
-    padding: 10px 12px;
-    font-size: 0.8rem;
-  }
-  
-  .notificationItem {
-    padding: 12px 16px;
-  }
-  
-  .bellButton {
-    width: 44px;
-    height: 44px;
-  }
-  
-  .bellIcon {
-    font-size: 1.2rem;
-  }
-}
-
-/* Mode sombre (optionnel) */
-@media (prefers-color-scheme: dark) {
-  .notificationPanel {
-    background: #1f2937;
-    border-color: #374151;
-  }
-  
-  .panelTitle {
-    color: #f9fafb;
-  }
-  
-  .notificationItem {
-    border-bottom-color: #374151;
-  }
-  
-  .notificationItem:hover {
-    background: #374151;
-  }
-  
-  .notificationTitle {
-    color: #f9fafb;
-  }
-  
-  .notificationBody {
-    color: #d1d5db;
-  }
-}
-  }
-  
-  .filterTab {
-    padding: 10px 6px;
-    font-size: 0.8rem;
-  }
-  
-  .notificationItem {
-    padding: 14px 16px;
-  }
-  
-  .notificationTitle {
-    font-size: 0.85rem;
-  }
-  
-  .notificationBody {
-    font-size: 0.8rem;
-  }
-  .notificationIcon {
-    width: 36px;
-    height: 36px;
-    font-size: 1rem;
-  }
-
-
-/* Animation pour les notifications de likes et commentaires */
-.notificationItem[data-type="recipe_liked"] .notificationIcon {
-  animation: heartBeat 2s infinite;
-}
-
-.notificationItem[data-type="comment"] .notificationIcon {
-  animation: messageBounce 2s infinite;
-}
-
-@keyframes heartBeat {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.1); }
-}
-
-@keyframes messageBounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-2px); }
-}
-
-/* Styles pour les notifications enrichies */
-.enrichedNotificationBody {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.mainText {
-  font-size: 0.85rem;
-  line-height: 1.4;
-  color: #374151;
-}
-
-.likersPreview {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
-  background: rgba(239, 68, 68, 0.05);
-  border-radius: 8px;
-  border-left: 2px solid #ef4444;
-}
-
-.likersAvatars {
-  display: flex;
-  gap: 2px;
-}
-
-.likerAvatar {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  background: linear-gradient(135deg, #ef4444, #dc2626);
-  color: white;
-  border-radius: 50%;
-  font-size: 0.7rem;
-  font-weight: 600;
-  border: 1px solid white;
-  margin-left: -2px;
-  position: relative;
-  z-index: 1;
-}
-
-.likerAvatar:first-child {
-  margin-left: 0;
-}
-
-.likerAvatar:hover {
-  z-index: 2;
-  transform: scale(1.1);
-  transition: transform 0.2s ease;
-}
-
-.likersText {
-  font-size: 0.75rem;
-  color: #ef4444;
-  font-weight: 600;
-}
-
-/* Animation pour les nouvelles notifications enrichies */
-.notificationItem[data-type="like_with_stats"] {
-  animation: likeStatsGlow 2s ease-out;
-}
-
-@keyframes likeStatsGlow {
-  0% {
-    box-shadow: 0 0 0 rgba(239, 68, 68, 0);
-    background: rgba(239, 68, 68, 0.02);
-  }
-  50% {
-    box-shadow: 0 0 12px rgba(239, 68, 68, 0.3);
-    background: rgba(239, 68, 68, 0.05);
-  }
-  100% {
-    box-shadow: 0 0 0 rgba(239, 68, 68, 0);
-    background: transparent;
-  }
-}
-
-/* Responsive pour les notifications enrichies */
-@media (max-width: 480px) {
-  .notificationPanel {
-    width: 95vw;
-    max-width: none;
-    left: 2.5vw;
-    right: 2.5vw;
-  }
-  
-  .likersPreview {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
+    gap: 2px;
   }
   
-  .likerAvatar {
-    width: 18px;
-    height: 18px;
-    font-size: 0.65rem;
+  .filterTab {
+    text-align: left;
+  }
+}
+
+@media (max-width: 320px) {
+  .notificationPanel {
+    width: calc(100vw - 20px);
+    right: -140px;
+  }
+}
+
+/* Animations pour les transitions d'état */
+.notificationItem {
+  animation: notificationAppear 0.3s ease-out;
+}
+
+@keyframes notificationAppear {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* États d'interaction améliorés */
+.notificationItem:active {
+  transform: scale(0.98);
+}
+
+.bellButton:active {
+  transform: scale(0.9);
+}
+
+/* Effet de focus pour l'accessibilité */
+.bellButton:focus,
+.clearAllBtn:focus,
+.filterTab:focus,
+.deleteBtn:focus {
+  outline: 2px solid rgba(59, 130, 246, 0.5);
+  outline-offset: 2px;
+}
+
+/* Animation d'entrée du badge */
+.badge {
+  animation: badgeAppear 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes badgeAppear {
+  from {
+    opacity: 0;
+    transform: scale(0);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
   }
 }
