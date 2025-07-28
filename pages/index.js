@@ -474,81 +474,70 @@ export default function Home() {
           </div>
         )}
 
-        {/* Section Hero intégrée */}
+        {/* Section Hero intégrée - VERSION OPTIMISÉE */}
         <div style={{
           background: 'linear-gradient(135deg, #fef3e2 0%, #fff5e6 50%, #fef7ed 100%)',
           position: 'relative',
           overflow: 'hidden',
-          paddingTop: '64px', // Hauteur de la navbar
-          paddingBottom: '32px',
+          paddingTop: '64px',
+          paddingBottom: '40px',
           marginBottom: '0',
-          marginTop: '-64px', // Compenser le padding-top du main
-          minHeight: '50vh'
+          marginTop: '-64px',
+          minHeight: '60vh' // Réduction de la hauteur
         }}>
-          {/* Éléments décoratifs de fond */}
+          {/* Éléments décoratifs de fond - VERSION ALLÉGÉE */}
           <div style={{
             position: 'absolute',
-            top: '-40px',
-            right: '-40px',
-            width: '160px',
-            height: '160px',
+            top: '-30px',
+            right: '-30px',
+            width: '120px', // Réduction de la taille
+            height: '120px',
             background: 'linear-gradient(45deg, #ff6b35, #f7931e)',
             borderRadius: '50%',
-            opacity: 0.08,
+            opacity: 0.06,
             animation: 'float 6s ease-in-out infinite'
           }} />
           <div style={{
             position: 'absolute',
-            top: '20%',
-            left: '-60px',
-            width: '120px',
-            height: '120px',
-            background: 'linear-gradient(45deg, #4caf50, #45a049)',
-            borderRadius: '50%',
-            opacity: 0.06,
-            animation: 'float 8s ease-in-out infinite reverse'
-          }} />
-          <div style={{
-            position: 'absolute',
-            bottom: '-50px',
+            bottom: '-40px',
             right: '10%',
-            width: '100px',
-            height: '100px',
+            width: '80px', // Réduction de la taille
+            height: '80px',
             background: 'linear-gradient(45deg, #ff6b35, #f7931e)',
             borderRadius: '50%',
-            opacity: 0.05,
+            opacity: 0.04,
             animation: 'float 10s ease-in-out infinite'
           }} />
 
           <div className={styles.content} style={{ 
-            maxWidth: 400, 
+            maxWidth: 380, // Réduction de la largeur max
             margin: '0 auto', 
             textAlign: 'center',
             position: 'relative',
             zIndex: 1,
-            padding: '24px 20px 0' // Augmenter le padding-top pour compenser
+            padding: '20px 20px 0' // Réduction du padding
           }}>
-            {/* Logo animé sophistiqué */}
+            {/* Logo animé - VERSION COMPACTE */}
             <div style={{
-              width: '80px',
-              height: '80px',
+              width: '70px', // Réduction de la taille
+              height: '70px', 
               background: 'linear-gradient(135deg, #ff6b35, #f7931e)',
-              borderRadius: '24px',
+              borderRadius: '20px', // Réduction du border-radius
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '2.5rem',
-              margin: '0 auto 20px',
-              boxShadow: '0 12px 35px rgba(255, 107, 53, 0.3), 0 6px 15px rgba(255, 107, 53, 0.15)',
+              fontSize: '2.2rem', // Réduction de la taille de police
+              margin: '0 auto 16px', // Réduction de la marge
+              boxShadow: '0 8px 25px rgba(255, 107, 53, 0.25)', // Réduction de l'ombre
               animation: 'heroLogo 3s ease-in-out infinite',
-              border: '3px solid rgba(255, 255, 255, 0.9)',
+              border: '2px solid rgba(255, 255, 255, 0.9)', // Réduction de l'épaisseur
               position: 'relative',
               overflow: 'hidden'
             }}>
               {/* Icône SVG personnalisée remplaçant l'emoji */}
               <div style={{
-                width: '40px',
-                height: '40px',
+                width: '35px', // Réduction proportionnelle
+                height: '35px',
                 background: 'white',
                 borderRadius: '50%',
                 display: 'flex',
@@ -556,47 +545,47 @@ export default function Home() {
                 justifyContent: 'center',
                 animation: 'logoRotate 4s linear infinite'
               }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                   <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" 
                     fill="#ff6b35" 
                     style={{ animation: 'checkmark 2s ease-in-out infinite' }} />
                 </svg>
               </div>
               
-              {/* Particules flottantes */}
-              {[...Array(3)].map((_, i) => (
+              {/* Particules flottantes réduites */}
+              {[...Array(2)].map((_, i) => (
                 <div key={i} style={{
                   position: 'absolute',
-                  width: '4px',
-                  height: '4px',
+                  width: '3px', // Réduction
+                  height: '3px',
                   background: 'rgba(255, 255, 255, 0.8)',
                   borderRadius: '50%',
                   animation: `floatingParticles 3s ease-in-out infinite`,
-                  animationDelay: `${i * 0.5}s`,
-                  top: `${20 + i * 20}%`,
-                  left: `${15 + i * 25}%`
+                  animationDelay: `${i * 0.7}s`,
+                  top: `${25 + i * 25}%`,
+                  left: `${20 + i * 30}%`
                 }} />
               ))}
               
-              {/* Effet de brillance amélioré */}
+              {/* Effet de brillance réduit */}
               <div style={{
                 position: 'absolute',
-                top: '10%',
-                left: '15%',
-                width: '40%',
-                height: '40%',
-                background: 'linear-gradient(45deg, rgba(255, 255, 255, 0.6) 0%, transparent 50%)',
+                top: '15%',
+                left: '20%',
+                width: '30%', // Réduction
+                height: '30%',
+                background: 'linear-gradient(45deg, rgba(255, 255, 255, 0.5) 0%, transparent 50%)',
                 borderRadius: '50%',
-                filter: 'blur(6px)',
+                filter: 'blur(4px)', // Réduction du blur
                 animation: 'advancedShine 3s ease-in-out infinite'
               }} />
             </div>
 
-            {/* Titre principal avec effet de gradient amélioré */}
+            {/* Titre principal - VERSION COMPACTE */}
             <h1 style={{
-              fontSize: '2.8rem',
+              fontSize: '2.4rem', // Réduction
               fontWeight: '900',
-              margin: '0 0 12px 0',
+              margin: '0 0 10px 0', // Réduction des marges
               background: 'linear-gradient(135deg, #ff6b35 0%, #f7931e 50%, #ff8a50 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
@@ -608,14 +597,14 @@ export default function Home() {
               COCO
             </h1>
 
-            {/* Sous-titre avec animation améliorée */}
+            {/* Sous-titre - VERSION COMPACTE */}
             <div style={{
-              marginBottom: '28px'
+              marginBottom: '20px' // Réduction
             }}>
               <h2 style={{
-                fontSize: '1.3rem',
+                fontSize: '1.1rem', // Réduction
                 fontWeight: '700',
-                margin: '0 0 8px 0',
+                margin: '0 0 6px 0', // Réduction
                 color: '#1f2937',
                 lineHeight: '1.2'
               }}>
@@ -640,7 +629,7 @@ export default function Home() {
                 </span>
               </h2>
               <p style={{
-                fontSize: '1rem',
+                fontSize: '0.9rem', // Réduction
                 color: '#6b7280',
                 margin: 0,
                 lineHeight: '1.4',
@@ -650,13 +639,13 @@ export default function Home() {
               </p>
             </div>
 
-            {/* Actions rapides avec animations d'icônes */}
+            {/* Actions rapides - VERSION COMPACTE */}
             <div style={{
               display: 'flex',
-              gap: '12px',
+              gap: '10px', // Réduction
               justifyContent: 'center',
               flexWrap: 'wrap',
-              marginBottom: '28px'
+              marginBottom: '20px' // Réduction
             }}>
               <button
                 onClick={() => router.push('/share-photo')}
@@ -664,40 +653,40 @@ export default function Home() {
                   background: 'linear-gradient(135deg, #ff6b35, #f7931e)',
                   color: 'white',
                   border: 'none',
-                  padding: '12px 24px',
-                  borderRadius: '16px',
+                  padding: '10px 20px', // Réduction
+                  borderRadius: '14px', // Réduction
                   fontWeight: '700',
-                  fontSize: '0.95rem',
+                  fontSize: '0.9rem', // Réduction
                   cursor: 'pointer',
                   transition: 'all 0.3s ease',
-                  boxShadow: '0 6px 20px rgba(255, 107, 53, 0.3)',
+                  boxShadow: '0 4px 15px rgba(255, 107, 53, 0.25)', // Réduction
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px',
+                  gap: '6px', // Réduction
                   position: 'relative',
                   overflow: 'hidden'
                 }}
                 onMouseEnter={(e) => {
-                  e.target.style.transform = 'translateY(-3px)'
-                  e.target.style.boxShadow = '0 8px 25px rgba(255, 107, 53, 0.4)'
+                  e.target.style.transform = 'translateY(-2px)'
+                  e.target.style.boxShadow = '0 6px 18px rgba(255, 107, 53, 0.35)'
                 }}
                 onMouseLeave={(e) => {
                   e.target.style.transform = 'translateY(0)'
-                  e.target.style.boxShadow = '0 6px 20px rgba(255, 107, 53, 0.3)'
+                  e.target.style.boxShadow = '0 4px 15px rgba(255, 107, 53, 0.25)'
                 }}
               >
-                {/* Icône caméra animée */}
+                {/* Icône caméra réduite */}
                 <div style={{
-                  width: '16px',
-                  height: '16px',
+                  width: '14px', // Réduction
+                  height: '14px',
                   background: 'white',
-                  borderRadius: '4px',
+                  borderRadius: '3px',
                   position: 'relative',
                   animation: 'cameraShutter 2s ease-in-out infinite'
                 }}>
                   <div style={{
-                    width: '8px',
-                    height: '8px',
+                    width: '6px', // Réduction
+                    height: '6px',
                     background: '#ff6b35',
                     borderRadius: '50%',
                     position: 'absolute',
@@ -715,21 +704,21 @@ export default function Home() {
                   background: 'rgba(255, 255, 255, 0.95)',
                   color: '#ff6b35',
                   border: '2px solid #ff6b35',
-                  padding: '12px 24px',
-                  borderRadius: '16px',
+                  padding: '10px 20px', // Réduction
+                  borderRadius: '14px', // Réduction
                   fontWeight: '700',
-                  fontSize: '0.95rem',
+                  fontSize: '0.9rem', // Réduction
                   cursor: 'pointer',
                   transition: 'all 0.3s ease',
                   backdropFilter: 'blur(10px)',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px'
+                  gap: '6px' // Réduction
                 }}
                 onMouseEnter={(e) => {
                   e.target.style.background = '#ff6b35'
                   e.target.style.color = 'white'
-                  e.target.style.transform = 'translateY(-3px)'
+                  e.target.style.transform = 'translateY(-2px)'
                 }}
                 onMouseLeave={(e) => {
                   e.target.style.background = 'rgba(255, 255, 255, 0.95)'
@@ -737,10 +726,10 @@ export default function Home() {
                   e.target.style.transform = 'translateY(0)'
                 }}
               >
-                {/* Icône livre animée */}
+                {/* Icône livre réduite */}
                 <div style={{
-                  width: '16px',
-                  height: '12px',
+                  width: '14px', // Réduction
+                  height: '10px', // Réduction
                   border: '2px solid currentColor',
                   borderRadius: '2px',
                   position: 'relative',
@@ -748,7 +737,7 @@ export default function Home() {
                 }}>
                   <div style={{
                     width: '1px',
-                    height: '8px',
+                    height: '6px', // Réduction
                     background: 'currentColor',
                     position: 'absolute',
                     top: '50%',
@@ -760,12 +749,12 @@ export default function Home() {
               </button>
             </div>
 
-            {/* Statistiques avec icônes animées */}
+            {/* Statistiques RÉDUITES ET OPTIMISÉES */}
             <div style={{
               display: 'flex',
               justifyContent: 'center',
-              gap: '20px',
-              marginBottom: '20px',
+              gap: '12px', // Réduction
+              marginBottom: '16px', // Réduction
               flexWrap: 'wrap'
             }}>
               {user && [
@@ -774,64 +763,40 @@ export default function Home() {
                   label: 'Recettes', 
                   color: '#ff6b35', 
                   animation: 'recipeIcon',
-                  icon: '🍽️',
-                  subtext: 'Partagées par la communauté'
+                  icon: '🍽️'
                 },
                 { 
                   number: feedStats.totalLikes, 
                   label: 'Likes', 
                   color: '#e91e63', 
                   animation: 'heartBeat',
-                  icon: '❤️',
-                  subtext: 'Appréciations totales'
-                },
-                { 
-                  number: feedStats.totalComments, 
-                  label: 'Commentaires', 
-                  color: '#2196f3', 
-                  animation: 'commentBubble',
-                  icon: '💬',
-                  subtext: 'Interactions communautaires'
+                  icon: '❤️'
                 },
                 { 
                   number: feedStats.activeChefs, 
-                  label: 'Chefs actifs', 
+                  label: 'Chefs', 
                   color: '#4caf50', 
                   animation: 'chefIcon',
-                  icon: '👨‍🍳',
-                  subtext: 'Membres contribueurs'
+                  icon: '👨‍🍳'
                 }
               ].map((stat, index) => (
                 <div key={index} style={{
                   background: 'rgba(255, 255, 255, 0.95)',
                   backdropFilter: 'blur(15px)',
-                  padding: '16px 20px',
-                  borderRadius: '20px',
+                  padding: '12px 16px', // Réduction
+                  borderRadius: '16px', // Réduction
                   border: `2px solid ${stat.color}20`,
-                  minWidth: '140px',
+                  minWidth: '90px', // Réduction importante
                   animation: `fadeInUp 0.6s ease-out ${index * 0.15}s both`,
-                  boxShadow: `0 8px 25px ${stat.color}15`,
+                  boxShadow: `0 4px 15px ${stat.color}15`, // Réduction
                   textAlign: 'center',
                   position: 'relative',
                   overflow: 'hidden'
                 }}>
-                  {/* Effet de fond animé */}
-                  <div style={{
-                    position: 'absolute',
-                    top: '0',
-                    left: '0',
-                    right: '0',
-                    bottom: '0',
-                    background: `linear-gradient(135deg, ${stat.color}05, ${stat.color}10)`,
-                    borderRadius: '20px',
-                    opacity: 0,
-                    transition: 'opacity 0.3s ease'
-                  }} className="stat-card-bg" />
-                  
-                  {/* Icône principale */}
+                  {/* Icône principale réduite */}
                   <div style={{ 
-                    fontSize: '2rem', 
-                    marginBottom: '8px',
+                    fontSize: '1.4rem', // Réduction importante
+                    marginBottom: '4px', // Réduction
                     animation: `${stat.animation} 2s ease-in-out infinite`,
                     transformOrigin: 'center',
                     position: 'relative',
@@ -840,63 +805,50 @@ export default function Home() {
                     {stat.icon}
                   </div>
                   
-                  {/* Nombre principal */}
+                  {/* Nombre principal réduit */}
                   <div style={{
-                    fontSize: '1.6rem',
+                    fontSize: '1.2rem', // Réduction
                     fontWeight: '900',
                     color: stat.color,
-                    marginBottom: '4px',
+                    marginBottom: '2px', // Réduction
                     position: 'relative',
                     zIndex: 2
                   }}>
                     {stat.number}
                   </div>
                   
-                  {/* Label */}
+                  {/* Label réduit */}
                   <div style={{
-                    fontSize: '0.9rem',
+                    fontSize: '0.75rem', // Réduction
                     color: '#6b7280',
                     fontWeight: '700',
-                    marginBottom: '4px',
                     position: 'relative',
                     zIndex: 2
                   }}>
                     {stat.label}
                   </div>
-                  
-                  {/* Sous-texte descriptif */}
-                  <div style={{
-                    fontSize: '0.7rem',
-                    color: '#9ca3af',
-                    fontWeight: '500',
-                    lineHeight: '1.2',
-                    position: 'relative',
-                    zIndex: 2
-                  }}>
-                    {stat.subtext}
-                  </div>
                 </div>
               ))}
             </div>
 
-            {/* Indicateur de scroll redessiné */}
+            {/* Indicateur de scroll - VERSION COMPACTE */}
             <div style={{
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              gap: '6px',
-              opacity: 0.6
+              gap: '4px', // Réduction
+              opacity: 0.5 // Réduction de l'opacité
             }}>
               <span style={{
-                fontSize: '0.8rem',
+                fontSize: '0.75rem', // Réduction
                 color: '#9ca3af',
                 fontWeight: '600'
               }}>
-                Découvrez les dernières recettes
+                Découvrez les recettes
               </span>
               <div style={{
-                width: '20px',
-                height: '20px',
+                width: '16px', // Réduction
+                height: '16px',
                 border: '2px solid #ff6b35',
                 borderRadius: '50%',
                 display: 'flex',
@@ -905,57 +857,57 @@ export default function Home() {
                 animation: 'bounceDown 2s infinite',
                 background: 'rgba(255, 107, 53, 0.1)'
               }}>
-                <span style={{ fontSize: '0.7rem', color: '#ff6b35' }}>↓</span>
+                <span style={{ fontSize: '0.6rem', color: '#ff6b35' }}>↓</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Section Feed principale - transition parfaitement fluide */}
+        {/* Section AddictiveFeed directement sans header communautaire */}
         <div style={{
           maxWidth: '400px',
-          margin: '-24px auto 0',
+          margin: '-20px auto 0', // Réduction de l'espacement négatif
           background: 'white',
-          borderRadius: '28px 28px 0 0',
-          boxShadow: '0 -12px 40px rgba(0,0,0,0.1), 0 -4px 15px rgba(0,0,0,0.05)',
+          borderRadius: '24px 24px 0 0', // Réduction du border-radius
+          boxShadow: '0 -8px 30px rgba(0,0,0,0.08)', // Réduction de l'ombre
           overflow: 'hidden',
           position: 'relative',
           zIndex: 2
         }}>
-          {/* En-tête du feed */}
+          {/* En-tête simplifié du feed */}
           <div style={{
-            padding: '20px 20px 12px',
+            padding: '16px 20px 10px', // Réduction du padding
             textAlign: 'center',
             borderBottom: '1px solid #f3f4f6'
           }}>
             <div style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '8px',
+              gap: '6px', // Réduction
               background: '#f0f9ff',
-              padding: '8px 16px',
-              borderRadius: '20px',
-              fontSize: '0.85rem',
+              padding: '6px 12px', // Réduction
+              borderRadius: '16px', // Réduction
+              fontSize: '0.8rem', // Réduction
               fontWeight: '600',
               color: '#0369a1',
               border: '1px solid #e0f2fe'
             }}>
               👥 Recettes de mes amis
               <span style={{
-                width: '6px',
-                height: '6px',
+                width: '5px', // Réduction
+                height: '5px',
                 background: '#10b981',
                 borderRadius: '50%',
                 animation: 'pulse 2s infinite'
               }} />
             </div>
             
-            {/* Options de navigation rapide */}
+            {/* Options de navigation simplifiées */}
             <div style={{
               display: 'flex',
               justifyContent: 'center',
-              gap: '12px',
-              marginTop: '12px'
+              gap: '8px', // Réduction
+              marginTop: '8px' // Réduction
             }}>
               <button
                 onClick={() => router.push('/amis')}
@@ -963,9 +915,9 @@ export default function Home() {
                   background: 'transparent',
                   border: '1px solid #e5e7eb',
                   color: '#6b7280',
-                  padding: '6px 12px',
-                  borderRadius: '14px',
-                  fontSize: '0.75rem',
+                  padding: '4px 10px', // Réduction
+                  borderRadius: '12px', // Réduction
+                  fontSize: '0.7rem', // Réduction
                   fontWeight: '500',
                   cursor: 'pointer',
                   transition: 'all 0.2s ease'
@@ -986,15 +938,15 @@ export default function Home() {
 
           {/* Contenu du feed */}
           <div style={{
-            minHeight: '60vh',
-            padding: '0 8px 20px'
+            minHeight: '50vh', // Réduction
+            padding: '0 8px 16px' // Réduction
           }}>
             <div style={{
               maxWidth: '100%',
               overflow: 'hidden'
             }}>
               <div style={{
-                '--max-image-height': '250px',
+                '--max-image-height': '220px', // Réduction
                 '--max-image-width': '100%'
               }}>
                 <AddictiveFeed />
@@ -1002,32 +954,32 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Message d'encouragement si peu d'amis */}
+          {/* Message d'encouragement - VERSION COMPACTE */}
           {user && (
             <div style={{
               textAlign: 'center',
-              padding: '20px',
+              padding: '16px', // Réduction
               background: 'linear-gradient(135deg, #fef3c7, #fde68a)',
-              margin: '20px',
-              borderRadius: '16px',
+              margin: '16px', // Réduction
+              borderRadius: '14px', // Réduction
               border: '1px solid #f59e0b'
             }}>
-              <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>🍳</div>
+              <div style={{ fontSize: '1.2rem', marginBottom: '6px' }}>🍳</div>
               <p style={{
-                margin: '0 0 12px 0',
-                fontSize: '0.9rem',
+                margin: '0 0 8px 0', // Réduction
+                fontSize: '0.85rem', // Réduction
                 fontWeight: '600',
                 color: '#92400e'
               }}>
                 Invitez vos amis à rejoindre COCO !
               </p>
               <p style={{
-                margin: '0 0 16px 0',
-                fontSize: '0.8rem',
+                margin: '0 0 12px 0', // Réduction
+                fontSize: '0.75rem', // Réduction
                 color: '#b45309',
                 lineHeight: '1.4'
               }}>
-                Plus vous avez d'amis, plus vous découvrirez de délicieuses recettes
+                Plus vous avez d'amis, plus vous découvrirez de recettes
               </p>
               <button
                 onClick={() => router.push('/amis')}
@@ -1035,9 +987,9 @@ export default function Home() {
                   background: '#f59e0b',
                   color: 'white',
                   border: 'none',
-                  padding: '8px 16px',
+                  padding: '6px 14px', // Réduction
                   borderRadius: '8px',
-                  fontSize: '0.8rem',
+                  fontSize: '0.75rem', // Réduction
                   fontWeight: '600',
                   cursor: 'pointer',
                   transition: 'all 0.2s ease'
@@ -1418,4 +1370,4 @@ export default function Home() {
     </div>
   )
 }
-
+        
