@@ -579,8 +579,10 @@ export const showRecipeCommentNotification = (recipe, fromUser, comment) => {
         recipeId: recipe.id, 
         userId: fromUser.user_id,
         commentId: comment.id,
-        type: 'comment'
-      }
+        type: 'comment',
+        action: 'view_recipe_comments'
+      },
+      forceFallback: true // Assurer l'arrivée dans le centre
     }
   )
 }
@@ -595,7 +597,8 @@ export const showRecipeLikeInteractionNotification = (recipe, fromUser) => {
       data: { 
         recipeId: recipe.id, 
         userId: fromUser.user_id || fromUser.id,
-        type: 'like'
+        type: 'like',
+        action: 'view_recipe'
       },
       forceFallback: true // Forcer l'affichage fallback pour être sûr que ça arrive dans la cloche
     }

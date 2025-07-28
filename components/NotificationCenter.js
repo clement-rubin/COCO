@@ -1,13 +1,16 @@
 import { useState, useEffect, useRef } from 'react'
 import { notificationManager } from '../utils/notificationUtils'
 import { logUserInteraction } from '../utils/logger'
+import styles from '../styles/NotificationCenter.module.css'
 
 const NotificationCenter = () => {
   const [isOpen, setIsOpen] = useState(false)
   const [notifications, setNotifications] = useState([])
   const [unreadCount, setUnreadCount] = useState(0)
-  const [filter, setFilter] = useState('all') // all, unread, today
+  const [filter, setFilter] = useState('all') // all, likes, comments, system
+  const [loading, setLoading] = useState(true)
   const panelRef = useRef(null)
+  const bellRef = useRef(null)
 
   useEffect(() => {
     // Charger les notifications existantes
@@ -17,6 +20,14 @@ const NotificationCenter = () => {
     notificationManager.onNotificationAdded((newNotification) => {
       setNotifications(prev => [newNotification, ...prev])
       setUnreadCount(prev => prev + 1)
+      
+      // Animation de la cloche pour nouvelle notification
+      if (bellRef.current) {
+        bellRef.current.classList.add(styles.newNotification)
+        setTimeout(() => {
+          bellRef.current?.classList.remove(styles.newNotification)
+        }, 2000)
+      }
     })
 
     // Mettre à jour le compteur non lu
@@ -24,7 +35,8 @@ const NotificationCenter = () => {
 
     // Fermer le panneau en cliquant à l'extérieur
     const handleClickOutside = (event) => {
-      if (panelRef.current && !panelRef.current.contains(event.target)) {
+      if (panelRef.current && !panelRef.current.contains(event.target) && 
+          bellRef.current && !bellRef.current.contains(event.target)) {
         setIsOpen(false)
       }
     }
@@ -34,8 +46,10 @@ const NotificationCenter = () => {
   }, [])
 
   const loadNotifications = () => {
+    setLoading(true)
     const stored = notificationManager.getStoredNotifications()
     setNotifications(stored)
+    setLoading(false)
   }
 
   const updateUnreadCount = () => {
@@ -51,12 +65,12 @@ const NotificationCenter = () => {
     })
 
     if (!isOpen) {
-      // Marquer toutes comme lues quand on ouvre
+      // Marquer toutes comme lues quand on ouvre (après un délai)
       setTimeout(() => {
         notificationManager.markAllAsRead()
         setUnreadCount(0)
         loadNotifications()
-      }, 1000)
+      }, 1500)
     }
   }
 
@@ -67,20 +81,21 @@ const NotificationCenter = () => {
   }
 
   const handleClearAll = () => {
-    notificationManager.clearAll()
-    setNotifications([])
-    setUnreadCount(0)
+    if (window.confirm('Supprimer toutes les notifications ?')) {
+      notificationManager.clearAll()
+      setNotifications([])
+      setUnreadCount(0)
+    }
   }
 
   const getFilteredNotifications = () => {
     switch (filter) {
-      case 'unread':
-        return notifications.filter(n => !n.read)
-      case 'today':
-        const today = new Date().toDateString()
-        return notifications.filter(n => 
-          new Date(n.timestamp).toDateString() === today
-        )
+      case 'likes':
+        return notifications.filter(n => n.type === 'recipe_liked')
+      case 'comments':
+        return notifications.filter(n => n.data?.type === 'comment')
+      case 'system':
+        return notifications.filter(n => ['system', 'trophy', 'friend_request', 'friend_accepted'].includes(n.type))
       default:
         return notifications
     }
@@ -112,11 +127,148 @@ const NotificationCenter = () => {
     return emojis[type] || '🔔'
   }
 
+  const getNotificationAction = (notification) => {
+    const { data } = notification
+    if (data?.recipeId && data?.type === 'like') {
+      return () => window.location.href = `/recipe/${data.recipeId}`
+    }
+    if (data?.recipeId && data?.type === 'comment') {
+      return () => window.location.href = `/recipe/${data.recipeId}#comments`
+    }
+    return null
+  }
+
   const filteredNotifications = getFilteredNotifications()
 
   return (
-    <div style={{ display: 'none' }}>
-      {/* Notification center disabled - bouton cloche supprimé */}
+    <div className={styles.notificationCenter}>
+      {/* Bouton cloche */}
+      <button
+        ref={bellRef}
+        onClick={handleToggle}
+        className={`${styles.bellButton} ${isOpen ? styles.active : ''}`}
+        aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} non lues)` : ''}`}
+        title={`${unreadCount} notification${unreadCount > 1 ? 's' : ''} non lue${unreadCount > 1 ? 's' : ''}`}
+      >
+        <span className={styles.bellIcon}>🔔</span>
+        {unreadCount > 0 && (
+          <span className={styles.badge} aria-hidden="true">
+            {unreadCount > 99 ? '99+' : unreadCount}
+          </span>
+        )}
+      </button>
+
+      {/* Panel des notifications */}
+      {isOpen && (
+        <div ref={panelRef} className={styles.notificationPanel}>
+          {/* Header */}
+          <div className={styles.panelHeader}>
+            <h3 className={styles.panelTitle}>
+              <span className={styles.titleIcon}>🔔</span>
+              Notifications
+            </h3>
+            <div className={styles.headerActions}>
+              <button
+                onClick={handleClearAll}
+                className={styles.clearAllBtn}
+                title="Supprimer toutes"
+                disabled={notifications.length === 0}
+              >
+                🗑️
+              </button>
+            </div>
+          </div>
+
+          {/* Filtres */}
+          <div className={styles.filterTabs}>
+            <button
+              onClick={() => setFilter('all')}
+              className={`${styles.filterTab} ${filter === 'all' ? styles.active : ''}`}
+            >
+              Toutes ({notifications.length})
+            </button>
+            <button
+              onClick={() => setFilter('likes')}
+              className={`${styles.filterTab} ${filter === 'likes' ? styles.active : ''}`}
+            >
+              ❤️ Likes ({notifications.filter(n => n.type === 'recipe_liked').length})
+            </button>
+            <button
+              onClick={() => setFilter('comments')}
+              className={`${styles.filterTab} ${filter === 'comments' ? styles.active : ''}`}
+            >
+              💬 Commentaires ({notifications.filter(n => n.data?.type === 'comment').length})
+            </button>
+          </div>
+
+          {/* Liste des notifications */}
+          <div className={styles.notificationsList}>
+            {loading ? (
+              <div className={styles.loading}>
+                <div className={styles.loadingSpinner}></div>
+                <span>Chargement...</span>
+              </div>
+            ) : filteredNotifications.length === 0 ? (
+              <div className={styles.emptyState}>
+                <div className={styles.emptyIcon}>
+                  {filter === 'likes' ? '❤️' : filter === 'comments' ? '💬' : '🔔'}
+                </div>
+                <p className={styles.emptyMessage}>
+                  {filter === 'likes' ? 'Aucun like reçu' : 
+                   filter === 'comments' ? 'Aucun commentaire reçu' : 
+                   'Aucune notification'}
+                </p>
+              </div>
+            ) : (
+              filteredNotifications.map((notification) => {
+                const handleClick = getNotificationAction(notification)
+                return (
+                  <div
+                    key={notification.id}
+                    className={`${styles.notificationItem} ${!notification.read ? styles.unread : ''} ${handleClick ? styles.clickable : ''}`}
+                    onClick={handleClick}
+                  >
+                    <div className={styles.notificationIcon}>
+                      {getTypeEmoji(notification.type)}
+                    </div>
+                    <div className={styles.notificationContent}>
+                      <div className={styles.notificationTitle}>
+                        {notification.title}
+                      </div>
+                      <div className={styles.notificationBody}>
+                        {notification.body}
+                      </div>
+                      <div className={styles.notificationTime}>
+                        {formatTimestamp(notification.timestamp)}
+                      </div>
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDeleteNotification(notification.id)
+                      }}
+                      className={styles.deleteBtn}
+                      title="Supprimer"
+                      aria-label="Supprimer cette notification"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )
+              })
+            )}
+          </div>
+
+          {/* Footer */}
+          {filteredNotifications.length > 0 && (
+            <div className={styles.panelFooter}>
+              <div className={styles.notificationCount}>
+                {filteredNotifications.length} notification{filteredNotifications.length > 1 ? 's' : ''}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

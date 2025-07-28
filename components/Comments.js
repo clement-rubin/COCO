@@ -135,10 +135,21 @@ export default function Comments({
         
         // Send notification if not own recipe
         if (result.recipe && result.recipe.user_id !== user.id) {
-          showRecipeCommentNotification(result.recipe, {
-            user_id: user.id,
-            display_name: user.user_metadata?.display_name || 'Utilisateur'
-          }, result.comment)
+          showRecipeCommentNotification(
+            {
+              id: result.recipe.id,
+              title: result.recipe.title,
+              image: '/placeholder-recipe.jpg' // Fallback image
+            }, 
+            {
+              user_id: user.id,
+              display_name: user.user_metadata?.display_name || 'Utilisateur'
+            }, 
+            {
+              id: result.comment.id,
+              text: result.comment.text
+            }
+          )
         }
         
         // Success animation
