@@ -577,6 +577,18 @@ class NotificationManager {
 // Instance globale
 export const notificationManager = new NotificationManager()
 
+// Auto-initialisation côté client
+if (typeof window !== 'undefined') {
+  // Initialiser automatiquement quand le DOM est prêt
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      notificationManager.init()
+    })
+  } else {
+    notificationManager.init()
+  }
+}
+
 // Fonctions utilitaires
 export const showTrophyNotification = (trophy) => {
   return notificationManager.show(

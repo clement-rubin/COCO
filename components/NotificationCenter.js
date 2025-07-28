@@ -9,15 +9,22 @@ const NotificationCenter = () => {
   const [unreadCount, setUnreadCount] = useState(0)
   const [filter, setFilter] = useState('all') // all, likes, comments, system
   const [loading, setLoading] = useState(true)
+  const [isInitialized, setIsInitialized] = useState(false)
   const panelRef = useRef(null)
   const bellRef = useRef(null)
 
   useEffect(() => {
+    // S'assurer que le gestionnaire est initialisé
+    if (typeof window !== 'undefined') {
+      notificationManager.init()
+      setIsInitialized(true)
+    }
+
     // Charger les notifications existantes
     loadNotifications()
 
     // Écouter les nouvelles notifications
-    notificationManager.onNotificationAdded((newNotification) => {
+    const handleNewNotification = (newNotification) => {
       setNotifications(prev => [newNotification, ...prev])
       setUnreadCount(prev => prev + 1)
       
@@ -28,7 +35,9 @@ const NotificationCenter = () => {
           bellRef.current?.classList.remove(styles.newNotification)
         }, 2000)
       }
-    })
+    }
+
+    notificationManager.onNotificationAdded(handleNewNotification)
 
     // Mettre à jour le compteur non lu
     updateUnreadCount()
@@ -42,8 +51,30 @@ const NotificationCenter = () => {
     }
 
     document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
   }, [])
+
+  // Debug: ajouter des notifications de test en développement
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development' && isInitialized && notifications.length === 0) {
+      // Ajouter quelques notifications de test après un délai
+      setTimeout(() => {
+        const testNotification = {
+          type: 'recipe_liked',
+          title: '❤️ Test - Votre recette a été aimée !',
+          body: 'Un utilisateur test aime votre recette "Test Tarte aux pommes"',
+          data: { 
+            recipeId: 'test-recipe',
+            type: 'like',
+            likerName: 'Utilisateur Test'
+          }
+        }
+        notificationManager.addNotification(testNotification)
+      }, 2000)
+    }
+  }, [isInitialized])
 
   const loadNotifications = () => {
     setLoading(true)
@@ -171,6 +202,17 @@ const NotificationCenter = () => {
   }
 
   const filteredNotifications = getFilteredNotifications()
+
+  // Si le composant n'est pas encore initialisé, afficher un placeholder
+  if (!isInitialized) {
+    return (
+      <div className={styles.notificationCenter}>
+        <button className={styles.bellButton} disabled>
+          <span className={styles.bellIcon}>🔔</span>
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div className={styles.notificationCenter}>

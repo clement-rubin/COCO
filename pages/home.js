@@ -74,7 +74,7 @@ const HomePage = () => {
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '16px'
+            gap: '20px'
           }}>
             {/* Navigation rapide */}
             <nav style={{
@@ -111,39 +111,53 @@ const HomePage = () => {
               )}
             </nav>
 
-            {/* Centre de notifications (seulement si connecté) */}
-            {user && <NotificationCenter />}
+            {/* Section utilisateur avec notifications */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px'
+            }}>
+              {/* Centre de notifications (seulement si connecté) */}
+              {user && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center'
+                }}>
+                  <NotificationCenter />
+                </div>
+              )}
 
-            {/* Bouton connexion/profil */}
-            {user ? (
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '6px 12px',
-                background: 'rgba(16, 185, 129, 0.1)',
-                borderRadius: '20px',
-                fontSize: '0.9rem',
-                fontWeight: '600',
-                color: '#10b981'
-              }}>
-                <span>👤</span>
-                <span>{user.user_metadata?.display_name || 'Mon Profil'}</span>
-              </div>
-            ) : (
-              <Link href="/login" style={{
-                padding: '8px 16px',
-                borderRadius: '20px',
-                background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
-                color: 'white',
-                textDecoration: 'none',
-                fontSize: '0.9rem',
-                fontWeight: '600',
-                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
-              }}>
-                🔐 Connexion
-              </Link>
-            )}
+              {/* Bouton connexion/profil */}
+              {user ? (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '6px 12px',
+                  background: 'rgba(16, 185, 129, 0.1)',
+                  borderRadius: '20px',
+                  fontSize: '0.9rem',
+                  fontWeight: '600',
+                  color: '#10b981'
+                }}>
+                  <span>👤</span>
+                  <span>{user.user_metadata?.display_name || 'Mon Profil'}</span>
+                </div>
+              ) : (
+                <Link href="/login" style={{
+                  padding: '8px 16px',
+                  borderRadius: '20px',
+                  background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+                  color: 'white',
+                  textDecoration: 'none',
+                  fontSize: '0.9rem',
+                  fontWeight: '600',
+                  boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
+                }}>
+                  🔐 Connexion
+                </Link>
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -249,7 +263,25 @@ const HomePage = () => {
 
       {/* Floating Quick Comment Button - Version avec intégration notifications */}
       {showFloatingButton && (
-        <div style={{ position: 'fixed', bottom: '32px', right: '32px', zIndex: 1000 }}>
+        <div style={{ 
+          position: 'fixed', 
+          bottom: '32px', 
+          right: '32px', 
+          zIndex: 1000,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'flex-end',
+          gap: '12px'
+        }}>
+          {/* Mini centre de notifications flottant pour mobile */}
+          {user && (
+            <div style={{
+              display: window.innerWidth <= 768 ? 'block' : 'none'
+            }}>
+              <NotificationCenter />
+            </div>
+          )}
+          
           {/* Bouton principal */}
           <button
             onClick={() => setShowQuickComment(true)}
@@ -267,8 +299,7 @@ const HomePage = () => {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              animation: 'pulse 2s infinite',
-              marginBottom: user ? '12px' : '0'
+              animation: 'pulse 2s infinite'
             }}
             onMouseOver={(e) => {
               e.target.style.transform = 'scale(1.1)';
@@ -283,13 +314,6 @@ const HomePage = () => {
           >
             💬
           </button>
-          
-          {/* Mini centre de notifications flottant pour mobile */}
-          {user && (
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <NotificationCenter />
-            </div>
-          )}
         </div>
       )}
 
@@ -316,7 +340,7 @@ const HomePage = () => {
           }
         }
 
-        @media (max-width: 640px) {
+        @media (max-width: 768px) {
           header div {
             padding: 0 16px !important;
           }
@@ -326,7 +350,7 @@ const HomePage = () => {
           }
           
           button[title="Commentaire rapide"] {
-            bottom: 20px !important;
+            bottom: 80px !important;
             right: 20px !important;
             width: 56px !important;
             height: 56px !important;
