@@ -45,14 +45,8 @@ export async function getRecipeLikesStats(recipeId) {
  * Obtenir les statistiques de likes pour plusieurs recettes
  */
 export const getMultipleRecipesLikesStats = async (recipeIds) => {
-  if (!recipeIds || recipeIds.length === 0) {
-    return { success: true, data: {} }
-  }
-
   try {
-    const response = await fetch('/api/recipe-likes?' + new URLSearchParams({
-      recipe_ids: recipeIds.join(',')
-    }))
+    const response = await fetch(`/api/recipe-likes?recipe_ids=${recipeIds.join(',')}`)
 
     if (!response.ok) {
       const errorText = await response.text()
@@ -216,6 +210,46 @@ export async function addRecipeLike(recipeId, userId, recipe = null, user = null
       error.requestId = data.requestId
       error.response = response
       throw error
+    }
+
+    // NOUVEAU: Déclencher une notification si c'est la recette de quelqu'un d'autre
+    if (response.ok && recipe && user && recipe.user_id && recipe.user_id !== userId) {
+      try {
+        // Obtenir l'utilisateur actuel pour éviter l'auto-notification
+        const { supabase } = await import('../lib/supabase')
+        const { data: currentUser } = await supabase.auth.getUser()
+        
+        // Importer la fonction de notification
+        const { showRecipeLikeNotification } = await import('./notificationUtils')
+        
+        // Déclencher la notification
+        showRecipeLikeNotification(
+          {
+            id: recipe.id,
+            title: recipe.title,
+            image: recipe.image,
+            user_id: recipe.user_id,
+            likes_count: data.stats?.likes_count || recipe.likes_count || 0
+          },
+          {
+            user_id: userId,
+            display_name: user.display_name || user.user_metadata?.display_name || 'Un utilisateur'
+          },
+          currentUser?.user || null
+        )
+        
+        logInfo('Like notification sent', {
+          recipeId: recipe.id,
+          recipeOwnerId: recipe.user_id,
+          likerId: userId
+        })
+      } catch (notificationError) {
+        logError('Error sending like notification', notificationError, {
+          recipeId,
+          userId: userId?.substring(0, 8) + '...'
+        })
+        // Ne pas faire échouer le like à cause d'une erreur de notification
+      }
     }
 
     // Déclencher une notification enrichie si les données sont disponibles
