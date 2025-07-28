@@ -85,3 +85,65 @@ export async function safeGetRecipeLikesStats(recipeId, userId = null) {
     }
   }
 }
+
+/**
+ * Obtenir les détails des likes pour une recette (qui a liké, quand)
+ * @param {string} recipeId 
+ * @param {number} limit 
+ * @returns {Promise<{success: boolean, likes: Array, error?: string}>}
+ */
+export async function getRecipeLikesDetails(recipeId, limit = 10) {
+  try {
+    const response = await fetch(`/api/recipe-likes/details?recipe_id=${recipeId}&limit=${limit}`)
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+    }
+    
+    const data = await response.json()
+    
+    return {
+      success: true,
+      likes: data.likes || [],
+      total_count: data.total_count || 0
+    }
+  } catch (error) {
+    logError('Error getting recipe likes details', error, { recipeId, limit })
+    return {
+      success: false,
+      likes: [],
+      total_count: 0,
+      error: error.message
+    }
+  }
+}
+
+/**
+ * Obtenir les statistiques de likes avec détails des derniers likeurs
+ * @param {string} recipeId 
+ * @param {string} userId - Optionnel
+ * @returns {Promise<{likes_count: number, user_has_liked: boolean, recent_likers: Array}>}
+ */
+export async function safeGetRecipeLikesWithDetails(recipeId, userId = null) {
+  try {
+    const [stats, details] = await Promise.all([
+      safeGetRecipeLikesStats(recipeId, userId),
+      getRecipeLikesDetails(recipeId, 5) // Les 5 derniers likes
+    ])
+
+    return {
+      likes_count: stats.likes_count,
+      user_has_liked: stats.user_has_liked,
+      recent_likers: details.success ? details.likes : [],
+      total_likers: details.success ? details.total_count : 0
+    }
+  } catch (err) {
+    logError('Error getting recipe likes with details safely', err, { recipeId, userId })
+    return {
+      likes_count: 0,
+      user_has_liked: false,
+      recent_likers: [],
+      total_likers: 0
+    }
+  }
+}

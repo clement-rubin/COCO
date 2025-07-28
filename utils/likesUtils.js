@@ -1,6 +1,7 @@
 import { logInfo, logError, logDebug, logHttpError, logSocialInteraction, logSocialError, logSocialPerformance } from './logger'
-import { showRecipeLikeInteractionNotification } from './notificationUtils'
+import { showRecipeLikeInteractionNotification, showRecipeLikeWithStatsNotification } from './notificationUtils'
 import { useState, useEffect, useCallback } from 'react'
+import { safeGetRecipeLikesWithDetails } from './safeLikesUtils'
 
 /**
  * Utility functions pour gérer les likes des recettes
@@ -217,18 +218,36 @@ export async function addRecipeLike(recipeId, userId, recipe = null, user = null
       throw error
     }
 
-    // Déclencher une notification si les données sont disponibles
-    if (recipe && user && recipe.user_id && recipe.user_id !== userId) {
+    // Déclencher une notification enrichie si les données sont disponibles
+    if (response.ok && recipe && user && recipe.user_id && recipe.user_id !== userId) {
       try {
+        // Obtenir les statistiques détaillées pour la notification
+        const detailedStats = await safeGetRecipeLikesWithDetails(recipeId)
+        
+        if (detailedStats.total_likers > 1) {
+          // Notification avec statistiques si plusieurs likes
+          showRecipeLikeWithStatsNotification({
+            ...recipe,
+            likes_count: data.stats?.likes_count || recipe.likes_count || 0
+          }, user, detailedStats)
+        } else {
+          // Notification simple pour le premier like
+          showRecipeLikeInteractionNotification({
+            ...recipe,
+            likes_count: data.stats?.likes_count || recipe.likes_count || 0
+          }, user)
+        }
+      } catch (notificationError) {
+        logError('Error showing enhanced like notification', notificationError, {
+          recipeId,
+          userId: userId?.substring(0, 8) + '...'
+        })
+        
+        // Fallback vers notification simple
         showRecipeLikeInteractionNotification({
           ...recipe,
           likes_count: data.stats?.likes_count || recipe.likes_count || 0
         }, user)
-      } catch (notificationError) {
-        logError('Error showing like notification', notificationError, {
-          recipeId,
-          userId: userId?.substring(0, 8) + '...'
-        })
       }
     }
 

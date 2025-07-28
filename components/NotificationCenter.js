@@ -132,10 +132,42 @@ const NotificationCenter = () => {
     if (data?.recipeId && data?.type === 'like') {
       return () => window.location.href = `/recipe/${data.recipeId}`
     }
+    if (data?.recipeId && data?.type === 'like_with_stats') {
+      return () => window.location.href = `/recipe/${data.recipeId}#likes-details`
+    }
     if (data?.recipeId && data?.type === 'comment') {
       return () => window.location.href = `/recipe/${data.recipeId}#comments`
     }
     return null
+  }
+
+  const formatNotificationBody = (notification) => {
+    const { data, body } = notification
+    
+    // Notification de like enrichie
+    if (data?.type === 'like_with_stats' && data?.recentLikers) {
+      return (
+        <div className={styles.enrichedNotificationBody}>
+          <div className={styles.mainText}>{body}</div>
+          {data.recentLikers.length > 0 && (
+            <div className={styles.likersPreview}>
+              <div className={styles.likersAvatars}>
+                {data.recentLikers.map((liker, index) => (
+                  <span key={index} className={styles.likerAvatar} title={liker.user_name}>
+                    {liker.user_name?.charAt(0).toUpperCase() || '👤'}
+                  </span>
+                ))}
+              </div>
+              <div className={styles.likersText}>
+                {data.totalLikes} like{data.totalLikes > 1 ? 's' : ''} au total
+              </div>
+            </div>
+          )}
+        </div>
+      )
+    }
+    
+    return body
   }
 
   const filteredNotifications = getFilteredNotifications()
@@ -236,7 +268,7 @@ const NotificationCenter = () => {
                         {notification.title}
                       </div>
                       <div className={styles.notificationBody}>
-                        {notification.body}
+                        {formatNotificationBody(notification)}
                       </div>
                       <div className={styles.notificationTime}>
                         {formatTimestamp(notification.timestamp)}

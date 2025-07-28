@@ -598,9 +598,60 @@ export const showRecipeLikeInteractionNotification = (recipe, fromUser) => {
         recipeId: recipe.id, 
         userId: fromUser.user_id || fromUser.id,
         type: 'like',
-        action: 'view_recipe'
+        action: 'view_recipe',
+        likerName: fromUser.display_name || fromUser.name,
+        recipeTitle: recipe.title,
+        timestamp: new Date().toISOString(),
+        currentLikes: recipe.likes_count || 0
       },
-      forceFallback: true // Forcer l'affichage fallback pour être sûr que ça arrive dans la cloche
+      forceFallback: true,
+      duration: 6000 // Plus long pour laisser le temps de lire
+    }
+  )
+}
+
+/**
+ * Notification enrichie avec statistiques de likes
+ */
+export const showRecipeLikeWithStatsNotification = (recipe, fromUser, likeStats) => {
+  const otherLikersCount = (likeStats.total_likers || 1) - 1
+  const recentLikers = likeStats.recent_likers || []
+  
+  let bodyText = `${fromUser.display_name || 'Un utilisateur'} aime votre recette "${recipe.title}"`
+  
+  if (otherLikersCount > 0) {
+    if (otherLikersCount === 1) {
+      bodyText += ` (et 1 autre personne)`
+    } else if (otherLikersCount <= 3 && recentLikers.length > 1) {
+      const otherNames = recentLikers
+        .slice(1, 4)
+        .map(l => l.user_name)
+        .join(', ')
+      bodyText += ` (avec ${otherNames})`
+    } else {
+      bodyText += ` (et ${otherLikersCount} autres personnes)`
+    }
+  }
+
+  return notificationManager.show(
+    NOTIFICATION_TYPES.RECIPE_LIKED,
+    '❤️ Votre recette fait sensation !',
+    {
+      body: bodyText,
+      icon: '/icons/heart.png',
+      data: { 
+        recipeId: recipe.id, 
+        userId: fromUser.user_id || fromUser.id,
+        type: 'like_with_stats',
+        action: 'view_recipe_likes',
+        likerName: fromUser.display_name || fromUser.name,
+        recipeTitle: recipe.title,
+        totalLikes: likeStats.total_likers || 1,
+        recentLikers: recentLikers.slice(0, 3), // Seulement les 3 plus récents
+        timestamp: new Date().toISOString()
+      },
+      forceFallback: true,
+      duration: 8000
     }
   )
 }
