@@ -13,6 +13,12 @@ export default function Home() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [showWelcome, setShowWelcome] = useState(false)
   const [feedType, setFeedType] = useState('all')
+  const [feedStats, setFeedStats] = useState({
+    totalRecipes: 0,
+    totalLikes: 0,
+    totalComments: 0,
+    activeChefs: 0
+  })
   const heroRef = useRef(null)
 
   // Détection du scroll
@@ -66,6 +72,43 @@ export default function Home() {
       return () => clearTimeout(timer)
     }
   }, [user, loading, router])
+
+  // Récupérer les statistiques du feed
+  useEffect(() => {
+    const fetchFeedStats = async () => {
+      try {
+        const timestamp = Date.now()
+        const response = await fetch(`/api/recipes?limit=20&_t=${timestamp}`)
+        
+        if (response.ok) {
+          const recipesData = await response.json()
+          
+          if (recipesData && recipesData.length > 0) {
+            const { getMultipleRecipesEngagementStats } = await import('../utils/likesUtils')
+            const recipeIds = recipesData.map(r => r.id)
+            const engagementStats = await getMultipleRecipesEngagementStats(recipeIds)
+            
+            const totalLikes = Object.values(engagementStats.data || {}).reduce((sum, stats) => sum + (stats?.likes_count || 0), 0)
+            const totalComments = Object.values(engagementStats.data || {}).reduce((sum, stats) => sum + (stats?.comments_count || 0), 0)
+            const activeChefs = new Set(recipesData.map(r => r.user_id)).size
+            
+            setFeedStats({
+              totalRecipes: recipesData.length,
+              totalLikes,
+              totalComments,
+              activeChefs
+            })
+          }
+        }
+      } catch (error) {
+        console.error('Erreur lors de la récupération des statistiques:', error)
+      }
+    }
+
+    if (user) {
+      fetchFeedStats()
+    }
+  }, [user])
 
   // Accès discret aux logs (seulement pour les développeurs/admins)
   const [secretClickCount, setSecretClickCount] = useState(0)
@@ -725,105 +768,112 @@ export default function Home() {
               marginBottom: '20px',
               flexWrap: 'wrap'
             }}>
-              {[
-                { number: '1000+', label: 'Recettes', color: '#ff6b35', animation: 'recipeIcon' },
-                { number: '500+', label: 'Chefs', color: '#4caf50', animation: 'chefIcon' },
-                { number: '50+', label: 'Collections', color: '#2196f3', animation: 'collectionIcon' }
+              {user && [
+                { 
+                  number: feedStats.totalRecipes, 
+                  label: 'Recettes', 
+                  color: '#ff6b35', 
+                  animation: 'recipeIcon',
+                  icon: '🍽️',
+                  subtext: 'Partagées par la communauté'
+                },
+                { 
+                  number: feedStats.totalLikes, 
+                  label: 'Likes', 
+                  color: '#e91e63', 
+                  animation: 'heartBeat',
+                  icon: '❤️',
+                  subtext: 'Appréciations totales'
+                },
+                { 
+                  number: feedStats.totalComments, 
+                  label: 'Commentaires', 
+                  color: '#2196f3', 
+                  animation: 'commentBubble',
+                  icon: '💬',
+                  subtext: 'Interactions communautaires'
+                },
+                { 
+                  number: feedStats.activeChefs, 
+                  label: 'Chefs actifs', 
+                  color: '#4caf50', 
+                  animation: 'chefIcon',
+                  icon: '👨‍🍳',
+                  subtext: 'Membres contribueurs'
+                }
               ].map((stat, index) => (
                 <div key={index} style={{
-                  background: 'rgba(255, 255, 255, 0.9)',
+                  background: 'rgba(255, 255, 255, 0.95)',
                   backdropFilter: 'blur(15px)',
-                  padding: '12px 16px',
-                  borderRadius: '16px',
+                  padding: '16px 20px',
+                  borderRadius: '20px',
                   border: `2px solid ${stat.color}20`,
-                  minWidth: '70px',
+                  minWidth: '140px',
                   animation: `fadeInUp 0.6s ease-out ${index * 0.15}s both`,
-                  boxShadow: '0 4px 15px rgba(0, 0, 0, 0.05)'
+                  boxShadow: `0 8px 25px ${stat.color}15`,
+                  textAlign: 'center',
+                  position: 'relative',
+                  overflow: 'hidden'
                 }}>
-                  {/* Icônes animées personnalisées */}
-                  <div style={{ 
-                    fontSize: '1.2rem', 
-                    marginBottom: '4px',
-                    animation: `${stat.animation} 2s ease-in-out infinite`,
-                    transformOrigin: 'center'
-                  }}>
-                    {index === 0 && (
-                      <div style={{
-                        width: '20px',
-                        height: '20px',
-                        background: stat.color,
-                        borderRadius: '50%',
-                        margin: '0 auto',
-                        position: 'relative'
-                      }}>
-                        <div style={{
-                          width: '12px',
-                          height: '12px',
-                          border: '2px solid white',
-                          borderRadius: '50%',
-                          position: 'absolute',
-                          top: '50%',
-                          left: '50%',
-                          transform: 'translate(-50%, -50%)'
-                        }} />
-                      </div>
-                    )}
-                    {index === 1 && (
-                      <div style={{
-                        width: '20px',
-                        height: '16px',
-                        background: stat.color,
-                        borderRadius: '8px 8px 0 0',
-                        margin: '0 auto',
-                        position: 'relative'
-                      }}>
-                        <div style={{
-                          width: '16px',
-                          height: '4px',
-                          background: 'white',
-                          borderRadius: '2px',
-                          position: 'absolute',
-                          bottom: '-6px',
-                          left: '50%',
-                          transform: 'translateX(-50%)'
-                        }} />
-                      </div>
-                    )}
-                    {index === 2 && (
-                      <div style={{
-                        width: '18px',
-                        height: '14px',
-                        border: `2px solid ${stat.color}`,
-                        borderRadius: '2px',
-                        margin: '0 auto',
-                        position: 'relative'
-                      }}>
-                        <div style={{
-                          width: '1px',
-                          height: '10px',
-                          background: stat.color,
-                          position: 'absolute',
-                          top: '50%',
-                          left: '50%',
-                          transform: 'translate(-50%, -50%)'
-                        }} />
-                      </div>
-                    )}
-                  </div>
+                  {/* Effet de fond animé */}
                   <div style={{
-                    fontSize: '0.9rem',
-                    fontWeight: '800',
+                    position: 'absolute',
+                    top: '0',
+                    left: '0',
+                    right: '0',
+                    bottom: '0',
+                    background: `linear-gradient(135deg, ${stat.color}05, ${stat.color}10)`,
+                    borderRadius: '20px',
+                    opacity: 0,
+                    transition: 'opacity 0.3s ease'
+                  }} className="stat-card-bg" />
+                  
+                  {/* Icône principale */}
+                  <div style={{ 
+                    fontSize: '2rem', 
+                    marginBottom: '8px',
+                    animation: `${stat.animation} 2s ease-in-out infinite`,
+                    transformOrigin: 'center',
+                    position: 'relative',
+                    zIndex: 2
+                  }}>
+                    {stat.icon}
+                  </div>
+                  
+                  {/* Nombre principal */}
+                  <div style={{
+                    fontSize: '1.6rem',
+                    fontWeight: '900',
                     color: stat.color,
-                    marginBottom: '2px'
+                    marginBottom: '4px',
+                    position: 'relative',
+                    zIndex: 2
                   }}>
                     {stat.number}
                   </div>
+                  
+                  {/* Label */}
                   <div style={{
-                    fontSize: '0.75rem',
+                    fontSize: '0.9rem',
                     color: '#6b7280',
-                    fontWeight: '600'
+                    fontWeight: '700',
+                    marginBottom: '4px',
+                    position: 'relative',
+                    zIndex: 2
                   }}>
                     {stat.label}
+                  </div>
+                  
+                  {/* Sous-texte descriptif */}
+                  <div style={{
+                    fontSize: '0.7rem',
+                    color: '#9ca3af',
+                    fontWeight: '500',
+                    lineHeight: '1.2',
+                    position: 'relative',
+                    zIndex: 2
+                  }}>
+                    {stat.subtext}
                   </div>
                 </div>
               ))}
@@ -1275,6 +1325,59 @@ export default function Home() {
           50% { transform: rotateY(15deg); }
         }
 
+        @keyframes heartBeat {
+          0%, 100% { 
+            transform: scale(1);
+          }
+          50% { 
+            transform: scale(1.15);
+          }
+        }
+        
+        @keyframes commentBubble {
+          0%, 100% { 
+            transform: translateY(0) rotate(0deg);
+          }
+          25% { 
+            transform: translateY(-3px) rotate(2deg);
+          }
+          75% { 
+            transform: translateY(-1px) rotate(-1deg);
+          }
+        }
+        
+        /* Effet de survol pour les cartes de statistiques */
+        .stat-card-bg:hover {
+          opacity: 1 !important;
+        }
+        
+        /* Responsive pour les nouvelles statistiques */
+        @media (max-width: 768px) {
+          div[style*="gap: '20px'"] {
+            gap: 12px !important;
+          }
+          
+          div[style*="minWidth: '140px'"] {
+            min-width: 120px !important;
+            padding: 12px 16px !important;
+          }
+        }
+        
+        @media (max-width: 480px) {
+          div[style*="minWidth: '140px'"] {
+            min-width: 100px !important;
+            padding: 10px 12px !important;
+          }
+          
+          div[style*="fontSize: '1.6rem'"] {
+            font-size: 1.4rem !important;
+          }
+          
+          div[style*="fontSize: '2rem'"] {
+            font-size: 1.8rem !important;
+          }
+        }
+        
         /* États de focus pour l'accessibilité */
         button:focus {
           outline: 2px solid rgba(59, 130, 246, 0.5);
