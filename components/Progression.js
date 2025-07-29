@@ -921,6 +921,24 @@ export default function Progression({ user }) {
     )
   }
 
+  // Glow visuel selon la rareté de l'objet
+  function getItemGlow(itemId) {
+    const item = SHOP_ITEMS.find(i => i.id === itemId)
+    if (!item) return 'none'
+    switch (item.rarity) {
+      case 'legendary':
+        return 'drop-shadow(0 0 8px #f59e0b) drop-shadow(0 0 16px #fbbf24)';
+      case 'epic':
+        return 'drop-shadow(0 0 8px #8b5cf6) drop-shadow(0 0 16px #a78bfa)';
+      case 'rare':
+        return 'drop-shadow(0 0 8px #3b82f6)';
+      case 'uncommon':
+        return 'drop-shadow(0 0 6px #10b981)';
+      default:
+        return 'none';
+    }
+  }
+
   if (loading) {
     return (
       <div style={{ textAlign: 'center', padding: '3rem' }}>

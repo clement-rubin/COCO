@@ -97,6 +97,35 @@ export default function Home() {
           </div>
         </header>
 
+        {/* Nouveautés récentes */}
+        <div
+          style={{
+            maxWidth: 430,
+            margin: '18px auto 0 auto',
+            background: 'linear-gradient(90deg, #fffbe6 60%, #fef3c7 100%)',
+            borderRadius: 16,
+            boxShadow: '0 2px 8px #f59e0b11',
+            padding: '12px 20px',
+            fontSize: '0.98rem',
+            color: '#92400e',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12
+          }}
+        >
+          <span style={{ fontSize: '1.2rem' }}>🆕</span>
+          <span>
+            <b>Nouveautés :</b>
+            <ul style={{ margin: 0, paddingLeft: 18, fontSize: '0.97rem', color: '#92400e', listStyle: 'disc' }}>
+              <li>🎮 <b>Progression & Boutique</b> : gagnez des XP, débloquez des objets et personnalisez votre chef !</li>
+              <li>🏆 <b>Classement hebdo</b> : comparez votre XP avec la communauté</li>
+              <li>🔥 <b>Défis du jour</b> : relevez des challenges pour gagner des CocoCoins</li>
+              <li>👗 <b>Avatar chef customisable</b> : habillez votre chef avec vos objets préférés</li>
+              <li>💬 <b>Commentaires améliorés</b> sur les recettes</li>
+            </ul>
+          </span>
+        </div>
+        
         {/* Hero Section améliorée */}
         <section className={styles.heroSection}>
           <div className={styles.heroContent}>
