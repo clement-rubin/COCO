@@ -696,71 +696,89 @@ export default function AddictiveFeed() {
 
   return (
     <div className={styles.feedContainer} ref={containerRef}>
-      {/* Header principal amélioré */}
+      {/* Header principal redessiné */}
       <div className={styles.feedHeader}>
         <div className={styles.headerContent}>
           <div className={styles.headerLeft}>
             <div className={styles.headerIcon}>🍳</div>
             <div className={styles.headerText}>
-              <h2 className={styles.headerTitle}>Feed Communautaire COCO</h2>
+              <h2 className={styles.headerTitle}>Feed Culinaire</h2>
               <p className={styles.headerSubtitle}>
-                {user ? `${recipes.length} recettes de vos amis` : 'Découvrez les recettes de la communauté'}
+                {user ? `${recipes.length} recettes de vos amis` : 'Découvrez les recettes tendances'}
               </p>
             </div>
           </div>
           
           <div className={styles.headerRight}>
-            <div className={styles.headerStats}>
-              <div className={styles.statItem}>
-                <span className={styles.statNumber}>{recipes.length}</span>
-                <span className={styles.statLabel}>Recettes</span>
-              </div>
-              <div className={styles.statItem}>
-                <span className={styles.statNumber}>
-                  {recipes.reduce((total, recipe) => total + recipe.recipe.likes, 0)}
-                </span>
-                <span className={styles.statLabel}>❤️ Likes</span>
-              </div>
-              <div className={styles.statItem}>
-                <span className={styles.statNumber}>
-                  {recipes.reduce((total, recipe) => total + recipe.recipe.comments, 0)}
-                </span>
-                <span className={styles.statLabel}>💬 Commentaires</span>
-              </div>
-            </div>
-            
             <div className={styles.headerActions}>
               <button 
                 onClick={() => router.push('/amis')} 
                 className={styles.friendsBtn}
+                style={{
+                  background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+                  color: 'white',
+                  border: 'none',
+                  padding: '8px 16px',
+                  borderRadius: '12px',
+                  fontSize: '0.85rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease'
+                }}
               >
-                👥 Mes amis
+                👥 Amis
               </button>
               {user && (
                 <button 
-                  onClick={() => router.push('/submit-recipe')} 
+                  onClick={() => router.push('/share-photo')} 
                   className={styles.addRecipeBtn}
+                  style={{
+                    background: 'linear-gradient(135deg, #10b981, #059669)',
+                    color: 'white',
+                    border: 'none',
+                    padding: '8px 16px',
+                    borderRadius: '12px',
+                    fontSize: '0.85rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease'
+                  }}
                 >
-                  ➕ Ajouter
+                  ➕ Partager
                 </button>
               )}
             </div>
           </div>
         </div>
         
-        {/* Indicateur de statut */}
-        <div className={styles.statusIndicator}>
-          <div className={styles.liveIndicator}>
-            <span className={styles.liveDot}></span>
-            <span className={styles.liveText}>Données en temps réel</span>
-          </div>
-          <div className={styles.updateTime}>
-            Dernière mise à jour: il y a quelques instants
+        {/* Indicateur de statut en temps réel */}
+        <div className={styles.statusIndicator} style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '12px',
+          marginTop: '8px',
+          fontSize: '0.8rem',
+          color: '#64748b'
+        }}>
+          <div className={styles.liveIndicator} style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}>
+            <span className={styles.liveDot} style={{
+              width: '8px',
+              height: '8px',
+              background: '#10b981',
+              borderRadius: '50%',
+              animation: 'pulse 2s infinite'
+            }}></span>
+            <span>Données en temps réel</span>
           </div>
         </div>
       </div>
 
-      {/* Section des statistiques remplaçant l'image */}
+      {/* Section des statistiques avec design amélioré */}
       <div className={styles.statsSection}>
         <div className={styles.statCard}>
           <span className={styles.statIcon}>🍽️</span>
@@ -784,7 +802,7 @@ export default function AddictiveFeed() {
             {recipes.reduce((total, recipe) => total + recipe.recipe.comments, 0)}
           </span>
           <span className={styles.statLabel}>Commentaires</span>
-          <div className={styles.statSubtext}>Interactions de la communauté</div>
+          <div className={styles.statSubtext}>Interactions</div>
         </div>
         
         <div className={styles.statCard}>
@@ -793,28 +811,35 @@ export default function AddictiveFeed() {
             {new Set(recipes.map(r => r.user.id)).size}
           </span>
           <span className={styles.statLabel}>Chefs actifs</span>
-          <div className={styles.statSubtext}>Amis qui partagent</div>
+          <div className={styles.statSubtext}>Amis créatifs</div>
         </div>
       </div>
 
       <div className={styles.recipesGrid}>
-        {recipes.map((post) => (
-          <div key={post.id} className={styles.recipeCard}>
-            {/* Ajout d'un badge "Ami" pour clarifier */}
+        {recipes.map((post, index) => (
+          <div 
+            key={post.id} 
+            className={styles.recipeCard}
+            style={{
+              '--animation-delay': `${index * 0.1}s`
+            }}
+          >
+            {/* Badge ami amélioré */}
             <div className={styles.friendBadge}>
               <span className={styles.friendIcon}>🤝</span>
-              <span className={styles.friendLabel}>Ami</span>
+              <span className={styles.friendLabel}>Votre ami</span>
             </div>
             
-            {/* Image */}
+            {/* Image avec overlay amélioré */}
             <div className={styles.recipeImageContainer} onClick={() => openRecipe(post.recipe.id)}>
               <Image
                 src={post.recipe.image}
                 alt={post.recipe.title}
                 fill
                 className={styles.recipeImage}
-                sizes="(max-width: 768px) 100vw, 50vw"
+                sizes="(max-width: 768px) 100vw, 500px"
                 unoptimized={post.recipe.image.startsWith('data:')}
+                priority={index < 2}
                 onLoad={() => {
                   logDebug('AddictiveFeed: Image loaded successfully', {
                     recipeId: post.recipe.id,
@@ -824,8 +849,7 @@ export default function AddictiveFeed() {
                 onError={(e) => {
                   logError('AddictiveFeed: Image load error', new Error('Image failed to load'), {
                     recipeId: post.recipe.id,
-                    imageUrl: post.recipe.image?.substring(0, 50) + '...',
-                    errorSrc: e.target?.src?.substring(0, 50) + '...'
+                    imageUrl: post.recipe.image?.substring(0, 50) + '...'
                   })
                   e.target.src = '/placeholder-recipe.jpg'
                 }}
@@ -834,12 +858,24 @@ export default function AddictiveFeed() {
                 <div className={styles.categoryBadge}>
                   {post.recipe.category}
                 </div>
+                {post.isQuickShare && (
+                  <div style={{
+                    background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.95), rgba(245, 158, 11, 0.95))',
+                    color: 'white',
+                    padding: '4px 10px',
+                    borderRadius: '10px',
+                    fontSize: '0.75rem',
+                    fontWeight: '700'
+                  }}>
+                    📸 Express
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Content */}
+            {/* Contenu avec design amélioré */}
             <div className={styles.recipeContent}>
-              {/* User info */}
+              {/* Info utilisateur redessinée */}
               <div className={styles.userInfo}>
                 <span className={styles.userAvatar}>{post.user.avatar}</span>
                 <div className={styles.userDetails}>
@@ -852,7 +888,7 @@ export default function AddictiveFeed() {
                 </div>
               </div>
 
-              {/* Recipe info */}
+              {/* Titre et description améliorés */}
               <h3 className={styles.recipeTitle} onClick={() => openRecipe(post.recipe.id)}>
                 {post.recipe.title}
               </h3>
@@ -861,13 +897,22 @@ export default function AddictiveFeed() {
                 {post.recipe.description}
               </p>
 
-              {/* Recipe meta - VERSION SIMPLIFIÉE */}
+              {/* Meta informations */}
               <div className={styles.recipeMeta}>
-                <span className={styles.metaItem}>📂 {post.recipe.category}</span>
-                {post.isQuickShare && <span className={styles.metaItem}>📸 Partage express</span>}
+                <span className={styles.metaItem}>
+                  📂 {post.recipe.category}
+                </span>
+                {post.isQuickShare && (
+                  <span className={styles.metaItem}>
+                    📸 Partage express
+                  </span>
+                )}
+                <span className={styles.metaItem}>
+                  ⏱️ {post.timeAgo}
+                </span>
               </div>
 
-              {/* Actions avec vraies données - CORRECTION DE L'AFFICHAGE */}
+              {/* Actions avec animations améliorées */}
               <div className={styles.recipeActions}>
                 <button
                   onClick={() => toggleLike(post.id)}
@@ -887,7 +932,7 @@ export default function AddictiveFeed() {
                   onClick={() => openRecipe(post.recipe.id)}
                   className={styles.viewRecipeBtn}
                 >
-                  Voir →
+                  Voir la recette →
                 </button>
               </div>
             </div>
@@ -920,14 +965,20 @@ export default function AddictiveFeed() {
         </div>
       )}
 
+      {/* Animations CSS intégrées */}
       <style jsx>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+        
         @keyframes heartFloat {
           0% {
             transform: translate(-50%, -50%) scale(1);
             opacity: 1;
           }
           100% {
-            transform: translate(-50%, -70%) scale(1.2);
+            transform: translate(-50%, -70%) scale(1.3);
             opacity: 0;
           }
         }

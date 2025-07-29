@@ -3,6 +3,7 @@ import { useState } from 'react'
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  
   return (
     <nav style={{
       background: 'rgba(255,255,255,0.96)',
@@ -10,9 +11,8 @@ export default function Navbar() {
       boxShadow: '0 2px 12px rgba(255,107,53,0.05), 0 1.5px 6px rgba(0,0,0,0.04)',
       position: 'sticky',
       top: 0,
-      zIndex: 1200, // z-index augmenté pour être au-dessus de tout
+      zIndex: 1200,
       width: '100%',
-      backdropFilter: 'blur(18px) saturate(160%)',
       backdropFilter: 'blur(18px) saturate(160%)'
     }}>
       <div style={{
@@ -25,41 +25,175 @@ export default function Navbar() {
         height: 64,
         position: 'relative'
       }}>
-        {/* Logo */}
+        {/* Logo amélioré */}
         <Link href="/" style={{
           display: 'flex',
           alignItems: 'center',
           gap: 12,
-          textDecoration: 'none'
+          textDecoration: 'none',
+          transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+          padding: '8px 12px',
+          borderRadius: '16px',
+          position: 'relative',
+          overflow: 'hidden'
+        }}
+        className="logo-link"
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'scale(1.05) translateY(-2px)'
+          e.currentTarget.style.boxShadow = '0 8px 25px rgba(255, 107, 53, 0.25)'
+          e.currentTarget.style.background = 'rgba(255, 107, 53, 0.05)'
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'scale(1) translateY(0)'
+          e.currentTarget.style.boxShadow = 'none'
+          e.currentTarget.style.background = 'transparent'
         }}>
+          {/* Effet de brillance au hover */}
           <div style={{
-            width: 40,
-            height: 40,
-            background: 'linear-gradient(135deg, #ff6b35 0%, #f7931e 100%)',
-            borderRadius: 16,
+            position: 'absolute',
+            top: 0,
+            left: '-100%',
+            width: '100%',
+            height: '100%',
+            background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent)',
+            transition: 'left 0.6s',
+            pointerEvents: 'none',
+            zIndex: 1
+          }} className="shine-effect" />
+          
+          {/* Icône du logo avec animations */}
+          <div style={{
+            width: 44,
+            height: 44,
+            background: 'linear-gradient(135deg, #ff6b35 0%, #f7931e 50%, #ff8c42 100%)',
+            borderRadius: 20,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             color: 'white',
-            fontWeight: 700,
-            fontSize: '1.3rem',
-            boxShadow: '0 2px 8px #ff6b3533'
-          }}>
-            🍴
-          </div>
-          <h2 style={{
-            margin: 0,
-            color: '#ff6b35',
-            fontFamily: "'Plus Jakarta Sans',sans-serif",
             fontWeight: 800,
-            fontSize: '1.25rem',
-            letterSpacing: '-0.02em'
+            fontSize: '1.4rem',
+            boxShadow: '0 4px 16px rgba(255, 107, 53, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
+            transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+            position: 'relative',
+            overflow: 'hidden'
+          }}
+          className="logo-icon">
+            {/* Effet de pulsation subtile */}
+            <div style={{
+              position: 'absolute',
+              inset: '-2px',
+              borderRadius: '22px',
+              background: 'linear-gradient(135deg, #ff6b35, #f7931e)',
+              opacity: 0,
+              animation: 'logoPulse 3s infinite',
+              zIndex: -1
+            }} />
+            
+            {/* Icône principale */}
+            <span style={{
+              transition: 'all 0.3s ease',
+              filter: 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1))'
+            }}>
+              🥥
+            </span>
+            
+            {/* Particules flottantes au hover */}
+            <div className="floating-particles" style={{
+              position: 'absolute',
+              width: '100%',
+              height: '100%',
+              pointerEvents: 'none',
+              opacity: 0,
+              transition: 'opacity 0.3s ease'
+            }}>
+              <span style={{
+                position: 'absolute',
+                top: '10%',
+                right: '15%',
+                fontSize: '0.6rem',
+                animation: 'float1 2s infinite ease-in-out'
+              }}>✨</span>
+              <span style={{
+                position: 'absolute',
+                bottom: '15%',
+                left: '10%',
+                fontSize: '0.5rem',
+                animation: 'float2 2.5s infinite ease-in-out 0.5s'
+              }}>🍴</span>
+              <span style={{
+                position: 'absolute',
+                top: '20%',
+                left: '70%',
+                fontSize: '0.4rem',
+                animation: 'float3 2.2s infinite ease-in-out 1s'
+              }}>⭐</span>
+            </div>
+          </div>
+          
+          {/* Texte du logo */}
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'flex-start'
           }}>
-            COCO
-          </h2>
+            <h2 style={{
+              margin: 0,
+              background: 'linear-gradient(135deg, #ff6b35 0%, #f7931e 70%, #ff8c42 100%)',
+              backgroundClip: 'text',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              fontFamily: "'Plus Jakarta Sans', 'Inter', sans-serif",
+              fontWeight: 900,
+              fontSize: '1.35rem',
+              letterSpacing: '-0.02em',
+              lineHeight: 1,
+              transition: 'all 0.3s ease',
+              textShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
+            }}
+            className="logo-text">
+              COCO
+            </h2>
+            
+            {/* Sous-titre animé */}
+            <span style={{
+              fontSize: '0.65rem',
+              color: '#64748b',
+              fontWeight: 600,
+              letterSpacing: '0.5px',
+              textTransform: 'uppercase',
+              marginTop: '1px',
+              opacity: 0.8,
+              transition: 'all 0.3s ease'
+            }}
+            className="logo-subtitle">
+              Cuisine & Saveurs
+            </span>
+          </div>
+          
+          {/* Badge "nouveau" ou "tendance" occasionnel */}
+          <div style={{
+            position: 'absolute',
+            top: '-4px',
+            right: '-6px',
+            background: 'linear-gradient(135deg, #10b981, #059669)',
+            color: 'white',
+            fontSize: '0.6rem',
+            fontWeight: 700,
+            padding: '2px 6px',
+            borderRadius: '8px',
+            opacity: 0,
+            transform: 'scale(0.8)',
+            animation: 'badgeAppear 4s infinite',
+            boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)',
+            zIndex: 2
+          }}
+          className="trending-badge">
+            HOT
+          </div>
         </Link>
 
-        {/* Desktop Navigation */}
+        {/* Navigation Desktop */}
         <div className="desktop-nav" style={{
           display: 'flex',
           gap: 18,
@@ -71,7 +205,7 @@ export default function Navbar() {
           <Link href="/share-photo" style={addBtnStyle}>➕ Partager</Link>
         </div>
 
-        {/* Mobile Menu Button */}
+        {/* Bouton Menu Mobile */}
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           aria-label="Menu"
@@ -91,7 +225,7 @@ export default function Navbar() {
         </button>
       </div>
 
-      {/* Mobile Menu */}
+      {/* Menu Mobile */}
       {mobileMenuOpen && (
         <div style={{
           background: 'rgba(255,255,255,0.98)',
@@ -116,6 +250,113 @@ export default function Navbar() {
           </div>
         </div>
       )}
+
+      {/* Animations CSS intégrées */}
+      <style jsx>{`
+        @keyframes logoPulse {
+          0%, 100% { 
+            opacity: 0; 
+            transform: scale(1);
+          }
+          50% { 
+            opacity: 0.3; 
+            transform: scale(1.05);
+          }
+        }
+        
+        @keyframes float1 {
+          0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.7; }
+          50% { transform: translateY(-8px) rotate(180deg); opacity: 1; }
+        }
+        
+        @keyframes float2 {
+          0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.6; }
+          50% { transform: translateY(-6px) rotate(-180deg); opacity: 1; }
+        }
+        
+        @keyframes float3 {
+          0%, 100% { transform: translateY(0) scale(1); opacity: 0.5; }
+          50% { transform: translateY(-4px) scale(1.2); opacity: 1; }
+        }
+        
+        @keyframes badgeAppear {
+          0%, 70%, 100% { opacity: 0; transform: scale(0.8); }
+          75%, 95% { opacity: 1; transform: scale(1); }
+        }
+        
+        .logo-link:hover .shine-effect {
+          left: 100% !important;
+        }
+        
+        .logo-link:hover .floating-particles {
+          opacity: 1 !important;
+        }
+        
+        .logo-link:hover .logo-icon {
+          transform: rotate(5deg) scale(1.05);
+          box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        }
+        
+        .logo-link:hover .logo-text {
+          transform: translateX(2px);
+          filter: brightness(1.1);
+        }
+        
+        .logo-link:hover .logo-subtitle {
+          color: #ff6b35;
+          opacity: 1;
+          transform: translateX(2px);
+        }
+        
+        .logo-link:active {
+          transform: scale(0.98) translateY(1px) !important;
+        }
+        
+        @media (max-width: 600px) {
+          .desktop-nav { display: none !important; }
+          .mobile-menu-btn { display: block !important; }
+          
+          .logo-link {
+            gap: 8px !important;
+          }
+          
+          .logo-icon {
+            width: 38px !important;
+            height: 38px !important;
+            font-size: 1.2rem !important;
+          }
+          
+          .logo-text {
+            font-size: 1.2rem !important;
+          }
+          
+          .logo-subtitle {
+            font-size: 0.6rem !important;
+          }
+        }
+        
+        /* Effet de hover global amélioré */
+        @media (hover: hover) {
+          .logo-link {
+            position: relative;
+          }
+          
+          .logo-link::before {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            background: linear-gradient(135deg, rgba(255, 107, 53, 0.1), rgba(247, 147, 30, 0.1));
+            border-radius: 20px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: -1;
+          }
+          
+          .logo-link:hover::before {
+            opacity: 1;
+          }
+        }
+      `}</style>
 
       <style jsx>{`
         @media (max-width: 600px) {
