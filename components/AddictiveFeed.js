@@ -464,161 +464,518 @@ export default function AddictiveFeed() {
   if (loading) {
     return (
       <div className={styles.loadingContainer}>
-        {/* Nouveau loader festif */}
-        <div className={styles.festinLoader}>
-          <div className={styles.festinTable}>
-            <div className={styles.chefAvatar}>👨‍🍳</div>
-            <div className={styles.tableCloth}></div>
-            <div className={styles.dishes}>
-              <span className={styles.dish} style={{ left: '10%' }}>🍲</span>
-              <span className={styles.dish} style={{ left: '35%' }}>🥗</span>
-              <span className={styles.dish} style={{ left: '60%' }}>🍰</span>
-              <span className={styles.dish} style={{ left: '80%' }}>🍕</span>
+        {/* Nouveau loader culinaire ultra-moderne */}
+        <div className={styles.modernCulinaryLoader}>
+          {/* Plateau rotatif avec chef au centre */}
+          <div className={styles.culinaryPlate}>
+            <div className={styles.rotatingPlate}>
+              {/* Chef principal animé */}
+              <div className={styles.masterChef}>👨‍🍳</div>
+              
+              {/* Ingrédients qui tournent autour */}
+              <div className={styles.ingredientOrbit}>
+                <span className={styles.ingredient} style={{ '--orbit-angle': '0deg' }}>🥕</span>
+                <span className={styles.ingredient} style={{ '--orbit-angle': '60deg' }}>🍅</span>
+                <span className={styles.ingredient} style={{ '--orbit-angle': '120deg' }}>🧄</span>
+                <span className={styles.ingredient} style={{ '--orbit-angle': '180deg' }}>🥒</span>
+                <span className={styles.ingredient} style={{ '--orbit-angle': '240deg' }}>🧅</span>
+                <span className={styles.ingredient} style={{ '--orbit-angle': '300deg' }}>🌶️</span>
+              </div>
+              
+              {/* Plats qui apparaissent progressivement */}
+              <div className={styles.dishSequence}>
+                <span className={styles.dish} style={{ '--delay': '0s' }}>🥗</span>
+                <span className={styles.dish} style={{ '--delay': '0.5s' }}>🍲</span>
+                <span className={styles.dish} style={{ '--delay': '1s' }}>🍰</span>
+                <span className={styles.dish} style={{ '--delay': '1.5s' }}>🍕</span>
+              </div>
             </div>
-            <div className={styles.steam}>
-              <span className={styles.steam1}></span>
-              <span className={styles.steam2}></span>
-              <span className={styles.steam3}></span>
-            </div>
-            <div className={styles.sparklesFestin}>
-              <span>✨</span>
-              <span>✨</span>
-              <span>✨</span>
+            
+            {/* Fumée et étincelles */}
+            <div className={styles.cookingEffects}>
+              <div className={styles.steamCloud}>
+                <span>💨</span>
+                <span>💨</span>
+                <span>💨</span>
+              </div>
+              <div className={styles.sparkles}>
+                <span>✨</span>
+                <span>⭐</span>
+                <span>💫</span>
+                <span>🌟</span>
+              </div>
             </div>
           </div>
-          <div className={styles.festinText}>
-            <span>Chargement des vraies données culinaires...</span>
+          
+          {/* Messages dynamiques et amusants */}
+          <div className={styles.loadingMessages}>
+            <div className={styles.primaryMessage}>
+              <span className={styles.messageText}>Préparation des meilleures recettes</span>
+              <div className={styles.loadingDots}>
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+            </div>
+            
+            <div className={styles.secondaryMessage}>
+              <span>🔥 Données fraîches en cours de collecte</span>
+            </div>
+            
+            {/* Barre de progression stylisée */}
+            <div className={styles.progressBar}>
+              <div className={styles.progressFill}></div>
+              <div className={styles.progressGlow}></div>
+            </div>
+            
+            {/* Stats de chargement amusantes */}
+            <div className={styles.loadingStats}>
+              <div className={styles.loadingStat}>
+                <span className={styles.statIcon}>📊</span>
+                <span className={styles.statText}>Analyse des likes en temps réel</span>
+              </div>
+              <div className={styles.loadingStat}>
+                <span className={styles.statIcon}>🤝</span>
+                <span className={styles.statText}>Synchronisation avec vos amis</span>
+              </div>
+              <div className={styles.loadingStat}>
+                <span className={styles.statIcon}>🍽️</span>
+                <span className={styles.statText}>Chargement des recettes authentiques</span>
+              </div>
+            </div>
           </div>
         </div>
+
         <style jsx>{`
-          .${styles.festinLoader} {
+          .${styles.modernCulinaryLoader} {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            min-height: 320px;
+            min-height: 400px;
+            padding: 40px 20px;
             position: relative;
-            animation: fadeInFestin 0.7s;
+            background: linear-gradient(135deg, #fef7ed 0%, #fff7ed 50%, #fef3e2 100%);
+            border-radius: 24px;
+            margin: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            animation: containerBreathe 4s ease-in-out infinite;
           }
-          .${styles.festinTable} {
+
+          .${styles.culinaryPlate} {
             position: relative;
-            width: 220px;
-            height: 120px;
-            margin-bottom: 18px;
-            background: none;
+            width: 200px;
+            height: 200px;
+            margin-bottom: 40px;
           }
-          .${styles.chefAvatar} {
+
+          .${styles.rotatingPlate} {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #fff7ed, #fde68a);
+            border-radius: 50%;
+            border: 4px solid #f59e0b;
+            box-shadow: 
+              0 0 30px rgba(245, 158, 11, 0.3),
+              inset 0 0 20px rgba(255, 255, 255, 0.5);
+            animation: plateRotate 3s linear infinite;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+
+          .${styles.masterChef} {
+            font-size: 3.5rem;
+            z-index: 10;
+            animation: chefCook 2s ease-in-out infinite;
+            filter: drop-shadow(0 4px 12px rgba(245, 158, 11, 0.4));
+            position: relative;
+          }
+
+          .${styles.ingredientOrbit} {
             position: absolute;
-            top: -38px;
+            width: 260px;
+            height: 260px;
+            top: 50%;
             left: 50%;
-            transform: translateX(-50%);
-            font-size: 2.8rem;
-            z-index: 3;
-            animation: chefBounce 2.2s infinite;
-            filter: drop-shadow(0 2px 8px #f59e0b55);
+            transform: translate(-50%, -50%);
+            animation: orbitRotate 8s linear infinite reverse;
           }
-          .${styles.tableCloth} {
+
+          .${styles.ingredient} {
             position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 48px;
-            background: linear-gradient(135deg, #fff7ed 60%, #fde68a 100%);
-            border-radius: 0 0 40px 40px;
-            border: 2px solid #f59e0b;
-            z-index: 1;
-            box-shadow: 0 8px 24px #f59e0b22;
-          }
-          .${styles.dishes} {
-            position: absolute;
-            bottom: 28px;
-            left: 0;
-            width: 100%;
+            font-size: 1.8rem;
+            width: 40px;
             height: 40px;
-            z-index: 2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 50%;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transform: 
+              rotate(var(--orbit-angle)) 
+              translateX(130px) 
+              rotate(calc(-1 * var(--orbit-angle)));
+            animation: ingredientBounce 2s ease-in-out infinite;
+            animation-delay: calc(var(--orbit-angle) / 60deg * 0.1s);
           }
+
+          .${styles.dishSequence} {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+          }
+
           .${styles.dish} {
             position: absolute;
-            font-size: 1.7rem;
-            animation: dishPop 1.8s infinite alternate;
+            font-size: 2rem;
+            opacity: 0;
+            animation: dishAppear 2s ease-in-out infinite;
+            animation-delay: var(--delay);
           }
-          .${styles.dish}:nth-child(1) { animation-delay: 0s; }
-          .${styles.dish}:nth-child(2) { animation-delay: 0.3s; }
-          .${styles.dish}:nth-child(3) { animation-delay: 0.6s; }
-          .${styles.dish}:nth-child(4) { animation-delay: 0.9s; }
-          .${styles.steam} {
+
+          .${styles.dish}:nth-child(1) { top: 20%; left: 50%; transform: translateX(-50%); }
+          .${styles.dish}:nth-child(2) { top: 50%; right: 20%; }
+          .${styles.dish}:nth-child(3) { bottom: 20%; left: 50%; transform: translateX(-50%); }
+          .${styles.dish}:nth-child(4) { top: 50%; left: 20%; }
+
+          .${styles.cookingEffects} {
             position: absolute;
-            left: 50%;
-            top: 18px;
-            width: 60px;
-            height: 40px;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
             pointer-events: none;
-            z-index: 4;
           }
-          .${styles.steam1}, .${styles.steam2}, .${styles.steam3} {
+
+          .${styles.steamCloud} {
             position: absolute;
-            width: 16px;
-            height: 36px;
-            border-radius: 50%;
-            background: linear-gradient(180deg, #fffbe9 60%, transparent 100%);
-            opacity: 0.7;
-            animation: steamRise 2.2s infinite;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
           }
-          .${styles.steam1} { left: 10px; animation-delay: 0s; }
-          .${styles.steam2} { left: 28px; animation-delay: 0.5s; }
-          .${styles.steam3} { left: 46px; animation-delay: 1s; }
-          .${styles.sparklesFestin} {
+
+          .${styles.steamCloud} span {
+            font-size: 1.5rem;
+            opacity: 0.7;
+            animation: steamRise 3s ease-in-out infinite;
+            animation-delay: calc(var(--i, 0) * 0.5s);
+          }
+
+          .${styles.steamCloud} span:nth-child(1) { --i: 0; }
+          .${styles.steamCloud} span:nth-child(2) { --i: 1; }
+          .${styles.steamCloud} span:nth-child(3) { --i: 2; }
+
+          .${styles.sparkles} {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+          }
+
+          .${styles.sparkles} span {
+            position: absolute;
+            font-size: 1.2rem;
+            animation: sparkleFloat 4s ease-in-out infinite;
+            opacity: 0;
+          }
+
+          .${styles.sparkles} span:nth-child(1) { 
+            top: 10%; left: 80%; 
+            animation-delay: 0s; 
+          }
+          .${styles.sparkles} span:nth-child(2) { 
+            top: 70%; right: 85%; 
+            animation-delay: 1s; 
+          }
+          .${styles.sparkles} span:nth-child(3) { 
+            bottom: 15%; left: 15%; 
+            animation-delay: 2s; 
+          }
+          .${styles.sparkles} span:nth-child(4) { 
+            top: 30%; left: 10%; 
+            animation-delay: 3s; 
+          }
+
+          .${styles.loadingMessages} {
+            text-align: center;
+            max-width: 350px;
+          }
+
+          .${styles.primaryMessage} {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 16px;
+          }
+
+          .${styles.messageText} {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #d97706;
+            text-shadow: 0 2px 8px rgba(217, 119, 6, 0.2);
+          }
+
+          .${styles.loadingDots} {
+            display: flex;
+            gap: 4px;
+          }
+
+          .${styles.loadingDots} span {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #f59e0b;
+            animation: dotPulse 1.4s ease-in-out infinite;
+          }
+
+          .${styles.loadingDots} span:nth-child(1) { animation-delay: 0s; }
+          .${styles.loadingDots} span:nth-child(2) { animation-delay: 0.2s; }
+          .${styles.loadingDots} span:nth-child(3) { animation-delay: 0.4s; }
+
+          .${styles.secondaryMessage} {
+            color: #92400e;
+            font-weight: 600;
+            font-size: 1rem;
+            margin-bottom: 24px;
+            opacity: 0.8;
+          }
+
+          .${styles.progressBar} {
+            width: 100%;
+            height: 6px;
+            background: rgba(245, 158, 11, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 24px;
+            position: relative;
+          }
+
+          .${styles.progressFill} {
+            height: 100%;
+            background: linear-gradient(90deg, #f59e0b, #d97706, #f59e0b);
+            background-size: 200% 100%;
+            border-radius: 10px;
+            animation: progressFill 3s ease-in-out infinite;
+          }
+
+          .${styles.progressGlow} {
             position: absolute;
             top: 0;
             left: 0;
-            width: 100%;
+            height: 100%;
+            width: 30px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent);
+            animation: progressGlow 2s ease-in-out infinite;
+          }
+
+          .${styles.loadingStats} {
             display: flex;
-            justify-content: space-between;
-            pointer-events: none;
-            z-index: 5;
+            flex-direction: column;
+            gap: 12px;
+            width: 100%;
           }
-          .${styles.sparklesFestin} span {
+
+          .${styles.loadingStat} {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            border: 1px solid rgba(245, 158, 11, 0.2);
+            animation: statFadeIn 0.6s ease-out;
+            animation-fill-mode: both;
+          }
+
+          .${styles.loadingStat}:nth-child(1) { animation-delay: 0.2s; }
+          .${styles.loadingStat}:nth-child(2) { animation-delay: 0.4s; }
+          .${styles.loadingStat}:nth-child(3) { animation-delay: 0.6s; }
+
+          .${styles.statIcon} {
             font-size: 1.2rem;
-            opacity: 0.7;
-            animation: sparkleFestin 2.2s infinite;
+            animation: iconPulse 2s ease-in-out infinite;
           }
-          .${styles.sparklesFestin} span:nth-child(2) { animation-delay: 0.7s; }
-          .${styles.sparklesFestin} span:nth-child(3) { animation-delay: 1.3s; }
-          .${styles.festinText} {
-            color: #f59e0b;
-            font-weight: 700;
-            font-size: 1.1rem;
-            letter-spacing: 0.01em;
-            text-shadow: 0 2px 8px #fde68a;
-            margin-top: 8px;
-            text-align: center;
-            animation: fadeInText 1.2s;
+
+          .${styles.statText} {
+            font-size: 0.9rem;
+            color: #92400e;
+            font-weight: 600;
           }
-          @keyframes chefBounce {
-            0%, 100% { transform: translateX(-50%) translateY(0); }
-            50% { transform: translateX(-50%) translateY(-8px); }
+
+          /* Animations */
+          @keyframes containerBreathe {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
           }
-          @keyframes dishPop {
-            0% { transform: translateY(0) scale(1); }
-            60% { transform: translateY(-8px) scale(1.08); }
-            100% { transform: translateY(0) scale(1); }
+
+          @keyframes plateRotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
           }
+
+          @keyframes chefCook {
+            0%, 100% { 
+              transform: scale(1) rotate(0deg); 
+            }
+            25% { 
+              transform: scale(1.1) rotate(-5deg); 
+            }
+            75% { 
+              transform: scale(1.1) rotate(5deg); 
+            }
+          }
+
+          @keyframes orbitRotate {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+          }
+
+          @keyframes ingredientBounce {
+            0%, 100% { transform: rotate(var(--orbit-angle)) translateX(130px) rotate(calc(-1 * var(--orbit-angle))) scale(1); }
+            50% { transform: rotate(var(--orbit-angle)) translateX(130px) rotate(calc(-1 * var(--orbit-angle))) scale(1.2); }
+          }
+
+          @keyframes dishAppear {
+            0%, 80% { 
+              opacity: 0; 
+              transform: translateX(-50%) scale(0.5); 
+            }
+            90% { 
+              opacity: 1; 
+              transform: translateX(-50%) scale(1.2); 
+            }
+            100% { 
+              opacity: 1; 
+              transform: translateX(-50%) scale(1); 
+            }
+          }
+
           @keyframes steamRise {
-            0% { opacity: 0.7; transform: translateY(0) scaleX(1); }
-            50% { opacity: 1; transform: translateY(-18px) scaleX(1.1); }
-            100% { opacity: 0; transform: translateY(-36px) scaleX(0.9); }
+            0% { 
+              opacity: 0.7; 
+              transform: translateY(0) scale(1); 
+            }
+            50% { 
+              opacity: 1; 
+              transform: translateY(-30px) scale(1.2); 
+            }
+            100% { 
+              opacity: 0; 
+              transform: translateY(-60px) scale(0.8); 
+            }
           }
-          @keyframes sparkleFestin {
-            0%, 100% { opacity: 0.7; transform: scale(1); }
-            50% { opacity: 1; transform: scale(1.2); }
+
+          @keyframes sparkleFloat {
+            0%, 100% { 
+              opacity: 0; 
+              transform: translateY(0) scale(1) rotate(0deg); 
+            }
+            50% { 
+              opacity: 1; 
+              transform: translateY(-20px) scale(1.2) rotate(180deg); 
+            }
           }
-          @keyframes fadeInFestin {
-            from { opacity: 0; transform: scale(0.95);}
-            to { opacity: 1; transform: scale(1);}
+
+          @keyframes dotPulse {
+            0%, 80%, 100% { 
+              transform: scale(1); 
+              opacity: 0.5; 
+            }
+            40% { 
+              transform: scale(1.3); 
+              opacity: 1; 
+            }
           }
-          @keyframes fadeInText {
-            from { opacity: 0; }
-            to { opacity: 1; }
+
+          @keyframes progressFill {
+            0% { 
+              width: 0%; 
+              background-position: 0% 50%; 
+            }
+            50% { 
+              width: 70%; 
+              background-position: 100% 50%; 
+            }
+            100% { 
+              width: 100%; 
+              background-position: 200% 50%; 
+            }
+          }
+
+          @keyframes progressGlow {
+            0% { transform: translateX(-30px); }
+            100% { transform: translateX(350px); }
+          }
+
+          @keyframes statFadeIn {
+            from { 
+              opacity: 0; 
+              transform: translateX(-20px); 
+            }
+            to { 
+              opacity: 1; 
+              transform: translateX(0); 
+            }
+          }
+
+          @keyframes iconPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+          }
+
+          /* Responsive */
+          @media (max-width: 480px) {
+            .${styles.modernCulinaryLoader} {
+              min-height: 350px;
+              padding: 30px 15px;
+              margin: 15px;
+            }
+
+            .${styles.culinaryPlate} {
+              width: 160px;
+              height: 160px;
+              margin-bottom: 30px;
+            }
+
+            .${styles.masterChef} {
+              font-size: 2.8rem;
+            }
+
+            .${styles.ingredientOrbit} {
+              width: 200px;
+              height: 200px;
+            }
+
+            .${styles.ingredient} {
+              transform: 
+                rotate(var(--orbit-angle)) 
+                translateX(100px) 
+                rotate(calc(-1 * var(--orbit-angle)));
+            }
+
+            .${styles.messageText} {
+              font-size: 1.1rem;
+            }
+
+            .${styles.loadingStats} {
+              gap: 8px;
+            }
+
+            .${styles.loadingStat} {
+              padding: 10px 12px;
+            }
+
+            .${styles.statText} {
+              font-size: 0.8rem;
+            }
           }
         `}</style>
       </div>

@@ -139,107 +139,562 @@ export default function Home() {
       <div className={styles.container}>
         <main className={styles.main}>
           <div className={styles.loading}>
-            {/* Animation de chargement sophistiquée */}
+            {/* Animation de chargement sophistiquée AMÉLIORÉE */}
             <div style={{
               position: 'relative',
-              width: '80px',
-              height: '80px',
-              marginBottom: '20px'
+              width: '120px',
+              height: '120px',
+              marginBottom: '30px'
             }}>
-              {/* Cercles animés concentriques */}
+              {/* Cercles animés concentriques avec effets améliorés */}
               <div style={{
                 position: 'absolute',
                 width: '100%',
                 height: '100%',
+                border: '4px solid transparent',
+                borderTop: '4px solid #ff6b35',
+                borderRight: '4px solid rgba(255, 107, 53, 0.3)',
+                borderRadius: '50%',
+                animation: 'sophisticatedSpin 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite',
+                boxShadow: '0 0 30px rgba(255, 107, 53, 0.3)'
+              }} />
+              <div style={{
+                position: 'absolute',
+                width: '75%',
+                height: '75%',
+                top: '12.5%',
+                left: '12.5%',
                 border: '3px solid transparent',
-                borderTop: '3px solid #ff6b35',
+                borderRight: '3px solid #f7931e',
+                borderBottom: '3px solid rgba(247, 147, 30, 0.3)',
                 borderRadius: '50%',
-                animation: 'sophisticatedSpin 2s linear infinite'
+                animation: 'sophisticatedSpin 2s cubic-bezier(0.4, 0, 0.2, 1) infinite reverse',
+                boxShadow: '0 0 20px rgba(247, 147, 30, 0.2)'
               }} />
               <div style={{
                 position: 'absolute',
-                width: '60%',
-                height: '60%',
-                top: '20%',
-                left: '20%',
-                border: '2px solid transparent',
-                borderRight: '2px solid #f7931e',
-                borderRadius: '50%',
-                animation: 'sophisticatedSpin 1.5s linear infinite reverse'
-              }} />
-              <div style={{
-                position: 'absolute',
-                width: '40%',
-                height: '40%',
-                top: '30%',
-                left: '30%',
+                width: '50%',
+                height: '50%',
+                top: '25%',
+                left: '25%',
                 border: '2px solid transparent',
                 borderBottom: '2px solid #4caf50',
+                borderLeft: '2px solid rgba(76, 175, 80, 0.3)',
                 borderRadius: '50%',
-                animation: 'sophisticatedSpin 1s linear infinite'
+                animation: 'sophisticatedSpin 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite',
+                boxShadow: '0 0 15px rgba(76, 175, 80, 0.2)'
               }} />
               
-              {/* Centre avec icône animée */}
+              {/* Centre avec icône animée AMÉLIORÉE */}
               <div style={{
                 position: 'absolute',
-                width: '30%',
-                height: '30%',
-                top: '35%',
-                left: '35%',
+                width: '35%',
+                height: '35%',
+                top: '32.5%',
+                left: '32.5%',
                 background: 'linear-gradient(135deg, #ff6b35, #f7931e)',
                 borderRadius: '50%',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                animation: 'pulseGlow 2s ease-in-out infinite',
-                boxShadow: '0 0 20px rgba(255, 107, 53, 0.4)'
+                animation: 'pulseGlow 2.5s ease-in-out infinite',
+                boxShadow: '0 0 25px rgba(255, 107, 53, 0.5)',
+                border: '2px solid rgba(255, 255, 255, 0.3)'
               }}>
+                {/* Logo COCO miniature */}
                 <div style={{
-                  width: '8px',
-                  height: '8px',
+                  width: '16px',
+                  height: '16px',
                   background: 'white',
                   borderRadius: '50%',
-                  animation: 'innerPulse 1s ease-in-out infinite alternate'
-                }} />
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  animation: 'innerPulse 1.5s ease-in-out infinite alternate',
+                  fontSize: '8px'
+                }}>
+                  🥥
+                </div>
               </div>
+
+              {/* Particules flottantes autour du loader */}
+              {[...Array(6)].map((_, i) => (
+                <div key={i} style={{
+                  position: 'absolute',
+                  width: '6px',
+                  height: '6px',
+                  background: `hsl(${25 + i * 30}, 80%, 60%)`,
+                  borderRadius: '50%',
+                  top: `${15 + Math.sin(i * Math.PI / 3) * 40}%`,
+                  left: `${15 + Math.cos(i * Math.PI / 3) * 40}%`,
+                  animation: `floatingParticle 3s ease-in-out infinite`,
+                  animationDelay: `${i * 0.5}s`,
+                  opacity: 0.7,
+                  boxShadow: '0 2px 8px rgba(255, 107, 53, 0.3)'
+                }} />
+              ))}
             </div>
             
-            {/* Texte avec animation de points */}
+            {/* Texte avec animation de points AMÉLIORÉE */}
             <div style={{ textAlign: 'center' }}>
               <p style={{ 
-                color: '#64748b', 
-                fontSize: '1.1rem', 
-                fontWeight: '600',
-                margin: '0 0 8px 0'
+                color: '#374151', 
+                fontSize: '1.2rem', 
+                fontWeight: '700',
+                margin: '0 0 12px 0',
+                textShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
               }}>
-                Préparation de vos recettes
+                Initialisation de COCO
                 <span style={{ 
                   display: 'inline-block',
-                  width: '20px',
+                  width: '30px',
                   textAlign: 'left',
-                  animation: 'loadingDots 1.5s infinite'
+                  animation: 'loadingDots 2s infinite',
+                  color: '#ff6b35'
                 }}>...</span>
               </p>
+              
+              {/* Messages rotatifs */}
+              <div style={{
+                height: '20px',
+                overflow: 'hidden',
+                marginBottom: '16px'
+              }}>
+                {[
+                  '🔗 Connexion à la communauté culinaire',
+                  '📊 Synchronisation des données en temps réel',
+                  '🍽️ Préparation de votre feed personnalisé',
+                  '👥 Vérification des nouvelles recettes d\'amis'
+                ].map((message, i) => (
+                  <p key={i} style={{
+                    color: '#6b7280',
+                    fontSize: '0.9rem',
+                    fontWeight: '500',
+                    margin: 0,
+                    animation: `messageRotate 8s infinite`,
+                    animationDelay: `${i * 2}s`,
+                    opacity: 0,
+                    lineHeight: '20px'
+                  }}>
+                    {message}
+                  </p>
+                ))}
+              </div>
+              
+              {/* Barre de progression élégante */}
+              <div style={{
+                width: '200px',
+                height: '4px',
+                background: 'rgba(255, 107, 53, 0.2)',
+                borderRadius: '10px',
+                margin: '0 auto 16px',
+                overflow: 'hidden',
+                position: 'relative'
+              }}>
+                <div style={{
+                  width: '40%',
+                  height: '100%',
+                  background: 'linear-gradient(90deg, #ff6b35, #f7931e, #ff6b35)',
+                  backgroundSize: '200% 100%',
+                  borderRadius: '10px',
+                  animation: 'progressSlide 2s ease-in-out infinite',
+                  boxShadow: '0 0 10px rgba(255, 107, 53, 0.5)'
+                }} />
+              </div>
+              
+              {/* Indicateurs de statut */}
               <div style={{
                 display: 'flex',
                 justifyContent: 'center',
-                gap: '4px',
+                gap: '8px',
                 marginTop: '12px'
               }}>
-                {[0, 1, 2].map(i => (
+                {[0, 1, 2, 3].map(i => (
                   <div key={i} style={{
-                    width: '6px',
-                    height: '6px',
+                    width: '8px',
+                    height: '8px',
                     background: '#ff6b35',
                     borderRadius: '50%',
-                    animation: `waveDots 1.4s ease-in-out infinite`,
-                    animationDelay: `${i * 0.2}s`
+                    animation: `waveDots 2s ease-in-out infinite`,
+                    animationDelay: `${i * 0.3}s`,
+                    boxShadow: '0 2px 4px rgba(255, 107, 53, 0.3)'
                   }} />
                 ))}
               </div>
             </div>
           </div>
         </main>
+        
+        <style jsx>{`
+          @keyframes floatingParticle {
+            0%, 100% { 
+              transform: translateY(0px) scale(1);
+              opacity: 0.7;
+            }
+            50% { 
+              transform: translateY(-15px) scale(1.2);
+              opacity: 1;
+            }
+          }
+
+          @keyframes messageRotate {
+            0%, 20% { 
+              opacity: 1; 
+              transform: translateY(0);
+            }
+            25%, 100% { 
+              opacity: 0; 
+              transform: translateY(-20px);
+            }
+          }
+
+          @keyframes progressSlide {
+            0% { 
+              transform: translateX(-100%);
+              background-position: 0% 50%;
+            }
+            50% { 
+              transform: translateX(150%);
+              background-position: 100% 50%;
+            }
+            100% { 
+              transform: translateX(300%);
+              background-position: 200% 50%;
+            }
+          }
+
+          @keyframes heroLogo {
+            0%, 100% { 
+              transform: translateY(0px) rotate(0deg) scale(1);
+            }
+            50% { 
+              transform: translateY(-8px) rotate(2deg) scale(1.05);
+            }
+          }
+          
+          @keyframes shine {
+            0%, 100% { 
+              opacity: 0.4;
+              transform: scale(1) rotate(0deg);
+            }
+            50% { 
+              opacity: 0.7;
+              transform: scale(1.1) rotate(90deg);
+            }
+          }
+          
+          @keyframes expandLine {
+            0%, 100% { 
+              transform: scaleX(0);
+              opacity: 0;
+            }
+            50% { 
+              transform: scaleX(1);
+              opacity: 1;
+            }
+          }
+          
+          @keyframes bounceDown {
+            0%, 20%, 50%, 80%, 100% {
+              transform: translateY(0);
+            }
+            40% {
+              transform: translateY(-8px);
+            }
+            60% {
+              transform: translateY(-4px);
+            }
+          }
+          
+          @keyframes float {
+            0%, 100% { 
+              transform: translateY(0px) rotate(0deg) scale(1);
+            }
+            33% { 
+              transform: translateY(-20px) rotate(120deg) scale(1.1);
+            }
+            66% { 
+              transform: translateY(-10px) rotate(240deg) scale(0.9);
+            }
+          }
+          
+          @keyframes fadeInUp {
+            from {
+              opacity: 0;
+              transform: translateY(20px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+          
+          @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {
+              transform: translateY(0);
+            }
+            40% {
+              transform: translateY(-6px);
+            }
+            60% {
+              transform: translateY(-3px);
+            }
+          }
+          
+          @keyframes pulse {
+            0%, 100% { 
+              transform: scale(1);
+              opacity: 1;
+            }
+            50% { 
+              transform: scale(1.1);
+              opacity: 0.8;
+            }
+          }
+          
+          /* Animations pour les notifications intégrées */
+          @keyframes notificationSlide {
+            from {
+              opacity: 0;
+              transform: translateY(-20px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+          
+          /* Effet de survol pour les éléments interactifs */
+          .notification-trigger:hover {
+            transform: scale(1.05);
+            filter: brightness(1.1);
+          }
+          
+          @keyframes welcomeSlide {
+            from {
+              opacity: 0;
+              transform: translate(-50%, -20px);
+            }
+            to {
+              opacity: 1;
+              transform: translate(-50%, 0);
+            }
+          }
+          
+          @keyframes sophisticatedSpin {
+            0% { 
+              transform: rotate(0deg) scale(1);
+              opacity: 1;
+            }
+            50% { 
+              transform: rotate(180deg) scale(1.1);
+              opacity: 0.8;
+            }
+            100% { 
+              transform: rotate(360deg) scale(1);
+              opacity: 1;
+            }
+          }
+          
+          @keyframes pulseGlow {
+            0%, 100% { 
+              transform: scale(1);
+              box-shadow: 0 0 20px rgba(255, 107, 53, 0.4);
+            }
+            50% { 
+              transform: scale(1.1);
+              box-shadow: 0 0 30px rgba(255, 107, 53, 0.6), 0 0 40px rgba(255, 107, 53, 0.3);
+            }
+          }
+          
+          @keyframes innerPulse {
+            0% { 
+              transform: scale(1);
+              opacity: 1;
+            }
+            100% { 
+              transform: scale(1.3);
+              opacity: 0.7;
+            }
+          }
+          
+          @keyframes loadingDots {
+            0% { content: ''; }
+            25% { content: '.'; }
+            50% { content: '..'; }
+            75% { content: '...'; }
+            100% { content: ''; }
+          }
+          
+          @keyframes waveDots {
+            0%, 40%, 100% { 
+              transform: translateY(0) scale(1);
+              opacity: 0.5;
+            }
+            20% { 
+              transform: translateY(-8px) scale(1.2);
+              opacity: 1;
+            }
+          }
+          
+          @keyframes logoRotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+          
+          @keyframes checkmark {
+            0%, 50% { opacity: 0; transform: scale(0.5); }
+            60% { opacity: 1; transform: scale(1.1); }
+            100% { opacity: 1; transform: scale(1); }
+          }
+          
+          @keyframes floatingParticles {
+            0%, 100% { 
+              transform: translateY(0px) translateX(0px) scale(1);
+              opacity: 0.8;
+            }
+            33% { 
+              transform: translateY(-15px) translateX(10px) scale(1.2);
+              opacity: 1;
+            }
+            66% { 
+              transform: translateY(-8px) translateX(-5px) scale(0.8);
+              opacity: 0.6;
+            }
+          }
+          
+          @keyframes advancedShine {
+            0%, 100% { 
+              opacity: 0.6;
+              transform: rotate(0deg) scale(1);
+            }
+            50% { 
+              opacity: 1;
+              transform: rotate(180deg) scale(1.3);
+            }
+          }
+          
+          @keyframes cameraShutter {
+            0%, 90%, 100% { transform: scale(1); }
+            5%, 15% { transform: scale(0.95); }
+            10% { transform: scale(0.9); }
+          }
+          
+          @keyframes lensFocus {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.2); }
+          }
+          
+          @keyframes bookOpen {
+            0%, 100% { transform: scaleX(1); }
+            50% { transform: scaleX(1.1); }
+          }
+          
+          @keyframes recipeIcon {
+            0%, 100% { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(180deg) scale(1.1); }
+          }
+          
+          @keyframes chefIcon {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-3px); }
+          }
+          
+          @keyframes collectionIcon {
+            0%, 100% { transform: rotateY(0deg); }
+            50% { transform: rotateY(15deg); }
+          }
+
+          @keyframes heartBeat {
+            0%, 100% { 
+              transform: scale(1);
+            }
+            50% { 
+              transform: scale(1.15);
+            }
+          }
+          
+          @keyframes commentBubble {
+            0%, 100% { 
+              transform: translateY(0) rotate(0deg);
+            }
+            25% { 
+              transform: translateY(-3px) rotate(2deg);
+            }
+            75% { 
+              transform: translateY(-1px) rotate(-1deg);
+            }
+          }
+          
+          /* Effet de survol pour les cartes de statistiques */
+          .stat-card-bg:hover {
+            opacity: 1 !important;
+          }
+          
+          /* Responsive pour les nouvelles statistiques */
+          @media (max-width: 768px) {
+            div[style*="gap: '20px'"] {
+              gap: 12px !important;
+            }
+            
+            div[style*="minWidth: '140px'"] {
+              min-width: 120px !important;
+              padding: 12px 16px !important;
+            }
+          }
+          
+          @media (max-width: 480px) {
+            div[style*="minWidth: '140px'"] {
+              min-width: 100px !important;
+              padding: 10px 12px !important;
+            }
+            
+            div[style*="fontSize: '1.6rem'"] {
+              font-size: 1.4rem !important;
+            }
+            
+            div[style*="fontSize: '2rem'"] {
+              font-size: 1.8rem !important;
+            }
+          }
+          
+          /* États de focus pour l'accessibilité */
+          button:focus {
+            outline: 2px solid rgba(59, 130, 246, 0.5);
+            outline-offset: 2px;
+          }
+          
+          /* Responsive amélioré pour header sans espaces */
+          @media (max-width: 400px) {
+            h1 {
+              fontSize: 2.4rem !important;
+            }
+            h2 {
+              fontSize: 1.1rem !important;
+            }
+            div[style*="maxWidth: 400"] {
+              padding: 20px 16px 0 !important; /* Ajuster pour mobile */
+            }
+          }
+          
+          @media (max-width: 360px) {
+            h1 {
+              fontSize: 2.2rem !important;
+            }
+            div[style*="width: 80px"] {
+              width: 70px !important;
+              height: 70px !important;
+              fontSize: 2.2rem !important;
+            }
+          }
+          
+          /* Suppression des espacements sur très petits écrans */
+          @media (max-width: 320px) {
+            div[style*="padding: 24px 20px 0"] {
+              padding: 16px 12px 0 !important; /* Ajuster le padding responsive */
+            }
+          }
+        `}</style>
       </div>
     )
   }
