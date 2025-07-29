@@ -330,8 +330,8 @@ async function logErrorToStorage(error, context = {}) {
       ip_address: null // Will be filled by server if needed
     }
 
-    // Store in localStorage for now (could be enhanced to send to API)
-    if (typeof window !== 'undefined') {
+    // Vérification côté client uniquement
+    if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
       const existingLogs = JSON.parse(localStorage.getItem('error_logs') || '[]')
       existingLogs.unshift(errorLog)
       

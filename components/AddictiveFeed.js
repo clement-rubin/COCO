@@ -8,6 +8,15 @@ import { getMultipleRecipesEngagementStats } from '../utils/likesUtils'
 import styles from '../styles/AddictiveFeed.module.css'
 import { supabase } from '../lib/supabase'
 
+// Ajout d'un tableau de messages d'accueil dynamiques
+const WELCOME_MESSAGES = [
+  "Bienvenue sur COCO ! 🍽️ Préparation de votre univers culinaire...",
+  "Recherche des recettes de vos amis... 👀",
+  "Mélange des ingrédients sociaux... 🥗",
+  "Connexion à la communauté gourmande... 👩‍🍳",
+  "Un instant, on prépare vos découvertes ! ✨"
+]
+
 export default function AddictiveFeed() {
   const router = useRouter()
   const { user } = useAuth()
@@ -21,12 +30,25 @@ export default function AddictiveFeed() {
     likes: new Set(),
     saves: new Set()
   })
+  const [welcomeStep, setWelcomeStep] = useState(0)
+  const [showWelcome, setShowWelcome] = useState(true)
   
   const containerRef = useRef(null)
 
   // Chargement initial
   useEffect(() => {
-    loadRecipes()
+    let welcomeInterval
+    setShowWelcome(true)
+    setWelcomeStep(0)
+    // Animation de messages cycliques pendant le chargement initial
+    welcomeInterval = setInterval(() => {
+      setWelcomeStep(prev => (prev + 1) % WELCOME_MESSAGES.length)
+    }, 1200)
+    loadRecipes().finally(() => {
+      setTimeout(() => setShowWelcome(false), 600) // Laisse le message s'effacer en douceur
+      clearInterval(welcomeInterval)
+    })
+    return () => clearInterval(welcomeInterval)
   }, [user])
 
   const loadRecipes = async () => {
@@ -446,21 +468,76 @@ export default function AddictiveFeed() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [page, hasMore, loadingMore])
 
-  // Load saved likes from localStorage
+  // Load saved likes from localStorage - VERSION SÉCURISÉE
   useEffect(() => {
-    try {
-      const savedLikes = localStorage.getItem('userLikedRecipes')
-      if (savedLikes) {
-        setUserActions(prev => ({
-          ...prev,
-          likes: new Set(JSON.parse(savedLikes))
-        }))
+    if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+      try {
+        const savedLikes = localStorage.getItem('userLikedRecipes')
+        if (savedLikes) {
+          setUserActions(prev => ({
+            ...prev,
+            likes: new Set(JSON.parse(savedLikes))
+          }))
+        }
+      } catch (err) {
+        console.error('Failed to load saved user actions', err)
       }
-    } catch (err) {
-      console.error('Failed to load saved user actions', err)
     }
   }, [])
 
+  // Affichage du message d'accueil pendant le chargement initial
+  if (showWelcome) {
+    return (
+      <div className={styles.loadingContainer} style={{
+        minHeight: 320,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 32
+      }}>
+        <div style={{
+          fontSize: '2.2rem',
+          marginBottom: 16,
+          animation: 'cocoBounce 1.5s infinite'
+        }}>
+          🥥
+        </div>
+        <div style={{
+          fontWeight: 700,
+          fontSize: '1.1rem',
+          color: '#ff6b35',
+          marginBottom: 8,
+          textAlign: 'center'
+        }}>
+          {WELCOME_MESSAGES[welcomeStep]}
+        </div>
+        <div style={{
+          marginTop: 16,
+          display: 'flex',
+          gap: 6,
+          justifyContent: 'center'
+        }}>
+          <span style={{
+            width: 10, height: 10, borderRadius: '50%', background: '#ff6b35', opacity: welcomeStep === 0 ? 1 : 0.3, transition: 'opacity 0.3s'
+          }} />
+          <span style={{
+            width: 10, height: 10, borderRadius: '50%', background: '#ff6b35', opacity: welcomeStep === 1 ? 1 : 0.3, transition: 'opacity 0.3s'
+          }} />
+          <span style={{
+            width: 10, height: 10, borderRadius: '50%', background: '#ff6b35', opacity: welcomeStep === 2 ? 1 : 0.3, transition: 'opacity 0.3s'
+          }} />
+        </div>
+        <style jsx>{`
+          @keyframes cocoBounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+          }
+        `}</style>
+      </div>
+    )
+  }
+  
   if (loading) {
     return (
       <div className={styles.loadingContainer}>

@@ -48,7 +48,7 @@ export default function Home() {
 
   // Check for welcome message
   useEffect(() => {
-    if (user && !showWelcome) {
+    if (user && !showWelcome && typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
       const hasSeenWelcome = localStorage.getItem(`welcome_${user.id}`)
       if (!hasSeenWelcome) {
         setShowWelcome(true)

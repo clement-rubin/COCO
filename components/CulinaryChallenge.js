@@ -130,17 +130,19 @@ export default function CulinaryChallenge() {
   const [userXP, setUserXP] = useState(0)
   const [activeCategory, setActiveCategory] = useState('all')
 
-  // Charger les défis complétés depuis localStorage
+  // Charger les défis complétés depuis localStorage - VERSION SÉCURISÉE
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(`culinary_challenges_${user?.id}`)
-      if (saved) {
-        const data = JSON.parse(saved)
-        setCompletedChallenges(new Set(data.completed || []))
-        setUserXP(data.xp || 0)
+    if (user && typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+      try {
+        const saved = localStorage.getItem(`culinary_challenges_${user.id}`)
+        if (saved) {
+          const data = JSON.parse(saved)
+          setCompletedChallenges(new Set(data.completed || []))
+          setUserXP(data.xp || 0)
+        }
+      } catch (error) {
+        console.error('Erreur chargement défis:', error)
       }
-    } catch (error) {
-      console.error('Erreur chargement défis:', error)
     }
   }, [user])
 
@@ -166,13 +168,15 @@ export default function CulinaryChallenge() {
     setUserXP(newXP)
 
     // Sauvegarder
-    try {
-      localStorage.setItem(`culinary_challenges_${user.id}`, JSON.stringify({
-        completed: [...newCompleted],
-        xp: newXP
-      }))
-    } catch (error) {
-      console.error('Erreur sauvegarde:', error)
+    if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+      try {
+        localStorage.setItem(`culinary_challenges_${user.id}`, JSON.stringify({
+          completed: [...newCompleted],
+          xp: newXP
+        }))
+      } catch (error) {
+        console.error('Erreur sauvegarde:', error)
+      }
     }
 
     // Animation de succès

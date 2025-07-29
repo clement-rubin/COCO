@@ -32,21 +32,23 @@ export default function Comments({
     }
   }, [targetId])
 
-  // Load user's previous likes from localStorage
+  // Load user's previous likes from localStorage - VERSION SÉCURISÉE
   useEffect(() => {
-    try {
-      const savedLikes = localStorage.getItem(`commentLikes_${user?.id}`)
-      if (savedLikes) {
-        setUserLikes(new Set(JSON.parse(savedLikes)))
+    if (user?.id && typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+      try {
+        const savedLikes = localStorage.getItem(`commentLikes_${user.id}`)
+        if (savedLikes) {
+          setUserLikes(new Set(JSON.parse(savedLikes)))
+        }
+      } catch (err) {
+        logError('Error loading saved comment likes from localStorage', err, { userId: user.id })
       }
-    } catch (err) {
-      logError('Error loading saved comment likes from localStorage', err, { userId: user?.id })
     }
   }, [user?.id])
 
-  // Save user likes to localStorage
+  // Save user likes to localStorage - VERSION SÉCURISÉE
   const saveLikesToStorage = (likesSet) => {
-    if (user?.id) {
+    if (user?.id && typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
       try {
         localStorage.setItem(`commentLikes_${user.id}`, JSON.stringify([...likesSet]))
       } catch (err) {

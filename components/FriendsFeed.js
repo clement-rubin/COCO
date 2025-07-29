@@ -24,15 +24,17 @@ export default function FriendsFeed({ feedType = 'featured' }) {
     { name: 'Repas rapides', emoji: '⏱️', count: 0, color: '#3b82f6' }
   ])
 
-  // Load saved likes from localStorage
+  // Load saved likes from localStorage - VERSION SÉCURISÉE
   useEffect(() => {
-    try {
-      const savedLikes = localStorage.getItem('userLikedRecipes')
-      if (savedLikes) {
-        setLikedRecipes(new Set(JSON.parse(savedLikes)))
+    if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+      try {
+        const savedLikes = localStorage.getItem('userLikedRecipes')
+        if (savedLikes) {
+          setLikedRecipes(new Set(JSON.parse(savedLikes)))
+        }
+      } catch (err) {
+        logError('Error loading saved likes from localStorage', err)
       }
-    } catch (err) {
-      logError('Error loading saved likes from localStorage', err)
     }
   }, [])
 

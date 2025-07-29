@@ -49,7 +49,11 @@ class NotificationManager {
     this.notificationCenter = null
     this.notifications = []
     this.maxNotifications = 50
-    this.loadFromStorage()
+    
+    // Vérification côté client uniquement
+    if (typeof window !== 'undefined') {
+      this.loadFromStorage()
+    }
   }
 
   /**
@@ -122,36 +126,31 @@ class NotificationManager {
    * Stocke une notification dans le localStorage
    */
   storeNotification(notification) {
+    // Vérification côté client uniquement
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+      return null
+    }
+    
     try {
-      const stored = this.getStoredNotifications()
-      const newNotification = {
-        id: notification.id || Date.now() + Math.random(),
-        type: notification.type,
-        title: notification.title,
-        body: notification.body,
-        icon: notification.icon,
-        timestamp: new Date().toISOString(),
-        read: false,
-        data: notification.data || {}
+      const storedNotification = {
+        ...notification,
+        timestamp: Date.now(),
+        read: false
       }
 
-      stored.unshift(newNotification)
+      this.notifications.unshift(storedNotification)
       
       // Limiter le nombre de notifications stockées
-      if (stored.length > MAX_STORED_NOTIFICATIONS) {
-        stored.splice(MAX_STORED_NOTIFICATIONS)
+      if (this.notifications.length > this.maxNotifications) {
+        this.notifications = this.notifications.slice(0, this.maxNotifications)
       }
 
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(stored))
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.notifications))
       
-      // Notifier le centre de notifications
-      if (this.notificationCenter) {
-        this.notificationCenter(newNotification)
-      }
-
-      logDebug('Notification stockée', { id: newNotification.id, type: newNotification.type })
-      return newNotification
-
+      // Notifier les listeners
+      this.notifyListeners(storedNotification)
+      
+      return storedNotification
     } catch (error) {
       logError('Erreur lors du stockage de la notification', error)
       return null
@@ -162,6 +161,11 @@ class NotificationManager {
    * Récupère les notifications stockées
    */
   getStoredNotifications() {
+    // Vérification côté client uniquement
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+      return []
+    }
+    
     try {
       const stored = localStorage.getItem(STORAGE_KEY)
       return stored ? JSON.parse(stored) : []
@@ -175,17 +179,21 @@ class NotificationManager {
    * Marque une notification comme lue
    */
   markAsRead(notificationId) {
+    // Vérification côté client uniquement
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+      return false
+    }
+    
     try {
-      const stored = this.getStoredNotifications()
-      const notification = stored.find(n => n.id === notificationId)
-      
-      if (notification) {
-        notification.read = true
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(stored))
-        logDebug('Notification marquée comme lue', { id: notificationId })
-      }
+      this.notifications = this.notifications.map(notif => 
+        notif.id === notificationId ? { ...notif, read: true } : notif
+      )
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.notifications))
+      this.notifyListeners({ type: 'mark_read', id: notificationId })
+      return true
     } catch (error) {
-      logError('Erreur lors du marquage de lecture', error)
+      logError('Erreur lors du marquage comme lu', error)
+      return false
     }
   }
 
@@ -193,13 +201,19 @@ class NotificationManager {
    * Marque toutes les notifications comme lues
    */
   markAllAsRead() {
+    // Vérification côté client uniquement
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+      return false
+    }
+    
     try {
-      const stored = this.getStoredNotifications()
-      stored.forEach(n => n.read = true)
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(stored))
-      logDebug('Toutes les notifications marquées comme lues')
+      this.notifications = this.notifications.map(notif => ({ ...notif, read: true }))
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.notifications))
+      this.notifyListeners({ type: 'mark_all_read' })
+      return true
     } catch (error) {
-      logError('Erreur lors du marquage de toutes les notifications', error)
+      logError('Erreur lors du marquage global comme lu', error)
+      return false
     }
   }
 
@@ -207,13 +221,19 @@ class NotificationManager {
    * Supprime une notification
    */
   deleteNotification(notificationId) {
+    // Vérification côté client uniquement
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+      return false
+    }
+    
     try {
-      const stored = this.getStoredNotifications()
-      const filtered = stored.filter(n => n.id !== notificationId)
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered))
-      logDebug('Notification supprimée', { id: notificationId })
+      this.notifications = this.notifications.filter(notif => notif.id !== notificationId)
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.notifications))
+      this.notifyListeners({ type: 'delete', id: notificationId })
+      return true
     } catch (error) {
-      logError('Erreur lors de la suppression', error)
+      logError('Erreur lors de la suppression de la notification', error)
+      return false
     }
   }
 
@@ -221,11 +241,19 @@ class NotificationManager {
    * Vide toutes les notifications
    */
   clearAll() {
+    // Vérification côté client uniquement
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+      return false
+    }
+    
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify([]))
-      logDebug('Toutes les notifications supprimées')
+      this.notifications = []
+      localStorage.removeItem(STORAGE_KEY)
+      this.notifyListeners({ type: 'clear_all' })
+      return true
     } catch (error) {
       logError('Erreur lors du vidage des notifications', error)
+      return false
     }
   }
 
@@ -233,11 +261,15 @@ class NotificationManager {
    * Compte les notifications non lues
    */
   getUnreadCount() {
+    // Vérification côté client uniquement
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+      return 0
+    }
+    
     try {
-      const stored = this.getStoredNotifications()
-      return stored.filter(n => !n.read).length
+      return this.notifications.filter(notif => !notif.read).length
     } catch (error) {
-      logError('Erreur lors du comptage des non lues', error)
+      logError('Erreur lors du comptage des notifications non lues', error)
       return 0
     }
   }
@@ -588,25 +620,46 @@ class NotificationManager {
     this.listeners.set('notificationCenter', callback)
   }
 
-  // Charger les notifications depuis localStorage
+  // Charger les notifications depuis localStorage - VERSION SÉCURISÉE
   loadFromStorage() {
+    // Vérification côté client uniquement
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+      logInfo('localStorage non disponible (environnement serveur)', {
+        component: 'NotificationManager',
+        method: 'loadFromStorage'
+      })
+      return
+    }
+    
     try {
-      const stored = localStorage.getItem('coco_notifications')
+      const stored = localStorage.getItem(STORAGE_KEY)
       if (stored) {
-        this.notifications = JSON.parse(stored).slice(0, this.maxNotifications)
+        this.notifications = JSON.parse(stored)
+        logInfo('Notifications chargées depuis le stockage', {
+          count: this.notifications.length,
+          component: 'NotificationManager'
+        })
       }
     } catch (error) {
-      logError('Échec du chargement des notifications depuis le stockage', error)
+      logError('Échec du chargement des notifications depuis le stockage', error, {
+        component: 'NotificationManager',
+        method: 'loadFromStorage'
+      })
       this.notifications = []
     }
   }
 
-  // Sauvegarder dans localStorage
+  // Sauvegarder dans localStorage - VERSION SÉCURISÉE
   saveToStorage() {
+    // Vérification côté client uniquement
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+      return
+    }
+    
     try {
-      localStorage.setItem('coco_notifications', JSON.stringify(this.notifications))
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.notifications))
     } catch (error) {
-      logError('Échec de la sauvegarde des notifications dans le stockage', error)
+      logError('Erreur lors de la sauvegarde des notifications', error)
     }
   }
 
