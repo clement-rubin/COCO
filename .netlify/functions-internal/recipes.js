@@ -101,7 +101,8 @@ exports.handler = async (event, context) => {
       
       if (error) throw error;
       
-      log(`Recettes récupérées: ${recipes.length}${author ? ` pour l'auteur ${author}` : ''}`, "info")
+      // log(`Recettes récupérées: ${recipes.length}${author ? ` pour l'auteur ${author}` : ''}`, "info")
+      log(`Recettes récupérées: ${Array.isArray(recipes) ? recipes.length : 0}${author ? ` pour l'auteur ${author}` : ''}`, "info")
       
       return {
         statusCode: 200,
