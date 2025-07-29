@@ -611,6 +611,23 @@ export default function Progression({ user }) {
       >
         Boutique
       </button>
+      <button
+        onClick={() => setDressingOpen(true)}
+        style={{
+          background: dressingOpen ? 'linear-gradient(135deg, #f59e0b, #fbbf24)' : '#fff',
+          color: dressingOpen ? 'white' : '#f59e0b',
+          border: 'none',
+          borderRadius: 14,
+          padding: '10px 28px',
+          fontWeight: 700,
+          fontSize: '1rem',
+          boxShadow: dressingOpen ? '0 2px 8px #f59e0b33' : 'none',
+          cursor: 'pointer',
+          transition: 'all 0.2s'
+        }}
+      >
+        Dressing
+      </button>
     </div>
   )
 
@@ -1328,6 +1345,9 @@ export default function Progression({ user }) {
         renderShopTab()
       )}
 
+      {/* Dressing modal */}
+      {dressingOpen && renderDressing()}
+
       {/* Animation et encouragement */}
       <div style={{
         marginTop: 24,
@@ -1340,7 +1360,9 @@ export default function Progression({ user }) {
           ? "🎉 Bravo, vous avez atteint un nouveau niveau !"
           : activeTab === 'progression'
             ? "Continuez à cuisiner, partager et personnaliser votre chef !"
-            : "Faites-vous plaisir avec de nouveaux objets d'habillage !"}
+            : activeTab === 'boutique'
+              ? "Faites-vous plaisir avec de nouveaux objets d'habillage !"
+              : ""}
       </div>
       <style jsx>{`
         @keyframes shopFeedbackAnim {
