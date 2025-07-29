@@ -82,6 +82,7 @@ export default function Progression({ user }) {
   const [purchaseHistory, setPurchaseHistory] = useState([])
   const [previewEquip, setPreviewEquip] = useState(null)
   const [coinAnim, setCoinAnim] = useState(false)
+  const [activeTab, setActiveTab] = useState('progression') // 'progression' | 'boutique'
 
   useEffect(() => {
     let isMounted = true
@@ -269,6 +270,211 @@ export default function Progression({ user }) {
     )
   )
 
+  // --- Onglets navigation ---
+  const renderTabs = () => (
+    <div style={{
+      display: 'flex',
+      justifyContent: 'center',
+      gap: 12,
+      marginBottom: 24,
+      marginTop: 8
+    }}>
+      <button
+        onClick={() => setActiveTab('progression')}
+        style={{
+          background: activeTab === 'progression' ? 'linear-gradient(135deg, #f59e0b, #fbbf24)' : '#fff',
+          color: activeTab === 'progression' ? 'white' : '#f59e0b',
+          border: 'none',
+          borderRadius: 14,
+          padding: '10px 28px',
+          fontWeight: 700,
+          fontSize: '1rem',
+          boxShadow: activeTab === 'progression' ? '0 2px 8px #f59e0b33' : 'none',
+          cursor: 'pointer',
+          transition: 'all 0.2s'
+        }}
+      >
+        Progression
+      </button>
+      <button
+        onClick={() => setActiveTab('boutique')}
+        style={{
+          background: activeTab === 'boutique' ? 'linear-gradient(135deg, #10b981, #34d399)' : '#fff',
+          color: activeTab === 'boutique' ? 'white' : '#10b981',
+          border: 'none',
+          borderRadius: 14,
+          padding: '10px 28px',
+          fontWeight: 700,
+          fontSize: '1rem',
+          boxShadow: activeTab === 'boutique' ? '0 2px 8px #10b98133' : 'none',
+          cursor: 'pointer',
+          transition: 'all 0.2s'
+        }}
+      >
+        Boutique
+      </button>
+    </div>
+  )
+
+  // --- Solde CocoCoins bien intégré ---
+  const renderCoinBalance = () => (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 10,
+      marginBottom: 12,
+      marginTop: 8,
+      background: 'linear-gradient(90deg, #fffbe6 60%, #fef3c7 100%)',
+      borderRadius: 18,
+      padding: '10px 24px',
+      boxShadow: '0 2px 8px #f59e0b11',
+      fontWeight: 700,
+      fontSize: '1.1rem',
+      color: '#f59e0b',
+      position: 'relative'
+    }}>
+      <span style={{ fontSize: 28, marginRight: 6, animation: coinAnim ? 'coinSpin 0.8s' : 'none' }}>🪙</span>
+      <span style={{
+        fontWeight: 900,
+        fontSize: '1.3rem',
+        color: '#f59e0b',
+        letterSpacing: '-1px'
+      }}>{coins}</span>
+      <span style={{
+        marginLeft: 4,
+        fontWeight: 600,
+        color: '#92400e',
+        fontSize: '1.05rem'
+      }}>CocoCoins</span>
+      <span style={{
+        marginLeft: 10,
+        color: '#6b7280',
+        fontSize: '0.95rem',
+        fontWeight: 400
+      }}>(solde actuel)</span>
+    </div>
+  )
+
+  // --- Boutique onglet dédié ---
+  const renderShopTab = () => (
+    <div>
+      <div style={{
+        fontWeight: 700,
+        fontSize: '1.1rem',
+        marginBottom: 10,
+        color: '#10b981',
+        textAlign: 'center'
+      }}>
+        Boutique d'objets & Habillage
+      </div>
+      <div style={{
+        display: 'flex',
+        gap: 18,
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+        marginBottom: 18
+      }}>
+        {SHOP_ITEMS.map(item => (
+          <div key={item.id} style={{
+            background: ownedItems.includes(item.id) ? '#d1fae5' : '#fff',
+            border: ownedItems.includes(item.id) ? '2px solid #10b981' : '1px solid #e5e7eb',
+            borderRadius: 14,
+            padding: 14,
+            minWidth: 110,
+            textAlign: 'center',
+            boxShadow: '0 2px 8px #f59e0b11',
+            opacity: ownedItems.includes(item.id) ? 1 : 0.85,
+            position: 'relative',
+            transition: 'box-shadow 0.2s, border 0.2s'
+          }}
+            onMouseEnter={() => ownedItems.includes(item.id) && setPreviewEquip(item)}
+            onMouseLeave={() => setPreviewEquip(null)}
+          >
+            <div style={{
+              fontSize: 32,
+              marginBottom: 6,
+              filter: previewEquip?.id === item.id ? 'drop-shadow(0 0 8px #10b981)' : 'none',
+              transition: 'filter 0.2s'
+            }}>{item.icon}</div>
+            <div style={{ fontWeight: 600, fontSize: 15 }}>{item.name}</div>
+            <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 8 }}>{item.price} 🪙</div>
+            {ownedItems.includes(item.id) ? (
+              <button
+                style={{
+                  background: equipped[item.type] === item.id ? '#10b981' : '#f3f4f6',
+                  color: equipped[item.type] === item.id ? 'white' : '#059669',
+                  border: 'none',
+                  borderRadius: 8,
+                  padding: '5px 12px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  fontSize: 14,
+                  marginBottom: 2,
+                  boxShadow: equipped[item.type] === item.id ? '0 2px 8px #10b98133' : 'none'
+                }}
+                onClick={() => equipItem(item)}
+              >
+                {equipped[item.type] === item.id ? 'Équipé' : 'Équiper'}
+              </button>
+            ) : (
+              <button
+                style={{
+                  background: coins >= item.price ? '#f59e0b' : '#f3f4f6',
+                  color: coins >= item.price ? 'white' : '#f59e0b',
+                  border: 'none',
+                  borderRadius: 8,
+                  padding: '5px 12px',
+                  fontWeight: 700,
+                  cursor: coins >= item.price ? 'pointer' : 'not-allowed',
+                  fontSize: 14,
+                  marginBottom: 2
+                }}
+                disabled={coins < item.price}
+                onClick={() => buyItem(item)}
+              >
+                Acheter
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+      {/* Historique d'achats */}
+      {purchaseHistory.length > 0 && (
+        <div style={{
+          marginTop: 18,
+          fontSize: '0.95rem',
+          color: '#92400e',
+          background: '#fff',
+          borderRadius: 10,
+          padding: 10,
+          boxShadow: '0 1px 4px #f59e0b11',
+          maxWidth: 340,
+          marginLeft: 'auto',
+          marginRight: 'auto'
+        }}>
+          <b>Historique d'achats :</b>
+          <ul style={{ margin: 0, paddingLeft: 18 }}>
+            {purchaseHistory.slice(0, 3).map((h, i) => (
+              <li key={i}>
+                {h.item.icon} {h.item.name} <span style={{ color: '#f59e0b' }}>({h.item.price}🪙)</span> - {h.date.toLocaleTimeString('fr-FR')}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {/* Préparation pour d'autres catégories d'habillage */}
+      <div style={{
+        marginTop: 24,
+        textAlign: 'center',
+        color: '#6b7280',
+        fontSize: '0.95rem'
+      }}>
+        D'autres objets et styles d'habillage arrivent bientôt !
+      </div>
+    </div>
+  )
+
   if (loading) {
     return (
       <div style={{ textAlign: 'center', padding: '3rem' }}>
@@ -320,394 +526,278 @@ export default function Progression({ user }) {
           🪙
         </div>
       )}
-      <div style={{
-        background: 'linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)',
-        borderRadius: 24,
-        padding: 24,
-        marginBottom: 32,
-        color: 'white',
-        boxShadow: '0 8px 32px #f59e0b22'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
-          {/* Avatar chef customisable */}
+
+      {/* Solde CocoCoins bien intégré */}
+      {renderCoinBalance()}
+
+      {/* Onglets navigation */}
+      {renderTabs()}
+
+      {/* Affichage selon l'onglet */}
+      {activeTab === 'progression' ? (
+        <>
+          {/* Progression classique */}
           <div style={{
-            width: 90, height: 90, borderRadius: '50%', background: 'white',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '2.2rem', color: '#f59e0b', fontWeight: 900, boxShadow: '0 2px 12px #f59e0b33',
-            position: 'relative'
+            background: 'linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)',
+            borderRadius: 24,
+            padding: 24,
+            marginBottom: 32,
+            color: 'white',
+            boxShadow: '0 8px 32px #f59e0b22'
           }}>
-            {renderChefAvatar()}
-          </div>
-          <div>
-            <div style={{ fontWeight: 800, fontSize: '1.3rem', letterSpacing: '-0.5px' }}>
-              Progression COCO
-            </div>
-            <div style={{ fontSize: '1.1rem', fontWeight: 500 }}>
-              {user?.user_metadata?.display_name || user?.email || 'Utilisateur'}
-            </div>
-            {/* Affichage monnaie */}
-            <div style={{
-              marginTop: 6,
-              fontWeight: 700,
-              color: '#f59e0b',
-              fontSize: '1rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              position: 'relative'
-            }}>
-              <span style={{ fontSize: 20, animation: coinAnim ? 'coinSpin 0.8s' : 'none' }}>🪙</span>
-              <span>
-                <span style={{ fontWeight: 900, fontSize: '1.2rem', color: '#f59e0b' }}>
-                  {coins}
-                </span>
-                <span style={{ marginLeft: 4, fontWeight: 600, color: '#92400e', fontSize: '1rem' }}>
-                  CocoCoins
-                </span>
-                <span style={{ marginLeft: 8, color: '#6b7280', fontSize: '0.95rem', fontWeight: 400 }}>
-                  (Votre solde actuel)
-                </span>
-              </span>
-              <button
-                style={{
-                  marginLeft: 10,
-                  background: '#fffbe6',
-                  color: '#f59e0b',
-                  border: '1px solid #fbbf24',
-                  borderRadius: 8,
-                  padding: '2px 10px',
-                  fontWeight: 700,
-                  cursor: 'pointer'
-                }}
-                onClick={() => setShopOpen(v => !v)}
-              >
-                {shopOpen ? 'Fermer la boutique' : 'Boutique'}
-              </button>
-            </div>
-          </div>
-        </div>
-        <div style={{ marginTop: 18 }}>
-          <div style={{ fontWeight: 700, fontSize: '1.1rem' }}>
-            Niveau <span style={{ fontSize: '1.5rem', color: '#fff' }}>{levelInfo.current.level}</span> <span style={{ fontSize: '1rem', fontWeight: 500 }}>({levelInfo.current.label})</span>
-          </div>
-          <div style={{
-            background: 'rgba(255,255,255,0.3)', borderRadius: 12, height: 16, margin: '10px 0', overflow: 'hidden'
-          }}>
-            <div style={{
-              width: `${percent}%`,
-              height: '100%',
-              background: `linear-gradient(90deg,${levelInfo.current.color},#f59e0b)`,
-              borderRadius: 12,
-              transition: 'width 0.5s'
-            }} />
-          </div>
-          <div style={{ fontSize: '0.95rem', color: '#fff', display: 'flex', justifyContent: 'space-between' }}>
-            <span>{xp} XP</span>
-            <span>{levelInfo.next.xp} XP pour niv. {levelInfo.next.level}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Boutique objets cosmétiques améliorée */}
-      {shopOpen && (
-        <div style={{
-          background: '#fffbe6',
-          borderRadius: 18,
-          padding: 18,
-          marginBottom: 24,
-          boxShadow: '0 2px 8px #f59e0b22'
-        }}>
-          <div style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: 10, color: '#f59e0b' }}>
-            Boutique d'objets à débloquer
-          </div>
-          <div style={{
-            display: 'flex',
-            gap: 16,
-            flexWrap: 'wrap',
-            justifyContent: 'center'
-          }}>
-            {SHOP_ITEMS.map(item => (
-              <div key={item.id} style={{
-                background: ownedItems.includes(item.id) ? '#d1fae5' : '#fff',
-                border: ownedItems.includes(item.id) ? '2px solid #10b981' : '1px solid #e5e7eb',
-                borderRadius: 14,
-                padding: 12,
-                minWidth: 90,
-                textAlign: 'center',
-                boxShadow: '0 2px 8px #f59e0b11',
-                opacity: ownedItems.includes(item.id) ? 1 : 0.85,
-                position: 'relative',
-                transition: 'box-shadow 0.2s, border 0.2s'
-              }}
-                onMouseEnter={() => ownedItems.includes(item.id) && setPreviewEquip(item)}
-                onMouseLeave={() => setPreviewEquip(null)}
-              >
-                <div style={{
-                  fontSize: 28,
-                  marginBottom: 4,
-                  filter: previewEquip?.id === item.id ? 'drop-shadow(0 0 8px #10b981)' : 'none',
-                  transition: 'filter 0.2s'
-                }}>{item.icon}</div>
-                <div style={{ fontWeight: 600, fontSize: 13 }}>{item.name}</div>
-                <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 6 }}>{item.price} 🪙</div>
-                {ownedItems.includes(item.id) ? (
-                  <button
-                    style={{
-                      background: equipped[item.type] === item.id ? '#10b981' : '#f3f4f6',
-                      color: equipped[item.type] === item.id ? 'white' : '#059669',
-                      border: 'none',
-                      borderRadius: 8,
-                      padding: '4px 10px',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      fontSize: 13,
-                      marginBottom: 2,
-                      boxShadow: equipped[item.type] === item.id ? '0 2px 8px #10b98133' : 'none'
-                    }}
-                    onClick={() => equipItem(item)}
-                  >
-                    {equipped[item.type] === item.id ? 'Équipé' : 'Équiper'}
-                  </button>
-                ) : (
-                  <button
-                    style={{
-                      background: coins >= item.price ? '#f59e0b' : '#f3f4f6',
-                      color: coins >= item.price ? 'white' : '#f59e0b',
-                      border: 'none',
-                      borderRadius: 8,
-                      padding: '4px 10px',
-                      fontWeight: 700,
-                      cursor: coins >= item.price ? 'pointer' : 'not-allowed',
-                      fontSize: 13,
-                      marginBottom: 2
-                    }}
-                    disabled={coins < item.price}
-                    onClick={() => buyItem(item)}
-                  >
-                    Acheter
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-          {/* Historique d'achats */}
-          {purchaseHistory.length > 0 && (
-            <div style={{
-              marginTop: 18,
-              fontSize: '0.95rem',
-              color: '#92400e',
-              background: '#fff',
-              borderRadius: 10,
-              padding: 10,
-              boxShadow: '0 1px 4px #f59e0b11'
-            }}>
-              <b>Historique d'achats :</b>
-              <ul style={{ margin: 0, paddingLeft: 18 }}>
-                {purchaseHistory.slice(0, 3).map((h, i) => (
-                  <li key={i}>
-                    {h.item.icon} {h.item.name} <span style={{ color: '#f59e0b' }}>({h.item.price}🪙)</span> - {h.date.toLocaleTimeString('fr-FR')}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Statistiques */}
-      <div style={{
-        display: 'flex', gap: 16, justifyContent: 'center', marginBottom: 28, flexWrap: 'wrap'
-      }}>
-        <div style={{
-          background: '#fff', borderRadius: 16, padding: '16px 18px', minWidth: 80,
-          boxShadow: '0 2px 8px #f59e0b11', textAlign: 'center'
-        }}>
-          <div style={{ fontWeight: 800, fontSize: '1.2rem', color: '#f59e0b' }}>{xp}</div>
-          <div style={{ fontSize: '0.9rem', color: '#92400e' }}>XP</div>
-        </div>
-        <div style={{
-          background: '#fff', borderRadius: 16, padding: '16px 18px', minWidth: 80,
-          boxShadow: '0 2px 8px #f59e0b11', textAlign: 'center'
-        }}>
-          <div style={{ fontWeight: 800, fontSize: '1.2rem', color: '#10b981' }}>{trophies.unlockedCount}</div>
-          <div style={{ fontSize: '0.9rem', color: '#059669' }}>Trophées</div>
-        </div>
-        <div style={{
-          background: '#fff', borderRadius: 16, padding: '16px 18px', minWidth: 80,
-          boxShadow: '0 2px 8px #f59e0b11', textAlign: 'center'
-        }}>
-          <div style={{ fontWeight: 800, fontSize: '1.2rem', color: '#6366f1' }}>{trophies.totalCount}</div>
-          <div style={{ fontSize: '0.9rem', color: '#6366f1' }}>Total</div>
-        </div>
-        <div style={{
-          background: '#fff', borderRadius: 16, padding: '16px 18px', minWidth: 80,
-          boxShadow: '0 2px 8px #f59e0b11', textAlign: 'center'
-        }}>
-          <div style={{ fontWeight: 800, fontSize: '1.2rem', color: '#f59e0b' }}>{stats.recipesCount}</div>
-          <div style={{ fontSize: '0.9rem', color: '#92400e' }}>Recettes</div>
-        </div>
-        <div style={{
-          background: '#fff', borderRadius: 16, padding: '16px 18px', minWidth: 80,
-          boxShadow: '0 2px 8px #f59e0b11', textAlign: 'center'
-        }}>
-          <div style={{ fontWeight: 800, fontSize: '1.2rem', color: '#3b82f6' }}>{stats.friendsCount}</div>
-          <div style={{ fontSize: '0.9rem', color: '#3b82f6' }}>Amis</div>
-        </div>
-        <div style={{
-          background: '#fff', borderRadius: 16, padding: '16px 18px', minWidth: 80,
-          boxShadow: '0 2px 8px #f59e0b11', textAlign: 'center'
-        }}>
-          <div style={{ fontWeight: 800, fontSize: '1.2rem', color: '#ef4444' }}>{stats.likesReceived}</div>
-          <div style={{ fontSize: '0.9rem', color: '#ef4444' }}>Likes</div>
-        </div>
-        <div style={{
-          background: '#fff', borderRadius: 16, padding: '16px 18px', minWidth: 80,
-          boxShadow: '0 2px 8px #f59e0b11', textAlign: 'center'
-        }}>
-          <div style={{ fontWeight: 800, fontSize: '1.2rem', color: '#f59e0b' }}>{stats.streak}</div>
-          <div style={{ fontSize: '0.9rem', color: '#f59e0b' }}>Streak 🔥</div>
-        </div>
-      </div>
-
-      {/* Streak et progression */}
-      <div style={{
-        background: '#fffbe6',
-        borderRadius: 16,
-        padding: '14px 20px',
-        marginBottom: 24,
-        textAlign: 'center',
-        fontWeight: 600,
-        color: '#f59e0b',
-        fontSize: '1.1rem',
-        boxShadow: '0 2px 8px #f59e0b11'
-      }}>
-        {stats.streak > 1
-          ? <>🔥 Série de <b>{stats.streak}</b> jours actifs !</>
-          : <>Commencez une série d'activité pour gagner plus de récompenses !</>
-        }
-      </div>
-
-      {/* Badges et trophées */}
-      <div style={{ marginBottom: 32 }}>
-        <div style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: 10, color: '#92400e' }}>
-          Badges & Trophées débloqués
-        </div>
-        <div style={{
-          display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', minHeight: 48
-        }}>
-          {trophies.unlocked.length === 0 && (
-            <span style={{ color: '#f59e0b', fontWeight: 600 }}>Aucun badge débloqué pour l'instant</span>
-          )}
-          {trophies.unlocked.slice(0, 8).map(trophy => (
-            <div key={trophy.id} title={trophy.name} style={{
-              background: '#fff', borderRadius: 12, padding: '8px 10px', fontSize: '1.3rem',
-              boxShadow: '0 2px 8px #f59e0b11', display: 'flex', flexDirection: 'column', alignItems: 'center',
-              animation: 'bounce 1.2s infinite alternate'
-            }}>
-              <span>{trophy.icon}</span>
-              <span style={{ fontSize: '0.7rem', color: '#92400e', fontWeight: 600 }}>{trophy.name}</span>
-            </div>
-          ))}
-          {trophies.unlocked.length > 8 && (
-            <span style={{ color: '#f59e0b', fontWeight: 700 }}>+{trophies.unlocked.length - 8} autres</span>
-          )}
-        </div>
-      </div>
-
-      {/* Défis du jour */}
-      <div style={{ marginBottom: 32 }}>
-        <div style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: 10, color: '#10b981' }}>
-          Défis du jour
-        </div>
-        <div style={{
-          display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center'
-        }}>
-          {dailyChallenges.map(challenge => (
-            <div key={challenge.id} style={{
-              background: '#ecfdf5', borderRadius: 14, padding: '10px 16px', minWidth: 120,
-              display: 'flex', alignItems: 'center', gap: 10, fontWeight: 600, color: '#059669',
-              boxShadow: '0 2px 8px #10b98111'
-            }}>
-              <span style={{ fontSize: '1.3rem' }}>{challenge.icon}</span>
-              <span>{challenge.label}</span>
-              <span style={{ marginLeft: 'auto', color: '#10b981', fontWeight: 700 }}>{challenge.reward}</span>
-              {/* Ajout bouton gain de coins pour test */}
-              <button
-                style={{
-                  marginLeft: 8,
-                  background: '#10b981',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: 8,
-                  padding: '2px 8px',
-                  fontWeight: 700,
-                  fontSize: 12,
-                  cursor: 'pointer'
-                }}
-                onClick={() => gainCoins(20)}
-                title="Valider le défi (démo)"
-              >
-                Valider
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Classement */}
-      <div style={{ marginBottom: 32 }}>
-        <div style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: 10, color: '#3b82f6' }}>
-          Classement hebdomadaire
-        </div>
-        <div style={{
-          background: '#f3f4f6', borderRadius: 16, padding: 16, boxShadow: '0 2px 8px #3b82f611'
-        }}>
-          {leaderboardLoading ? (
-            <div style={{ textAlign: 'center', color: '#3b82f6', fontWeight: 600, padding: 12 }}>
-              Chargement du classement...
-            </div>
-          ) : leaderboard.length === 0 ? (
-            <div style={{ textAlign: 'center', color: '#f59e0b', fontWeight: 600, padding: 12 }}>
-              Aucun classement disponible pour le moment.
-            </div>
-          ) : (
-            leaderboard.map(entry => (
-              <div key={entry.id} style={{
-                display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6,
-                fontWeight: entry.you ? 800 : 600, color: entry.you ? '#f59e0b' : '#374151',
-                background: entry.you ? 'rgba(245,158,11,0.08)' : 'transparent',
-                borderRadius: entry.you ? 10 : 0, padding: entry.you ? '6px 0' : 0
+            <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+              {/* Avatar chef customisable */}
+              <div style={{
+                width: 90, height: 90, borderRadius: '50%', background: 'white',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '2.2rem', color: '#f59e0b', fontWeight: 900, boxShadow: '0 2px 12px #f59e0b33',
+                position: 'relative'
               }}>
-                <span style={{ fontSize: '1.1rem', width: 24, textAlign: 'center' }}>{entry.rank}</span>
-                <span style={{ flex: 1 }}>{entry.name}</span>
-                <span style={{ fontSize: '1rem', color: '#6366f1', fontWeight: 700 }}>{entry.xp} XP</span>
-                {entry.you && <span style={{ marginLeft: 8, color: '#f59e0b', fontWeight: 900 }}>Vous</span>}
+                {renderChefAvatar()}
               </div>
-            ))
-          )}
-        </div>
-      </div>
-
-      {/* Prochain trophée à débloquer */}
-      <div style={{ marginBottom: 32 }}>
-        <div style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: 10, color: '#92400e' }}>
-          Prochain trophée à débloquer
-        </div>
-        {trophies.locked.length > 0 ? (
-          <div style={{
-            background: '#fff', borderRadius: 16, padding: 18, boxShadow: '0 2px 8px #f59e0b11',
-            display: 'flex', alignItems: 'center', gap: 16
-          }}>
-            <span style={{ fontSize: '2rem' }}>{trophies.locked[0].icon}</span>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: '1rem', color: '#92400e' }}>{trophies.locked[0].name}</div>
-              <div style={{ fontSize: '0.95rem', color: '#6b7280' }}>{trophies.locked[0].description}</div>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: '1.3rem', letterSpacing: '-0.5px' }}>
+                  Progression COCO
+                </div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 500 }}>
+                  {user?.user_metadata?.display_name || user?.email || 'Utilisateur'}
+                </div>
+              </div>
+            </div>
+            <div style={{ marginTop: 18 }}>
+              <div style={{ fontWeight: 700, fontSize: '1.1rem' }}>
+                Niveau <span style={{ fontSize: '1.5rem', color: '#fff' }}>{levelInfo.current.level}</span> <span style={{ fontSize: '1rem', fontWeight: 500 }}>({levelInfo.current.label})</span>
+              </div>
+              <div style={{
+                background: 'rgba(255,255,255,0.3)', borderRadius: 12, height: 16, margin: '10px 0', overflow: 'hidden'
+              }}>
+                <div style={{
+                  width: `${percent}%`,
+                  height: '100%',
+                  background: `linear-gradient(90deg,${levelInfo.current.color},#f59e0b)`,
+                  borderRadius: 12,
+                  transition: 'width 0.5s'
+                }} />
+              </div>
+              <div style={{ fontSize: '0.95rem', color: '#fff', display: 'flex', justifyContent: 'space-between' }}>
+                <span>{xp} XP</span>
+                <span>{levelInfo.next.xp} XP pour niv. {levelInfo.next.level}</span>
+              </div>
             </div>
           </div>
-        ) : (
-          <div style={{ color: '#10b981', fontWeight: 600 }}>Tous les trophées débloqués !</div>
-        )}
-      </div>
+
+          {/* Statistiques */}
+          <div style={{
+            display: 'flex', gap: 16, justifyContent: 'center', marginBottom: 28, flexWrap: 'wrap'
+          }}>
+            <div style={{
+              background: '#fff', borderRadius: 16, padding: '16px 18px', minWidth: 80,
+              boxShadow: '0 2px 8px #f59e0b11', textAlign: 'center'
+            }}>
+              <div style={{ fontWeight: 800, fontSize: '1.2rem', color: '#f59e0b' }}>{xp}</div>
+              <div style={{ fontSize: '0.9rem', color: '#92400e' }}>XP</div>
+            </div>
+            <div style={{
+              background: '#fff', borderRadius: 16, padding: '16px 18px', minWidth: 80,
+              boxShadow: '0 2px 8px #f59e0b11', textAlign: 'center'
+            }}>
+              <div style={{ fontWeight: 800, fontSize: '1.2rem', color: '#10b981' }}>{trophies.unlockedCount}</div>
+              <div style={{ fontSize: '0.9rem', color: '#059669' }}>Trophées</div>
+            </div>
+            <div style={{
+              background: '#fff', borderRadius: 16, padding: '16px 18px', minWidth: 80,
+              boxShadow: '0 2px 8px #f59e0b11', textAlign: 'center'
+            }}>
+              <div style={{ fontWeight: 800, fontSize: '1.2rem', color: '#6366f1' }}>{trophies.totalCount}</div>
+              <div style={{ fontSize: '0.9rem', color: '#6366f1' }}>Total</div>
+            </div>
+            <div style={{
+              background: '#fff', borderRadius: 16, padding: '16px 18px', minWidth: 80,
+              boxShadow: '0 2px 8px #f59e0b11', textAlign: 'center'
+            }}>
+              <div style={{ fontWeight: 800, fontSize: '1.2rem', color: '#f59e0b' }}>{stats.recipesCount}</div>
+              <div style={{ fontSize: '0.9rem', color: '#92400e' }}>Recettes</div>
+            </div>
+            <div style={{
+              background: '#fff', borderRadius: 16, padding: '16px 18px', minWidth: 80,
+              boxShadow: '0 2px 8px #f59e0b11', textAlign: 'center'
+            }}>
+              <div style={{ fontWeight: 800, fontSize: '1.2rem', color: '#3b82f6' }}>{stats.friendsCount}</div>
+              <div style={{ fontSize: '0.9rem', color: '#3b82f6' }}>Amis</div>
+            </div>
+            <div style={{
+              background: '#fff', borderRadius: 16, padding: '16px 18px', minWidth: 80,
+              boxShadow: '0 2px 8px #f59e0b11', textAlign: 'center'
+            }}>
+              <div style={{ fontWeight: 800, fontSize: '1.2rem', color: '#ef4444' }}>{stats.likesReceived}</div>
+              <div style={{ fontSize: '0.9rem', color: '#ef4444' }}>Likes</div>
+            </div>
+            <div style={{
+              background: '#fff', borderRadius: 16, padding: '16px 18px', minWidth: 80,
+              boxShadow: '0 2px 8px #f59e0b11', textAlign: 'center'
+            }}>
+              <div style={{ fontWeight: 800, fontSize: '1.2rem', color: '#f59e0b' }}>{stats.streak}</div>
+              <div style={{ fontSize: '0.9rem', color: '#f59e0b' }}>Streak 🔥</div>
+            </div>
+          </div>
+
+          {/* Streak et progression */}
+          <div style={{
+            background: '#fffbe6',
+            borderRadius: 16,
+            padding: '14px 20px',
+            marginBottom: 24,
+            textAlign: 'center',
+            fontWeight: 600,
+            color: '#f59e0b',
+            fontSize: '1.1rem',
+            boxShadow: '0 2px 8px #f59e0b11'
+          }}>
+            {stats.streak > 1
+              ? <>🔥 Série de <b>{stats.streak}</b> jours actifs !</>
+              : <>Commencez une série d'activité pour gagner plus de récompenses !</>
+            }
+          </div>
+
+          {/* Badges et trophées */}
+          <div style={{ marginBottom: 32 }}>
+            <div style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: 10, color: '#92400e' }}>
+              Badges & Trophées débloqués
+            </div>
+            <div style={{
+              display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', minHeight: 48
+            }}>
+              {trophies.unlocked.length === 0 && (
+                <span style={{ color: '#f59e0b', fontWeight: 600 }}>Aucun badge débloqué pour l'instant</span>
+              )}
+              {trophies.unlocked.slice(0, 8).map(trophy => (
+                <div key={trophy.id} title={trophy.name} style={{
+                  background: '#fff', borderRadius: 12, padding: '8px 10px', fontSize: '1.3rem',
+                  boxShadow: '0 2px 8px #f59e0b11', display: 'flex', flexDirection: 'column', alignItems: 'center',
+                  animation: 'bounce 1.2s infinite alternate'
+                }}>
+                  <span>{trophy.icon}</span>
+                  <span style={{ fontSize: '0.7rem', color: '#92400e', fontWeight: 600 }}>{trophy.name}</span>
+                </div>
+              ))}
+              {trophies.unlocked.length > 8 && (
+                <span style={{ color: '#f59e0b', fontWeight: 700 }}>+{trophies.unlocked.length - 8} autres</span>
+              )}
+            </div>
+          </div>
+
+          {/* Défis du jour */}
+          <div style={{ marginBottom: 32 }}>
+            <div style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: 10, color: '#10b981' }}>
+              Défis du jour
+            </div>
+            <div style={{
+              display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center'
+            }}>
+              {dailyChallenges.map(challenge => (
+                <div key={challenge.id} style={{
+                  background: '#ecfdf5', borderRadius: 14, padding: '10px 16px', minWidth: 120,
+                  display: 'flex', alignItems: 'center', gap: 10, fontWeight: 600, color: '#059669',
+                  boxShadow: '0 2px 8px #10b98111'
+                }}>
+                  <span style={{ fontSize: '1.3rem' }}>{challenge.icon}</span>
+                  <span>{challenge.label}</span>
+                  <span style={{ marginLeft: 'auto', color: '#10b981', fontWeight: 700 }}>{challenge.reward}</span>
+                  {/* Ajout bouton gain de coins pour test */}
+                  <button
+                    style={{
+                      marginLeft: 8,
+                      background: '#10b981',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: 8,
+                      padding: '2px 8px',
+                      fontWeight: 700,
+                      fontSize: 12,
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => gainCoins(20)}
+                    title="Valider le défi (démo)"
+                  >
+                    Valider
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Classement */}
+          <div style={{ marginBottom: 32 }}>
+            <div style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: 10, color: '#3b82f6' }}>
+              Classement hebdomadaire
+            </div>
+            <div style={{
+              background: '#f3f4f6', borderRadius: 16, padding: 16, boxShadow: '0 2px 8px #3b82f611'
+            }}>
+              {leaderboardLoading ? (
+                <div style={{ textAlign: 'center', color: '#3b82f6', fontWeight: 600, padding: 12 }}>
+                  Chargement du classement...
+                </div>
+              ) : leaderboard.length === 0 ? (
+                <div style={{ textAlign: 'center', color: '#f59e0b', fontWeight: 600, padding: 12 }}>
+                  Aucun classement disponible pour le moment.
+                </div>
+              ) : (
+                leaderboard.map(entry => (
+                  <div key={entry.id} style={{
+                    display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6,
+                    fontWeight: entry.you ? 800 : 600, color: entry.you ? '#f59e0b' : '#374151',
+                    background: entry.you ? 'rgba(245,158,11,0.08)' : 'transparent',
+                    borderRadius: entry.you ? 10 : 0, padding: entry.you ? '6px 0' : 0
+                  }}>
+                    <span style={{ fontSize: '1.1rem', width: 24, textAlign: 'center' }}>{entry.rank}</span>
+                    <span style={{ flex: 1 }}>{entry.name}</span>
+                    <span style={{ fontSize: '1rem', color: '#6366f1', fontWeight: 700 }}>{entry.xp} XP</span>
+                    {entry.you && <span style={{ marginLeft: 8, color: '#f59e0b', fontWeight: 900 }}>Vous</span>}
+                  </div>
+                ))
+              )
+            }
+            </div>
+          </div>
+
+          {/* Prochain trophée à débloquer */}
+          <div style={{ marginBottom: 32 }}>
+            <div style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: 10, color: '#92400e' }}>
+              Prochain trophée à débloquer
+            </div>
+            {trophies.locked.length > 0 ? (
+              <div style={{
+                background: '#fff', borderRadius: 16, padding: 18, boxShadow: '0 2px 8px #f59e0b11',
+                display: 'flex', alignItems: 'center', gap: 16
+              }}>
+                <span style={{ fontSize: '2rem' }}>{trophies.locked[0].icon}</span>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '1rem', color: '#92400e' }}>{trophies.locked[0].name}</div>
+                  <div style={{ fontSize: '0.95rem', color: '#6b7280' }}>{trophies.locked[0].description}</div>
+                </div>
+              </div>
+            ) : (
+              <div style={{ color: '#10b981', fontWeight: 600 }}>Tous les trophées débloqués !</div>
+            )}
+          </div>
+
+          {/* Animation et encouragement */}
+          <div style={{
+            marginTop: 24,
+            fontSize: 16,
+            color: '#10b981',
+            fontWeight: 700,
+            animation: 'pulse 1.5s infinite alternate'
+          }}>
+            {percent === 100
+              ? "🎉 Bravo, vous avez atteint un nouveau niveau !"
+              : "Continuez à cuisiner, partager et personnaliser votre chef !"}
+          </div>
+        </>
+      ) : (
+        renderShopTab()
+      )}
 
       {/* Animation et encouragement */}
       <div style={{
@@ -719,7 +809,9 @@ export default function Progression({ user }) {
       }}>
         {percent === 100
           ? "🎉 Bravo, vous avez atteint un nouveau niveau !"
-          : "Continuez à cuisiner, partager et personnaliser votre chef !"}
+          : activeTab === 'progression'
+            ? "Continuez à cuisiner, partager et personnaliser votre chef !"
+            : "Faites-vous plaisir avec de nouveaux objets d'habillage !"}
       </div>
       <style jsx>{`
         @keyframes shopFeedbackAnim {
