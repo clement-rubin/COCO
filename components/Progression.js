@@ -3,6 +3,7 @@ import { getUserTrophies } from '../utils/trophyUtils'
 import { getUserStatsComplete } from '../utils/profileUtils'
 import { supabase } from '../lib/supabase'
 import styles from '../styles/Trophy.module.css'
+import React from 'react'
 
 const LEVELS = [
   { level: 1, xp: 0, label: "Débutant", color: "#a7f3d0" },
@@ -27,14 +28,51 @@ function getLevel(xp) {
 }
 
 // --- Ajout objets cosmétiques et monnaie ---
+// Catégories: hat, glasses, apron, accessory, face, background, effect, badge, mascot
 const SHOP_ITEMS = [
-  { id: 'hat_chef', name: 'Toque de Chef', icon: '👨‍🍳', price: 100, type: 'hat' },
-  { id: 'hat_pirate', name: 'Chapeau Pirate', icon: '🏴‍☠️', price: 150, type: 'hat' },
-  { id: 'glasses_cool', name: 'Lunettes Cool', icon: '🕶️', price: 80, type: 'glasses' },
-  { id: 'apron_red', name: 'Tablier Rouge', icon: '🟥', price: 120, type: 'apron' },
-  { id: 'apron_blue', name: 'Tablier Bleu', icon: '🟦', price: 120, type: 'apron' },
-  { id: 'spoon_gold', name: 'Cuillère Or', icon: '🥄', price: 200, type: 'accessory' },
-  { id: 'mustache', name: 'Moustache', icon: '👨', price: 90, type: 'face' }
+  // Chapeaux
+  { id: 'hat_chef', name: 'Toque de Chef', icon: '👨‍🍳', price: 100, type: 'hat', rarity: 'common', isNew: false },
+  { id: 'hat_pirate', name: 'Chapeau Pirate', icon: '🏴‍☠️', price: 150, type: 'hat', rarity: 'rare', isNew: false },
+  { id: 'hat_crown', name: 'Couronne Royale', icon: '👑', price: 500, type: 'hat', rarity: 'legendary', isNew: true },
+  { id: 'hat_sombrero', name: 'Sombrero', icon: '🎩', price: 180, type: 'hat', rarity: 'uncommon', isNew: false },
+  // Lunettes
+  { id: 'glasses_cool', name: 'Lunettes Cool', icon: '🕶️', price: 80, type: 'glasses', rarity: 'common', isNew: false },
+  { id: 'glasses_star', name: 'Lunettes Star', icon: '🤩', price: 220, type: 'glasses', rarity: 'rare', isNew: true },
+  // Tabliers
+  { id: 'apron_red', name: 'Tablier Rouge', icon: '🟥', price: 120, type: 'apron', rarity: 'common', isNew: false },
+  { id: 'apron_blue', name: 'Tablier Bleu', icon: '🟦', price: 120, type: 'apron', rarity: 'common', isNew: false },
+  { id: 'apron_gold', name: 'Tablier Or', icon: '🟨', price: 350, type: 'apron', rarity: 'epic', isNew: true },
+  // Accessoires
+  { id: 'spoon_gold', name: 'Cuillère Or', icon: '🥄', price: 200, type: 'accessory', rarity: 'epic', isNew: false },
+  { id: 'fork_silver', name: 'Fourchette Argent', icon: '🍴', price: 140, type: 'accessory', rarity: 'uncommon', isNew: false },
+  { id: 'pepper', name: 'Poivrier', icon: '🌶️', price: 90, type: 'accessory', rarity: 'common', isNew: false },
+  // Visage
+  { id: 'mustache', name: 'Moustache', icon: '👨', price: 90, type: 'face', rarity: 'common', isNew: false },
+  { id: 'beard', name: 'Barbe', icon: '🧔', price: 120, type: 'face', rarity: 'uncommon', isNew: false },
+  // Fonds
+  { id: 'bg_kitchen', name: 'Cuisine Pro', icon: '🏠', price: 250, type: 'background', rarity: 'rare', isNew: true },
+  { id: 'bg_jungle', name: 'Jungle', icon: '🌴', price: 200, type: 'background', rarity: 'uncommon', isNew: false },
+  // Effets spéciaux
+  { id: 'fx_fire', name: 'Effet Flamme', icon: '🔥', price: 400, type: 'effect', rarity: 'legendary', isNew: true },
+  { id: 'fx_sparkle', name: 'Effet Étincelle', icon: '✨', price: 220, type: 'effect', rarity: 'epic', isNew: false },
+  // Badges exclusifs
+  { id: 'badge_early', name: 'Pionnier', icon: '🌟', price: 0, type: 'badge', rarity: 'legendary', isNew: false, exclusive: true },
+  // Mascottes
+  { id: 'mascot_chick', name: 'Poussin', icon: '🐥', price: 180, type: 'mascot', rarity: 'uncommon', isNew: false },
+  { id: 'mascot_cat', name: 'Chat', icon: '🐱', price: 220, type: 'mascot', rarity: 'rare', isNew: true }
+]
+
+const ITEM_TYPES = [
+  { id: 'all', label: 'Tout', icon: '🛒' },
+  { id: 'hat', label: 'Chapeaux', icon: '🎩' },
+  { id: 'glasses', label: 'Lunettes', icon: '🕶️' },
+  { id: 'apron', label: 'Tabliers', icon: '🦺' },
+  { id: 'accessory', label: 'Accessoires', icon: '🍴' },
+  { id: 'face', label: 'Visage', icon: '🧔' },
+  { id: 'background', label: 'Fonds', icon: '🏞️' },
+  { id: 'effect', label: 'Effets', icon: '✨' },
+  { id: 'badge', label: 'Badges', icon: '🏅' },
+  { id: 'mascot', label: 'Mascottes', icon: '🐾' }
 ]
 
 const DEFAULT_CHEF = {
@@ -42,7 +80,11 @@ const DEFAULT_CHEF = {
   glasses: null,
   apron: null,
   accessory: null,
-  face: null
+  face: null,
+  background: null,
+  effect: null,
+  badge: null,
+  mascot: null
 }
 
 const DAILY_CHALLENGES = [
@@ -83,6 +125,10 @@ export default function Progression({ user }) {
   const [previewEquip, setPreviewEquip] = useState(null)
   const [coinAnim, setCoinAnim] = useState(false)
   const [activeTab, setActiveTab] = useState('progression') // 'progression' | 'boutique'
+  const [favoriteItems, setFavoriteItems] = useState([])
+  const [shopFilter, setShopFilter] = useState('all')
+  const [dressingOpen, setDressingOpen] = useState(false)
+  const [dressingTab, setDressingTab] = useState('hat') // caté active dans le dressing
 
   useEffect(() => {
     let isMounted = true
@@ -163,40 +209,223 @@ export default function Progression({ user }) {
     setTimeout(() => setShopFeedback(null), 1200)
   }
 
-  // --- Rendu avatar chef avec objets équipés et prévisualisation ---
-  const renderChefAvatar = () => {
-    // Utilise previewEquip si survolé
+  // --- Favoris ---
+  const toggleFavorite = (itemId) => {
+    setFavoriteItems(prev =>
+      prev.includes(itemId)
+        ? prev.filter(id => id !== itemId)
+        : [...prev, itemId]
+    )
+  }
+
+  // --- Tout déséquiper ---
+  const unequipAll = () => {
+    setEquipped({ ...DEFAULT_CHEF })
+    setShopFeedback({ type: 'info', msg: 'Tout déséquipé !' })
+    setTimeout(() => setShopFeedback(null), 1200)
+  }
+
+  // --- Dressing modal : aperçu avatar + équipement complet ---
+  const renderDressing = () => (
+    <div style={{
+      position: 'fixed',
+      top: 0, left: 0, right: 0, bottom: 0,
+      background: 'rgba(0,0,0,0.55)',
+      zIndex: 9999,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    }}
+      onClick={() => setDressingOpen(false)}
+    >
+      <div
+        style={{
+          background: '#fff',
+          borderRadius: 24,
+          maxWidth: 420,
+          width: '95%',
+          padding: 28,
+          boxShadow: '0 12px 40px #0002',
+          position: 'relative',
+          animation: 'dressingPop 0.3s'
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        <button
+          onClick={() => setDressingOpen(false)}
+          style={{
+            position: 'absolute',
+            top: 14, right: 18,
+            background: 'none',
+            border: 'none',
+            fontSize: 22,
+            color: '#f59e0b',
+            cursor: 'pointer',
+            fontWeight: 700
+          }}
+          aria-label="Fermer"
+        >✕</button>
+        <div style={{ textAlign: 'center', marginBottom: 18 }}>
+          <div style={{
+            fontWeight: 800,
+            fontSize: '1.3rem',
+            color: '#f59e0b',
+            marginBottom: 6
+          }}>Mon avatar chef</div>
+          <div style={{
+            fontSize: '1rem',
+            color: '#6b7280',
+            marginBottom: 10
+          }}>Personnalisez votre chef avec vos objets débloqués !</div>
+        </div>
+        {/* Avatar en grand */}
+        <div style={{
+          width: 180, height: 180, margin: '0 auto 18px auto',
+          position: 'relative', background: '#fef3c7', borderRadius: '50%',
+          boxShadow: '0 2px 18px #f59e0b22', display: 'flex', alignItems: 'center', justifyContent: 'center'
+        }}>
+          {renderChefAvatar({ size: 180 })}
+        </div>
+        {/* Tabs catégories */}
+        <div style={{
+          display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 12, flexWrap: 'wrap'
+        }}>
+          {ITEM_TYPES.filter(t => t.id !== 'all').map(cat => (
+            <button
+              key={cat.id}
+              onClick={() => setDressingTab(cat.id)}
+              style={{
+                background: dressingTab === cat.id ? 'linear-gradient(135deg, #f59e0b, #fbbf24)' : '#fff',
+                color: dressingTab === cat.id ? 'white' : '#f59e0b',
+                border: dressingTab === cat.id ? '2px solid #f59e0b' : '1px solid #e5e7eb',
+                borderRadius: 10,
+                padding: '6px 12px',
+                fontWeight: 700,
+                fontSize: '1rem',
+                cursor: 'pointer'
+              }}
+            >
+              <span style={{ fontSize: '1.2rem', marginRight: 2 }}>{cat.icon}</span>
+              {cat.label}
+            </button>
+          ))}
+        </div>
+        {/* Objets équipables */}
+        <div style={{
+          display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 10
+        }}>
+          {SHOP_ITEMS.filter(i => i.type === dressingTab && ownedItems.includes(i.id)).length === 0 && (
+            <span style={{ color: '#f59e0b', fontWeight: 600, fontSize: '0.95rem' }}>
+              Aucun objet débloqué pour cette catégorie
+            </span>
+          )}
+          {SHOP_ITEMS.filter(i => i.type === dressingTab && ownedItems.includes(i.id)).map(item => (
+            <div key={item.id} style={{
+              background: equipped[dressingTab] === item.id ? '#f59e0b' : '#f3f4f6',
+              color: equipped[dressingTab] === item.id ? 'white' : '#92400e',
+              borderRadius: 10,
+              padding: '10px 12px',
+              fontWeight: 700,
+              fontSize: 22,
+              cursor: 'pointer',
+              boxShadow: equipped[dressingTab] === item.id ? '0 2px 8px #f59e0b33' : 'none',
+              border: equipped[dressingTab] === item.id ? '2px solid #f59e0b' : '1px solid #e5e7eb',
+              transition: 'all 0.2s'
+            }}
+              title={item.name}
+              onClick={() => equipItem(item)}
+            >
+              {item.icon}
+              <div style={{
+                fontSize: 12,
+                fontWeight: 600,
+                marginTop: 2,
+                color: equipped[dressingTab] === item.id ? 'white' : '#92400e'
+              }}>{item.name}</div>
+            </div>
+          ))}
+          {/* Déséquiper */}
+          {equipped[dressingTab] && (
+            <button
+              onClick={() => equipItem({ ...SHOP_ITEMS.find(i => i.id === equipped[dressingTab]), id: equipped[dressingTab] })}
+              style={{
+                background: '#fff',
+                color: '#f59e0b',
+                border: '1px solid #f59e0b',
+                borderRadius: 10,
+                padding: '10px 12px',
+                fontWeight: 700,
+                fontSize: 16,
+                marginLeft: 8,
+                cursor: 'pointer'
+              }}
+            >
+              Retirer
+            </button>
+          )}
+        </div>
+        <div style={{ textAlign: 'center', color: '#6b7280', fontSize: '0.95rem', marginTop: 8 }}>
+          Cliquez sur un objet pour l'équiper ou le retirer.
+        </div>
+        <style jsx>{`
+          @keyframes dressingPop {
+            0% { opacity: 0; transform: scale(0.9);}
+            100% { opacity: 1; transform: scale(1);}
+          }
+        `}</style>
+      </div>
+    </div>
+  )
+
+  // --- Rendu avatar chef modifié pour supporter la taille ---
+  const renderChefAvatar = (opts = {}) => {
+    const size = opts.size || 110
     const equippedToShow = previewEquip
       ? { ...equipped, [previewEquip.type]: previewEquip.id }
       : equipped
+    // Effet visuel pour fond/effet/mascotte
     return (
       <div style={{
         position: 'relative',
-        width: 90,
-        height: 90,
+        width: size,
+        height: size,
         margin: '0 auto',
         filter: previewEquip ? 'brightness(1.1) drop-shadow(0 0 8px #f59e0b88)' : 'none',
         transition: 'filter 0.3s'
       }}>
+        {/* Fond */}
+        {equippedToShow.background && (
+          <div style={{
+            fontSize: size * 0.39,
+            position: 'absolute',
+            left: size * 0.09,
+            top: size * 0.09,
+            zIndex: 0,
+            opacity: 0.25
+          }}>
+            {SHOP_ITEMS.find(i => i.id === equippedToShow.background)?.icon}
+          </div>
+        )}
         {/* Base chef */}
         <div style={{
-          fontSize: 60,
+          fontSize: size * 0.39,
           position: 'absolute',
-          left: 15,
-          top: 15,
+          left: size * 0.18,
+          top: size * 0.18,
           zIndex: 1,
           transition: 'opacity 0.2s'
         }}>🧑</div>
         {/* Hat */}
         {equippedToShow.hat && (
           <div style={{
-            fontSize: 36,
+            fontSize: size * 0.22,
             position: 'absolute',
-            left: 30,
-            top: 0,
+            left: size * 0.35,
+            top: size * 0.01,
             zIndex: 2,
             transition: 'transform 0.2s',
-            transform: previewEquip?.id === equippedToShow.hat ? 'scale(1.15) rotate(-8deg)' : 'none'
+            transform: previewEquip?.id === equippedToShow.hat ? 'scale(1.15) rotate(-8deg)' : 'none',
+            filter: getItemGlow(equippedToShow.hat)
           }}>
             {SHOP_ITEMS.find(i => i.id === equippedToShow.hat)?.icon}
           </div>
@@ -204,13 +433,14 @@ export default function Progression({ user }) {
         {/* Glasses */}
         {equippedToShow.glasses && (
           <div style={{
-            fontSize: 28,
+            fontSize: size * 0.18,
             position: 'absolute',
-            left: 38,
-            top: 34,
+            left: size * 0.44,
+            top: size * 0.4,
             zIndex: 3,
             transition: 'transform 0.2s',
-            transform: previewEquip?.id === equippedToShow.glasses ? 'scale(1.15) rotate(8deg)' : 'none'
+            transform: previewEquip?.id === equippedToShow.glasses ? 'scale(1.15) rotate(8deg)' : 'none',
+            filter: getItemGlow(equippedToShow.glasses)
           }}>
             {SHOP_ITEMS.find(i => i.id === equippedToShow.glasses)?.icon}
           </div>
@@ -218,13 +448,14 @@ export default function Progression({ user }) {
         {/* Apron */}
         {equippedToShow.apron && (
           <div style={{
-            fontSize: 32,
+            fontSize: size * 0.2,
             position: 'absolute',
-            left: 36,
-            top: 60,
+            left: size * 0.42,
+            top: size * 0.73,
             zIndex: 2,
             transition: 'transform 0.2s',
-            transform: previewEquip?.id === equippedToShow.apron ? 'scale(1.12)' : 'none'
+            transform: previewEquip?.id === equippedToShow.apron ? 'scale(1.12)' : 'none',
+            filter: getItemGlow(equippedToShow.apron)
           }}>
             {SHOP_ITEMS.find(i => i.id === equippedToShow.apron)?.icon}
           </div>
@@ -232,29 +463,72 @@ export default function Progression({ user }) {
         {/* Accessory */}
         {equippedToShow.accessory && (
           <div style={{
-            fontSize: 22,
+            fontSize: size * 0.16,
             position: 'absolute',
-            left: 60,
-            top: 60,
+            left: size * 0.73,
+            top: size * 0.73,
             zIndex: 4,
             transition: 'transform 0.2s',
-            transform: previewEquip?.id === equippedToShow.accessory ? 'scale(1.15)' : 'none'
+            transform: previewEquip?.id === equippedToShow.accessory ? 'scale(1.15)' : 'none',
+            filter: getItemGlow(equippedToShow.accessory)
           }}>
             {SHOP_ITEMS.find(i => i.id === equippedToShow.accessory)?.icon}
           </div>
         )}
-        {/* Face (moustache) */}
+        {/* Face (moustache/barbe) */}
         {equippedToShow.face && (
           <div style={{
-            fontSize: 22,
+            fontSize: size * 0.16,
             position: 'absolute',
-            left: 48,
-            top: 54,
+            left: size * 0.56,
+            top: size * 0.67,
             zIndex: 5,
             transition: 'transform 0.2s',
-            transform: previewEquip?.id === equippedToShow.face ? 'scale(1.15)' : 'none'
+            transform: previewEquip?.id === equippedToShow.face ? 'scale(1.15)' : 'none',
+            filter: getItemGlow(equippedToShow.face)
           }}>
             {SHOP_ITEMS.find(i => i.id === equippedToShow.face)?.icon}
+          </div>
+        )}
+        {/* Effet spécial */}
+        {equippedToShow.effect && (
+          <div style={{
+            fontSize: size * 0.21,
+            position: 'absolute',
+            left: size * 0.73,
+            top: size * 0.09,
+            zIndex: 6,
+            animation: 'effectAnim 1.2s infinite alternate',
+            filter: getItemGlow(equippedToShow.effect)
+          }}>
+            {SHOP_ITEMS.find(i => i.id === equippedToShow.effect)?.icon}
+          </div>
+        )}
+        {/* Badge */}
+        {equippedToShow.badge && (
+          <div style={{
+            fontSize: size * 0.13,
+            position: 'absolute',
+            left: size * 0.09,
+            top: size * 0.82,
+            zIndex: 7,
+            filter: getItemGlow(equippedToShow.badge)
+          }}>
+            {SHOP_ITEMS.find(i => i.id === equippedToShow.badge)?.icon}
+          </div>
+        )}
+        {/* Mascotte */}
+        {equippedToShow.mascot && (
+          <div style={{
+            fontSize: size * 0.18,
+            position: 'absolute',
+            left: size * 0.82,
+            top: size * 0.82,
+            zIndex: 8,
+            animation: 'mascotAnim 1.2s infinite alternate',
+            filter: getItemGlow(equippedToShow.mascot)
+          }}>
+            {SHOP_ITEMS.find(i => i.id === equippedToShow.mascot)?.icon}
           </div>
         )}
       </div>
@@ -357,123 +631,295 @@ export default function Progression({ user }) {
   )
 
   // --- Boutique onglet dédié ---
-  const renderShopTab = () => (
-    <div>
-      <div style={{
-        fontWeight: 700,
-        fontSize: '1.1rem',
-        marginBottom: 10,
-        color: '#10b981',
-        textAlign: 'center'
-      }}>
-        Boutique d'objets & Habillage
-      </div>
-      <div style={{
-        display: 'flex',
-        gap: 18,
-        flexWrap: 'wrap',
-        justifyContent: 'center',
-        marginBottom: 18
-      }}>
-        {SHOP_ITEMS.map(item => (
-          <div key={item.id} style={{
-            background: ownedItems.includes(item.id) ? '#d1fae5' : '#fff',
-            border: ownedItems.includes(item.id) ? '2px solid #10b981' : '1px solid #e5e7eb',
-            borderRadius: 14,
-            padding: 14,
-            minWidth: 110,
-            textAlign: 'center',
-            boxShadow: '0 2px 8px #f59e0b11',
-            opacity: ownedItems.includes(item.id) ? 1 : 0.85,
-            position: 'relative',
-            transition: 'box-shadow 0.2s, border 0.2s'
-          }}
-            onMouseEnter={() => ownedItems.includes(item.id) && setPreviewEquip(item)}
-            onMouseLeave={() => setPreviewEquip(null)}
-          >
-            <div style={{
-              fontSize: 32,
-              marginBottom: 6,
-              filter: previewEquip?.id === item.id ? 'drop-shadow(0 0 8px #10b981)' : 'none',
-              transition: 'filter 0.2s'
-            }}>{item.icon}</div>
-            <div style={{ fontWeight: 600, fontSize: 15 }}>{item.name}</div>
-            <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 8 }}>{item.price} 🪙</div>
-            {ownedItems.includes(item.id) ? (
-              <button
-                style={{
-                  background: equipped[item.type] === item.id ? '#10b981' : '#f3f4f6',
-                  color: equipped[item.type] === item.id ? 'white' : '#059669',
-                  border: 'none',
-                  borderRadius: 8,
-                  padding: '5px 12px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  fontSize: 14,
-                  marginBottom: 2,
-                  boxShadow: equipped[item.type] === item.id ? '0 2px 8px #10b98133' : 'none'
-                }}
-                onClick={() => equipItem(item)}
-              >
-                {equipped[item.type] === item.id ? 'Équipé' : 'Équiper'}
-              </button>
-            ) : (
-              <button
-                style={{
-                  background: coins >= item.price ? '#f59e0b' : '#f3f4f6',
-                  color: coins >= item.price ? 'white' : '#f59e0b',
-                  border: 'none',
-                  borderRadius: 8,
-                  padding: '5px 12px',
-                  fontWeight: 700,
-                  cursor: coins >= item.price ? 'pointer' : 'not-allowed',
-                  fontSize: 14,
-                  marginBottom: 2
-                }}
-                disabled={coins < item.price}
-                onClick={() => buyItem(item)}
-              >
-                Acheter
-              </button>
-            )}
-          </div>
-        ))}
-      </div>
-      {/* Historique d'achats */}
-      {purchaseHistory.length > 0 && (
+  const renderShopTab = () => {
+    // Filtrage par type
+    const filtered = shopFilter === 'all'
+      ? SHOP_ITEMS
+      : SHOP_ITEMS.filter(i => i.type === shopFilter)
+    // Objets favoris
+    const favoriteObjs = SHOP_ITEMS.filter(i => favoriteItems.includes(i.id))
+    // Stats par catégorie
+    const ownedByType = type =>
+      SHOP_ITEMS.filter(i => i.type === type && ownedItems.includes(i.id)).length
+    const totalByType = type =>
+      SHOP_ITEMS.filter(i => i.type === type).length
+
+    return (
+      <div>
+        {/* Filtres par catégorie */}
         <div style={{
-          marginTop: 18,
-          fontSize: '0.95rem',
-          color: '#92400e',
-          background: '#fff',
-          borderRadius: 10,
-          padding: 10,
-          boxShadow: '0 1px 4px #f59e0b11',
-          maxWidth: 340,
-          marginLeft: 'auto',
-          marginRight: 'auto'
+          display: 'flex', gap: 10, justifyContent: 'center', marginBottom: 18, flexWrap: 'wrap'
         }}>
-          <b>Historique d'achats :</b>
-          <ul style={{ margin: 0, paddingLeft: 18 }}>
-            {purchaseHistory.slice(0, 3).map((h, i) => (
-              <li key={i}>
-                {h.item.icon} {h.item.name} <span style={{ color: '#f59e0b' }}>({h.item.price}🪙)</span> - {h.date.toLocaleTimeString('fr-FR')}
-              </li>
-            ))}
-          </ul>
+          {ITEM_TYPES.map(cat => (
+            <button
+              key={cat.id}
+              onClick={() => setShopFilter(cat.id)}
+              style={{
+                background: shopFilter === cat.id ? 'linear-gradient(135deg, #10b981, #34d399)' : '#fff',
+                color: shopFilter === cat.id ? 'white' : '#10b981',
+                border: shopFilter === cat.id ? '2px solid #10b981' : '1px solid #e5e7eb',
+                borderRadius: 10,
+                padding: '7px 16px',
+                fontWeight: 700,
+                fontSize: '1rem',
+                boxShadow: shopFilter === cat.id ? '0 2px 8px #10b98133' : 'none',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+            >
+              <span style={{ fontSize: '1.2rem', marginRight: 4 }}>{cat.icon}</span>
+              {cat.label}
+              {cat.id !== 'all' && (
+                <span style={{
+                  marginLeft: 6,
+                  fontSize: '0.9rem',
+                  color: '#92400e',
+                  fontWeight: 600
+                }}>
+                  {ownedByType(cat.id)}/{totalByType(cat.id)}
+                </span>
+              )}
+            </button>
+          ))}
+          {/* Tout déséquiper */}
+          <button
+            onClick={unequipAll}
+            style={{
+              background: '#f59e0b',
+              color: 'white',
+              border: 'none',
+              borderRadius: 10,
+              padding: '7px 16px',
+              fontWeight: 700,
+              fontSize: '1rem',
+              marginLeft: 10,
+              cursor: 'pointer'
+            }}
+          >
+            Tout déséquiper
+          </button>
         </div>
-      )}
-      {/* Préparation pour d'autres catégories d'habillage */}
-      <div style={{
-        marginTop: 24,
-        textAlign: 'center',
-        color: '#6b7280',
-        fontSize: '0.95rem'
-      }}>
-        D'autres objets et styles d'habillage arrivent bientôt !
+        {/* Objets favoris */}
+        {favoriteObjs.length > 0 && (
+          <div style={{
+            marginBottom: 18,
+            background: '#fffbe6',
+            borderRadius: 12,
+            padding: 10,
+            boxShadow: '0 1px 4px #f59e0b11',
+            display: 'flex',
+            gap: 10,
+            flexWrap: 'wrap',
+            alignItems: 'center'
+          }}>
+            <span style={{ fontWeight: 700, color: '#f59e0b', fontSize: '1.05rem' }}>⭐ Favoris :</span>
+            {favoriteObjs.map(item => (
+              <span key={item.id} style={{
+                fontSize: 22,
+                marginRight: 4,
+                filter: getItemGlow(item.id)
+              }}>
+                {item.icon}
+              </span>
+            ))}
+          </div>
+        )}
+        {/* Grille boutique */}
+        <div style={{
+          display: 'flex',
+          gap: 18,
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+          marginBottom: 18
+        }}>
+          {filtered.map(item => (
+            <div key={item.id} style={{
+              background: ownedItems.includes(item.id)
+                ? (item.rarity === 'legendary' ? '#fef3c7' : item.rarity === 'epic' ? '#f3e8ff' : '#d1fae5')
+                : '#fff',
+              border: ownedItems.includes(item.id)
+                ? `2px solid ${item.rarity === 'legendary' ? '#f59e0b' : item.rarity === 'epic' ? '#8b5cf6' : '#10b981'}`
+                : '1px solid #e5e7eb',
+              borderRadius: 14,
+              padding: 14,
+              minWidth: 120,
+              textAlign: 'center',
+              boxShadow: ownedItems.includes(item.id) ? '0 2px 8px #f59e0b11' : 'none',
+              opacity: ownedItems.includes(item.id) ? 1 : 0.85,
+              position: 'relative',
+              transition: 'box-shadow 0.2s, border 0.2s'
+            }}
+              onMouseEnter={() => ownedItems.includes(item.id) && setPreviewEquip(item)}
+              onMouseLeave={() => setPreviewEquip(null)}
+            >
+              {/* Badge rareté */}
+              <div style={{
+                position: 'absolute',
+                top: 6,
+                right: 6,
+                fontSize: 12,
+                fontWeight: 700,
+                color: item.rarity === 'legendary' ? '#f59e0b' : item.rarity === 'epic' ? '#8b5cf6' : item.rarity === 'rare' ? '#3b82f6' : '#10b981',
+                background: item.rarity === 'legendary'
+                  ? 'linear-gradient(90deg,#fbbf24,#f59e0b)'
+                  : item.rarity === 'epic'
+                  ? 'linear-gradient(90deg,#a78bfa,#8b5cf6)'
+                  : item.rarity === 'rare'
+                  ? 'linear-gradient(90deg,#60a5fa,#3b82f6)'
+                  : 'linear-gradient(90deg,#6ee7b7,#10b981)',
+                borderRadius: 8,
+                padding: '2px 8px',
+                boxShadow: '0 1px 4px #f59e0b11'
+              }}>
+                {item.rarity === 'legendary' ? 'Légendaire' : item.rarity === 'epic' ? 'Épique' : item.rarity === 'rare' ? 'Rare' : 'Commun'}
+              </div>
+              {/* Badge nouveau */}
+              {item.isNew && (
+                <div style={{
+                  position: 'absolute',
+                  top: 6,
+                  left: 6,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: '#fff',
+                  background: 'linear-gradient(90deg,#f59e0b,#fbbf24)',
+                  borderRadius: 8,
+                  padding: '2px 8px',
+                  boxShadow: '0 1px 4px #f59e0b22'
+                }}>
+                  Nouveau
+                </div>
+              )}
+              {/* Badge exclusif */}
+              {item.exclusive && (
+                <div style={{
+                  position: 'absolute',
+                  bottom: 6,
+                  left: 6,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: '#fff',
+                  background: 'linear-gradient(90deg,#6366f1,#8b5cf6)',
+                  borderRadius: 8,
+                  padding: '2px 8px',
+                  boxShadow: '0 1px 4px #8b5cf622'
+                }}>
+                  Exclusif
+                </div>
+              )}
+              {/* Icône objet */}
+              <div style={{
+                fontSize: 36,
+                marginBottom: 6,
+                filter: getItemGlow(item.id),
+                transition: 'filter 0.2s'
+              }}>{item.icon}</div>
+              <div style={{ fontWeight: 600, fontSize: 15 }}>{item.name}</div>
+              <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 8 }}>{item.price} 🪙</div>
+              {/* Favori */}
+              <button
+                onClick={() => toggleFavorite(item.id)}
+                style={{
+                  position: 'absolute',
+                  bottom: 6,
+                  right: 6,
+                  background: 'none',
+                  border: 'none',
+                  fontSize: 18,
+                  color: favoriteItems.includes(item.id) ? '#f59e0b' : '#e5e7eb',
+                  cursor: 'pointer',
+                  transition: 'color 0.2s'
+                }}
+                title={favoriteItems.includes(item.id) ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+              >
+                {favoriteItems.includes(item.id) ? '★' : '☆'}
+              </button>
+              {/* Actions achat/équipement */}
+              {ownedItems.includes(item.id) ? (
+                <button
+                  style={{
+                    background: equipped[item.type] === item.id ? '#10b981' : '#f3f4f6',
+                    color: equipped[item.type] === item.id ? 'white' : '#059669',
+                    border: 'none',
+                    borderRadius: 8,
+                    padding: '5px 12px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    fontSize: 14,
+                    marginBottom: 2,
+                    boxShadow: equipped[item.type] === item.id ? '0 2px 8px #10b98133' : 'none'
+                  }}
+                  onClick={() => equipItem(item)}
+                >
+                  {equipped[item.type] === item.id ? 'Équipé' : 'Équiper'}
+                </button>
+              ) : (
+                <button
+                  style={{
+                    background: coins >= item.price ? '#f59e0b' : '#f3f4f6',
+                    color: coins >= item.price ? 'white' : '#f59e0b',
+                    border: 'none',
+                    borderRadius: 8,
+                    padding: '5px 12px',
+                    fontWeight: 700,
+                    cursor: coins >= item.price ? 'pointer' : 'not-allowed',
+                    fontSize: 14,
+                    marginBottom: 2
+                  }}
+                  disabled={coins < item.price}
+                  onClick={() => buyItem(item)}
+                >
+                  Acheter
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+        {/* Historique d'achats */}
+        {purchaseHistory.length > 0 && (
+          <div style={{
+            marginTop: 18,
+            fontSize: '0.95rem',
+            color: '#92400e',
+            background: '#fff',
+            borderRadius: 10,
+            padding: 10,
+            boxShadow: '0 1px 4px #f59e0b11',
+            maxWidth: 340,
+            marginLeft: 'auto',
+            marginRight: 'auto'
+          }}>
+            <b>Historique d'achats :</b>
+            <ul style={{ margin: 0, paddingLeft: 18 }}>
+              {purchaseHistory.slice(0, 3).map((h, i) => (
+                <li key={i}>
+                  {h.item.icon} {h.item.name} <span style={{ color: '#f59e0b' }}>({h.item.price}🪙)</span> - {h.date.toLocaleTimeString('fr-FR')}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        <div style={{
+          marginTop: 24,
+          textAlign: 'center',
+          color: '#6b7280',
+          fontSize: '0.95rem'
+        }}>
+          D'autres objets et styles d'habillage arrivent bientôt !
+        </div>
+        <style jsx>{`
+          @keyframes effectAnim {
+            0%,100% { transform: scale(1);}
+            50% { transform: scale(1.2) rotate(-8deg);}
+          }
+          @keyframes mascotAnim {
+            0%,100% { transform: translateY(0);}
+            50% { transform: translateY(-8px);}
+          }
+        `}</style>
       </div>
-    </div>
-  )
+    )
+  }
 
   if (loading) {
     return (
@@ -547,13 +993,29 @@ export default function Progression({ user }) {
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
               {/* Avatar chef customisable */}
-              <div style={{
-                width: 90, height: 90, borderRadius: '50%', background: 'white',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '2.2rem', color: '#f59e0b', fontWeight: 900, boxShadow: '0 2px 12px #f59e0b33',
-                position: 'relative'
-              }}>
+              <div
+                style={{
+                  width: 90, height: 90, borderRadius: '50%', background: 'white',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '2.2rem', color: '#f59e0b', fontWeight: 900, boxShadow: '0 2px 12px #f59e0b33',
+                  position: 'relative',
+                  cursor: 'pointer'
+                }}
+                title="Voir et personnaliser mon avatar"
+                onClick={() => setDressingOpen(true)}
+              >
                 {renderChefAvatar()}
+                <span style={{
+                  position: 'absolute',
+                  bottom: 2, right: 2,
+                  background: '#f59e0b',
+                  color: 'white',
+                  fontSize: 13,
+                  borderRadius: 8,
+                  padding: '2px 6px',
+                  fontWeight: 700,
+                  boxShadow: '0 2px 8px #f59e0b33'
+                }}>👗</span>
               </div>
               <div>
                 <div style={{ fontWeight: 800, fontSize: '1.3rem', letterSpacing: '-0.5px' }}>
