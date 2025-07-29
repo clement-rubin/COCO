@@ -81,15 +81,32 @@ class NotificationManager {
 
     this.fallbackContainer = document.createElement('div')
     this.fallbackContainer.id = 'coco-fallback-notifications'
+    
+    // CSS adaptatif pour mobile et desktop
+    const isMobile = window.innerWidth <= 768
     this.fallbackContainer.style.cssText = `
       position: fixed;
-      top: 80px;
-      right: 20px;
+      top: ${isMobile ? '10px' : '80px'};
+      right: ${isMobile ? '10px' : '20px'};
+      left: ${isMobile ? '10px' : 'auto'};
       z-index: 10000;
-      max-width: 380px;
+      max-width: ${isMobile ? 'calc(100vw - 20px)' : '380px'};
       pointer-events: none;
     `
     document.body.appendChild(this.fallbackContainer)
+
+    // Réajuster lors du redimensionnement
+    const resizeHandler = () => {
+      const nowMobile = window.innerWidth <= 768
+      if (nowMobile !== isMobile) {
+        this.fallbackContainer.style.top = nowMobile ? '10px' : '80px'
+        this.fallbackContainer.style.right = nowMobile ? '10px' : '20px'
+        this.fallbackContainer.style.left = nowMobile ? '10px' : 'auto'
+        this.fallbackContainer.style.maxWidth = nowMobile ? 'calc(100vw - 20px)' : '380px'
+      }
+    }
+    
+    window.addEventListener('resize', resizeHandler)
   }
 
   /**
@@ -314,18 +331,57 @@ class NotificationManager {
   }
 
   /**
-   * Crée l'élément DOM pour la notification fallback
+   * Crée le conteneur fallback pour les notifications - VERSION MOBILE-FRIENDLY
+   */
+  createFallbackContainer() {
+    if (this.fallbackContainer) return
+
+    this.fallbackContainer = document.createElement('div')
+    this.fallbackContainer.id = 'coco-fallback-notifications'
+    
+    // CSS adaptatif pour mobile et desktop
+    const isMobile = window.innerWidth <= 768
+    this.fallbackContainer.style.cssText = `
+      position: fixed;
+      top: ${isMobile ? '10px' : '80px'};
+      right: ${isMobile ? '10px' : '20px'};
+      left: ${isMobile ? '10px' : 'auto'};
+      z-index: 10000;
+      max-width: ${isMobile ? 'calc(100vw - 20px)' : '380px'};
+      pointer-events: none;
+    `
+    document.body.appendChild(this.fallbackContainer)
+
+    // Réajuster lors du redimensionnement
+    const resizeHandler = () => {
+      const nowMobile = window.innerWidth <= 768
+      if (nowMobile !== isMobile) {
+        this.fallbackContainer.style.top = nowMobile ? '10px' : '80px'
+        this.fallbackContainer.style.right = nowMobile ? '10px' : '20px'
+        this.fallbackContainer.style.left = nowMobile ? '10px' : 'auto'
+        this.fallbackContainer.style.maxWidth = nowMobile ? 'calc(100vw - 20px)' : '380px'
+      }
+    }
+    
+    window.addEventListener('resize', resizeHandler)
+  }
+
+  /**
+   * Crée l'élément DOM pour la notification fallback - VERSION OPTIMISÉE
    */
   createFallbackElement(notification) {
     const element = document.createElement('div')
     element.className = `coco-notification coco-notification-${notification.type}`
+    
+    // Styles adaptatifs
+    const isMobile = window.innerWidth <= 768
     element.style.cssText = `
       background: white;
       border-left: 4px solid ${this.getTypeColor(notification.type)};
       border-radius: 12px;
       box-shadow: 0 8px 32px rgba(0,0,0,0.12);
       margin-bottom: 12px;
-      padding: 16px;
+      padding: ${isMobile ? '12px' : '16px'};
       transform: translateX(100%);
       transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
       opacity: 0;
@@ -333,20 +389,28 @@ class NotificationManager {
       cursor: pointer;
       position: relative;
       overflow: hidden;
+      font-size: ${isMobile ? '0.9rem' : '1rem'};
+      max-width: 100%;
+      word-wrap: break-word;
     `
 
-    // Icône et contenu
+    // Contenu adaptatif
+    const iconSize = isMobile ? '36px' : '40px'
+    const titleFontSize = isMobile ? '0.9rem' : '0.95rem'
+    const bodyFontSize = isMobile ? '0.8rem' : '0.85rem'
+    
     element.innerHTML = `
-      <div style="display: flex; align-items: flex-start; gap: 12px;">
+      <div style="display: flex; align-items: flex-start; gap: ${isMobile ? '10px' : '12px'};">
         <div style="
-          width: 40px; 
-          height: 40px; 
+          width: ${iconSize}; 
+          height: ${iconSize}; 
           background: ${this.getTypeColor(notification.type)}15;
           border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
           flex-shrink: 0;
+          font-size: ${isMobile ? '1.2rem' : '1.4rem'};
         ">
           ${this.getTypeEmoji(notification.type)}
         </div>
@@ -354,15 +418,17 @@ class NotificationManager {
           <div style="
             font-weight: 600;
             color: #1f2937;
-            font-size: 0.95rem;
+            font-size: ${titleFontSize};
             margin-bottom: 4px;
             line-height: 1.3;
+            word-break: break-word;
           ">${notification.title}</div>
           ${notification.body ? `
             <div style="
               color: #6b7280;
-              font-size: 0.85rem;
+              font-size: ${bodyFontSize};
               line-height: 1.4;
+              word-break: break-word;
             ">${notification.body}</div>
           ` : ''}
           <div style="
@@ -379,20 +445,43 @@ class NotificationManager {
           padding: 4px;
           border-radius: 4px;
           transition: color 0.2s;
+          font-size: 1.2rem;
+          line-height: 1;
+          min-width: 24px;
+          min-height: 24px;
         " onclick="this.parentElement.parentElement.style.display='none'">✕</button>
       </div>
     `
 
-    // Gestionnaire de clic
+    // Gestionnaire de clic amélioré
     element.addEventListener('click', (e) => {
       if (e.target.tagName !== 'BUTTON') {
         this.markAsRead(notification.id)
+        
+        // Action personnalisée selon le type
+        if (notification.data?.action) {
+          this.handleNotificationAction(notification.data)
+        }
+        
         this.hideFallbackElement(element)
       }
     })
 
-    // Classe pour animation
-    element.classList.add('coco-notification-enter')
+    // Gestion tactile pour mobile
+    if (isMobile) {
+      let touchStartX = 0
+      element.addEventListener('touchstart', (e) => {
+        touchStartX = e.touches[0].clientX
+      })
+      
+      element.addEventListener('touchmove', (e) => {
+        const touchX = e.touches[0].clientX
+        const deltaX = touchX - touchStartX
+        if (deltaX > 50) { // Swipe vers la droite pour fermer
+          this.hideFallbackElement(element)
+        }
+      })
+    }
 
     return element
   }
@@ -574,6 +663,30 @@ class NotificationManager {
       }
     })
   }
+
+  /**
+   * Gère les actions personnalisées des notifications
+   */
+  handleNotificationAction(data) {
+    try {
+      switch (data.action) {
+        case 'view_recipe':
+          if (data.recipeId && typeof window !== 'undefined') {
+            window.location.href = `/recipe/${data.recipeId}`
+          }
+          break
+        case 'view_recipe_likes':
+          if (data.recipeId && typeof window !== 'undefined') {
+            window.location.href = `/recipe/${data.recipeId}?tab=likes`
+          }
+          break
+        default:
+          logDebug('Action de notification non gérée', { action: data.action })
+      }
+    } catch (error) {
+      logError('Erreur lors de l\'action de notification', error)
+    }
+  }
 }
 
 // Instance globale
@@ -683,68 +796,158 @@ export const showRecipeCommentNotification = (recipe, fromUser, comment) => {
 }
 
 export const showRecipeLikeInteractionNotification = (recipe, fromUser) => {
-  // UTILISER addNotification au lieu de show pour s'assurer que ça arrive dans le centre
-  const notification = {
-    type: 'recipe_liked',
-    title: '❤️ Votre recette a été aimée !',
-    body: `${fromUser.display_name || fromUser.name || 'Un utilisateur'} aime votre recette "${recipe.title}"`,
-    icon: '/icons/heart.png',
-    data: { 
-      recipeId: recipe.id, 
-      userId: fromUser.user_id || fromUser.id,
-      type: 'like',
-      action: 'view_recipe',
-      likerName: fromUser.display_name || fromUser.name,
-      recipeTitle: recipe.title,
-      timestamp: new Date().toISOString(),
-      currentLikes: recipe.likes_count || 0
+  try {
+    // Validation des données d'entrée
+    if (!recipe || !fromUser) {
+      logError('Données manquantes pour la notification de like', { recipe: !!recipe, fromUser: !!fromUser })
+      return Promise.resolve({ success: false, error: 'missing_data' })
+    }
+
+    // Normalisation des données utilisateur
+    const userName = fromUser.display_name || fromUser.name || fromUser.username || 'Un utilisateur'
+    const userId = fromUser.user_id || fromUser.id
+    const recipeTitle = recipe.title || 'Votre recette'
+    const recipeId = recipe.id
+
+    logInfo('Préparation notification de like', { 
+      recipeId, 
+      userId, 
+      userName: userName.substring(0, 20) 
+    })
+
+    // Créer l'objet notification complet
+    const notification = {
+      type: 'recipe_liked',
+      title: '❤️ Quelqu\'un aime votre recette !',
+      body: `${userName} aime votre recette "${recipeTitle}"`,
+      icon: '/icons/heart.png',
+      data: { 
+        recipeId, 
+        userId,
+        type: 'like',
+        action: 'view_recipe',
+        likerName: userName,
+        recipeTitle,
+        timestamp: new Date().toISOString(),
+        currentLikes: recipe.likes_count || 0,
+        // Ajouter des identifiants uniques pour éviter les doublons
+        uniqueId: `like_${recipeId}_${userId}_${Date.now()}`
+      }
+    }
+
+    // Vérification de doublon améliorée (même recette + même utilisateur dans les 60 secondes)
+    const stored = notificationManager.getStoredNotifications()
+    const isDuplicate = stored.some(n => 
+      n.type === 'recipe_liked' &&
+      n.data?.recipeId === recipeId &&
+      n.data?.userId === userId &&
+      (Date.now() - new Date(n.timestamp).getTime()) < 60000 // 60 secondes
+    )
+
+    if (isDuplicate) {
+      logInfo('Notification de like dupliquée évitée', { recipeId, userId })
+      return Promise.resolve({ success: false, error: 'duplicate' })
+    }
+
+    // Stockage sécurisé d'abord
+    const storedNotification = notificationManager.storeNotification(notification)
+    if (!storedNotification) {
+      logError('Échec du stockage de la notification de like')
+      return Promise.resolve({ success: false, error: 'storage_failed' })
+    }
+
+    // Affichage avec gestion d'erreur
+    const displayResult = notificationManager.show(
+      notification.type,
+      notification.title,
+      {
+        body: notification.body,
+        icon: notification.icon,
+        data: notification.data,
+        forceFallback: true, // Assurer l'affichage sur mobile
+        duration: 6000,
+        id: storedNotification.id
+      }
+    )
+
+    logInfo('Notification de like envoyée avec succès', {
+      recipeId,
+      userId,
+      notificationId: storedNotification.id,
+      displayType: displayResult?.type || 'unknown'
+    })
+
+    return Promise.resolve({
+      success: true,
+      notificationId: storedNotification.id,
+      displayType: displayResult?.type
+    })
+
+  } catch (error) {
+    logError('Erreur lors de l\'envoi de la notification de like', error)
+    
+    // Tentative de récupération avec notification basique
+    try {
+      const fallbackNotification = {
+        type: 'recipe_liked',
+        title: '❤️ Nouvelle interaction',
+        body: 'Quelqu\'un aime votre recette !',
+        icon: '/icons/heart.png',
+        data: { 
+          recipeId: recipe?.id,
+          type: 'like_fallback',
+          timestamp: new Date().toISOString()
+        }
+      }
+      
+      notificationManager.storeNotification(fallbackNotification)
+      notificationManager.show(fallbackNotification.type, fallbackNotification.title, {
+        body: fallbackNotification.body,
+        forceFallback: true,
+        duration: 4000
+      })
+      
+      return Promise.resolve({ success: true, fallback: true })
+    } catch (fallbackError) {
+      logError('Échec de la notification de récupération', fallbackError)
+      return Promise.resolve({ success: false, error: 'complete_failure' })
     }
   }
-
-  // IMPORTANT: Utiliser addNotification ET show pour double assurance
-  const storedNotification = notificationManager.addNotification(notification)
-  
-  // Aussi afficher la notification fallback
-  return notificationManager.show(
-    notification.type,
-    notification.title,
-    {
-      body: notification.body,
-      icon: notification.icon,
-      data: notification.data,
-      forceFallback: true,
-      duration: 6000
-    }
-  )
 }
 
 /**
- * Notification enrichie avec statistiques de likes
+ * Notification enrichie avec statistiques de likes - VERSION AMÉLIORÉE
  */
 export const showRecipeLikeWithStatsNotification = (recipe, fromUser, likeStats) => {
-  const otherLikersCount = (likeStats.total_likers || 1) - 1
-  const recentLikers = likeStats.recent_likers || []
-  
-  let bodyText = `${fromUser.display_name || 'Un utilisateur'} aime votre recette "${recipe.title}"`
-  
-  if (otherLikersCount > 0) {
-    if (otherLikersCount === 1) {
-      bodyText += ` (et 1 autre personne)`
-    } else if (otherLikersCount <= 3 && recentLikers.length > 1) {
-      const otherNames = recentLikers
-        .slice(1, 4)
-        .map(l => l.user_name)
-        .join(', ')
-      bodyText += ` (avec ${otherNames})`
-    } else {
-      bodyText += ` (et ${otherLikersCount} autres personnes)`
+  try {
+    const userName = fromUser.display_name || fromUser.name || 'Un utilisateur'
+    const otherLikersCount = Math.max(0, (likeStats.total_likers || 1) - 1)
+    const recentLikers = likeStats.recent_likers || []
+    
+    let bodyText = `${userName} aime votre recette "${recipe.title}"`
+    
+    if (otherLikersCount > 0) {
+      if (otherLikersCount === 1) {
+        bodyText += ` (et 1 autre personne)`
+      } else if (otherLikersCount <= 3 && recentLikers.length > 1) {
+        const otherNames = recentLikers
+          .slice(1, 4)
+          .map(l => l.user_name || l.name)
+          .filter(Boolean)
+          .join(', ')
+        if (otherNames) {
+          bodyText += ` (avec ${otherNames})`
+        } else {
+          bodyText += ` (et ${otherLikersCount} autres)`
+        }
+      } else {
+        bodyText += ` (et ${otherLikersCount} autres personnes)`
+      }
     }
-  }
 
-  return notificationManager.show(
-    NOTIFICATION_TYPES.RECIPE_LIKED,
-    '❤️ Votre recette fait sensation !',
-    {
+    const notification = {
+      type: 'recipe_liked_stats',
+      title: '❤️ Votre recette fait sensation !',
       body: bodyText,
       icon: '/icons/heart.png',
       data: { 
@@ -752,93 +955,39 @@ export const showRecipeLikeWithStatsNotification = (recipe, fromUser, likeStats)
         userId: fromUser.user_id || fromUser.id,
         type: 'like_with_stats',
         action: 'view_recipe_likes',
-        likerName: fromUser.display_name || fromUser.name,
+        likerName: userName,
         recipeTitle: recipe.title,
         totalLikes: likeStats.total_likers || 1,
-        recentLikers: recentLikers.slice(0, 3), // Seulement les 3 plus récents
-        timestamp: new Date().toISOString()
-      },
-      forceFallback: true,
-      duration: 8000
-    }
-  )
-}
-
-export const showNewFollowerNotification = (follower) => {
-  return notificationManager.show(
-    NOTIFICATION_TYPES.FRIEND_ACCEPTED,
-    'Nouveau follower !',
-    {
-      body: `${follower.display_name || follower.name} vous suit maintenant`,
-      data: { 
-        userId: follower.user_id || follower.id,
-        type: 'follow'
+        recentLikers: recentLikers.slice(0, 3),
+        timestamp: new Date().toISOString(),
+        uniqueId: `like_stats_${recipe.id}_${Date.now()}`
       }
     }
-  )
-}
 
-export const showRecipeOfWeekVoteNotification = (recipe, fromUser) => {
-  return notificationManager.show(
-    NOTIFICATION_TYPES.RECIPE_LIKED,
-    'Vote pour votre recette !',
-    {
-      body: `${fromUser.display_name} a voté pour votre recette "${recipe.title}" comme recette de la semaine !`,
-      image: recipe.image,
-      data: { 
-        recipeId: recipe.id, 
-        userId: fromUser.user_id,
-        type: 'week_vote'
-      }
+    // Stockage puis affichage
+    const stored = notificationManager.storeNotification(notification)
+    if (stored) {
+      return notificationManager.show(
+        notification.type,
+        notification.title,
+        {
+          body: notification.body,
+          icon: notification.icon,
+          data: notification.data,
+          forceFallback: true,
+          duration: 8000,
+          id: stored.id
+        }
+      )
     }
-  )
-}
 
-export const showRecipeOfWeekWinnerNotification = (recipe) => {
-  return notificationManager.show(
-    NOTIFICATION_TYPES.SYSTEM,
-    'Félicitations ! 🏆',
-    {
-      body: `Votre recette "${recipe.title}" a été élue recette de la semaine !`,
-      image: recipe.image,
-      data: { 
-        recipeId: recipe.id,
-        type: 'week_winner'
-      }
-    }
-  )
-}
+    return Promise.resolve({ success: false, error: 'storage_failed' })
 
-// Nouvelle fonction pour notifier le début du vote hebdomadaire
-export const showWeeklyVotingStartNotification = () => {
-  return notificationManager.show(
-    NOTIFICATION_TYPES.SYSTEM,
-    'Nouveau vote hebdomadaire ! 🗳️',
-    {
-      body: 'Découvrez les nouvelles recettes candidates et votez pour votre préférée !',
-      data: { 
-        type: 'weekly_voting_start',
-        action: 'open_collections_tab'
-      }
-    }
-  )
-}
-
-export const showRecipeParticipationNotification = (recipe, action) => {
-  const isInscription = action === 'inscrite'
-  return notificationManager.show(
-    NOTIFICATION_TYPES.SUCCESS,
-    isInscription ? 'Recette inscrite au concours !' : 'Recette retirée du concours',
-    {
-      body: `"${recipe.title}" ${isInscription ? 'participe maintenant' : 'ne participe plus'} au concours de la semaine`,
-      image: recipe.image,
-      data: { 
-        recipeId: recipe.id,
-        type: isInscription ? 'contest_join' : 'contest_leave'
-      },
-      duration: isInscription ? 6000 : 4000
-    }
-  )
+  } catch (error) {
+    logError('Erreur notification like avec stats', error)
+    // Fallback vers notification simple
+    return showRecipeLikeInteractionNotification(recipe, fromUser)
+  }
 }
 
 // Ajouter les styles CSS dynamiquement
