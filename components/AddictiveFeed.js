@@ -348,7 +348,12 @@ export default function AddictiveFeed() {
     // Animation uniquement si c'est un like (pas un unlike)
     if (!isCurrentlyLiked) {
       // Déclencher une notification pour le propriétaire de la recette
-      if (recipe && recipe.user && recipe.user.id !== user.id) {
+      if (
+        recipe &&
+        recipe.user &&
+        recipe.user.id !== user.id && // Ne pas notifier si l'utilisateur like sa propre recette
+        recipe.user.id // S'assurer que la recette a bien un propriétaire
+      ) {
         showRecipeLikedNotification(
           {
             id: recipe.recipe.id,

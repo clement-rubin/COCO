@@ -856,6 +856,15 @@ export const showRecipeLikeInteractionNotification = (recipe, fromUser) => {
       return Promise.resolve({ success: false, error: 'missing_data' })
     }
 
+    // Ne pas notifier l'auteur s'il like sa propre recette
+    if (recipe.user_id && (fromUser.user_id || fromUser.id) && recipe.user_id === (fromUser.user_id || fromUser.id)) {
+      logInfo('Aucune notification de like envoyée : utilisateur like sa propre recette', {
+        recipeId: recipe.id,
+        userId: fromUser.user_id || fromUser.id
+      })
+      return Promise.resolve({ success: false, error: 'self_like' })
+    }
+
     // Normalisation des données utilisateur
     const userName = fromUser.display_name || fromUser.name || fromUser.username || 'Un utilisateur'
     const userId = fromUser.user_id || fromUser.id

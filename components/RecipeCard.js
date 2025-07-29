@@ -210,7 +210,10 @@ const RecipeCard = ({
           setTimeout(() => heart.remove(), 1500)
 
           // Notification enrichie si c'est la recette de quelqu'un d'autre
-          if (recipe.user_id && recipe.user_id !== user.id) {
+          if (
+            recipe.user_id &&
+            recipe.user_id !== user.id // Ne pas notifier si l'utilisateur like sa propre recette
+          ) {
             try {
               // Obtenir les statistiques détaillées pour la notification
               const detailedStats = await safeGetRecipeLikesWithDetails(recipe.id)
