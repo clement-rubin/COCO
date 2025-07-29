@@ -805,19 +805,6 @@ export const showRecipeSharedNotification = (recipe, fromUser) => {
 }
 
 export const showRecipeLikedNotification = (recipe, fromUser) => {
-  // Ne pas notifier l'auteur s'il like sa propre recette
-  if (
-    recipe.user_id &&
-    (fromUser.user_id || fromUser.id) &&
-    recipe.user_id === (fromUser.user_id || fromUser.id)
-  ) {
-    logInfo('Aucune notification de like envoyée : utilisateur like sa propre recette', {
-      recipeId: recipe.id,
-      userId: fromUser.user_id || fromUser.id
-    })
-    return Promise.resolve({ success: false, error: 'self_like' })
-  }
-
   return notificationManager.show(
     NOTIFICATION_TYPES.RECIPE_LIKED,
     'Votre recette a été aimée',

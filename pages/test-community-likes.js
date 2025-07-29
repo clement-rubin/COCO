@@ -199,11 +199,7 @@ export default function TestCommunityLikes() {
         setTestResults(prev => ({ ...prev, [`like_${postId}`]: 'success' }))
 
         // Notification et animation si c'est un nouveau like
-        if (
-          result.stats?.user_has_liked && 
-          !isCurrentlyLiked &&
-          post.user_id !== user.id // N'envoie la notif que si ce n'est pas l'auteur
-        ) {
+        if (result.stats?.user_has_liked && !isCurrentlyLiked) {
           showRecipeLikedNotification(post, {
             display_name: user.user_metadata?.display_name || 'Testeur'
           })

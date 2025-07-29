@@ -217,12 +217,8 @@ export default function FriendsFeed({ feedType = 'featured' }) {
         newSet.delete(recipeId)
       } else {
         newSet.add(recipeId)
-        // N'envoie la notification que si ce n'est pas l'auteur
-        if (
-          recipe &&
-          (recipe.user_id || recipe.chef) &&
-          (recipe.user_id !== user.id && recipe.chef !== user.user_metadata?.display_name)
-        ) {
+        
+        if (recipe && recipe.chef !== user.user_metadata?.display_name) {
           showRecipeLikedNotification(
             {
               id: recipe.id,

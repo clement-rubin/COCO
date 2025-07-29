@@ -180,10 +180,7 @@ export default function TestLikesComments() {
         setTestResults(prev => ({ ...prev, [`like_${recipeId}`]: 'success' }))
 
         // Test de notification uniquement si c'est un nouveau like
-        if (
-          result.stats?.user_has_liked &&
-          recipe.user_id !== user.id // N'envoie la notif que si ce n'est pas l'auteur
-        ) {
+        if (result.stats?.user_has_liked) {
           showRecipeLikedNotification(recipe, {
             display_name: user.user_metadata?.display_name || 'Testeur'
           })
