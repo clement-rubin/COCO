@@ -50,8 +50,98 @@ const Navbar = () => {
 
         </div>
 
-        {/* ...existing mobile menu... */}
-
+        {/* Mobile Menu */}
+        {isMenuOpen && (
+          <div className="visible-mobile" style={{
+            position: 'fixed',
+            bottom: 24,
+            right: 24,
+            left: 'auto',
+            width: 260,
+            background: 'rgba(255,255,255,0.98)',
+            boxShadow: '0 8px 32px rgba(245,158,11,0.18), 0 2px 8px rgba(0,0,0,0.08)',
+            borderRadius: '24px',
+            padding: '28px 20px 18px 20px',
+            zIndex: 9999,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '18px',
+            alignItems: 'stretch',
+            animation: 'mobileMenuPop 0.25s'
+          }}>
+            <button
+              onClick={() => setIsMenuOpen(false)}
+              style={{
+                position: 'absolute',
+                top: 10,
+                right: 14,
+                background: 'none',
+                border: 'none',
+                fontSize: 22,
+                color: '#f59e0b',
+                cursor: 'pointer',
+                fontWeight: 700
+              }}
+              aria-label="Fermer le menu"
+            >✕</button>
+            <Link href="/recipes" className="mobile-nav-link" style={{
+              background: 'linear-gradient(90deg,#fef3c7,#fffbe6)',
+              color: '#ff6b35',
+              fontWeight: 700,
+              border: 'none',
+              borderRadius: 14,
+              padding: '14px 0',
+              textAlign: 'center',
+              fontSize: '1.1rem',
+              marginBottom: 2,
+              boxShadow: '0 2px 8px #f59e0b11'
+            }}>
+              🍽️ Recettes
+            </Link>
+            <Link href="/add-recipe" className="mobile-nav-link" style={{
+              background: 'linear-gradient(90deg,#fbbf24,#f59e0b)',
+              color: 'white',
+              fontWeight: 700,
+              border: 'none',
+              borderRadius: 14,
+              padding: '14px 0',
+              textAlign: 'center',
+              fontSize: '1.1rem',
+              marginBottom: 2,
+              boxShadow: '0 2px 8px #f59e0b22'
+            }}>
+              ➕ Ajouter une recette
+            </Link>
+            <Link href="/amis" className="mobile-nav-link" style={{
+              background: 'linear-gradient(90deg,#ecfdf5,#d1fae5)',
+              color: '#10b981',
+              fontWeight: 700,
+              border: 'none',
+              borderRadius: 14,
+              padding: '14px 0',
+              textAlign: 'center',
+              fontSize: '1.1rem',
+              marginBottom: 2,
+              boxShadow: '0 2px 8px #10b98111'
+            }}>
+              👥 Mes amis
+            </Link>
+            <Link href="/profile" className="mobile-nav-link" style={{
+              background: 'linear-gradient(90deg,#f3e8ff,#ede9fe)',
+              color: '#8b5cf6',
+              fontWeight: 700,
+              border: 'none',
+              borderRadius: 14,
+              padding: '14px 0',
+              textAlign: 'center',
+              fontSize: '1.1rem',
+              marginBottom: 2,
+              boxShadow: '0 2px 8px #8b5cf611'
+            }}>
+              👤 Mon profil
+            </Link>
+          </div>
+        )}
       </div>
 
       <style jsx>{`
@@ -85,6 +175,11 @@ const Navbar = () => {
         .mobile-nav-link:hover {
           background: var(--warm-cream);
           color: var(--primary-orange);
+        }
+
+        @keyframes mobileMenuPop {
+          0% { opacity: 0; transform: scale(0.95) translateY(30px);}
+          100% { opacity: 1; transform: scale(1) translateY(0);}
         }
       `}</style>
     </nav>

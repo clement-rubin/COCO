@@ -129,6 +129,15 @@ export default function Progression({ user }) {
   const [shopFilter, setShopFilter] = useState('all')
   const [dressingOpen, setDressingOpen] = useState(false)
   const [dressingTab, setDressingTab] = useState('hat') // caté active dans le dressing
+  const [completedChallenges, setCompletedChallenges] = useState(() => {
+    // Stockage local pour empêcher la validation infinie des quêtes
+    try {
+      const data = JSON.parse(localStorage.getItem('coco_daily_challenges') || '{}');
+      return data;
+    } catch {
+      return {};
+    }
+  });
 
   useEffect(() => {
     let isMounted = true
@@ -180,7 +189,6 @@ export default function Progression({ user }) {
     ])
     setShopFeedback({ type: 'success', msg: `✅ ${item.name} acheté !` })
     setTimeout(() => setShopFeedback(null), 2000)
-    // Animation gain de coins négatif (dépense)
     setCoinAnim(true)
     setTimeout(() => setCoinAnim(false), 900)
   }
@@ -198,6 +206,22 @@ export default function Progression({ user }) {
       setTimeout(() => setShopFeedback(null), 1500)
       return { ...prev, [item.type]: item.id }
     })
+  }
+
+  // --- Validation unique des quêtes journalières ---
+  const canValidateChallenge = (challengeId) => {
+    const today = new Date().toISOString().slice(0, 10)
+    return !completedChallenges[challengeId] || completedChallenges[challengeId] !== today
+  }
+  const validateChallenge = (challenge) => {
+    if (!canValidateChallenge(challenge.id)) return
+    gainCoins(20)
+    const today = new Date().toISOString().slice(0, 10)
+    const updated = { ...completedChallenges, [challenge.id]: today }
+    setCompletedChallenges(updated)
+    localStorage.setItem('coco_daily_challenges', JSON.stringify(updated))
+    setShopFeedback({ type: 'success', msg: `Défi validé ! +20 CocoCoins` })
+    setTimeout(() => setShopFeedback(null), 1200)
   }
 
   // --- Animation gain de coins (ex: défi validé) ---
@@ -724,12 +748,11 @@ export default function Progression({ user }) {
             ))}
           </div>
         )}
-        {/* Grille boutique */}
+        {/* Grille boutique modernisée */}
         <div style={{
-          display: 'flex',
-          gap: 18,
-          flexWrap: 'wrap',
-          justifyContent: 'center',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+          gap: 22,
           marginBottom: 18
         }}>
           {filtered.map(item => (
@@ -738,16 +761,19 @@ export default function Progression({ user }) {
                 ? (item.rarity === 'legendary' ? '#fef3c7' : item.rarity === 'epic' ? '#f3e8ff' : '#d1fae5')
                 : '#fff',
               border: ownedItems.includes(item.id)
-                ? `2px solid ${item.rarity === 'legendary' ? '#f59e0b' : item.rarity === 'epic' ? '#8b5cf6' : '#10b981'}`
+                ? `2px solid ${item.rarity === 'legendary' ? '#f59e0b' : item.rarity === 'epic' ? '#8b5cf6' : item.rarity === 'rare' ? '#3b82f6' : '#10b981'}`
                 : '1px solid #e5e7eb',
-              borderRadius: 14,
-              padding: 14,
+              borderRadius: 16,
+              padding: 18,
               minWidth: 120,
               textAlign: 'center',
               boxShadow: ownedItems.includes(item.id) ? '0 2px 8px #f59e0b11' : 'none',
               opacity: ownedItems.includes(item.id) ? 1 : 0.85,
               position: 'relative',
-              transition: 'box-shadow 0.2s, border 0.2s'
+              transition: 'box-shadow 0.2s, border 0.2s',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center'
             }}
               onMouseEnter={() => ownedItems.includes(item.id) && setPreviewEquip(item)}
               onMouseLeave={() => setPreviewEquip(null)}
@@ -755,8 +781,8 @@ export default function Progression({ user }) {
               {/* Badge rareté */}
               <div style={{
                 position: 'absolute',
-                top: 6,
-                right: 6,
+                top: 8,
+                right: 8,
                 fontSize: 12, 
                 fontWeight: 700,
                 color: item.rarity === 'legendary' ? '#f59e0b' : item.rarity === 'epic' ? '#8b5cf6' : item.rarity === 'rare' ? '#3b82f6' : '#10b981',
@@ -777,8 +803,8 @@ export default function Progression({ user }) {
               {item.isNew && (
                 <div style={{
                   position: 'absolute',
-                  top: 6,
-                  left: 6,
+                  top: 8,
+                  left: 8,
                   fontSize: 11,
                   fontWeight: 700,
                   color: '#fff',
@@ -794,8 +820,8 @@ export default function Progression({ user }) {
               {item.exclusive && (
                 <div style={{
                   position: 'absolute',
-                  bottom: 6,
-                  left: 6,
+                  bottom: 8,
+                  left: 8,
                   fontSize: 11,
                   fontWeight: 700,
                   color: '#fff',
@@ -809,23 +835,23 @@ export default function Progression({ user }) {
               )}
               {/* Icône objet */}
               <div style={{
-                fontSize: 36,
-                marginBottom: 6,
+                fontSize: 38,
+                marginBottom: 8,
                 filter: getItemGlow(item.id),
                 transition: 'filter 0.2s'
               }}>{item.icon}</div>
-              <div style={{ fontWeight: 600, fontSize: 15 }}>{item.name}</div>
+              <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 2 }}>{item.name}</div>
               <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 8 }}>{item.price} 🪙</div>
               {/* Favori */}
               <button
                 onClick={() => toggleFavorite(item.id)}
                 style={{
                   position: 'absolute',
-                  bottom: 6,
-                  right: 6,
+                  bottom: 8,
+                  right: 8,
                   background: 'none',
                   border: 'none',
-                  fontSize: 18,
+                  fontSize: 20,
                   color: favoriteItems.includes(item.id) ? '#f59e0b' : '#e5e7eb',
                   cursor: 'pointer',
                   transition: 'color 0.2s'
@@ -842,12 +868,12 @@ export default function Progression({ user }) {
                     color: equipped[item.type] === item.id ? 'white' : '#059669',
                     border: 'none',
                     borderRadius: 8,
-                    padding: '5px 12px',
+                    padding: '7px 0',
                     fontWeight: 700,
                     cursor: 'pointer',
-                    fontSize: 14,
-                    marginBottom: 2,
-                    boxShadow: equipped[item.type] === item.id ? '0 2px 8px #10b98133' : 'none'
+                    fontSize: 15,
+                    marginTop: 8,
+                    width: '100%'
                   }}
                   onClick={() => equipItem(item)}
                 >
@@ -860,11 +886,12 @@ export default function Progression({ user }) {
                     color: coins >= item.price ? 'white' : '#f59e0b',
                     border: 'none',
                     borderRadius: 8,
-                    padding: '5px 12px',
+                    padding: '7px 0',
                     fontWeight: 700,
                     cursor: coins >= item.price ? 'pointer' : 'not-allowed',
-                    fontSize: 14,
-                    marginBottom: 2
+                    fontSize: 15,
+                    marginTop: 8,
+                    width: '100%'
                   }}
                   disabled={coins < item.price}
                   onClick={() => buyItem(item)}
@@ -1174,35 +1201,57 @@ export default function Progression({ user }) {
             <div style={{
               display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center'
             }}>
-              {dailyChallenges.map(challenge => (
-                <div key={challenge.id} style={{
-                  background: '#ecfdf5', borderRadius: 14, padding: '10px 16px', minWidth: 120,
-                  display: 'flex', alignItems: 'center', gap: 10, fontWeight: 600, color: '#059669',
-                  boxShadow: '0 2px 8px #10b98111'
-                }}>
-                  <span style={{ fontSize: '1.3rem' }}>{challenge.icon}</span>
-                  <span>{challenge.label}</span>
-                  <span style={{ marginLeft: 'auto', color: '#10b981', fontWeight: 700 }}>{challenge.reward}</span>
-                  {/* Ajout bouton gain de coins pour test */}
-                  <button
-                    style={{
-                      marginLeft: 8,
-                      background: '#10b981',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: 8,
-                      padding: '2px 8px',
-                      fontWeight: 700,
-                      fontSize: 12,
-                      cursor: 'pointer'
-                    }}
-                    onClick={() => gainCoins(20)}
-                    title="Valider le défi (démo)"
-                  >
-                    Valider
-                  </button>
-                </div>
-              ))}
+              {dailyChallenges.map(challenge => {
+                const validated = !canValidateChallenge(challenge.id)
+                return (
+                  <div key={challenge.id} style={{
+                    background: validated ? '#e5e7eb' : '#ecfdf5',
+                    borderRadius: 14,
+                    padding: '10px 16px',
+                    minWidth: 120,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    fontWeight: 600,
+                    color: validated ? '#9ca3af' : '#059669',
+                    boxShadow: '0 2px 8px #10b98111',
+                    opacity: validated ? 0.6 : 1,
+                    position: 'relative'
+                  }}>
+                    <span style={{ fontSize: '1.3rem' }}>{challenge.icon}</span>
+                    <span>{challenge.label}</span>
+                    <span style={{ marginLeft: 'auto', color: validated ? '#9ca3af' : '#10b981', fontWeight: 700 }}>{challenge.reward}</span>
+                    <button
+                      style={{
+                        marginLeft: 8,
+                        background: validated ? '#d1d5db' : '#10b981',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: 8,
+                        padding: '2px 8px',
+                        fontWeight: 700,
+                        fontSize: 12,
+                        cursor: validated ? 'not-allowed' : 'pointer'
+                      }}
+                      disabled={validated}
+                      onClick={() => validateChallenge(challenge)}
+                      title={validated ? 'Déjà validé aujourd\'hui' : 'Valider le défi'}
+                    >
+                      {validated ? 'Validé' : 'Valider'}
+                    </button>
+                    {validated && (
+                      <span style={{
+                        position: 'absolute',
+                        top: 6,
+                        right: 6,
+                        fontSize: 13,
+                        color: '#10b981',
+                        fontWeight: 700
+                      }}>✔️</span>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           </div>
 
