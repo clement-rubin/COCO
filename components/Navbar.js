@@ -202,6 +202,7 @@ export default function Navbar() {
           <Link href="/" style={navLinkStyle}>Accueil</Link>
           <Link href="/explorer" style={navLinkStyle}>Explorer</Link>
           <Link href="/amis" style={navLinkStyle}>Amis</Link>
+          <Link href="/progression" style={navLinkStyle}>Progression</Link>
           <Link href="/share-photo" style={addBtnStyle}>➕ Partager</Link>
         </div>
 
@@ -246,6 +247,7 @@ export default function Navbar() {
             <Link href="/" style={mobileNavLinkStyle}>🏠 Accueil</Link>
             <Link href="/explorer" style={mobileNavLinkStyle}>🔍 Explorer</Link>
             <Link href="/amis" style={mobileNavLinkStyle}>👥 Amis</Link>
+            <Link href="/progression" style={mobileNavLinkStyle}>🏆 Progression</Link>
             <Link href="/share-photo" style={mobileNavLinkStyle}>➕ Partager une photo</Link>
           </div>
         </div>

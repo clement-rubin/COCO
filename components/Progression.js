@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getUserTrophies } from '../utils/trophyUtils'
 import { getUserStatsComplete } from '../utils/profileUtils'
+import { supabase } from '../lib/supabase'
 import styles from '../styles/Trophy.module.css'
 
 const LEVELS = [
@@ -70,12 +71,17 @@ export default function Progression({ user }) {
     streak: 0
   })
   const [loading, setLoading] = useState(true)
-  const [leaderboard, setLeaderboard] = useState(MOCK_LEADERBOARD)
+  const [leaderboard, setLeaderboard] = useState([])
+  const [leaderboardLoading, setLeaderboardLoading] = useState(true)
   const [dailyChallenges, setDailyChallenges] = useState(DAILY_CHALLENGES)
   const [coins, setCoins] = useState(250)
   const [ownedItems, setOwnedItems] = useState(['hat_chef'])
   const [equipped, setEquipped] = useState({ ...DEFAULT_CHEF, hat: 'hat_chef' })
   const [shopOpen, setShopOpen] = useState(false)
+  const [shopFeedback, setShopFeedback] = useState(null)
+  const [purchaseHistory, setPurchaseHistory] = useState([])
+  const [previewEquip, setPreviewEquip] = useState(null)
+  const [coinAnim, setCoinAnim] = useState(false)
 
   useEffect(() => {
     let isMounted = true
@@ -116,30 +122,60 @@ export default function Progression({ user }) {
     setLevelInfo(getLevel(xp))
   }, [xp])
 
-  // --- Gestion achat objet ---
+  // --- Gestion achat objet avec feedback et historique ---
   const buyItem = (item) => {
     if (ownedItems.includes(item.id) || coins < item.price) return
     setOwnedItems(prev => [...prev, item.id])
     setCoins(prev => prev - item.price)
+    setPurchaseHistory(prev => [
+      { date: new Date(), item },
+      ...prev
+    ])
+    setShopFeedback({ type: 'success', msg: `✅ ${item.name} acheté !` })
+    setTimeout(() => setShopFeedback(null), 2000)
+    // Animation gain de coins négatif (dépense)
+    setCoinAnim(true)
+    setTimeout(() => setCoinAnim(false), 900)
   }
 
-  // --- Gestion équipement objet ---
+  // --- Gestion équipement objet avec feedback ---
   const equipItem = (item) => {
-    setEquipped(prev => ({
-      ...prev,
-      [item.type]: prev[item.type] === item.id ? null : item.id
-    }))
+    setEquipped(prev => {
+      // Déséquipe si déjà équipé
+      if (prev[item.type] === item.id) {
+        setShopFeedback({ type: 'info', msg: `❎ ${item.name} retiré.` })
+        setTimeout(() => setShopFeedback(null), 1500)
+        return { ...prev, [item.type]: null }
+      }
+      setShopFeedback({ type: 'success', msg: `🎉 ${item.name} équipé !` })
+      setTimeout(() => setShopFeedback(null), 1500)
+      return { ...prev, [item.type]: item.id }
+    })
   }
 
-  // --- Rendu avatar chef avec objets équipés ---
+  // --- Animation gain de coins (ex: défi validé) ---
+  const gainCoins = (amount = 20) => {
+    setCoins(prev => prev + amount)
+    setCoinAnim(true)
+    setTimeout(() => setCoinAnim(false), 900)
+    setShopFeedback({ type: 'success', msg: `+${amount} CocoCoins !` })
+    setTimeout(() => setShopFeedback(null), 1200)
+  }
+
+  // --- Rendu avatar chef avec objets équipés et prévisualisation ---
   const renderChefAvatar = () => {
-    // On superpose les icônes selon l'ordre
+    // Utilise previewEquip si survolé
+    const equippedToShow = previewEquip
+      ? { ...equipped, [previewEquip.type]: previewEquip.id }
+      : equipped
     return (
       <div style={{
         position: 'relative',
         width: 90,
         height: 90,
-        margin: '0 auto'
+        margin: '0 auto',
+        filter: previewEquip ? 'brightness(1.1) drop-shadow(0 0 8px #f59e0b88)' : 'none',
+        transition: 'filter 0.3s'
       }}>
         {/* Base chef */}
         <div style={{
@@ -147,66 +183,77 @@ export default function Progression({ user }) {
           position: 'absolute',
           left: 15,
           top: 15,
-          zIndex: 1
+          zIndex: 1,
+          transition: 'opacity 0.2s'
         }}>🧑</div>
         {/* Hat */}
-        {equipped.hat && (
+        {equippedToShow.hat && (
           <div style={{
             fontSize: 36,
             position: 'absolute',
             left: 30,
             top: 0,
-            zIndex: 2
+            zIndex: 2,
+            transition: 'transform 0.2s',
+            transform: previewEquip?.id === equippedToShow.hat ? 'scale(1.15) rotate(-8deg)' : 'none'
           }}>
-            {SHOP_ITEMS.find(i => i.id === equipped.hat)?.icon}
+            {SHOP_ITEMS.find(i => i.id === equippedToShow.hat)?.icon}
           </div>
         )}
         {/* Glasses */}
-        {equipped.glasses && (
+        {equippedToShow.glasses && (
           <div style={{
             fontSize: 28,
             position: 'absolute',
             left: 38,
             top: 34,
-            zIndex: 3
+            zIndex: 3,
+            transition: 'transform 0.2s',
+            transform: previewEquip?.id === equippedToShow.glasses ? 'scale(1.15) rotate(8deg)' : 'none'
           }}>
-            {SHOP_ITEMS.find(i => i.id === equipped.glasses)?.icon}
+            {SHOP_ITEMS.find(i => i.id === equippedToShow.glasses)?.icon}
           </div>
         )}
         {/* Apron */}
-        {equipped.apron && (
+        {equippedToShow.apron && (
           <div style={{
             fontSize: 32,
             position: 'absolute',
             left: 36,
             top: 60,
-            zIndex: 2
+            zIndex: 2,
+            transition: 'transform 0.2s',
+            transform: previewEquip?.id === equippedToShow.apron ? 'scale(1.12)' : 'none'
           }}>
-            {SHOP_ITEMS.find(i => i.id === equipped.apron)?.icon}
+            {SHOP_ITEMS.find(i => i.id === equippedToShow.apron)?.icon}
           </div>
         )}
         {/* Accessory */}
-        {equipped.accessory && (
+        {equippedToShow.accessory && (
           <div style={{
             fontSize: 22,
             position: 'absolute',
             left: 60,
             top: 60,
-            zIndex: 4
+            zIndex: 4,
+            transition: 'transform 0.2s',
+            transform: previewEquip?.id === equippedToShow.accessory ? 'scale(1.15)' : 'none'
           }}>
-            {SHOP_ITEMS.find(i => i.id === equipped.accessory)?.icon}
+            {SHOP_ITEMS.find(i => i.id === equippedToShow.accessory)?.icon}
           </div>
         )}
         {/* Face (moustache) */}
-        {equipped.face && (
+        {equippedToShow.face && (
           <div style={{
             fontSize: 22,
             position: 'absolute',
             left: 48,
             top: 54,
-            zIndex: 5
+            zIndex: 5,
+            transition: 'transform 0.2s',
+            transform: previewEquip?.id === equippedToShow.face ? 'scale(1.15)' : 'none'
           }}>
-            {SHOP_ITEMS.find(i => i.id === equipped.face)?.icon}
+            {SHOP_ITEMS.find(i => i.id === equippedToShow.face)?.icon}
           </div>
         )}
       </div>
@@ -237,7 +284,42 @@ export default function Progression({ user }) {
 
   return (
     <div className={styles.trophyContainer} style={{ maxWidth: 600, margin: '0 auto', padding: 24 }}>
-      {/* Header progression */}
+      {/* Feedback achat/équipement */}
+      {shopFeedback && (
+        <div style={{
+          position: 'fixed',
+          top: 30,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: shopFeedback.type === 'success' ? '#10b981' : '#f59e0b',
+          color: 'white',
+          padding: '12px 24px',
+          borderRadius: 16,
+          fontWeight: 700,
+          fontSize: '1.1rem',
+          zIndex: 9999,
+          boxShadow: '0 8px 25px rgba(16,185,129,0.18)',
+          animation: 'shopFeedbackAnim 0.6s'
+        }}>
+          {shopFeedback.msg}
+        </div>
+      )}
+      {/* Animation gain de coins */}
+      {coinAnim && (
+        <div style={{
+          position: 'fixed',
+          top: 80,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          fontSize: 32,
+          color: '#f59e0b',
+          fontWeight: 900,
+          zIndex: 9999,
+          animation: 'coinAnim 0.8s'
+        }}>
+          🪙
+        </div>
+      )}
       <div style={{
         background: 'linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)',
         borderRadius: 24,
@@ -271,10 +353,21 @@ export default function Progression({ user }) {
               fontSize: '1rem',
               display: 'flex',
               alignItems: 'center',
-              gap: 6
+              gap: 6,
+              position: 'relative'
             }}>
-              <span style={{ fontSize: 20 }}>🪙</span>
-              <span>{coins} CocoCoins</span>
+              <span style={{ fontSize: 20, animation: coinAnim ? 'coinSpin 0.8s' : 'none' }}>🪙</span>
+              <span>
+                <span style={{ fontWeight: 900, fontSize: '1.2rem', color: '#f59e0b' }}>
+                  {coins}
+                </span>
+                <span style={{ marginLeft: 4, fontWeight: 600, color: '#92400e', fontSize: '1rem' }}>
+                  CocoCoins
+                </span>
+                <span style={{ marginLeft: 8, color: '#6b7280', fontSize: '0.95rem', fontWeight: 400 }}>
+                  (Votre solde actuel)
+                </span>
+              </span>
               <button
                 style={{
                   marginLeft: 10,
@@ -315,7 +408,7 @@ export default function Progression({ user }) {
         </div>
       </div>
 
-      {/* Boutique objets cosmétiques */}
+      {/* Boutique objets cosmétiques améliorée */}
       {shopOpen && (
         <div style={{
           background: '#fffbe6',
@@ -343,9 +436,18 @@ export default function Progression({ user }) {
                 textAlign: 'center',
                 boxShadow: '0 2px 8px #f59e0b11',
                 opacity: ownedItems.includes(item.id) ? 1 : 0.85,
-                position: 'relative'
-              }}>
-                <div style={{ fontSize: 28, marginBottom: 4 }}>{item.icon}</div>
+                position: 'relative',
+                transition: 'box-shadow 0.2s, border 0.2s'
+              }}
+                onMouseEnter={() => ownedItems.includes(item.id) && setPreviewEquip(item)}
+                onMouseLeave={() => setPreviewEquip(null)}
+              >
+                <div style={{
+                  fontSize: 28,
+                  marginBottom: 4,
+                  filter: previewEquip?.id === item.id ? 'drop-shadow(0 0 8px #10b981)' : 'none',
+                  transition: 'filter 0.2s'
+                }}>{item.icon}</div>
                 <div style={{ fontWeight: 600, fontSize: 13 }}>{item.name}</div>
                 <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 6 }}>{item.price} 🪙</div>
                 {ownedItems.includes(item.id) ? (
@@ -359,7 +461,8 @@ export default function Progression({ user }) {
                       fontWeight: 700,
                       cursor: 'pointer',
                       fontSize: 13,
-                      marginBottom: 2
+                      marginBottom: 2,
+                      boxShadow: equipped[item.type] === item.id ? '0 2px 8px #10b98133' : 'none'
                     }}
                     onClick={() => equipItem(item)}
                   >
@@ -387,6 +490,27 @@ export default function Progression({ user }) {
               </div>
             ))}
           </div>
+          {/* Historique d'achats */}
+          {purchaseHistory.length > 0 && (
+            <div style={{
+              marginTop: 18,
+              fontSize: '0.95rem',
+              color: '#92400e',
+              background: '#fff',
+              borderRadius: 10,
+              padding: 10,
+              boxShadow: '0 1px 4px #f59e0b11'
+            }}>
+              <b>Historique d'achats :</b>
+              <ul style={{ margin: 0, paddingLeft: 18 }}>
+                {purchaseHistory.slice(0, 3).map((h, i) => (
+                  <li key={i}>
+                    {h.item.icon} {h.item.name} <span style={{ color: '#f59e0b' }}>({h.item.price}🪙)</span> - {h.date.toLocaleTimeString('fr-FR')}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       )}
 
@@ -507,6 +631,24 @@ export default function Progression({ user }) {
               <span style={{ fontSize: '1.3rem' }}>{challenge.icon}</span>
               <span>{challenge.label}</span>
               <span style={{ marginLeft: 'auto', color: '#10b981', fontWeight: 700 }}>{challenge.reward}</span>
+              {/* Ajout bouton gain de coins pour test */}
+              <button
+                style={{
+                  marginLeft: 8,
+                  background: '#10b981',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 8,
+                  padding: '2px 8px',
+                  fontWeight: 700,
+                  fontSize: 12,
+                  cursor: 'pointer'
+                }}
+                onClick={() => gainCoins(20)}
+                title="Valider le défi (démo)"
+              >
+                Valider
+              </button>
             </div>
           ))}
         </div>
@@ -520,19 +662,29 @@ export default function Progression({ user }) {
         <div style={{
           background: '#f3f4f6', borderRadius: 16, padding: 16, boxShadow: '0 2px 8px #3b82f611'
         }}>
-          {leaderboard.map(entry => (
-            <div key={entry.rank} style={{
-              display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6,
-              fontWeight: entry.you ? 800 : 600, color: entry.you ? '#f59e0b' : '#374151',
-              background: entry.you ? 'rgba(245,158,11,0.08)' : 'transparent',
-              borderRadius: entry.you ? 10 : 0, padding: entry.you ? '6px 0' : 0
-            }}>
-              <span style={{ fontSize: '1.1rem', width: 24, textAlign: 'center' }}>{entry.rank}</span>
-              <span style={{ flex: 1 }}>{entry.name}</span>
-              <span style={{ fontSize: '1rem', color: '#6366f1', fontWeight: 700 }}>{entry.xp} XP</span>
-              {entry.you && <span style={{ marginLeft: 8, color: '#f59e0b', fontWeight: 900 }}>Vous</span>}
+          {leaderboardLoading ? (
+            <div style={{ textAlign: 'center', color: '#3b82f6', fontWeight: 600, padding: 12 }}>
+              Chargement du classement...
             </div>
-          ))}
+          ) : leaderboard.length === 0 ? (
+            <div style={{ textAlign: 'center', color: '#f59e0b', fontWeight: 600, padding: 12 }}>
+              Aucun classement disponible pour le moment.
+            </div>
+          ) : (
+            leaderboard.map(entry => (
+              <div key={entry.id} style={{
+                display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6,
+                fontWeight: entry.you ? 800 : 600, color: entry.you ? '#f59e0b' : '#374151',
+                background: entry.you ? 'rgba(245,158,11,0.08)' : 'transparent',
+                borderRadius: entry.you ? 10 : 0, padding: entry.you ? '6px 0' : 0
+              }}>
+                <span style={{ fontSize: '1.1rem', width: 24, textAlign: 'center' }}>{entry.rank}</span>
+                <span style={{ flex: 1 }}>{entry.name}</span>
+                <span style={{ fontSize: '1rem', color: '#6366f1', fontWeight: 700 }}>{entry.xp} XP</span>
+                {entry.you && <span style={{ marginLeft: 8, color: '#f59e0b', fontWeight: 900 }}>Vous</span>}
+              </div>
+            ))
+          )}
         </div>
       </div>
 
@@ -570,6 +722,19 @@ export default function Progression({ user }) {
           : "Continuez à cuisiner, partager et personnaliser votre chef !"}
       </div>
       <style jsx>{`
+        @keyframes shopFeedbackAnim {
+          0% { opacity: 0; transform: translateY(-20px);}
+          100% { opacity: 1; transform: translateY(0);}
+        }
+        @keyframes coinAnim {
+          0% { opacity: 0; transform: scale(0.7) translateY(0);}
+          50% { opacity: 1; transform: scale(1.2) translateY(-20px);}
+          100% { opacity: 0; transform: scale(0.8) translateY(-40px);}
+        }
+        @keyframes coinSpin {
+          0% { transform: rotate(0deg);}
+          100% { transform: rotate(360deg);}
+        }
         @keyframes bounce {
           0%,100% { transform: translateY(0);}
           50% { transform: translateY(-10px);}
