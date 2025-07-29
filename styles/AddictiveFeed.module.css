@@ -18,22 +18,22 @@
 .recipesGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: var(--spacing-xl);
+  gap: 20px;
   margin-bottom: var(--spacing-xl);
+  padding: 0 8px;
 }
 
 .recipeCard {
-  background: linear-gradient(145deg, #ffffff 0%, #fafbfc 50%, #f8fafc 100%);
-  border-radius: 20px;
+  background: linear-gradient(145deg, #ffffff 0%, #fdfdfe 100%);
+  border-radius: 16px;
   overflow: hidden;
   box-shadow: 
-    0 4px 20px rgba(0, 0, 0, 0.06),
-    0 1px 4px rgba(0, 0, 0, 0.04),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
-  transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
-  border: 1px solid rgba(226, 232, 240, 0.6);
+    0 2px 8px rgba(0, 0, 0, 0.04),
+    0 1px 3px rgba(0, 0, 0, 0.02);
+  transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+  border: 1px solid rgba(226, 232, 240, 0.3);
   position: relative;
-  backdrop-filter: blur(20px);
+  backdrop-filter: blur(10px);
   transform: translateZ(0);
 }
 
@@ -46,23 +46,22 @@
   bottom: 0;
   background: linear-gradient(
     135deg,
-    rgba(255, 255, 255, 0.9) 0%,
-    rgba(255, 255, 255, 0.1) 50%,
-    rgba(255, 255, 255, 0.05) 100%
+    rgba(255, 107, 53, 0.02) 0%,
+    rgba(247, 147, 30, 0.01) 50%,
+    transparent 100%
   );
   opacity: 0;
-  transition: opacity 0.4s ease;
+  transition: opacity 0.3s ease;
   pointer-events: none;
   z-index: 1;
 }
 
 .recipeCard:hover {
-  transform: translateY(-8px) scale(1.02);
+  transform: translateY(-3px);
   box-shadow: 
-    0 20px 40px rgba(0, 0, 0, 0.12),
-    0 8px 25px rgba(255, 107, 53, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  border-color: rgba(255, 107, 53, 0.3);
+    0 8px 25px rgba(0, 0, 0, 0.08),
+    0 3px 10px rgba(255, 107, 53, 0.08);
+  border-color: rgba(255, 107, 53, 0.15);
 }
 
 .recipeCard:hover::before {
@@ -71,46 +70,22 @@
 
 .recipeImageContainer {
   position: relative;
-  height: 260px;
+  height: 220px;
   cursor: pointer;
   overflow: hidden;
-  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
-}
-
-.recipeImageContainer::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(0, 0, 0, 0) 0%,
-    rgba(0, 0, 0, 0.02) 40%,
-    rgba(0, 0, 0, 0.08) 100%
-  );
-  opacity: 0;
-  transition: opacity 0.4s ease;
-  pointer-events: none;
-  z-index: 2;
-}
-
-.recipeCard:hover .recipeImageContainer::after {
-  opacity: 1;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
 }
 
 .recipeImage {
   object-fit: cover;
-  transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+  transition: transform 0.4s ease;
   width: 100%;
   height: 100%;
-  filter: brightness(1) saturate(1) contrast(1);
+  filter: saturate(1.05) brightness(1.02);
 }
 
 .recipeCard:hover .recipeImage {
-  transform: scale(1.08);
-  filter: brightness(1.05) saturate(1.1) contrast(1.05);
+  transform: scale(1.03);
 }
 
 .imageOverlay {
@@ -120,17 +95,16 @@
   right: 0;
   bottom: 0;
   background: linear-gradient(
-    135deg,
+    180deg,
     rgba(0, 0, 0, 0) 0%,
-    rgba(0, 0, 0, 0.02) 50%,
-    rgba(0, 0, 0, 0.1) 100%
+    rgba(0, 0, 0, 0.03) 100%
   );
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  padding: 16px;
+  padding: 12px;
   opacity: 0;
-  transition: opacity 0.4s ease;
+  transition: opacity 0.3s ease;
   z-index: 3;
 }
 
@@ -139,42 +113,34 @@
 }
 
 .categoryBadge {
-  background: linear-gradient(135deg, rgba(255, 107, 53, 0.9), rgba(247, 147, 30, 0.9));
+  background: linear-gradient(135deg, rgba(255, 107, 53, 0.95), rgba(247, 147, 30, 0.95));
   color: white;
-  padding: 6px 12px;
-  border-radius: 12px;
-  font-size: 0.8rem;
+  padding: 4px 10px;
+  border-radius: 10px;
+  font-size: 0.75rem;
   font-weight: 600;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 4px 16px rgba(255, 107, 53, 0.25);
-  transform: translateY(-2px);
-  transition: all 0.3s ease;
-}
-
-.recipeCard:hover .categoryBadge {
-  transform: translateY(0);
-  background: linear-gradient(135deg, rgba(255, 107, 53, 1), rgba(247, 147, 30, 1));
-  box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 2px 8px rgba(255, 107, 53, 0.2);
 }
 
 .friendBadge {
   background: linear-gradient(135deg, rgba(16, 185, 129, 0.9), rgba(5, 150, 105, 0.9));
   color: white;
-  padding: 4px 8px;
-  border-radius: 10px;
+  padding: 3px 8px;
+  border-radius: 8px;
   font-size: 0.7rem;
   font-weight: 600;
   display: flex;
   align-items: center;
-  gap: 4px;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
+  gap: 3px;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.15);
 }
 
 .recipeContent {
-  padding: 20px;
+  padding: 16px;
   position: relative;
   z-index: 2;
 }
@@ -182,127 +148,78 @@
 .userInfo {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-  padding: 12px 16px;
-  background: linear-gradient(135deg, rgba(248, 250, 252, 0.8), rgba(241, 245, 249, 0.6));
-  border-radius: 16px;
-  border: 1px solid rgba(226, 232, 240, 0.4);
-  transition: all 0.3s ease;
-  backdrop-filter: blur(5px);
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, rgba(248, 250, 252, 0.6), rgba(241, 245, 249, 0.4));
+  border-radius: 12px;
+  border: 1px solid rgba(226, 232, 240, 0.3);
+  transition: all 0.25s ease;
+  backdrop-filter: blur(3px);
 }
 
 .recipeCard:hover .userInfo {
-  background: linear-gradient(135deg, rgba(255, 247, 237, 0.9), rgba(254, 243, 199, 0.7));
-  border-color: rgba(255, 107, 53, 0.2);
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(255, 107, 53, 0.1);
+  background: linear-gradient(135deg, rgba(255, 247, 237, 0.8), rgba(254, 243, 199, 0.6));
+  border-color: rgba(255, 107, 53, 0.15);
 }
 
 .userAvatar {
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 36px;
   background: linear-gradient(135deg, #ff6b35, #f7931e);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.3rem;
-  box-shadow: 
-    0 4px 12px rgba(255, 107, 53, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
-  border: 2px solid rgba(255, 255, 255, 0.9);
-  transition: all 0.3s ease;
-  position: relative;
-}
-
-.userAvatar::after {
-  content: '';
-  position: absolute;
-  top: -2px;
-  left: -2px;
-  right: -2px;
-  bottom: -2px;
-  background: linear-gradient(135deg, #ff6b35, #f7931e);
-  border-radius: 50%;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  z-index: -1;
+  font-size: 1.1rem;
+  box-shadow: 0 2px 6px rgba(255, 107, 53, 0.15);
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  transition: transform 0.2s ease;
 }
 
 .recipeCard:hover .userAvatar {
   transform: scale(1.05);
-  box-shadow: 
-    0 6px 20px rgba(255, 107, 53, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.4);
-}
-
-.recipeCard:hover .userAvatar::after {
-  opacity: 0.2;
 }
 
 .userName {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-weight: 700;
+  gap: 4px;
+  font-weight: 600;
   color: #1f2937;
-  font-size: 0.95rem;
-  margin-bottom: 2px;
-}
-
-.verified {
-  font-size: 0.85rem;
-  filter: drop-shadow(0 1px 2px rgba(59, 130, 246, 0.3));
+  font-size: 0.9rem;
 }
 
 .timeAgo {
   color: #6b7280;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 500;
 }
 
 .recipeTitle {
-  font-size: 1.35rem;
-  font-weight: 800;
+  font-size: 1.2rem;
+  font-weight: 700;
   color: #1f2937;
-  margin: 0 0 12px 0;
+  margin: 0 0 8px 0;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: color 0.2s ease;
   line-height: 1.3;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  position: relative;
-}
-
-.recipeTitle::after {
-  content: '';
-  position: absolute;
-  bottom: -2px;
-  left: 0;
-  width: 0;
-  height: 2px;
-  background: linear-gradient(90deg, #ff6b35, #f7931e);
-  transition: width 0.3s ease;
 }
 
 .recipeTitle:hover {
   color: #ff6b35;
-  transform: translateX(2px);
-}
-
-.recipeTitle:hover::after {
-  width: 60px;
 }
 
 .recipeDescription {
   color: #6b7280;
-  margin: 0 0 18px 0;
-  line-height: 1.6;
-  font-size: 0.9rem;
+  margin: 0 0 14px 0;
+  line-height: 1.5;
+  font-size: 0.85rem;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -311,1028 +228,165 @@
 
 .recipeMeta {
   display: flex;
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: 8px;
+  margin-bottom: 16px;
   flex-wrap: wrap;
-  justify-content: flex-start;
 }
 
 .metaItem {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.8rem;
+  gap: 4px;
+  font-size: 0.75rem;
   color: #6b7280;
   background: linear-gradient(135deg, #f8fafc, #f1f5f9);
-  padding: 6px 12px;
-  border-radius: 12px;
-  font-weight: 600;
-  border: 1px solid rgba(226, 232, 240, 0.5);
-  transition: all 0.3s ease;
-  backdrop-filter: blur(5px);
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-weight: 500;
+  border: 1px solid rgba(226, 232, 240, 0.4);
+  transition: all 0.2s ease;
 }
 
 .metaItem:hover {
   background: linear-gradient(135deg, #fff5f0, #fef3e8);
   color: #ff6b35;
-  border-color: rgba(255, 107, 53, 0.3);
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(255, 107, 53, 0.1);
+  border-color: rgba(255, 107, 53, 0.2);
 }
 
 .recipeActions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   justify-content: space-between;
-  padding-top: 16px;
-  border-top: 1px solid rgba(243, 244, 246, 0.8);
+  padding-top: 12px;
+  border-top: 1px solid rgba(243, 244, 246, 0.6);
 }
 
 .actionBtn {
   background: linear-gradient(135deg, #ffffff, #f8fafc);
-  border: 1.5px solid #e5e7eb;
-  padding: 8px 14px;
-  border-radius: 14px;
+  border: 1px solid #e5e7eb;
+  padding: 6px 12px;
+  border-radius: 10px;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  font-size: 0.85rem;
+  transition: all 0.25s ease;
+  font-size: 0.8rem;
   font-weight: 600;
   display: flex;
   align-items: center;
-  gap: 6px;
-  box-shadow: 
-    0 2px 6px rgba(0, 0, 0, 0.04),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
-  position: relative;
-  overflow: hidden;
-}
-
-.actionBtn::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-  transition: left 0.6s ease;
-}
-
-.actionBtn:hover::before {
-  left: 100%;
+  gap: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
 }
 
 .actionBtn:hover {
   background: linear-gradient(135deg, #fff5f0, #fef3e8);
   border-color: #ff6b35;
-  transform: translateY(-2px);
-  box-shadow: 
-    0 6px 20px rgba(255, 107, 53, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(255, 107, 53, 0.1);
 }
 
 .actionBtn.liked {
   background: linear-gradient(135deg, #fef2f2, #fee2e2);
   border-color: #f87171;
   color: #dc2626;
-  box-shadow: 
-    0 6px 20px rgba(239, 68, 68, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
-}
-
-.actionBtn.liked:hover {
-  background: linear-gradient(135deg, #fecaca, #fca5a5);
-  transform: translateY(-2px) scale(1.05);
 }
 
 .viewRecipeBtn {
   background: linear-gradient(135deg, #ff6b35, #f7931e);
   color: white;
   border: none;
-  padding: 10px 16px;
-  border-radius: 14px;
+  padding: 8px 14px;
+  border-radius: 10px;
   cursor: pointer;
-  font-weight: 700;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  font-size: 0.85rem;
-  box-shadow: 
-    0 6px 20px rgba(255, 107, 53, 0.25),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  position: relative;
-  overflow: hidden;
-}
-
-.viewRecipeBtn::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-  transition: left 0.5s ease;
-}
-
-.viewRecipeBtn:hover::before {
-  left: 100%;
+  font-weight: 600;
+  transition: all 0.25s ease;
+  font-size: 0.8rem;
+  box-shadow: 0 2px 6px rgba(255, 107, 53, 0.2);
 }
 
 .viewRecipeBtn:hover {
   background: linear-gradient(135deg, #f7931e, #ea580c);
-  transform: translateY(-3px);
-  box-shadow: 
-    0 12px 32px rgba(255, 107, 53, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
-}
-
-.suggestionBanner {
-  background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
-  border: 1px solid #f39c12;
-  border-radius: 16px;
-  padding: 16px 20px;
-  margin: 0 16px 24px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  animation: slideInDown 0.5s ease-out;
-}
-
-.suggestionIcon {
-  font-size: 2rem;
-  flex-shrink: 0;
-}
-
-.suggestionText {
-  flex: 1;
-}
-
-.suggestionText strong {
-  color: #d68910;
-  font-size: 1.1rem;
-  display: block;
-  margin-bottom: 4px;
-}
-
-.suggestionText p {
-  color: #b7950b;
-  margin: 0;
-  font-size: 0.9rem;
-}
-
-.addFriendsBtn {
-  background: linear-gradient(135deg, #f39c12, #e67e22);
-  color: white;
-  border: none;
-  padding: 10px 16px;
-  border-radius: 12px;
-  font-weight: 600;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  white-space: nowrap;
-}
-
-.addFriendsBtn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(243, 156, 18, 0.4);
-}
-
-.previewBanner {
-  background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
-  border: 1px solid #17a2b8;
-  border-radius: 16px;
-  padding: 16px 20px;
-  margin: 0 16px 24px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  animation: slideInDown 0.5s ease-out;
-}
-
-.previewIcon {
-  font-size: 2rem;
-  flex-shrink: 0;
-}
-
-.previewText {
-  flex: 1;
-}
-
-.previewText strong {
-  color: #117a8b;
-  font-size: 1.1rem;
-  display: block;
-  margin-bottom: 4px;
-}
-
-.previewText p {
-  color: #0c5460;
-  margin: 0;
-  font-size: 0.9rem;
-}
-
-.loginBtn {
-  background: linear-gradient(135deg, #17a2b8, #138496);
-  color: white;
-  border: none;
-  padding: 10px 16px;
-  border-radius: 12px;
-  font-weight: 600;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  white-space: nowrap;
-}
-
-.loginBtn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(23, 162, 184, 0.4);
-}
-
-.suggestionCard {
-  border: 2px solid #f39c12;
-  position: relative;
-}
-
-.suggestionCard::before {
-  content: '💡 Suggestion';
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  background: linear-gradient(135deg, #f39c12, #e67e22);
-  color: white;
-  padding: 4px 8px;
-  border-radius: 8px;
-  font-size: 0.7rem;
-  font-weight: 700;
-  z-index: 2;
-}
-
-.previewCard {
-  border: 2px solid #17a2b8;
-  position: relative;
-}
-
-.previewCard::before {
-  content: '👀 Aperçu';
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  background: linear-gradient(135deg, #17a2b8, #138496);
-  color: white;
-  padding: 4px 8px;
-  border-radius: 8px;
-  font-size: 0.7rem;
-  font-weight: 700;
-  z-index: 2;
-}
-
-.feedInfo {
-  background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
-  border: 1px solid #e1bee7;
-  border-radius: 16px;
-  padding: 16px;
-  margin-bottom: 20px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  animation: slideInUp 0.5s ease-out;
-}
-
-.feedInfoIcon {
-  font-size: 2rem;
-  flex-shrink: 0;
-}
-
-.feedInfoText {
-  flex: 1;
-}
-
-.feedInfoText strong {
-  color: #4a148c;
-  font-size: 1.1rem;
-  display: block;
-  margin-bottom: 4px;
-}
-
-.feedInfoText p {
-  color: #6a1b9a;
-  font-size: 0.9rem;
-  margin: 0;
-}
-
-.exploreAllBtn {
-  background: linear-gradient(135deg, #ff6b35, #f7931e);
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 12px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.exploreAllBtn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(255, 107, 53, 0.3);
-}
-
-.friendBadge {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  background: rgba(76, 175, 80, 0.9);
-  color: white;
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 0.7rem;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  z-index: 2;
-  backdrop-filter: blur(4px);
-}
-
-.friendIcon {
-  font-size: 0.8rem;
-}
-
-.friendLabel {
-  font-size: 0.65rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.friendIndicator {
-  margin-left: 6px;
-  font-size: 0.8rem;
-  opacity: 0.7;
-}
-
-.endActions {
-  display: flex;
-  gap: 12px;
-  justify-content: center;
-  margin-top: 16px;
-}
-
-.addMoreFriendsBtn {
-  background: #4caf50;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 12px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.addMoreFriendsBtn:hover {
-  background: #45a049;
   transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
 }
 
-/* Header principal - Ajusté pour les notifications */
-.feedHeader {
-  background: linear-gradient(135deg, #fff7ed 0%, #fef3e2 50%, #fff5e6 100%);
-  border: 2px solid #f59e0b;
-  border-radius: 24px;
-  padding: 24px;
-  margin-bottom: 32px;
-  box-shadow: 0 8px 32px rgba(245, 158, 11, 0.15);
-  position: relative;
-  overflow: hidden;
-  /* S'assurer que le header ne cache pas les notifications */
-  margin-top: 20px;
-  z-index: 2;
+/* Effet de focus subtil pour l'accessibilité */
+.recipeCard:focus-within {
+  outline: 2px solid rgba(255, 107, 53, 0.3);
+  outline-offset: 2px;
 }
 
-.feedHeader::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%);
-  animation: headerShine 3s ease-in-out infinite;
-  pointer-events: none;
+/* Animation d'apparition progressive */
+@keyframes cardAppear {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.headerContent {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 24px;
-  position: relative;
-  z-index: 2;
+.recipeCard {
+  animation: cardAppear 0.4s ease-out var(--animation-delay, 0s) both;
 }
 
-.headerLeft {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.headerIcon {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-  color: white;
-  width: 64px;
-  height: 64px;
-  border-radius: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 2rem;
-  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.3);
-  animation: iconFloat 3s ease-in-out infinite;
-}
-
-.headerText {
-  flex: 1;
-}
-
-.headerTitle {
-  margin: 0 0 4px 0;
-  color: #92400e;
-  font-size: 1.8rem;
-  font-weight: 800;
-  background: linear-gradient(135deg, #92400e, #f59e0b);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  text-shadow: 0 2px 4px rgba(146, 64, 14, 0.1);
-}
-
-.headerSubtitle {
-  margin: 0;
-  color: #92400e;
-  font-size: 1rem;
-  opacity: 0.8;
-  font-weight: 600;
-}
-
-.headerRight {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 16px;
-}
-
-.headerStats {
-  display: flex;
-  gap: 16px;
-}
-
-.statItem {
-  text-align: center;
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(10px);
-  padding: 12px 16px;
-  border-radius: 16px;
-  border: 1px solid rgba(245, 158, 11, 0.2);
-  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.1);
-}
-
-.statNumber {
-  display: block;
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: #f59e0b;
-  line-height: 1;
-}
-
-.statLabel {
-  display: block;
-  font-size: 0.8rem;
-  color: #92400e;
-  font-weight: 600;
-  opacity: 0.8;
-  margin-top: 2px;
-}
-
-.headerActions {
-  display: flex;
-  gap: 12px;
-}
-
-.friendsBtn, .addRecipeBtn {
-  background: linear-gradient(135deg, #10b981, #059669);
-  color: white;
-  border: none;
-  padding: 12px 20px;
-  border-radius: 12px;
-  font-weight: 700;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
-}
-
-.friendsBtn:hover, .addRecipeBtn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
-}
-
-.addRecipeBtn {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
-}
-
-.addRecipeBtn:hover {
-  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
-}
-
-.statusIndicator {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid rgba(245, 158, 11, 0.2);
-  position: relative;
-  z-index: 2;
-}
-
-.liveIndicator {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.liveDot {
-  width: 8px;
-  height: 8px;
-  background: #10b981;
-  border-radius: 50%;
-  animation: pulse 2s infinite;
-}
-
-.liveText {
-  color: #10b981;
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.updateTime {
-  color: #92400e;
-  font-size: 0.75rem;
-  opacity: 0.7;
-}
-
-/* Animations */
-@keyframes headerShine {
-  0%, 100% { transform: translateX(-100%); }
-  50% { transform: translateX(100%); }
-}
-
-@keyframes iconFloat {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-4px); }
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(1.2); }
-}
-
-/* Responsive */
+/* Responsive amélioré */
 @media (max-width: 768px) {
-  .headerContent {
-    flex-direction: column;
-    text-align: center;
+  .recipesGrid {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 16px;
+    padding: 0 4px;
   }
   
-  .headerRight {
-    align-items: center;
+  .recipeImageContainer {
+    height: 200px;
   }
   
-  .headerStats {
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 12px;
+  .recipeContent {
+    padding: 14px;
   }
   
-  .statItem {
-    min-width: 80px;
-    padding: 8px 12px;
-  }
-  
-  .statusIndicator {
-    flex-direction: column;
-    gap: 8px;
-    text-align: center;
-  }
-  
-  .feedContainer {
-    padding-top: 100px; /* Moins d'espace sur mobile */
-    padding-left: 12px;
-    padding-right: 12px;
-  }
-  
-  .feedHeader {
-    margin-top: 10px;
-    padding: 16px;
-  }
-  
-  .headerContent {
-    flex-direction: column;
-    text-align: center;
-    gap: 16px;
-  }
-  
-  .headerRight {
-    align-items: center;
-  }
-  
-  .headerStats {
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 12px;
-  }
-  
-  .statItem {
-    min-width: 80px;
-    padding: 8px 12px;
-  }
-  
-  .statusIndicator {
-    flex-direction: column;
-    gap: 8px;
-    text-align: center;
-  }
-  
-  .statsSection {
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 16px;
-    padding: 16px;
-    margin-bottom: 20px;
-  }
-  
-  .statCard {
-    padding: 16px;
-  }
-  
-  .statIcon {
-    font-size: 2rem;
-    margin-bottom: 8px;
-  }
-  
-  .statNumber {
-    font-size: 1.8rem;
-  }
-  
-  .statLabel {
-    font-size: 0.85rem;
+  .recipeCard:hover {
+    transform: translateY(-2px);
   }
 }
 
 @media (max-width: 480px) {
-  .recipeMeta {
-    gap: 8px;
-  }
-  
-  .metaItem {
-    font-size: 0.8rem;
-    padding: 6px 10px;
-  }
-  
-  .recipeCard:hover {
-    transform: translateY(-6px) scale(1.01);
-  }
-}
-
-.emptyActions {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-top: 24px;
-  max-width: 280px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.primaryButton {
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-  color: white;
-  border: none;
-  padding: 12px 20px;
-  border-radius: 12px;
-  font-weight: 600;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-}
-
-.primaryButton:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
-}
-
-.secondaryButton {
-  background: linear-gradient(135deg, #10b981, #059669);
-  color: white;
-  border: none;
-  padding: 12px 20px;
-  border-radius: 12px;
-  font-weight: 600;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-}
-
-.secondaryButton:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
-}
-
-.tertiaryButton {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-  color: white;
-  border: none;
-  padding: 12px 20px;
-  border-radius: 12px;
-  font-weight: 600;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
-}
-
-.tertiaryButton:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
-}
-
-.recipeCardWrapper {
-  width: 100%;
-  transition: transform 0.3s ease;
-}
-
-.recipeCardWrapper:hover {
-  transform: translateY(-4px);
-}
-
-.feedControls {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.exploreAllBtn {
-  background: linear-gradient(135deg, #ff6b35, #f7931e);
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 12px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.exploreAllBtn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(255, 107, 53, 0.3);
-}
-
-/* Remplacer la section d'image par les statistiques */
-.statsSection {
-  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-  border: 2px solid #0ea5e9;
-  border-radius: 20px;
-  padding: 24px;
-  margin-bottom: 24px;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 20px;
-  box-shadow: 0 8px 25px rgba(14, 165, 233, 0.15);
-}
-
-.statCard {
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(10px);
-  border-radius: 16px;
-  padding: 20px;
-  text-align: center;
-  border: 1px solid rgba(14, 165, 233, 0.2);
-  transition: all 0.3s ease;
-}
-
-.statCard:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 20px rgba(14, 165, 233, 0.2);
-  border-color: rgba(14, 165, 233, 0.4);
-}
-
-.statIcon {
-  font-size: 2.5rem;
-  margin-bottom: 12px;
-  display: block;
-  filter: drop-shadow(0 2px 4px rgba(14, 165, 233, 0.2));
-}
-
-.statNumber {
-  font-size: 2.2rem;
-  font-weight: 800;
-  color: #0ea5e9;
-  line-height: 1;
-  margin-bottom: 4px;
-  display: block;
-}
-
-.statLabel {
-  color: #075985;
-  font-size: 0.95rem;
-  font-weight: 600;
-  opacity: 0.8;
-}
-
-.statSubtext {
-  color: #0369a1;
-  font-size: 0.8rem;
-  margin-top: 8px;
-  opacity: 0.7;
-}
-
-/* Ajustements pour mobile avec notifications */
-@media (max-width: 768px) {
-  .feedContainer {
-    padding-top: 100px; /* Moins d'espace sur mobile */
-    padding-left: 12px;
-    padding-right: 12px;
-  }
-  
-  .feedHeader {
-    margin-top: 10px;
-    padding: 16px;
-  }
-  
-  .headerContent {
-    flex-direction: column;
-    text-align: center;
-    gap: 16px;
-  }
-  
-  .headerRight {
-    align-items: center;
-  }
-  
-  .headerStats {
-    justify-content: center;
-    flex-wrap: wrap;
+  .recipesGrid {
+    grid-template-columns: 1fr;
     gap: 12px;
+    padding: 0 2px;
   }
   
-  .statItem {
-    min-width: 80px;
-    padding: 8px 12px;
+  .recipeImageContainer {
+    height: 180px;
   }
   
-  .statusIndicator {
-    flex-direction: column;
-    gap: 8px;
-    text-align: center;
+  .recipeContent {
+    padding: 12px;
   }
   
-  .statsSection {
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 16px;
-    padding: 16px;
-    margin-bottom: 20px;
-  }
-  
-  .statCard {
-    padding: 16px;
-  }
-  
-  .statIcon {
-    font-size: 2rem;
-    margin-bottom: 8px;
-  }
-  
-  .statNumber {
-    font-size: 1.8rem;
-  }
-  
-  .statLabel {
-    font-size: 0.85rem;
-  }
-}
-
-@media (max-width: 480px) {
   .recipeMeta {
-    gap: 8px;
+    gap: 6px;
   }
   
   .metaItem {
-    font-size: 0.8rem;
-    padding: 6px 10px;
+    font-size: 0.7rem;
+    padding: 3px 6px;
   }
   
-  .recipeCard:hover {
-    transform: translateY(-6px) scale(1.01);
+  .recipeActions {
+    gap: 6px;
   }
-}
-
-.emptyActions {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-top: 24px;
-  max-width: 280px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.primaryButton {
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-  color: white;
-  border: none;
-  padding: 12px 20px;
-  border-radius: 12px;
-  font-weight: 600;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-}
-
-.primaryButton:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
-}
-
-.secondaryButton {
-  background: linear-gradient(135deg, #10b981, #059669);
-  color: white;
-  border: none;
-  padding: 12px 20px;
-  border-radius: 12px;
-  font-weight: 600;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-}
-
-.secondaryButton:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
-}
-
-.tertiaryButton {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-  color: white;
-  border: none;
-  padding: 12px 20px;
-  border-radius: 12px;
-  font-weight: 600;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
-}
-
-.tertiaryButton:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
-}
-
-.recipeCardWrapper {
-  width: 100%;
-  transition: transform 0.3s ease;
-}
-
-.recipeCardWrapper:hover {
-  transform: translateY(-4px);
-}
-
-.feedControls {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.exploreAllBtn {
-  background: linear-gradient(135deg, #ff6b35, #f7931e);
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 12px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.exploreAllBtn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(255, 107, 53, 0.3);
+  
+  .actionBtn {
+    padding: 5px 8px;
+    font-size: 0.75rem;
+  }
+  
+  .viewRecipeBtn {
+    padding: 6px 10px;
+    font-size: 0.75rem;
+  }
 }
