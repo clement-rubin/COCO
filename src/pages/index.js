@@ -37,8 +37,8 @@ export default function Home() {
               justifyContent: 'center',
               flexWrap: 'wrap'
             }}>
-              <Link href="/collections" className="btn btn-primary" style={{ textDecoration: 'none' }}>
-                🍽️ Explorer les recettes
+              <Link href="/progression" className="btn btn-primary" style={{ textDecoration: 'none' }}>
+                🏆 Voir ma progression
               </Link>
               <Link href="/add-recipe" className="btn btn-secondary" style={{ textDecoration: 'none' }}>
                 ➕ Ajouter ma recette

@@ -90,8 +90,8 @@ export default function Home() {
               <Link href="/login" className={styles.loginButton}>
                 Se connecter
               </Link>
-              <Link href="/feed" className={styles.actionButton}>
-                Collections
+              <Link href="/progression" className={styles.actionButton}>
+                Progression
               </Link>
             </div>
           </div>

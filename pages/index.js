@@ -1173,7 +1173,7 @@ export default function Home() {
                 Partager
               </button>
               <button
-                onClick={() => router.push('/collections')}
+                onClick={() => router.push('/progression')}
                 style={{
                   background: 'rgba(255, 255, 255, 0.95)',
                   color: '#ff6b35',
@@ -1200,26 +1200,19 @@ export default function Home() {
                   e.target.style.transform = 'translateY(0)'
                 }}
               >
-                {/* Icône livre réduite */}
+                {/* Icône trophée */}
                 <div style={{
-                  width: '14px', // Réduction
-                  height: '10px', // Réduction
-                  border: '2px solid currentColor',
-                  borderRadius: '2px',
+                  width: '14px',
+                  height: '14px',
+                  borderRadius: '3px',
                   position: 'relative',
-                  animation: 'bookOpen 3s ease-in-out infinite'
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
                 }}>
-                  <div style={{
-                    width: '1px',
-                    height: '6px', // Réduction
-                    background: 'currentColor',
-                    position: 'absolute',
-                    top: '50%',
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)'
-                  }} />
+                  🏆
                 </div>
-                Collections
+                Progression
               </button>
             </div>
 
