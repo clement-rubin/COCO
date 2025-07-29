@@ -245,7 +245,7 @@ export default function Explorer() {
     { path: '/', label: 'Accueil' },
     { path: '/explorer', label: 'Explorer' },
     { path: '/share-photo', label: 'Partager' },
-    { path: '/amis', label: 'Amis' }
+    { path: '/progression', label: 'Progression' }
   ];
 
   useEffect(() => {

@@ -83,6 +83,22 @@ export default function SwipeNavigation({ routes = [], currentPath }) {
     }
   };
 
+  // Routes principales pour la navigation par swipe
+  const mainRoutes = [
+    { path: '/', label: 'Accueil' },
+    { path: '/explorer', label: 'Explorer' },
+    { path: '/share-photo', label: 'Partager' },
+    { path: '/progression', label: 'Progression' }
+  ];
+
+  // Remplacer '/collections' par '/progression' si présent
+  routes = routes.map(route => {
+    if (route.path === '/collections') {
+      return { ...route, path: '/progression' };
+    }
+    return route;
+  });
+
   // Ajouter les écouteurs d'événements
   useEffect(() => {
     if (typeof window !== 'undefined') {
