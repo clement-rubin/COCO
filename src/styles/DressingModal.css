@@ -1,0 +1,26 @@
+.dressing-modal {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+.dressing-content {
+    background: white;
+    padding: 2rem;
+    display: flex;
+    gap: 2rem;
+    border-radius: 1rem;
+}
+.boutique-items {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+.avatar-preview {
+    width: 300px;
+    height: 500px;
+    /* ...autres styles pour centrer l'avatar... */
+}

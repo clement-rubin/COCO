@@ -757,7 +757,7 @@ export default function Progression({ user }) {
                 position: 'absolute',
                 top: 6,
                 right: 6,
-                fontSize: 12,
+                fontSize: 12, 
                 fontWeight: 700,
                 color: item.rarity === 'legendary' ? '#f59e0b' : item.rarity === 'epic' ? '#8b5cf6' : item.rarity === 'rare' ? '#3b82f6' : '#10b981',
                 background: item.rarity === 'legendary'
