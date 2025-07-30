@@ -107,18 +107,18 @@ export default function Comments({
       // Real API call instead of simulation
       const response = await fetch('/api/comments', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           recipe_id: targetId,
           user_id: user.id,
           text: newComment.trim(),
-          user_name: user.user_metadata?.display_name || user.email?.split('@')[0] || 'Utilisateur'
+          user_name: user.user_metadata?.display_name || user.email || 'Utilisateur'
         })
       })
 
       const result = await response.json()
+
+      console.log({ recipe_id: targetId, user_id: user.id, text: newComment.trim(), user_name: user.user_metadata?.display_name });
 
       if (!response.ok) {
         throw new Error(result.message || 'Erreur lors de l\'ajout du commentaire')

@@ -178,11 +178,42 @@ export default function Progression({ user }) {
     setLevelInfo(getLevel(xp))
   }, [xp])
 
+  // --- Au chargement ---
+  useEffect(() => {
+    async function loadUserPass() {
+      const { data, error } = await supabase
+        .from('user_pass')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+      if (data) {
+        setCoins(data.coins);
+        setOwnedItems(data.owned_items);
+        setEquipped(data.equipped);
+        // ...etc
+      } else {
+        // Si pas de ligne, on la crée
+        await supabase.from('user_pass').insert({
+          user_id: user.id,
+          coins: 250,
+          owned_items: ['hat_chef'],
+          equipped: { ...DEFAULT_CHEF, hat: 'hat_chef' }
+        });
+        setCoins(250);
+        setOwnedItems(['hat_chef']);
+        setEquipped({ ...DEFAULT_CHEF, hat: 'hat_chef' });
+      }
+    }
+    if (user?.id) loadUserPass();
+  }, [user]);
+
   // --- Gestion achat objet avec feedback et historique ---
-  const buyItem = (item) => {
-    if (ownedItems.includes(item.id) || coins < item.price) return
-    setOwnedItems(prev => [...prev, item.id])
-    setCoins(prev => prev - item.price)
+  const buyItem = async (item) => {
+    if (ownedItems.includes(item.id) || coins < item.price) return;
+    const newCoins = coins - item.price;
+    const newOwned = [...ownedItems, item.id];
+    setCoins(newCoins);
+    setOwnedItems(newOwned);
     setPurchaseHistory(prev => [
       { date: new Date(), item },
       ...prev
@@ -191,6 +222,14 @@ export default function Progression({ user }) {
     setTimeout(() => setShopFeedback(null), 2000)
     setCoinAnim(true)
     setTimeout(() => setCoinAnim(false), 900)
+    // --- À chaque achat ou modification ---
+    async function updateUserPass(newFields) {
+      await supabase
+        .from('user_pass')
+        .update(newFields)
+        .eq('user_id', user.id);
+    }
+    await updateUserPass({ coins: newCoins, owned_items: newOwned });
   }
 
   // --- Gestion équipement objet avec feedback ---
@@ -407,7 +446,8 @@ export default function Progression({ user }) {
     const equippedToShow = previewEquip
       ? { ...equipped, [previewEquip.type]: previewEquip.id }
       : equipped
-    // Effet visuel pour fond/effet/mascotte
+
+    // Placement précis pour chaque type d'objet
     return (
       <div style={{
         position: 'relative',
@@ -420,12 +460,12 @@ export default function Progression({ user }) {
         {/* Fond */}
         {equippedToShow.background && (
           <div style={{
-            fontSize: size * 0.39,
+            fontSize: size * 0.38,
             position: 'absolute',
-            left: size * 0.09,
-            top: size * 0.09,
+            left: size * 0.08,
+            top: size * 0.08,
             zIndex: 0,
-            opacity: 0.25
+            opacity: 0.22
           }}>
             {SHOP_ITEMS.find(i => i.id === equippedToShow.background)?.icon}
           </div>
@@ -439,14 +479,14 @@ export default function Progression({ user }) {
           zIndex: 1,
           transition: 'opacity 0.2s'
         }}>🧑</div>
-        {/* Hat */}
+        {/* Chapeau */}
         {equippedToShow.hat && (
           <div style={{
-            fontSize: size * 0.22,
+            fontSize: size * 0.28,
             position: 'absolute',
-            left: size * 0.35,
-            top: size * 0.01,
-            zIndex: 2,
+            left: size * 0.32,
+            top: size * -0.03,
+            zIndex: 3,
             transition: 'transform 0.2s',
             transform: previewEquip?.id === equippedToShow.hat ? 'scale(1.15) rotate(-8deg)' : 'none',
             filter: getItemGlow(equippedToShow.hat)
@@ -454,14 +494,14 @@ export default function Progression({ user }) {
             {SHOP_ITEMS.find(i => i.id === equippedToShow.hat)?.icon}
           </div>
         )}
-        {/* Glasses */}
+        {/* Lunettes */}
         {equippedToShow.glasses && (
           <div style={{
-            fontSize: size * 0.18,
+            fontSize: size * 0.19,
             position: 'absolute',
             left: size * 0.44,
-            top: size * 0.4,
-            zIndex: 3,
+            top: size * 0.41,
+            zIndex: 4,
             transition: 'transform 0.2s',
             transform: previewEquip?.id === equippedToShow.glasses ? 'scale(1.15) rotate(8deg)' : 'none',
             filter: getItemGlow(equippedToShow.glasses)
@@ -469,13 +509,13 @@ export default function Progression({ user }) {
             {SHOP_ITEMS.find(i => i.id === equippedToShow.glasses)?.icon}
           </div>
         )}
-        {/* Apron */}
+        {/* Tablier */}
         {equippedToShow.apron && (
           <div style={{
-            fontSize: size * 0.2,
+            fontSize: size * 0.22,
             position: 'absolute',
-            left: size * 0.42,
-            top: size * 0.73,
+            left: size * 0.41,
+            top: size * 0.74,
             zIndex: 2,
             transition: 'transform 0.2s',
             transform: previewEquip?.id === equippedToShow.apron ? 'scale(1.12)' : 'none',
@@ -484,14 +524,14 @@ export default function Progression({ user }) {
             {SHOP_ITEMS.find(i => i.id === equippedToShow.apron)?.icon}
           </div>
         )}
-        {/* Accessory */}
+        {/* Accessoire */}
         {equippedToShow.accessory && (
           <div style={{
             fontSize: size * 0.16,
             position: 'absolute',
-            left: size * 0.73,
-            top: size * 0.73,
-            zIndex: 4,
+            left: size * 0.74,
+            top: size * 0.74,
+            zIndex: 5,
             transition: 'transform 0.2s',
             transform: previewEquip?.id === equippedToShow.accessory ? 'scale(1.15)' : 'none',
             filter: getItemGlow(equippedToShow.accessory)
@@ -499,14 +539,14 @@ export default function Progression({ user }) {
             {SHOP_ITEMS.find(i => i.id === equippedToShow.accessory)?.icon}
           </div>
         )}
-        {/* Face (moustache/barbe) */}
+        {/* Visage (moustache/barbe) */}
         {equippedToShow.face && (
           <div style={{
-            fontSize: size * 0.16,
+            fontSize: size * 0.15,
             position: 'absolute',
             left: size * 0.56,
-            top: size * 0.67,
-            zIndex: 5,
+            top: size * 0.68,
+            zIndex: 6,
             transition: 'transform 0.2s',
             transform: previewEquip?.id === equippedToShow.face ? 'scale(1.15)' : 'none',
             filter: getItemGlow(equippedToShow.face)
@@ -521,7 +561,7 @@ export default function Progression({ user }) {
             position: 'absolute',
             left: size * 0.73,
             top: size * 0.09,
-            zIndex: 6,
+            zIndex: 7,
             animation: 'effectAnim 1.2s infinite alternate',
             filter: getItemGlow(equippedToShow.effect)
           }}>
@@ -535,7 +575,7 @@ export default function Progression({ user }) {
             position: 'absolute',
             left: size * 0.09,
             top: size * 0.82,
-            zIndex: 7,
+            zIndex: 8,
             filter: getItemGlow(equippedToShow.badge)
           }}>
             {SHOP_ITEMS.find(i => i.id === equippedToShow.badge)?.icon}
@@ -548,7 +588,7 @@ export default function Progression({ user }) {
             position: 'absolute',
             left: size * 0.82,
             top: size * 0.82,
-            zIndex: 8,
+            zIndex: 9,
             animation: 'mascotAnim 1.2s infinite alternate',
             filter: getItemGlow(equippedToShow.mascot)
           }}>
@@ -696,14 +736,14 @@ export default function Progression({ user }) {
               key={cat.id}
               onClick={() => setShopFilter(cat.id)}
               style={{
-                background: shopFilter === cat.id ? 'linear-gradient(135deg, #10b981, #34d399)' : '#fff',
-                color: shopFilter === cat.id ? 'white' : '#10b981',
-                border: shopFilter === cat.id ? '2px solid #10b981' : '1px solid #e5e7eb',
+                background: shopFilter === cat.id ? '#f3f4f6' : 'transparent',
+                color: '#374151',
+                border: shopFilter === cat.id ? '2px solid #f59e0b' : '1px solid #e5e7eb',
                 borderRadius: 10,
                 padding: '7px 16px',
                 fontWeight: 700,
                 fontSize: '1rem',
-                boxShadow: shopFilter === cat.id ? '0 2px 8px #10b98133' : 'none',
+                boxShadow: 'none',
                 cursor: 'pointer',
                 transition: 'all 0.2s'
               }}
@@ -714,7 +754,7 @@ export default function Progression({ user }) {
                 <span style={{
                   marginLeft: 6,
                   fontSize: '0.9rem',
-                  color: '#92400e',
+                  color: '#f59e0b',
                   fontWeight: 600
                 }}>
                   {ownedByType(cat.id)}/{totalByType(cat.id)}
@@ -722,13 +762,12 @@ export default function Progression({ user }) {
               )}
             </button>
           ))}
-          {/* Tout déséquiper */}
           <button
             onClick={unequipAll}
             style={{
-              background: '#f59e0b',
-              color: 'white',
-              border: 'none',
+              background: 'transparent',
+              color: '#f59e0b',
+              border: '1px solid #f59e0b',
               borderRadius: 10,
               padding: '7px 16px',
               fontWeight: 700,
@@ -744,10 +783,9 @@ export default function Progression({ user }) {
         {favoriteObjs.length > 0 && (
           <div style={{
             marginBottom: 18,
-            background: '#fffbe6',
+            background: 'none',
             borderRadius: 12,
-            padding: 10,
-            boxShadow: '0 1px 4px #f59e0b11',
+            padding: 0,
             display: 'flex',
             gap: 10,
             flexWrap: 'wrap',
@@ -765,7 +803,7 @@ export default function Progression({ user }) {
             ))}
           </div>
         )}
-        {/* Grille boutique modernisée */}
+        {/* Grille boutique modernisée et épurée */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
@@ -774,80 +812,53 @@ export default function Progression({ user }) {
         }}>
           {filtered.map(item => (
             <div key={item.id} style={{
-              background: ownedItems.includes(item.id)
-                ? (item.rarity === 'legendary' ? '#fef3c7' : item.rarity === 'epic' ? '#f3e8ff' : '#d1fae5')
-                : '#fff',
+              background: '#fff',
               border: ownedItems.includes(item.id)
-                ? `2px solid ${item.rarity === 'legendary' ? '#f59e0b' : item.rarity === 'epic' ? '#8b5cf6' : item.rarity === 'rare' ? '#3b82f6' : '#10b981'}`
+                ? `1.5px solid ${item.rarity === 'legendary' ? '#f59e0b' : item.rarity === 'epic' ? '#8b5cf6' : item.rarity === 'rare' ? '#3b82f6' : '#e5e7eb'}`
                 : '1px solid #e5e7eb',
               borderRadius: 16,
               padding: 18,
               minWidth: 120,
               textAlign: 'center',
-              boxShadow: ownedItems.includes(item.id) ? '0 2px 8px #f59e0b11' : 'none',
+              boxShadow: 'none',
               opacity: ownedItems.includes(item.id) ? 1 : 0.85,
               position: 'relative',
-              transition: 'box-shadow 0.2s, border 0.2s',
               display: 'flex',
               flexDirection: 'column',
-              alignItems: 'center'
+              alignItems: 'center',
+              transition: 'border 0.2s, box-shadow 0.2s'
             }}
               onMouseEnter={() => ownedItems.includes(item.id) && setPreviewEquip(item)}
               onMouseLeave={() => setPreviewEquip(null)}
             >
-              {/* Badge rareté */}
+              {/* Badge rareté discret */}
               <div style={{
                 position: 'absolute',
-                top: 8,
-                right: 8,
-                fontSize: 12, 
+                top: 10,
+                right: 10,
+                fontSize: 11,
                 fontWeight: 700,
-                color: item.rarity === 'legendary' ? '#f59e0b' : item.rarity === 'epic' ? '#8b5cf6' : item.rarity === 'rare' ? '#3b82f6' : '#10b981',
-                background: item.rarity === 'legendary'
-                  ? 'linear-gradient(90deg,#fbbf24,#f59e0b)'
-                  : item.rarity === 'epic'
-                  ? 'linear-gradient(90deg,#a78bfa,#8b5cf6)'
-                  : item.rarity === 'rare'
-                  ? 'linear-gradient(90deg,#60a5fa,#3b82f6)'
-                  : 'linear-gradient(90deg,#6ee7b7,#10b981)',
-                borderRadius: 8,
-                padding: '2px 8px',
-                boxShadow: '0 1px 4px #f59e0b11'
+                color: item.rarity === 'legendary' ? '#f59e0b' : item.rarity === 'epic' ? '#8b5cf6' : item.rarity === 'rare' ? '#3b82f6' : '#a3a3a3',
+                background: 'none',
+                borderRadius: 6,
+                padding: '0 6px'
               }}>
-                {item.rarity === 'legendary' ? 'Légendaire' : item.rarity === 'epic' ? 'Épique' : item.rarity === 'rare' ? 'Rare' : 'Commun'}
+                {item.rarity === 'legendary' ? '★' : item.rarity === 'epic' ? '✦' : item.rarity === 'rare' ? '◆' : ''}
               </div>
               {/* Badge nouveau */}
               {item.isNew && (
                 <div style={{
                   position: 'absolute',
-                  top: 8,
-                  left: 8,
-                  fontSize: 11,
+                  top: 10,
+                  left: 10,
+                  fontSize: 10,
                   fontWeight: 700,
-                  color: '#fff',
-                  background: 'linear-gradient(90deg,#f59e0b,#fbbf24)',
-                  borderRadius: 8,
-                  padding: '2px 8px',
-                  boxShadow: '0 1px 4px #f59e0b22'
+                  color: '#f59e0b',
+                  background: 'none',
+                  borderRadius: 6,
+                  padding: '0 6px'
                 }}>
                   Nouveau
-                </div>
-              )}
-              {/* Badge exclusif */}
-              {item.exclusive && (
-                <div style={{
-                  position: 'absolute',
-                  bottom: 8,
-                  left: 8,
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: '#fff',
-                  background: 'linear-gradient(90deg,#6366f1,#8b5cf6)',
-                  borderRadius: 8,
-                  padding: '2px 8px',
-                  boxShadow: '0 1px 4px #8b5cf622'
-                }}>
-                  Exclusif
                 </div>
               )}
               {/* Icône objet */}
@@ -857,18 +868,18 @@ export default function Progression({ user }) {
                 filter: getItemGlow(item.id),
                 transition: 'filter 0.2s'
               }}>{item.icon}</div>
-              <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 2 }}>{item.name}</div>
+              <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 2, color: '#1f2937' }}>{item.name}</div>
               <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 8 }}>{item.price} 🪙</div>
               {/* Favori */}
               <button
                 onClick={() => toggleFavorite(item.id)}
                 style={{
                   position: 'absolute',
-                  bottom: 8,
-                  right: 8,
+                  bottom: 10,
+                  right: 10,
                   background: 'none',
                   border: 'none',
-                  fontSize: 20,
+                  fontSize: 18,
                   color: favoriteItems.includes(item.id) ? '#f59e0b' : '#e5e7eb',
                   cursor: 'pointer',
                   transition: 'color 0.2s'
@@ -951,16 +962,6 @@ export default function Progression({ user }) {
         }}>
           D'autres objets et styles d'habillage arrivent bientôt !
         </div>
-        <style jsx>{`
-          @keyframes effectAnim {
-            0%,100% { transform: scale(1);}
-            50% { transform: scale(1.2) rotate(-8deg);}
-          }
-          @keyframes mascotAnim {
-            0%,100% { transform: translateY(0);}
-            50% { transform: translateY(-8px);}
-          }
-        `}</style>
       </div>
     )
   }

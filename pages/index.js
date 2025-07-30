@@ -20,6 +20,7 @@ export default function Home() {
     totalComments: 0,
     activeChefs: 0
   })
+  const [showNews, setShowNews] = useState(true);
   const heroRef = useRef(null)
 
   // Détection du scroll
@@ -945,6 +946,50 @@ export default function Home() {
             <span style={{ marginLeft: '8px', fontSize: '0.7rem', opacity: 0.8 }}>
               (Cliquez pour masquer)
             </span>
+          </div>
+        )}
+
+        {/* Panneau d'affichage des nouveautés */}
+        {showNews && (
+          <div style={{
+            position: 'fixed',
+            top: 18,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: 'linear-gradient(90deg,#fffbe6,#fef3c7)',
+            color: '#92400e',
+            border: '1px solid #f59e0b33',
+            borderRadius: 16,
+            padding: '10px 28px 10px 18px',
+            fontWeight: 600,
+            fontSize: '1rem',
+            boxShadow: '0 2px 12px #f59e0b11',
+            zIndex: 2000,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            maxWidth: 420,
+            minWidth: 0
+          }}>
+            <span style={{ fontSize: 22 }}>📰</span>
+            <span>
+              <b>Nouveautés :</b> Essayez le nouveau dressing, gagnez des CocoCoins chaque jour et découvrez les nouveaux objets de la boutique !
+              <b>Vous pouvez également maintenant liker et commenter les recettes !</b>
+            </span>
+            <button
+              onClick={() => setShowNews(false)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#f59e0b',
+                fontWeight: 900,
+                fontSize: 18,
+                marginLeft: 10,
+                cursor: 'pointer'
+              }}
+              aria-label="Fermer"
+              title="Fermer"
+            >✕</button>
           </div>
         )}
 
