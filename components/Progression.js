@@ -174,7 +174,7 @@ export default function Progression({ user }) {
   const [purchaseHistory, setPurchaseHistory] = useState([])
   const [previewEquip, setPreviewEquip] = useState(null)
   const [coinAnim, setCoinAnim] = useState(false)
-  const [activeTab, setActiveTab] = useState('progression') // 'progression' | 'boutique'
+  const [activeTab, setActiveTab] = useState('progression') // 'progression' | 'boutique' | 'classement'
   const [favoriteItems, setFavoriteItems] = useState([])
   const [shopFilter, setShopFilter] = useState('all')
   const [dressingOpen, setDressingOpen] = useState(false)
@@ -716,6 +716,23 @@ export default function Progression({ user }) {
         Boutique
       </button>
       <button
+        onClick={() => setActiveTab('classement')}
+        style={{
+          background: activeTab === 'classement' ? 'linear-gradient(135deg, #6366f1, #a5b4fc)' : '#fff',
+          color: activeTab === 'classement' ? 'white' : '#6366f1',
+          border: 'none',
+          borderRadius: 14,
+          padding: '10px 28px',
+          fontWeight: 700,
+          fontSize: '1rem',
+          boxShadow: activeTab === 'classement' ? '0 2px 8px #6366f133' : 'none',
+          cursor: 'pointer',
+          transition: 'all 0.2s'
+        }}
+      >
+        Classement
+      </button>
+      <button
         onClick={() => setDressingOpen(true)}
         style={{
           background: dressingOpen ? 'linear-gradient(135deg, #f59e0b, #fbbf24)' : '#fff',
@@ -732,6 +749,65 @@ export default function Progression({ user }) {
       >
         Dressing
       </button>
+    </div>
+  )
+
+  // --- Classement mensuel XP ---
+  const renderLeaderboardTab = () => (
+    <div>
+      <div style={{
+        fontWeight: 700,
+        fontSize: '1.1rem',
+        marginBottom: 18,
+        color: '#6366f1',
+        textAlign: 'center'
+      }}>
+        Classement mensuel XP des utilisateurs
+      </div>
+      {leaderboardLoading ? (
+        <div style={{ textAlign: 'center', color: '#6366f1', fontWeight: 600 }}>
+          Chargement du classement...
+        </div>
+      ) : (
+        <table style={{
+          width: '100%',
+          background: '#fff',
+          borderRadius: 14,
+          boxShadow: '0 2px 8px #6366f111',
+          marginBottom: 24,
+          fontSize: '1rem'
+        }}>
+          <thead>
+            <tr style={{ color: '#6366f1', fontWeight: 700 }}>
+              <th style={{ padding: 8 }}>#</th>
+              <th style={{ padding: 8 }}>Utilisateur</th>
+              <th style={{ padding: 8 }}>XP</th>
+            </tr>
+          </thead>
+          <tbody>
+            {leaderboard.slice(0, 20).map((u, idx) => (
+              <tr key={u.user_id} style={{
+                background: u.isYou ? '#f3f4f6' : 'transparent',
+                fontWeight: u.isYou ? 700 : 500,
+                color: u.isYou ? '#f59e0b' : '#374151'
+              }}>
+                <td style={{ padding: 8, textAlign: 'center' }}>{idx + 1}</td>
+                <td style={{ padding: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {u.avatar_url && (
+                    <img src={u.avatar_url} alt="" style={{ width: 28, height: 28, borderRadius: '50%' }} />
+                  )}
+                  {u.display_name}
+                  {u.isYou && <span style={{ color: '#f59e0b', fontWeight: 700, marginLeft: 4 }}>(Vous)</span>}
+                </td>
+                <td style={{ padding: 8, textAlign: 'center' }}>{u.xp}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      <div style={{ color: '#6366f1', fontSize: '0.95rem', textAlign: 'center' }}>
+        Basé sur l'activité du mois (XP = points trophées + recettes + amis + likes + streak)
+      </div>
     </div>
   )
 
@@ -1515,10 +1591,11 @@ export default function Progression({ user }) {
             </div>
           )}
         </>
-      ) : (
+      ) : activeTab === 'boutique' ? (
         renderShopTab()
+      ) : (
+        renderLeaderboardTab()
       )}
-
       {/* Dressing modal */}
       {dressingOpen && renderDressing()}
 
