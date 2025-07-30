@@ -1166,22 +1166,83 @@ export default function Progression({ user }) {
             </div>
           </div>
 
-          {/* Streak et progression */}
+          {/* Streak & Daily Reward */}
           <div style={{
             background: '#fffbe6',
             borderRadius: 16,
-            padding: '14px 20px',
-            marginBottom: 24,
+            padding: '18px 22px',
+            marginBottom: 28,
             textAlign: 'center',
             fontWeight: 600,
             color: '#f59e0b',
             fontSize: '1.1rem',
-            boxShadow: '0 2px 8px #f59e0b11'
+            boxShadow: '0 2px 8px #f59e0b11',
+            position: 'relative'
           }}>
-            {stats.streak > 1
-              ? <>🔥 Série de <b>{stats.streak}</b> jours actifs !</>
-              : <>Commencez une série d'activité pour gagner plus de récompenses !</>
-            }
+            <div style={{ fontWeight: 700, fontSize: '1.1rem', color: '#f59e0b', marginBottom: 4 }}>
+              🔥 Streak quotidien : <b>{stats.streak}</b> jour{stats.streak > 1 ? 's' : ''}
+            </div>
+            <div style={{ fontSize: '1rem', color: '#92400e', marginBottom: 8 }}>
+              {stats.lastClaimed === new Date().toISOString().slice(0, 10)
+                ? <>Récompense du jour déjà récupérée !</>
+                : <>Réclamez votre récompense quotidienne !</>
+              }
+            </div>
+            <button
+              onClick={async () => {
+                if (stats.lastClaimed === new Date().toISOString().slice(0, 10)) return;
+                // Calcul de la récompense (exemple : 20 + 10*streak)
+                const reward = 20 + 10 * Math.min(stats.streak + 1, 7);
+                const today = new Date().toISOString().slice(0, 10);
+                // Update Supabase
+                await supabase.from('user_pass').update({
+                  last_claimed: today,
+                  streak: stats.lastClaimed === new Date(Date.now() - 86400000).toISOString().slice(0, 10)
+                    ? stats.streak + 1
+                    : 1,
+                  coins: coins + reward
+                }).eq('user_id', user.id);
+                setCoins(coins + reward);
+                setStats(s => ({
+                  ...s,
+                  streak: stats.lastClaimed === new Date(Date.now() - 86400000).toISOString().slice(0, 10)
+                    ? stats.streak + 1
+                    : 1,
+                  lastClaimed: today
+                }));
+                setShopFeedback({ type: 'success', msg: `+${reward} CocoCoins !` });
+                setTimeout(() => setShopFeedback(null), 1500);
+              }}
+              disabled={stats.lastClaimed === new Date().toISOString().slice(0, 10)}
+              style={{
+                background: stats.lastClaimed === new Date().toISOString().slice(0, 10)
+                  ? '#e5e7eb'
+                  : 'linear-gradient(90deg,#f59e0b,#fbbf24)',
+                color: stats.lastClaimed === new Date().toISOString().slice(0, 10)
+                  ? '#9ca3af'
+                  : 'white',
+                border: 'none',
+                borderRadius: 10,
+                padding: '8px 18px',
+                fontWeight: 700,
+                fontSize: '1rem',
+                cursor: stats.lastClaimed === new Date().toISOString().slice(0, 10)
+                  ? 'not-allowed'
+                  : 'pointer',
+                marginBottom: 6,
+                boxShadow: stats.lastClaimed === new Date().toISOString().slice(0, 10)
+                  ? 'none'
+                  : '0 2px 8px #f59e0b33',
+                transition: 'all 0.2s'
+              }}
+            >
+              {stats.lastClaimed === new Date().toISOString().slice(0, 10)
+                ? 'Récompense du jour prise'
+                : `Récupérer +${20 + 10 * Math.min(stats.streak + 1, 7)} 🪙`}
+            </button>
+            <div style={{ fontSize: '0.95rem', color: '#6b7280' }}>
+              Connectez-vous chaque jour pour augmenter votre série et gagner plus de CocoCoins !
+            </div>
           </div>
 
           {/* Badges et trophées */}
