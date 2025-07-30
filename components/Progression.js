@@ -259,11 +259,11 @@ export default function Progression({ user }) {
         // Si pas de ligne, on la crée
         await supabase.from('user_pass').insert({
           user_id: user.id,
-          coins: 250,
+          coins: 200,
           owned_items: ['hat_chef'],
           equipped: { ...DEFAULT_CHEF, hat: 'hat_chef' }
         });
-        setCoins(250);
+        setCoins(200);
         setOwnedItems(['hat_chef']);
         setEquipped({ ...DEFAULT_CHEF, hat: 'hat_chef' });
       }
