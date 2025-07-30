@@ -1014,22 +1014,48 @@ export default function Progression({ user }) {
     )
   }
 
-  // Glow visuel selon la rareté de l'objet
-  function getItemGlow(itemId) {
-    const item = SHOP_ITEMS.find(i => i.id === itemId)
-    if (!item) return 'none'
-    switch (item.rarity) {
-      case 'legendary':
-        return 'drop-shadow(0 0 8px #f59e0b) drop-shadow(0 0 16px #fbbf24)';
-      case 'epic':
-        return 'drop-shadow(0 0 8px #8b5cf6) drop-shadow(0 0 16px #a78bfa)';
-      case 'rare':
-        return 'drop-shadow(0 0 8px #3b82f6)';
-      case 'uncommon':
-        return 'drop-shadow(0 0 6px #10b981)';
-      default:
-        return 'none';
+  // --- Quiz du jour: helpers ---
+  const todayStr = new Date().toISOString().slice(0, 10)
+  const quizDoneToday = quizState?.date === todayStr
+  const quizReward = 40
+
+  // Ouvre le quiz modal avec une question aléatoire
+  const openQuizModal = () => {
+    if (quizDoneToday) return
+    const idx = Math.floor(Math.random() * DAILY_QUIZ_QUESTIONS.length)
+    setQuizQuestion(DAILY_QUIZ_QUESTIONS[idx])
+    setQuizAnswer(null)
+    setQuizFeedback(null)
+    setQuizModalOpen(true)
+  }
+
+  // Gère la soumission du quiz
+  const handleQuizSubmit = async () => {
+    if (quizAnswer === null || !quizQuestion) return
+    setQuizLoading(true)
+    const isCorrect = quizAnswer === quizQuestion.answer
+    setQuizFeedback({
+      type: isCorrect ? 'success' : 'error',
+      msg: isCorrect ? 'Bonne réponse ! +'+quizReward+' CocoCoins' : 'Mauvaise réponse !'
+    })
+    // Stocke le résultat du jour dans le localStorage
+    const newQuizState = {
+      date: todayStr,
+      success: isCorrect
     }
+    setQuizState(newQuizState)
+    localStorage.setItem('coco_daily_quiz', JSON.stringify(newQuizState))
+    if (isCorrect) {
+      setCoins(prev => prev + quizReward)
+      setShopFeedback({ type: 'success', msg: `+${quizReward} CocoCoins (quiz)` })
+      setTimeout(() => setShopFeedback(null), 1200)
+    }
+    setTimeout(() => {
+      setQuizModalOpen(false)
+      setQuizFeedback(null)
+      setQuizAnswer(null)
+    }, 1800)
+    setQuizLoading(false)
   }
 
   if (loading) {
