@@ -87,6 +87,40 @@ const DEFAULT_CHEF = {
   mascot: null
 }
 
+// --- Quiz quotidien (remplace DAILY_CHALLENGES) ---
+const DAILY_QUIZ_QUESTIONS = [
+  {
+    id: 'q1',
+    question: "Quel ingrédient n'entre PAS dans une pâte à crêpes classique ?",
+    options: ["Farine", "Lait", "Levure chimique", "Œufs"],
+    answer: 2 // index de la bonne réponse (Levure chimique)
+  },
+  {
+    id: 'q2',
+    question: "Quel est le terme pour cuire un aliment dans de l'eau frémissante ?",
+    options: ["Sauter", "Pocher", "Griller", "Rôtir"],
+    answer: 1
+  },
+  {
+    id: 'q3',
+    question: "Quel fromage est traditionnellement utilisé dans la recette de la pizza Margherita ?",
+    options: ["Comté", "Mozzarella", "Roquefort", "Chèvre"],
+    answer: 1
+  },
+  {
+    id: 'q4',
+    question: "Quel est le principal ingrédient du guacamole ?",
+    options: ["Avocat", "Tomate", "Poivron", "Courgette"],
+    answer: 0
+  },
+  {
+    id: 'q5',
+    question: "Comment appelle-t-on une cuisson à la vapeur douce en Asie ?",
+    options: ["Wok", "Dim sum", "Bain-marie", "Bambou"],
+    answer: 3
+  }
+]
+
 const DAILY_CHALLENGES = [
   { id: 'share_photo', label: "Partager une photo de plat", icon: "📸", reward: "+20 XP" },
   { id: 'comment', label: "Commenter une recette", icon: "💬", reward: "+10 XP" },
@@ -138,6 +172,20 @@ export default function Progression({ user }) {
       return {};
     }
   });
+  // --- Quiz quotidien ---
+  const [quizState, setQuizState] = useState(() => {
+    try {
+      const data = JSON.parse(localStorage.getItem('coco_daily_quiz') || '{}');
+      return data;
+    } catch {
+      return {};
+    }
+  });
+  const [quizModalOpen, setQuizModalOpen] = useState(false)
+  const [quizQuestion, setQuizQuestion] = useState(null)
+  const [quizAnswer, setQuizAnswer] = useState(null)
+  const [quizFeedback, setQuizFeedback] = useState(null)
+  const [quizLoading, setQuizLoading] = useState(false)
 
   useEffect(() => {
     let isMounted = true
@@ -1272,136 +1320,158 @@ export default function Progression({ user }) {
             </div>
           </div>
 
-          {/* Défis du jour */}
+          {/* Quiz du jour */}
           <div style={{ marginBottom: 32 }}>
             <div style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: 10, color: '#10b981' }}>
-              Défis du jour
+              Quiz du jour
             </div>
             <div style={{
-              display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center'
+              background: '#fffbe6',
+              borderRadius: 16,
+              padding: '18px 22px',
+              marginBottom: 8,
+              textAlign: 'center',
+              fontWeight: 600,
+              color: '#f59e0b',
+              fontSize: '1.1rem',
+              boxShadow: '0 2px 8px #f59e0b11',
+              position: 'relative'
             }}>
-              {dailyChallenges.map(challenge => {
-                const validated = !canValidateChallenge(challenge.id)
-                return (
-                  <div key={challenge.id} style={{
-                    background: validated ? '#e5e7eb' : '#ecfdf5',
-                    borderRadius: 14,
-                    padding: '10px 16px',
-                    minWidth: 120,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 10,
-                    fontWeight: 600,
-                    color: validated ? '#9ca3af' : '#059669',
-                    boxShadow: '0 2px 8px #10b98111',
-                    opacity: validated ? 0.6 : 1,
-                    position: 'relative'
-                  }}>
-                    <span style={{ fontSize: '1.3rem' }}>{challenge.icon}</span>
-                    <span>{challenge.label}</span>
-                    <span style={{ marginLeft: 'auto', color: validated ? '#9ca3af' : '#10b981', fontWeight: 700 }}>{challenge.reward}</span>
-                    <button
-                      style={{
-                        marginLeft: 8,
-                        background: validated ? '#d1d5db' : '#10b981',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: 8,
-                        padding: '2px 8px',
-                        fontWeight: 700,
-                        fontSize: 12,
-                        cursor: validated ? 'not-allowed' : 'pointer'
-                      }}
-                      disabled={validated}
-                      onClick={() => validateChallenge(challenge)}
-                      title={validated ? 'Déjà validé aujourd\'hui' : 'Valider le défi'}
-                    >
-                      {validated ? 'Validé' : 'Valider'}
-                    </button>
-                    {validated && (
-                      <span style={{
-                        position: 'absolute',
-                        top: 6,
-                        right: 6,
-                        fontSize: 13,
-                        color: '#10b981',
-                        fontWeight: 700
-                      }}>✔️</span>
-                    )}
+              {quizDoneToday ? (
+                quizState.success ? (
+                  <div>
+                    <span style={{ color: '#10b981', fontWeight: 700 }}>✅ Quiz réussi aujourd'hui !</span>
+                    <div style={{ color: '#92400e', fontSize: '0.98rem', marginTop: 6 }}>
+                      Revenez demain pour un nouveau quiz.
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <span style={{ color: '#ef4444', fontWeight: 700 }}>❌ Quiz raté aujourd'hui.</span>
+                    <div style={{ color: '#92400e', fontSize: '0.98rem', marginTop: 6 }}>
+                      Réessayez demain !
+                    </div>
                   </div>
                 )
-              })}
-            </div>
-          </div>
-
-          {/* Classement */}
-          <div style={{ marginBottom: 32 }}>
-            <div style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: 10, color: '#3b82f6' }}>
-              Classement mensuel
-            </div>
-            <div style={{
-              background: '#f3f4f6', borderRadius: 16, padding: 16, boxShadow: '0 2px 8px #3b82f611'
-            }}>
-              {leaderboardLoading ? (
-                <div style={{ textAlign: 'center', color: '#3b82f6', fontWeight: 600, padding: 12 }}>
-                  Chargement du classement...
-                </div>
-              ) : leaderboard.length === 0 ? (
-                <div style={{ textAlign: 'center', color: '#f59e0b', fontWeight: 600, padding: 12 }}>
-                  Aucun classement disponible pour le moment.
-                </div>
               ) : (
-                leaderboard.map(entry => (
-                  <div key={entry.id} style={{
-                    display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6,
-                    fontWeight: entry.you ? 800 : 600, color: entry.you ? '#f59e0b' : '#374151',
-                    background: entry.you ? 'rgba(245,158,11,0.08)' : 'transparent',
-                    borderRadius: entry.you ? 10 : 0, padding: entry.you ? '6px 0' : 0
-                  }}>
-                    <span style={{ fontSize: '1.1rem', width: 24, textAlign: 'center' }}>{entry.rank}</span>
-                    <span style={{ flex: 1 }}>{entry.name}</span>
-                    <span style={{ fontSize: '1rem', color: '#6366f1', fontWeight: 700 }}>{entry.xp} XP</span>
-                    {entry.you && <span style={{ marginLeft: 8, color: '#f59e0b', fontWeight: 900 }}>Vous</span>}
-                  </div>
-                ))
-              )
-            }
+                <button
+                  onClick={openQuizModal}
+                  style={{
+                    background: 'linear-gradient(90deg,#10b981,#34d399)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 10,
+                    padding: '10px 28px',
+                    fontWeight: 700,
+                    fontSize: '1.1rem',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 8px #10b98133',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  🎯 Tenter le quiz du jour (+{quizReward} CocoCoins)
+                </button>
+              )}
             </div>
           </div>
-
-          {/* Prochain trophée à débloquer */}
-          <div style={{ marginBottom: 32 }}>
-            <div style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: 10, color: '#92400e' }}>
-              Prochain trophée à débloquer
-            </div>
-            {trophies.locked.length > 0 ? (
-              <div style={{
-                background: '#fff', borderRadius: 16, padding: 18, boxShadow: '0 2px 8px #f59e0b11',
-                display: 'flex', alignItems: 'center', gap: 16
-              }}>
-                <span style={{ fontSize: '2rem' }}>{trophies.locked[0].icon}</span>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: '1rem', color: '#92400e' }}>{trophies.locked[0].name}</div>
-                  <div style={{ fontSize: '0.95rem', color: '#6b7280' }}>{trophies.locked[0].description}</div>
+          {/* Modal quiz */}
+          {quizModalOpen && quizQuestion && (
+            <div style={{
+              position: 'fixed',
+              top: 0, left: 0, right: 0, bottom: 0,
+              background: 'rgba(0,0,0,0.45)',
+              zIndex: 9999,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+              onClick={() => setQuizModalOpen(false)}
+            >
+              <div
+                style={{
+                  background: '#fff',
+                  borderRadius: 24,
+                  maxWidth: 380,
+                  width: '95%',
+                  padding: 28,
+                  boxShadow: '0 12px 40px #0002',
+                  position: 'relative',
+                  animation: 'dressingPop 0.3s'
+                }}
+                onClick={e => e.stopPropagation()}
+              >
+                <button
+                  onClick={() => setQuizModalOpen(false)}
+                  style={{
+                    position: 'absolute',
+                    top: 14, right: 18,
+                    background: 'none',
+                    border: 'none',
+                    fontSize: 22,
+                    color: '#f59e0b',
+                    cursor: 'pointer',
+                    fontWeight: 700
+                  }}
+                  aria-label="Fermer"
+                >✕</button>
+                <div style={{ fontWeight: 800, fontSize: '1.2rem', color: '#10b981', marginBottom: 16 }}>
+                  Quiz du jour
                 </div>
+                <div style={{ fontWeight: 600, fontSize: '1.05rem', marginBottom: 18, color: '#374151' }}>
+                  {quizQuestion.question}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 18 }}>
+                  {quizQuestion.options.map((opt, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setQuizAnswer(idx)}
+                      disabled={quizLoading}
+                      style={{
+                        background: quizAnswer === idx ? '#10b981' : '#f3f4f6',
+                        color: quizAnswer === idx ? 'white' : '#374151',
+                        border: quizAnswer === idx ? '2px solid #10b981' : '1px solid #e5e7eb',
+                        borderRadius: 10,
+                        padding: '10px 12px',
+                        fontWeight: 700,
+                        fontSize: '1rem',
+                        cursor: quizLoading ? 'not-allowed' : 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={handleQuizSubmit}
+                  disabled={quizAnswer === null || quizLoading}
+                  style={{
+                    background: quizAnswer !== null ? 'linear-gradient(90deg,#10b981,#34d399)' : '#e5e7eb',
+                    color: quizAnswer !== null ? 'white' : '#9ca3af',
+                    border: 'none',
+                    borderRadius: 10,
+                    padding: '10px 28px',
+                    fontWeight: 700,
+                    fontSize: '1.1rem',
+                    cursor: quizAnswer !== null ? 'pointer' : 'not-allowed',
+                    marginTop: 10
+                  }}
+                >
+                  {quizLoading ? 'Vérification...' : 'Valider'}
+                </button>
+                {quizFeedback && (
+                  <div style={{
+                    marginTop: 18,
+                    color: quizFeedback.type === 'success' ? '#10b981' : '#ef4444',
+                    fontWeight: 700,
+                    fontSize: '1.05rem'
+                  }}>
+                    {quizFeedback.msg}
+                  </div>
+                )}
               </div>
-            ) : (
-              <div style={{ color: '#10b981', fontWeight: 600 }}>Tous les trophées débloqués !</div>
-            )}
-          </div>
-
-          {/* Animation et encouragement */}
-          <div style={{
-            marginTop: 24,
-            fontSize: 16,
-            color: '#10b981',
-            fontWeight: 700,
-            animation: 'pulse 1.5s infinite alternate'
-          }}>
-            {percent === 100
-              ? "🎉 Bravo, vous avez atteint un nouveau niveau !"
-              : "Continuez à cuisiner, partager et personnaliser votre chef !"}
-          </div>
+            </div>
+          )}
         </>
       ) : (
         renderShopTab()
