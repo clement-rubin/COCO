@@ -1337,7 +1337,7 @@ export default function Progression({ user }) {
           {/* Classement */}
           <div style={{ marginBottom: 32 }}>
             <div style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: 10, color: '#3b82f6' }}>
-              Classement hebdomadaire
+              Classement mensuel
             </div>
             <div style={{
               background: '#f3f4f6', borderRadius: 16, padding: 16, boxShadow: '0 2px 8px #3b82f611'
