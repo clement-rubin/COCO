@@ -6,6 +6,7 @@ import { logUserInteraction, logComponentEvent, logInfo } from '../utils/logger'
 import AddictiveFeed from '../components/AddictiveFeed'
 import RecipeOfWeek from '../components/RecipeOfWeek'
 import NotificationCenter from '../components/NotificationCenter'
+import DailyStreakReward from '../components/DailyStreakReward'
 import styles from '../styles/Layout.module.css'
 
 export default function Home() {
