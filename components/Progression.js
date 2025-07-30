@@ -135,6 +135,22 @@ const MOCK_LEADERBOARD = [
   { rank: 5, name: "Lucas", xp: 1700, you: false }
 ]
 
+// Helper: Glow effect for items by rarity
+function getItemGlow(itemId) {
+  const item = SHOP_ITEMS.find(i => i.id === itemId)
+  if (!item) return 'none'
+  switch (item.rarity) {
+    case 'legendary':
+      return 'drop-shadow(0 0 8px #f59e0b) drop-shadow(0 0 16px #fbbf24)';
+    case 'epic':
+      return 'drop-shadow(0 0 8px #8b5cf6) drop-shadow(0 0 12px #a78bfa)';
+    case 'rare':
+      return 'drop-shadow(0 0 6px #3b82f6)';
+    default:
+      return 'none';
+  }
+}
+
 export default function Progression({ user }) {
   const [xp, setXP] = useState(0)
   const [levelInfo, setLevelInfo] = useState(getLevel(0))
