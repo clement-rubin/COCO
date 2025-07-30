@@ -1150,6 +1150,60 @@ export default function Progression({ user }) {
     setQuizLoading(false)
   }
 
+  // --- Charger le vrai classement mensuel XP ---
+  useEffect(() => {
+    async function fetchLeaderboard() {
+      setLeaderboardLoading(true)
+      try {
+        // Récupérer les 50 premiers utilisateurs actifs ce mois-ci
+        const { data, error } = await supabase
+          .from('user_pass')
+          .select(`
+            user_id,
+            coins,
+            streak,
+            last_claimed,
+            profiles:user_id (
+              display_name,
+              avatar_url
+            ),
+            trophies,
+            recipes_count,
+            friends_count,
+            likes_received
+          `)
+          .order('coins', { ascending: false })
+          .limit(50)
+
+        if (error) throw error
+
+        // Calcul XP pour chaque utilisateur
+        const leaderboardData = (data || []).map(u => {
+          // XP = points trophées + 10*recettes + 5*amis + 2*likes + 2*streak
+          const xp = (u.trophies?.totalPoints || 0)
+            + 10 * (u.recipes_count || 0)
+            + 5 * (u.friends_count || 0)
+            + 2 * (u.likes_received || 0)
+            + 2 * (u.streak || 0)
+          return {
+            user_id: u.user_id,
+            display_name: u.profiles?.display_name || 'Utilisateur',
+            avatar_url: u.profiles?.avatar_url || null,
+            xp,
+            isYou: user?.id === u.user_id
+          }
+        })
+        // Trier par XP décroissant
+        leaderboardData.sort((a, b) => b.xp - a.xp)
+        setLeaderboard(leaderboardData)
+      } catch (e) {
+        setLeaderboard([])
+      }
+      setLeaderboardLoading(false)
+    }
+    fetchLeaderboard()
+  }, [user])
+
   if (loading) {
     return (
       <div style={{ textAlign: 'center', padding: '3rem' }}>
