@@ -1155,8 +1155,8 @@ export default function Progression({ user }) {
     async function fetchLeaderboard() {
       setLeaderboardLoading(true)
       try {
-        // Récupérer les 50 premiers utilisateurs actifs ce mois-ci
-        const { data, error } = await supabase
+        // 1. Récupérer les 50 premiers utilisateurs actifs ce mois-ci (sans join)
+        const { data: passData, error: passError } = await supabase
           .from('user_pass')
           .select(`
             user_id,
@@ -1166,33 +1166,40 @@ export default function Progression({ user }) {
             trophies,
             recipes_count,
             friends_count,
-            likes_received,
-            profiles (
-              display_name,
-              avatar_url
-            )
+            likes_received
           `)
           .limit(50)
+        if (passError) throw passError
 
-        if (error) throw error
+        // 2. Récupérer les profils correspondants
+        const userIds = (passData || []).map(u => u.user_id)
+        let profilesMap = {}
+        if (userIds.length > 0) {
+          const { data: profilesData } = await supabase
+            .from('profiles')
+            .select('user_id,display_name,avatar_url')
+            .in('user_id', userIds)
+          profilesMap = Object.fromEntries(
+            (profilesData || []).map(p => [p.user_id, p])
+          )
+        }
 
-        // Calcul XP pour chaque utilisateur
-        const leaderboardData = (data || []).map(u => {
-          // XP = points trophées + 10*recettes + 5*amis + 2*likes + 2*streak
+        // 3. Calcul XP pour chaque utilisateur et merge
+        const leaderboardData = (passData || []).map(u => {
           const xp = (u.trophies?.totalPoints || 0)
             + 10 * (u.recipes_count || 0)
             + 5 * (u.friends_count || 0)
             + 2 * (u.likes_received || 0)
             + 2 * (u.streak || 0)
+          const profile = profilesMap[u.user_id] || {}
           return {
             user_id: u.user_id,
-            display_name: u.profiles?.display_name || 'Utilisateur',
-            avatar_url: u.profiles?.avatar_url || null,
+            display_name: profile.display_name || 'Utilisateur',
+            avatar_url: profile.avatar_url || null,
             xp,
             isYou: user?.id === u.user_id
           }
         })
-        // Trier par XP décroissant
         leaderboardData.sort((a, b) => b.xp - a.xp)
         setLeaderboard(leaderboardData)
       } catch (e) {
@@ -1583,7 +1590,7 @@ export default function Progression({ user }) {
                     cursor: 'pointer',
                     fontWeight: 700
                   }}
-                  aria-label="Fermer"
+
                 >✕</button>
                 <div style={{ fontWeight: 800, fontSize: '1.2rem', color: '#10b981', marginBottom: 16 }}>
                   Quiz du jour
