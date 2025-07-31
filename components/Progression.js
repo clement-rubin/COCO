@@ -1163,16 +1163,15 @@ export default function Progression({ user }) {
             coins,
             streak,
             last_claimed,
-            profiles:user_id (
-              display_name,
-              avatar_url
-            ),
             trophies,
             recipes_count,
             friends_count,
-            likes_received
+            likes_received,
+            profiles (
+              display_name,
+              avatar_url
+            )
           `)
-          .order('coins', { ascending: false })
           .limit(50)
 
         if (error) throw error
