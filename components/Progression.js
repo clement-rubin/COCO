@@ -1155,6 +1155,7 @@ export default function Progression({ user }) {
     async function fetchLeaderboard() {
       setLeaderboardLoading(true)
       try {
+        // ⚠️ Ne pas utiliser .select(...,profiles(...)) car Supabase ne supporte pas ce join ici.
         // 1. Récupérer les 50 premiers utilisateurs actifs ce mois-ci (sans join)
         const { data: passData, error: passError } = await supabase
           .from('user_pass')
