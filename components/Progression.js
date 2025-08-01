@@ -135,6 +135,27 @@ const MOCK_LEADERBOARD = [
   { rank: 5, name: "Lucas", xp: 1700, you: false }
 ]
 
+// --- Système de ligues ---
+const LEAGUES = [
+  { id: 'bronze', label: 'Bronze', minLevel: 1, color: '#cd7f32', icon: '🥉' },
+  { id: 'argent', label: 'Argent', minLevel: 3, color: '#c0c0c0', icon: '🥈' },
+  { id: 'or', label: 'Or', minLevel: 5, color: '#ffd700', icon: '🥇' },
+  { id: 'platine', label: 'Platine', minLevel: 7, color: '#e5e4e2', icon: '💎' },
+  { id: 'diamant', label: 'Diamant', minLevel: 9, color: '#b9f2ff', icon: '🔷' },
+  { id: 'master', label: 'Master', minLevel: 12, color: '#6366f1', icon: '🏆' }
+];
+
+function getLeague(level) {
+  let league = LEAGUES[0];
+  for (let i = LEAGUES.length - 1; i >= 0; i--) {
+    if (level >= LEAGUES[i].minLevel) {
+      league = LEAGUES[i];
+      break;
+    }
+  }
+  return league;
+}
+
 // Helper: Glow effect for items by rarity
 function getItemGlow(itemId) {
   const item = SHOP_ITEMS.find(i => i.id === itemId)
@@ -149,20 +170,6 @@ function getItemGlow(itemId) {
     default:
       return 'none';
   }
-}
-
-// Définition des ligues par niveau
-const LEAGUES = [
-  { name: "Bronze", minLevel: 1, maxLevel: 2, color: "#bfa16c", icon: "🥉" },
-  { name: "Argent", minLevel: 3, maxLevel: 3, color: "#bfc9ca", icon: "🥈" },
-  { name: "Or", minLevel: 4, maxLevel: 4, color: "#ffd700", icon: "🥇" },
-  { name: "Platine", minLevel: 5, maxLevel: 5, color: "#aee6f7", icon: "🏆" },
-  { name: "Diamant", minLevel: 6, maxLevel: 6, color: "#7dd3fc", icon: "💎" }
-]
-
-// Fonction pour obtenir la ligue selon le niveau
-function getLeague(level) {
-  return LEAGUES.find(l => level >= l.minLevel && level <= l.maxLevel) || LEAGUES[0]
 }
 
 export default function Progression({ user }) {
@@ -1291,8 +1298,50 @@ export default function Progression({ user }) {
     )
   }
 
-  // Ajout de la ligue actuelle
-  const league = getLeague(levelInfo.current.level)
+  // Ajout : Calcul du niveau principalement par le nombre de recettes
+  const [level, setLevel] = useState(1);
+
+  useEffect(() => {
+    let isMounted = true
+    async function fetchData() {
+      setLoading(true)
+      let userStats = { recipesCount: 0, friendsCount: 0, likesReceived: 0, daysActive: 0, streak: 0 }
+      let trophyData = { unlocked: [], locked: [], totalPoints: 0, unlockedCount: 0, totalCount: 0 }
+      let xpCalc = 0
+
+      if (user?.id) {
+        try {
+          userStats = await getUserStatsComplete(user.id)
+          trophyData = await getUserTrophies(user.id)
+          // XP = points trophées + 10 * recettes + 5 * amis + 2 * likes + 2 * streak
+          xpCalc = (trophyData.totalPoints || 0)
+            + 10 * (userStats.recipesCount || 0)
+            + 5 * (userStats.friendsCount || 0)
+            + 2 * (userStats.likesReceived || 0)
+            + 2 * (userStats.streak || 0)
+          // Simule le streak et le classement si non dispo
+          userStats.streak = userStats.streak || Math.floor(Math.random() * 10) + 1
+          userStats.daysActive = userStats.daysActive || Math.floor(Math.random() * 120) + 1
+          // Niveau = 1 + Math.floor(recipesCount / 5)
+          const recipesCount = userStats.recipesCount || 0;
+          const lvl = 1 + Math.floor(recipesCount / 5);
+          setLevel(lvl);
+        } catch (e) {}
+      }
+      if (isMounted) {
+        setStats(userStats)
+        setTrophies(trophyData)
+        setXP(xpCalc)
+        setLevelInfo(getLevel(xpCalc))
+        setLoading(false)
+      }
+    }
+    fetchData()
+    return () => { isMounted = false }
+  }, [user])
+
+  // Ajout : Affichage de la ligue dans la progression
+  const league = getLeague(level);
 
   return (
     <div className={styles.trophyContainer} style={{ maxWidth: 600, margin: '0 auto', padding: 24 }}>
@@ -1383,18 +1432,6 @@ export default function Progression({ user }) {
                 </div>
                 <div style={{ fontSize: '1.1rem', fontWeight: 500 }}>
                   {user?.user_metadata?.display_name || user?.email || 'Utilisateur'}
-                </div>
-                {/* Ajout de la ligue */}
-                <div style={{
-                  marginTop: 8,
-                  fontWeight: 700,
-                  fontSize: '1.1rem',
-                  color: league.color,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8
-                }}>
-                  {league.icon} Ligue {league.name}
                 </div>
               </div>
             </div>
