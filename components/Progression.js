@@ -1213,41 +1213,37 @@ export default function Progression({ user }) {
     async function fetchLeaderboard() {
       setLeaderboardLoading(true)
       try {
-        // 1. Récupérer tous les profils publics
+        // 1. Récupérer tous les profils utilisateurs
         const { data: profilesData, error: profilesError } = await supabase
           .from('profiles')
           .select('user_id,display_name,avatar_url')
-          .eq('is_private', false)
-          .limit(200)
         if (profilesError) {
           console.error("[Classement] Erreur profiles:", profilesError)
-          throw profilesError
+          setLeaderboard([])
+          setLeaderboardLoading(false)
+          return
         }
 
-        // 2. Récupérer toutes les lignes user_pass existantes
-        const userIds = (profilesData || []).map(p => p.user_id)
-        let passMap = {}
-        if (userIds.length > 0) {
-          const { data: passData, error: passError } = await supabase
-            .from('user_pass')
-            .select('user_id,coins,streak,last_claimed,trophies,recipes_count,friends_count,likes_received')
-            .in('user_id', userIds)
-          if (passError) {
-            console.error("[Classement] Erreur user_pass:", passError)
-          }
-          passMap = Object.fromEntries(
-            (passData || []).map(u => [u.user_id, u])
-          )
+        // 2. Récupérer toutes les progressions (user_pass)
+        const { data: passData, error: passError } = await supabase
+          .from('user_pass')
+          .select('user_id,coins,streak,last_claimed,trophies,recipes_count,friends_count,likes_received')
+        if (passError) {
+          console.error("[Classement] Erreur user_pass:", passError)
         }
 
-        // 3. Calcul XP pour chaque utilisateur et merge
+        // 3. Mapper les progressions par user_id
+        const passMap = Object.fromEntries((passData || []).map(u => [u.user_id, u]))
+
+        // 4. Calcul XP pour chaque utilisateur
         const leaderboardData = (profilesData || []).map(profile => {
-          const pass = passMap[profile.user_id]
-          const xp = (pass?.trophies?.totalPoints || 0)
-            + 10 * (pass?.recipes_count || 0)
-            + 5 * (pass?.friends_count || 0)
-            + 2 * (pass?.likes_received || 0)
-            + 2 * (pass?.streak || 0)
+          const pass = passMap[profile.user_id] || {}
+          const xp =
+            (pass.trophies?.totalPoints || 0) +
+            10 * (pass.recipes_count || 0) +
+            5 * (pass.friends_count || 0) +
+            2 * (pass.likes_received || 0) +
+            2 * (pass.streak || 0)
           return {
             user_id: profile.user_id,
             display_name: profile.display_name || 'Utilisateur',
@@ -1256,6 +1252,7 @@ export default function Progression({ user }) {
             isYou: user?.id === profile.user_id
           }
         })
+
         leaderboardData.sort((a, b) => b.xp - a.xp)
         setLeaderboard(leaderboardData)
       } catch (e) {
@@ -1758,4 +1755,3 @@ export default function Progression({ user }) {
     </div>
   )
 }
-     
