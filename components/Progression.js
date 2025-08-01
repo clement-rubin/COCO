@@ -1155,7 +1155,7 @@ export default function Progression({ user }) {
     async function fetchLeaderboard() {
       setLeaderboardLoading(true)
       try {
-        // ⚠️ Ne pas utiliser .select(...,profiles(...)) car Supabase ne supporte pas ce join ici.
+        console.log("[Classement] Début fetchLeaderboard");
         // 1. Récupérer les 50 premiers utilisateurs actifs ce mois-ci (sans join)
         const { data: passData, error: passError } = await supabase
           .from('user_pass')
@@ -1170,19 +1170,29 @@ export default function Progression({ user }) {
             likes_received
           `)
           .limit(50)
-        if (passError) throw passError
+        if (passError) {
+          console.error("[Classement] Erreur user_pass:", passError)
+          throw passError
+        }
+        console.log("[Classement] user_pass data:", passData)
 
         // 2. Récupérer les profils correspondants
         const userIds = (passData || []).map(u => u.user_id)
         let profilesMap = {}
         if (userIds.length > 0) {
-          const { data: profilesData } = await supabase
+          const { data: profilesData, error: profilesError } = await supabase
             .from('profiles')
             .select('user_id,display_name,avatar_url')
             .in('user_id', userIds)
+          if (profilesError) {
+            console.error("[Classement] Erreur profiles:", profilesError)
+          }
+          console.log("[Classement] profiles data:", profilesData)
           profilesMap = Object.fromEntries(
             (profilesData || []).map(p => [p.user_id, p])
           )
+        } else {
+          console.warn("[Classement] Aucun user_id trouvé dans user_pass")
         }
 
         // 3. Calcul XP pour chaque utilisateur et merge
@@ -1201,12 +1211,15 @@ export default function Progression({ user }) {
             isYou: user?.id === u.user_id
           }
         })
+        console.log("[Classement] leaderboardData:", leaderboardData)
         leaderboardData.sort((a, b) => b.xp - a.xp)
         setLeaderboard(leaderboardData)
       } catch (e) {
+        console.error("[Classement] Exception générale:", e)
         setLeaderboard([])
       }
       setLeaderboardLoading(false)
+      console.log("[Classement] Fin fetchLeaderboard")
     }
     fetchLeaderboard()
   }, [user])
