@@ -515,7 +515,8 @@ export default function AddictiveFeed() {
           marginBottom: 8,
           textAlign: 'center'
         }}>
-          {WELCOME_MESSAGES[welcomeStep]}
+          {/* Defensive: fallback if welcomeStep is out of bounds */}
+          {WELCOME_MESSAGES[welcomeStep] || WELCOME_MESSAGES[0]}
         </div>
         <div style={{
           marginTop: 16,
@@ -523,15 +524,19 @@ export default function AddictiveFeed() {
           gap: 6,
           justifyContent: 'center'
         }}>
-          <span style={{
-            width: 10, height: 10, borderRadius: '50%', background: '#ff6b35', opacity: welcomeStep === 0 ? 1 : 0.3, transition: 'opacity 0.3s'
-          }} />
-          <span style={{
-            width: 10, height: 10, borderRadius: '50%', background: '#ff6b35', opacity: welcomeStep === 1 ? 1 : 0.3, transition: 'opacity 0.3s'
-          }} />
-          <span style={{
-            width: 10, height: 10, borderRadius: '50%', background: '#ff6b35', opacity: welcomeStep === 2 ? 1 : 0.3, transition: 'opacity 0.3s'
-          }} />
+          {[0, 1, 2].map(idx => (
+            <span
+              key={idx}
+              style={{
+                width: 10,
+                height: 10,
+                borderRadius: '50%',
+                background: '#ff6b35',
+                opacity: welcomeStep === idx ? 1 : 0.3,
+                transition: 'opacity 0.3s'
+              }}
+            />
+          ))}
         </div>
         <style jsx>{`
           @keyframes cocoBounce {
