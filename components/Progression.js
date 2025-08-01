@@ -1465,70 +1465,6 @@ export default function Progression({ user }) {
 
       {/* Onglets navigation */}
       {renderTabs()}
-
-      {/* Aperçu top 3 classement mensuel (toujours visible sur l'accueil) */}
-      {activeTab === 'progression' && leaderboard.length > 0 && (
-        <div style={{
-          background: 'linear-gradient(135deg,#e0e7ff 0%,#f3f4f6 100%)',
-          borderRadius: 18,
-          boxShadow: '0 4px 24px #6366f122',
-          padding: '18px 10px 10px 10px',
-          textAlign: 'center',
-          marginBottom: 24,
-          maxWidth: 500,
-          marginLeft: 'auto',
-          marginRight: 'auto'
-        }}>
-          <div style={{ fontWeight: 700, fontSize: '1.1rem', color: '#6366f1', marginBottom: 10 }}>
-            🏆 Top 3 du classement mensuel (XP)
-          </div>
-          <div style={{
-            display: 'flex',
-            justifyContent: 'center',
-            gap: 18,
-            marginBottom: 6,
-            flexWrap: 'wrap'
-          }}>
-            {leaderboard.slice(0, 3).map((u, idx) => {
-              let bg = idx === 0 ? '#fef3c7' : idx === 1 ? '#e0e7ff' : '#f3f4f6'
-              let color = idx === 0 ? '#f59e0b' : idx === 1 ? '#6366f1' : '#a3a3a3'
-              let icon = idx === 0 ? '🥇' : idx === 1 ? '🥈' : '🥉'
-              return (
-                <div key={u.user_id} style={{
-                  background: bg,
-                  borderRadius: 14,
-                  padding: '12px 16px',
-                  minWidth: 90,
-                  boxShadow: idx === 0 ? '0 4px 16px #f59e0b22' : '0 2px 8px #6366f122',
-                  transform: idx === 0 ? 'scale(1.08)' : 'scale(1)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center'
-                }}>
-                  <div style={{ fontSize: 26, color, marginBottom: 4 }}>{icon}</div>
-                  {u.avatar_url && (
-                    <img src={u.avatar_url} alt="" style={{
-                      width: 36, height: 36, borderRadius: '50%',
-                      border: `2px solid ${color}`,
-                      marginBottom: 4
-                    }} />
-                  )}
-                  <div style={{ fontWeight: 900, color, fontSize: '1.05rem', marginBottom: 2 }}>
-                    {u.display_name}
-                  </div>
-                  <div style={{ color: '#374151', fontSize: '0.98rem', fontWeight: 700 }}>
-                    {u.xp} XP
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-          <div style={{ color: '#6366f1', fontSize: '0.95rem', marginTop: 8 }}>
-            Classement calculé sur l'activité du mois (XP = trophées + recettes + amis + likes + streak)
-          </div>
-        </div>
-      )}
-
       {/* Affichage selon l'onglet */}
       {activeTab === 'progression' ? (
         <>
@@ -1669,15 +1605,6 @@ export default function Progression({ user }) {
             boxShadow: '0 2px 8px #f59e0b11',
             position: 'relative'
           }}>
-            <div style={{ fontWeight: 700, fontSize: '1.1rem', color: '#f59e0b', marginBottom: 4 }}>
-              🔥 Streak quotidien : <b>{stats.streak}</b> jour{stats.streak > 1 ? 's' : ''}
-            </div>
-            <div style={{ fontSize: '1rem', color: '#92400e', marginBottom: 8 }}>
-              {stats.lastClaimed === new Date().toISOString().slice(0, 10)
-                ? <>Récompense du jour déjà récupérée !</>
-                : <>Réclamez votre récompense quotidienne !</>
-              }
-            </div>
             <button
               onClick={async () => {
                 if (stats.lastClaimed === new Date().toISOString().slice(0, 10)) return;

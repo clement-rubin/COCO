@@ -1181,7 +1181,7 @@ export default function AddictiveFeed() {
 
   return (
     <div className={styles.feedContainer} ref={containerRef}>
-      {/* Aperçu du classement mensuel en haut du feed */}
+      {/* Podium visuel du classement mensuel (top 3) */}
       <div style={{
         maxWidth: 500,
         margin: '0 auto 32px',
