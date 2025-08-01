@@ -242,6 +242,13 @@ export default function AddictiveFeed() {
       }
     }
 
+    // Récupérer l'avatar_url si présent dans apiRecipe.author_profile ou apiRecipe
+    let avatar_url = null;
+    if (apiRecipe.author_profile && apiRecipe.author_profile.avatar_url) {
+      avatar_url = apiRecipe.author_profile.avatar_url;
+    } else if (apiRecipe.avatar_url) {
+      avatar_url = apiRecipe.avatar_url;
+    }
     // Utiliser le nom d'auteur de la recette
     const authorName = apiRecipe.author || 'Chef Anonyme'
     const authorEmoji = getAuthorEmoji(apiRecipe.category)
@@ -266,7 +273,8 @@ export default function AddictiveFeed() {
       user: {
         id: apiRecipe.user_id || `author_${authorName.replace(/\s+/g, '_').toLowerCase()}`,
         name: authorName,
-        avatar: authorEmoji,
+        avatar_url, // <-- avatar_url réel ou null
+        emoji: authorEmoji,
         verified: Math.random() > 0.7 // Simplification du système de vérification
       },
       recipe: {
@@ -1306,7 +1314,26 @@ export default function AddictiveFeed() {
             <div className={styles.recipeContent}>
               {/* Info utilisateur redessinée */}
               <div className={styles.userInfo}>
-                <span className={styles.userAvatar}>{post.user.avatar}</span>
+                {/* Avatar utilisateur */}
+                <span className={styles.userAvatar}>
+                  {post.user.avatar_url ? (
+                    <img
+                      src={post.user.avatar_url}
+                      alt={post.user.name}
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: '50%',
+                        objectFit: 'cover',
+                        border: '2px solid #f3f4f6',
+                        background: '#fffbe6'
+                      }}
+                    />
+                  ) : (
+                    // Fallback: initiale ou emoji
+                    post.user.name?.charAt(0)?.toUpperCase() || post.user.emoji || '👤'
+                  )}
+                </span>
                 <div className={styles.userDetails}>
                   <span className={styles.userName}>
                     {post.user.name}
