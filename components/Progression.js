@@ -504,12 +504,27 @@ export default function Progression({ user }) {
     </div>
   )
 
-  // --- Rendu avatar chef modifié pour supporter la taille ---
+  // --- Rendu avatar chef modifié pour supporter la taille et un placement plus précis ---
   const renderChefAvatar = (opts = {}) => {
     const size = opts.size || 110
     const equippedToShow = previewEquip
       ? { ...equipped, [previewEquip.type]: previewEquip.id }
       : equipped
+
+    // Helper pour effet brillance sur le contour
+    const avatarBorderStyle = {
+      boxShadow: '0 0 0 6px #f59e0b22, 0 4px 24px #f59e0b33',
+      border: '3px solid #fff',
+      background: 'linear-gradient(135deg, #fffbe6 60%, #fef3c7 100%)',
+      borderRadius: '50%',
+      position: 'absolute',
+      left: 0,
+      top: 0,
+      width: size,
+      height: size,
+      zIndex: 0,
+      pointerEvents: 'none'
+    }
 
     // Placement précis pour chaque type d'objet
     return (
@@ -519,8 +534,14 @@ export default function Progression({ user }) {
         height: size,
         margin: '0 auto',
         filter: previewEquip ? 'brightness(1.1) drop-shadow(0 0 8px #f59e0b88)' : 'none',
-        transition: 'filter 0.3s'
+        transition: 'filter 0.3s',
+        background: 'linear-gradient(135deg, #fffbe6 60%, #fef3c7 100%)',
+        borderRadius: '50%',
+        boxShadow: '0 0 0 6px #f59e0b22, 0 4px 24px #f59e0b33',
+        overflow: 'visible'
       }}>
+        {/* Contour et effet brillance */}
+        <div style={avatarBorderStyle}></div>
         {/* Fond */}
         {equippedToShow.background && (
           <div style={{
@@ -528,8 +549,9 @@ export default function Progression({ user }) {
             position: 'absolute',
             left: size * 0.08,
             top: size * 0.08,
-            zIndex: 0,
-            opacity: 0.22
+            zIndex: 1,
+            opacity: 0.18,
+            filter: 'blur(1px) brightness(1.1)'
           }}>
             {SHOP_ITEMS.find(i => i.id === equippedToShow.background)?.icon}
           </div>
@@ -540,8 +562,9 @@ export default function Progression({ user }) {
           position: 'absolute',
           left: size * 0.18,
           top: size * 0.18,
-          zIndex: 1,
-          transition: 'opacity 0.2s'
+          zIndex: 2,
+          transition: 'opacity 0.2s',
+          textShadow: '0 2px 8px #f59e0b22'
         }}>🧑</div>
         {/* Chapeau */}
         {equippedToShow.hat && (
@@ -549,11 +572,12 @@ export default function Progression({ user }) {
             fontSize: size * 0.28,
             position: 'absolute',
             left: size * 0.32,
-            top: size * -0.03,
-            zIndex: 3,
+            top: size * -0.07,
+            zIndex: 5,
             transition: 'transform 0.2s',
-            transform: previewEquip?.id === equippedToShow.hat ? 'scale(1.15) rotate(-8deg)' : 'none',
-            filter: getItemGlow(equippedToShow.hat)
+            transform: previewEquip?.id === equippedToShow.hat ? 'scale(1.18) rotate(-10deg)' : 'rotate(-5deg)',
+            filter: getItemGlow(equippedToShow.hat),
+            textShadow: '0 2px 8px #f59e0b44'
           }}>
             {SHOP_ITEMS.find(i => i.id === equippedToShow.hat)?.icon}
           </div>
@@ -565,10 +589,11 @@ export default function Progression({ user }) {
             position: 'absolute',
             left: size * 0.44,
             top: size * 0.41,
-            zIndex: 4,
+            zIndex: 6,
             transition: 'transform 0.2s',
-            transform: previewEquip?.id === equippedToShow.glasses ? 'scale(1.15) rotate(8deg)' : 'none',
-            filter: getItemGlow(equippedToShow.glasses)
+            transform: previewEquip?.id === equippedToShow.glasses ? 'scale(1.15) rotate(8deg)' : 'rotate(2deg)',
+            filter: getItemGlow(equippedToShow.glasses),
+            textShadow: '0 1px 4px #37415122'
           }}>
             {SHOP_ITEMS.find(i => i.id === equippedToShow.glasses)?.icon}
           </div>
@@ -580,10 +605,11 @@ export default function Progression({ user }) {
             position: 'absolute',
             left: size * 0.41,
             top: size * 0.74,
-            zIndex: 2,
+            zIndex: 3,
             transition: 'transform 0.2s',
             transform: previewEquip?.id === equippedToShow.apron ? 'scale(1.12)' : 'none',
-            filter: getItemGlow(equippedToShow.apron)
+            filter: getItemGlow(equippedToShow.apron),
+            textShadow: '0 1px 4px #05966922'
           }}>
             {SHOP_ITEMS.find(i => i.id === equippedToShow.apron)?.icon}
           </div>
@@ -595,10 +621,11 @@ export default function Progression({ user }) {
             position: 'absolute',
             left: size * 0.74,
             top: size * 0.74,
-            zIndex: 5,
+            zIndex: 7,
             transition: 'transform 0.2s',
             transform: previewEquip?.id === equippedToShow.accessory ? 'scale(1.15)' : 'none',
-            filter: getItemGlow(equippedToShow.accessory)
+            filter: getItemGlow(equippedToShow.accessory),
+            textShadow: '0 1px 4px #10b98122'
           }}>
             {SHOP_ITEMS.find(i => i.id === equippedToShow.accessory)?.icon}
           </div>
@@ -610,10 +637,11 @@ export default function Progression({ user }) {
             position: 'absolute',
             left: size * 0.56,
             top: size * 0.68,
-            zIndex: 6,
+            zIndex: 8,
             transition: 'transform 0.2s',
             transform: previewEquip?.id === equippedToShow.face ? 'scale(1.15)' : 'none',
-            filter: getItemGlow(equippedToShow.face)
+            filter: getItemGlow(equippedToShow.face),
+            textShadow: '0 1px 4px #92400e22'
           }}>
             {SHOP_ITEMS.find(i => i.id === equippedToShow.face)?.icon}
           </div>
@@ -625,9 +653,10 @@ export default function Progression({ user }) {
             position: 'absolute',
             left: size * 0.73,
             top: size * 0.09,
-            zIndex: 7,
+            zIndex: 9,
             animation: 'effectAnim 1.2s infinite alternate',
-            filter: getItemGlow(equippedToShow.effect)
+            filter: getItemGlow(equippedToShow.effect),
+            textShadow: '0 1px 4px #f59e0b22'
           }}>
             {SHOP_ITEMS.find(i => i.id === equippedToShow.effect)?.icon}
           </div>
@@ -639,8 +668,9 @@ export default function Progression({ user }) {
             position: 'absolute',
             left: size * 0.09,
             top: size * 0.82,
-            zIndex: 8,
-            filter: getItemGlow(equippedToShow.badge)
+            zIndex: 10,
+            filter: getItemGlow(equippedToShow.badge),
+            textShadow: '0 1px 4px #f59e0b22'
           }}>
             {SHOP_ITEMS.find(i => i.id === equippedToShow.badge)?.icon}
           </div>
@@ -652,13 +682,41 @@ export default function Progression({ user }) {
             position: 'absolute',
             left: size * 0.82,
             top: size * 0.82,
-            zIndex: 9,
+            zIndex: 11,
             animation: 'mascotAnim 1.2s infinite alternate',
-            filter: getItemGlow(equippedToShow.mascot)
+            filter: getItemGlow(equippedToShow.mascot),
+            textShadow: '0 1px 4px #8b5cf622'
           }}>
             {SHOP_ITEMS.find(i => i.id === equippedToShow.mascot)?.icon}
           </div>
         )}
+        {/* Effet de brillance sur le contour */}
+        <div style={{
+          position: 'absolute',
+          left: size * 0.05,
+          top: size * 0.05,
+          width: size * 0.9,
+          height: size * 0.9,
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(255,255,255,0.18) 0%, transparent 70%)',
+          zIndex: 12,
+          pointerEvents: 'none',
+          animation: 'avatarShine 2.5s infinite alternate'
+        }} />
+        <style jsx>{`
+          @keyframes effectAnim {
+            0% { filter: brightness(1) scale(1);}
+            100% { filter: brightness(1.2) scale(1.08);}
+          }
+          @keyframes mascotAnim {
+            0% { transform: scale(1) rotate(-5deg);}
+            100% { transform: scale(1.12) rotate(8deg);}
+          }
+          @keyframes avatarShine {
+            0% { opacity: 0.6;}
+            100% { opacity: 1;}
+          }
+        `}</style>
       </div>
     )
   }

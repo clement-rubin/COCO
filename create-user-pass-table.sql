@@ -25,6 +25,9 @@ ALTER TABLE user_pass ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view their own pass" ON user_pass
   FOR SELECT USING (auth.uid() = user_id);
 
+CREATE POLICY "Leaderboard public select" ON user_pass
+  FOR SELECT USING (true);
+
 CREATE POLICY "Users can update their own pass" ON user_pass
   FOR UPDATE USING (auth.uid() = user_id);
 
@@ -50,3 +53,10 @@ DO $$
 BEGIN
   RAISE NOTICE '✅ Table user_pass créée ou mise à jour avec succès !';
 END $$;
+
+-- Classement mensuel : récupérer uniquement l'XP de chaque utilisateur
+SELECT user_id, xp FROM monthly_leaderboard;
+
+-- (Optionnel) Créer une vue pour faciliter l'accès
+CREATE OR REPLACE VIEW monthly_leaderboard_xp AS
+SELECT user_id, xp FROM monthly_leaderboard;
