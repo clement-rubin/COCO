@@ -848,45 +848,157 @@ export default function Progression({ user }) {
           Chargement du classement...
         </div>
       ) : (
-        <table style={{
-          width: '100%',
-          background: '#fff',
-          borderRadius: 14,
-          boxShadow: '0 2px 8px #6366f111',
+        <div style={{
+          background: 'linear-gradient(135deg,#e0e7ff 0%,#f3f4f6 100%)',
+          borderRadius: 18,
+          boxShadow: '0 4px 24px #6366f122',
+          padding: '18px 10px 10px 10px',
           marginBottom: 24,
-          fontSize: '1rem'
+          maxWidth: 480,
+          marginLeft: 'auto',
+          marginRight: 'auto'
         }}>
-          <thead>
-            <tr style={{ color: '#6366f1', fontWeight: 700 }}>
-              <th style={{ padding: 8 }}>#</th>
-              <th style={{ padding: 8 }}>Utilisateur</th>
-              <th style={{ padding: 8 }}>Recettes (30j)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {leaderboard.slice(0, 20).map((u, idx) => (
-              <tr key={u.user_id} style={{
-                background: u.isYou ? '#f3f4f6' : 'transparent',
-                fontWeight: u.isYou ? 700 : 500,
-                color: u.isYou ? '#f59e0b' : '#374151'
-              }}>
-                <td style={{ padding: 8, textAlign: 'center' }}>{idx + 1}</td>
-                <td style={{ padding: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  {u.avatar_url && (
-                    <img src={u.avatar_url} alt="" style={{ width: 28, height: 28, borderRadius: '50%' }} />
-                  )}
-                  {u.display_name}
-                  {u.isYou && <span style={{ color: '#f59e0b', fontWeight: 700, marginLeft: 4 }}>(Vous)</span>}
-                </td>
-                <td style={{ padding: 8, textAlign: 'center' }}>{u.recipesCount}</td>
+          <table style={{
+            width: '100%',
+            borderCollapse: 'separate',
+            borderSpacing: 0,
+            fontSize: '1rem'
+          }}>
+            <thead>
+              <tr style={{ color: '#6366f1', fontWeight: 700 }}>
+                <th style={{ padding: 8, textAlign: 'center' }}>#</th>
+                <th style={{ padding: 8, textAlign: 'left' }}>Utilisateur</th>
+                <th style={{ padding: 8, textAlign: 'center' }}>Recettes (30j)</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {leaderboard.slice(0, 20).map((u, idx) => {
+                // Décoration rang
+                let rankBg = 'transparent', rankColor = '#374151', rankIcon = '';
+                if (idx === 0) { rankBg = '#fef3c7'; rankColor = '#f59e0b'; rankIcon = '🥇'; }
+                else if (idx === 1) { rankBg = '#e0e7ff'; rankColor = '#6366f1'; rankIcon = '🥈'; }
+                else if (idx === 2) { rankBg = '#f3f4f6'; rankColor = '#a3a3a3'; rankIcon = '🥉'; }
+                return (
+                  <tr key={u.user_id} style={{
+                    background: u.isYou ? '#f3f4f6' : rankBg,
+                    fontWeight: u.isYou ? 700 : (idx < 3 ? 700 : 500),
+                    color: u.isYou ? '#f59e0b' : rankColor,
+                    boxShadow: u.isYou ? '0 2px 8px #f59e0b22' : (idx < 3 ? '0 2px 8px #6366f122' : 'none'),
+                    borderRadius: 12,
+                    transition: 'background 0.2s'
+                  }}>
+                    <td style={{
+                      padding: 8,
+                      textAlign: 'center',
+                      fontSize: idx < 3 ? 22 : 16,
+                      fontWeight: 900,
+                      color: idx === 0 ? '#f59e0b' : idx === 1 ? '#6366f1' : idx === 2 ? '#a3a3a3' : '#374151'
+                    }}>
+                      {rankIcon ? <span style={{ marginRight: 4 }}>{rankIcon}</span> : null}
+                      {idx + 1}
+                    </td>
+                    <td style={{
+                      padding: 8,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      fontSize: u.isYou ? '1.05rem' : '1rem'
+                    }}>
+                      {u.avatar_url && (
+                        <img src={u.avatar_url} alt="" style={{
+                          width: 28, height: 28, borderRadius: '50%',
+                          border: idx < 3 ? `2px solid ${idx === 0 ? '#f59e0b' : idx === 1 ? '#6366f1' : '#a3a3a3'}` : '1px solid #e5e7eb',
+                          boxShadow: idx < 3 ? '0 2px 8px #6366f122' : 'none'
+                        }} />
+                      )}
+                      <span>{u.display_name}</span>
+                      {u.isYou && <span style={{
+                        color: '#f59e0b',
+                        fontWeight: 700,
+                        marginLeft: 4,
+                        fontSize: '0.98rem',
+                        background: '#fffbe6',
+                        borderRadius: 6,
+                        padding: '2px 6px'
+                      }}>(Vous)</span>}
+                    </td>
+                    <td style={{
+                      padding: 8,
+                      textAlign: 'center',
+                      fontWeight: 700,
+                      color: idx < 3 ? '#10b981' : '#374151',
+                      fontSize: idx < 3 ? '1.1rem' : '1rem'
+                    }}>
+                      {u.recipesCount}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+          {/* Podium visuel */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            gap: 18,
+            marginTop: 18,
+            marginBottom: 6
+          }}>
+            {leaderboard[1] && (
+              <div style={{
+                background: '#e0e7ff',
+                borderRadius: 12,
+                padding: '8px 12px',
+                textAlign: 'center',
+                minWidth: 70,
+                boxShadow: '0 2px 8px #6366f122'
+              }}>
+                <div style={{ fontSize: 22 }}>🥈</div>
+                <div style={{ fontWeight: 700, color: '#6366f1', fontSize: '1rem' }}>{leaderboard[1].display_name}</div>
+                <div style={{ color: '#374151', fontSize: '0.95rem' }}>{leaderboard[1].recipesCount} recettes</div>
+              </div>
+            )}
+            {leaderboard[0] && (
+              <div style={{
+                background: 'linear-gradient(135deg,#fef3c7 60%,#fffbe6 100%)',
+                borderRadius: 14,
+                padding: '12px 16px',
+                textAlign: 'center',
+                minWidth: 80,
+                boxShadow: '0 4px 16px #f59e0b22',
+                transform: 'scale(1.12)'
+              }}>
+                <div style={{ fontSize: 28, color: '#f59e0b', animation: 'podiumCrown 1.2s infinite alternate' }}>🥇</div>
+                <div style={{ fontWeight: 900, color: '#f59e0b', fontSize: '1.1rem' }}>{leaderboard[0].display_name}</div>
+                <div style={{ color: '#92400e', fontSize: '1rem', fontWeight: 700 }}>{leaderboard[0].recipesCount} recettes</div>
+              </div>
+            )}
+            {leaderboard[2] && (
+              <div style={{
+                background: '#f3f4f6',
+                borderRadius: 12,
+                padding: '8px 12px',
+                textAlign: 'center',
+                minWidth: 70,
+                boxShadow: '0 2px 8px #6366f122'
+              }}>
+                <div style={{ fontSize: 22 }}>🥉</div>
+                <div style={{ fontWeight: 700, color: '#a3a3a3', fontSize: '1rem' }}>{leaderboard[2].display_name}</div>
+                <div style={{ color: '#374151', fontSize: '0.95rem' }}>{leaderboard[2].recipesCount} recettes</div>
+              </div>
+            )}
+          </div>
+        </div>
       )}
-      <div style={{ color: '#6366f1', fontSize: '0.95rem', textAlign: 'center' }}>
+      <div style={{ color: '#6366f1', fontSize: '0.95rem', textAlign: 'center', marginTop: 8 }}>
         Ce classement est basé sur le nombre de recettes publiées par chaque utilisateur au cours des 30 derniers jours.
       </div>
+      <style jsx>{`
+        @keyframes podiumCrown {
+          0% { transform: scale(1) rotate(-8deg);}
+          100% { transform: scale(1.15) rotate(8deg);}
+        }
+      `}</style>
     </div>
   )
 
