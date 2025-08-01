@@ -17,11 +17,22 @@ class ErrorBoundary extends React.Component {
   }
 
   static getDerivedStateFromError(error) {
+    // Ensure error is always an Error instance
+    let safeError = error;
+    if (!(error instanceof Error)) {
+      // If error is an object (e.g. {data, error}), wrap it
+      safeError = new Error(
+        error?.error?.message ||
+        error?.message ||
+        "Une erreur inattendue s'est produite"
+      );
+      // Attach original error object for debugging
+      safeError.originalData = error;
+    }
     // Log l'interception de l'erreur
-    logError('ErrorBoundary - Erreur interceptée dans getDerivedStateFromError', error);
-    
+    logError('ErrorBoundary - Erreur interceptée dans getDerivedStateFromError', safeError);
     // Update state so the next render will show the fallback UI
-    return { hasError: true, error };
+    return { hasError: true, error: safeError };
   }
 
   componentDidCatch(error, errorInfo) {
