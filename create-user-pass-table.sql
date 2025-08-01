@@ -6,9 +6,9 @@ CREATE TABLE IF NOT EXISTS user_pass (
   streak INTEGER NOT NULL DEFAULT 0,
   last_claimed DATE,
   trophies JSONB DEFAULT '{}'::jsonb,
-  recipes_count INTEGER NOT NULL DEFAULT 0,
-  friends_count INTEGER NOT NULL DEFAULT 0,
-  likes_received INTEGER NOT NULL DEFAULT 0,
+  recipes_count INTEGER NOT NULL DEFAULT 0,      -- Ajouté
+  friends_count INTEGER NOT NULL DEFAULT 0,      -- Ajouté
+  likes_received INTEGER NOT NULL DEFAULT 0,     -- Ajouté
   owned_items TEXT[] DEFAULT ARRAY[]::TEXT[],
   equipped JSONB DEFAULT '{}'::jsonb,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -60,3 +60,6 @@ SELECT user_id, xp FROM monthly_leaderboard;
 -- (Optionnel) Créer une vue pour faciliter l'accès
 CREATE OR REPLACE VIEW monthly_leaderboard_xp AS
 SELECT user_id, xp FROM monthly_leaderboard;
+
+ALTER TABLE user_pass
+  ADD COLUMN IF NOT EXISTS trophies JSONB DEFAULT '{}'::jsonb;

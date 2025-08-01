@@ -1213,63 +1213,49 @@ export default function Progression({ user }) {
     async function fetchLeaderboard() {
       setLeaderboardLoading(true)
       try {
-        console.log("[Classement] Début fetchLeaderboard");
-        // 1. Récupérer les 50 premiers utilisateurs actifs ce mois-ci (sans join)
-        const { data: passData, error: passError } = await supabase
-          .from('user_pass')
-          .select(`
-            user_id,
-            coins,
-            streak,
-            last_claimed,
-            trophies,
-            recipes_count,
-            friends_count,
-            likes_received
-          `)
-          .limit(50)
-        if (passError) {
-          console.error("[Classement] Erreur user_pass:", passError)
-          throw passError
+        // 1. Récupérer tous les profils publics
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('user_id,display_name,avatar_url')
+          .eq('is_private', false)
+          .limit(200)
+        if (profilesError) {
+          console.error("[Classement] Erreur profiles:", profilesError)
+          throw profilesError
         }
-        console.log("[Classement] user_pass data:", passData)
 
-        // 2. Récupérer les profils correspondants
-        const userIds = (passData || []).map(u => u.user_id)
-        let profilesMap = {}
+        // 2. Récupérer toutes les lignes user_pass existantes
+        const userIds = (profilesData || []).map(p => p.user_id)
+        let passMap = {}
         if (userIds.length > 0) {
-          const { data: profilesData, error: profilesError } = await supabase
-            .from('profiles')
-            .select('user_id,display_name,avatar_url')
+          const { data: passData, error: passError } = await supabase
+            .from('user_pass')
+            .select('user_id,coins,streak,last_claimed,trophies,recipes_count,friends_count,likes_received')
             .in('user_id', userIds)
-          if (profilesError) {
-            console.error("[Classement] Erreur profiles:", profilesError)
+          if (passError) {
+            console.error("[Classement] Erreur user_pass:", passError)
           }
-          console.log("[Classement] profiles data:", profilesData)
-          profilesMap = Object.fromEntries(
-            (profilesData || []).map(p => [p.user_id, p])
+          passMap = Object.fromEntries(
+            (passData || []).map(u => [u.user_id, u])
           )
-        } else {
-          console.warn("[Classement] Aucun user_id trouvé dans user_pass")
         }
 
         // 3. Calcul XP pour chaque utilisateur et merge
-        const leaderboardData = (passData || []).map(u => {
-          const xp = (u.trophies?.totalPoints || 0)
-            + 10 * (u.recipes_count || 0)
-            + 5 * (u.friends_count || 0)
-            + 2 * (u.likes_received || 0)
-            + 2 * (u.streak || 0)
-          const profile = profilesMap[u.user_id] || {}
+        const leaderboardData = (profilesData || []).map(profile => {
+          const pass = passMap[profile.user_id]
+          const xp = (pass?.trophies?.totalPoints || 0)
+            + 10 * (pass?.recipes_count || 0)
+            + 5 * (pass?.friends_count || 0)
+            + 2 * (pass?.likes_received || 0)
+            + 2 * (pass?.streak || 0)
           return {
-            user_id: u.user_id,
+            user_id: profile.user_id,
             display_name: profile.display_name || 'Utilisateur',
             avatar_url: profile.avatar_url || null,
             xp,
-            isYou: user?.id === u.user_id
+            isYou: user?.id === profile.user_id
           }
         })
-        console.log("[Classement] leaderboardData:", leaderboardData)
         leaderboardData.sort((a, b) => b.xp - a.xp)
         setLeaderboard(leaderboardData)
       } catch (e) {
@@ -1277,7 +1263,6 @@ export default function Progression({ user }) {
         setLeaderboard([])
       }
       setLeaderboardLoading(false)
-      console.log("[Classement] Fin fetchLeaderboard")
     }
     fetchLeaderboard()
   }, [user])
@@ -1773,3 +1758,4 @@ export default function Progression({ user }) {
     </div>
   )
 }
+     
