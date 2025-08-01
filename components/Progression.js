@@ -236,15 +236,15 @@ export default function Progression({ user }) {
         try {
           userStats = await getUserStatsComplete(user.id)
           trophyData = await getUserTrophies(user.id)
-          // XP = points trophées + 10 * recettes + 5 * amis + 2 * likes + 2 * streak
-          xpCalc = (trophyData.totalPoints || 0)
-            + 10 * (userStats.recipesCount || 0)
-            + 5 * (userStats.friendsCount || 0)
-            + 2 * (userStats.likesReceived || 0)
-            + 2 * (userStats.streak || 0)
-          // Simule le streak et le classement si non dispo
-          userStats.streak = userStats.streak || Math.floor(Math.random() * 10) + 1
-          userStats.daysActive = userStats.daysActive || Math.floor(Math.random() * 120) + 1
+          // XP = 10 * recettes + 40 * quiz réussi
+          let quizSuccessCount = 0
+          try {
+            const quizHistory = JSON.parse(localStorage.getItem('coco_quiz_history') || '[]')
+            quizSuccessCount = quizHistory.filter(q => q.success).length
+          } catch {
+            quizSuccessCount = quizState?.success ? 1 : 0
+          }
+          xpCalc = 10 * (userStats.recipesCount || 0) + 40 * quizSuccessCount
         } catch (e) {}
       }
       if (isMounted) {
@@ -257,7 +257,7 @@ export default function Progression({ user }) {
     }
     fetchData()
     return () => { isMounted = false }
-  }, [user])
+  }, [user, quizState])
 
   useEffect(() => {
     setLevelInfo(getLevel(xp))
@@ -1216,6 +1216,13 @@ export default function Progression({ user }) {
     }
     setQuizState(newQuizState)
     localStorage.setItem('coco_daily_quiz', JSON.stringify(newQuizState))
+    // Ajoute à l'historique quiz pour XP
+    let quizHistory = []
+    try {
+      quizHistory = JSON.parse(localStorage.getItem('coco_quiz_history') || '[]')
+    } catch {}
+    quizHistory.push({ date: todayStr, success: isCorrect })
+    localStorage.setItem('coco_quiz_history', JSON.stringify(quizHistory))
     if (isCorrect) {
       setCoins(prev => prev + quizReward)
       setShopFeedback({ type: 'success', msg: `+${quizReward} CocoCoins (quiz)` })
@@ -1412,6 +1419,9 @@ export default function Progression({ user }) {
               <div style={{ fontSize: '0.95rem', color: '#fff', display: 'flex', justifyContent: 'space-between' }}>
                 <span>{xp} XP</span>
                 <span>{levelInfo.next.xp} XP pour niv. {levelInfo.next.level}</span>
+              </div>
+              <div style={{ fontSize: '0.95rem', color: '#fff', marginTop: 8 }}>
+                XP = 10 par recette + 40 par quiz du jour réussi
               </div>
             </div>
           </div>
