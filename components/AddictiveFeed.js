@@ -32,6 +32,8 @@ export default function AddictiveFeed() {
   })
   const [welcomeStep, setWelcomeStep] = useState(0)
   const [showWelcome, setShowWelcome] = useState(true)
+  const [leaderboard, setLeaderboard] = useState([])
+  const [leaderboardLoading, setLeaderboardLoading] = useState(true)
   
   const containerRef = useRef(null)
 
@@ -489,6 +491,45 @@ export default function AddictiveFeed() {
       }
     }
   }, [])
+
+  // Charger le classement mensuel (top 3)
+  useEffect(() => {
+    async function fetchLeaderboard() {
+      setLeaderboardLoading(true)
+      try {
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('user_id,display_name,avatar_url')
+        if (profilesError) {
+          setLeaderboard([])
+          setLeaderboardLoading(false)
+          return
+        }
+        const oneMonthAgo = new Date()
+        oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
+        const { data: recipesData, error: recipesError } = await supabase
+          .from('recipes')
+          .select('user_id,created_at')
+          .gte('created_at', oneMonthAgo.toISOString())
+        const recipesCountMap = {}
+        (recipesData || []).forEach(r => {
+          recipesCountMap[r.user_id] = (recipesCountMap[r.user_id] || 0) + 1
+        })
+        const leaderboardData = (profilesData || []).map(profile => ({
+          user_id: profile.user_id,
+          display_name: profile.display_name || 'Utilisateur',
+          avatar_url: profile.avatar_url || null,
+          recipesCount: recipesCountMap[profile.user_id] || 0
+        }))
+        leaderboardData.sort((a, b) => b.recipesCount - a.recipesCount)
+        setLeaderboard(leaderboardData.slice(0, 3))
+      } catch (e) {
+        setLeaderboard([])
+      }
+      setLeaderboardLoading(false)
+    }
+    fetchLeaderboard()
+  }, [user])
 
   // Affichage du message d'accueil pendant le chargement initial
   if (showWelcome) {
@@ -1291,6 +1332,73 @@ export default function AddictiveFeed() {
           </div>
         </div>
       )}
+
+      {/* Aperçu du classement mensuel */}
+      <div style={{
+        maxWidth: 500,
+        margin: '40px auto 0',
+        background: 'linear-gradient(135deg,#e0e7ff 0%,#f3f4f6 100%)',
+        borderRadius: 18,
+        boxShadow: '0 4px 24px #6366f122',
+        padding: '18px 10px 10px 10px',
+        textAlign: 'center'
+      }}>
+        <div style={{ fontWeight: 700, fontSize: '1.1rem', color: '#6366f1', marginBottom: 10 }}>
+          🏆 Top 3 du classement mensuel (recettes publiées sur 30j)
+        </div>
+        {leaderboardLoading ? (
+          <div style={{ color: '#6366f1', fontWeight: 600, margin: '12px 0' }}>
+            Chargement du classement...
+          </div>
+        ) : (
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            gap: 18,
+            marginBottom: 6,
+            flexWrap: 'wrap'
+          }}>
+            {leaderboard.map((u, idx) => {
+              let bg = idx === 0 ? '#fef3c7' : idx === 1 ? '#e0e7ff' : '#f3f4f6'
+              let color = idx === 0 ? '#f59e0b' : idx === 1 ? '#6366f1' : '#a3a3a3'
+              let icon = idx === 0 ? '🥇' : idx === 1 ? '🥈' : '🥉'
+              return (
+                <div key={u.user_id} style={{
+                  background: bg,
+                  borderRadius: 14,
+                  padding: '12px 16px',
+                  minWidth: 90,
+                  boxShadow: idx === 0 ? '0 4px 16px #f59e0b22' : '0 2px 8px #6366f122',
+                  transform: idx === 0 ? 'scale(1.08)' : 'scale(1)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center'
+                }}>
+                  <div style={{ fontSize: 26, color, marginBottom: 4 }}>{icon}</div>
+                  {u.avatar_url && (
+                    <img src={u.avatar_url} alt="" style={{
+                      width: 36, height: 36, borderRadius: '50%',
+                      border: `2px solid ${color}`,
+                      marginBottom: 4
+                    }} />
+                  )}
+                  <div style={{ fontWeight: 900, color, fontSize: '1.05rem', marginBottom: 2 }}>
+                    {u.display_name}
+                  </div>
+                  <div style={{ color: '#374151', fontSize: '0.98rem', fontWeight: 700 }}>
+                    {u.recipesCount} recettes
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+        <div style={{ color: '#6366f1', fontSize: '0.95rem', marginTop: 8 }}>
+          <a href="/progression" style={{ color: '#6366f1', textDecoration: 'underline', fontWeight: 600 }}>
+            Voir le classement complet →
+          </a>
+        </div>
+      </div>
 
       {/* Animations CSS intégrées */}
       <style jsx>{`

@@ -1,4 +1,5 @@
 import React from 'react';
+import Avatar from './Avatar';
 
 function DressingModal({ isOpen, onClose, avatarItems, boutiqueItems, onEquip }) {
     if (!isOpen) return null;
@@ -14,7 +15,7 @@ function DressingModal({ isOpen, onClose, avatarItems, boutiqueItems, onEquip })
                     ))}
                 </div>
                 <div className="avatar-preview">
-                    {/* ...affichage de l'avatar avec avatarItems... */}
+                    <Avatar equippedItems={avatarItems} size={180} />
                 </div>
             </div>
         </div>
