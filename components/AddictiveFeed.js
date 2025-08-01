@@ -1241,11 +1241,7 @@ export default function AddictiveFeed() {
             })}
           </div>
         )}
-        <div style={{ color: '#6366f1', fontSize: '0.95rem', marginTop: 8 }}>
-          <a href="/progression" style={{ color: '#6366f1', textDecoration: 'underline', fontWeight: 600 }}>
-            Voir le classement complet →
-          </a>
-        </div>
+        {/* Aperçu direct, suppression du lien "Voir le classement complet" */}
       </div>
       
       <div className={styles.recipesGrid}>
