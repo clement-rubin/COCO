@@ -1298,49 +1298,8 @@ export default function Progression({ user }) {
     )
   }
 
-  // Ajout : Calcul du niveau principalement par le nombre de recettes
-  const [level, setLevel] = useState(1);
-
-  useEffect(() => {
-    let isMounted = true
-    async function fetchData() {
-      setLoading(true)
-      let userStats = { recipesCount: 0, friendsCount: 0, likesReceived: 0, daysActive: 0, streak: 0 }
-      let trophyData = { unlocked: [], locked: [], totalPoints: 0, unlockedCount: 0, totalCount: 0 }
-      let xpCalc = 0
-
-      if (user?.id) {
-        try {
-          userStats = await getUserStatsComplete(user.id)
-          trophyData = await getUserTrophies(user.id)
-          // XP = points trophées + 10 * recettes + 5 * amis + 2 * likes + 2 * streak
-          xpCalc = (trophyData.totalPoints || 0)
-            + 10 * (userStats.recipesCount || 0)
-            + 5 * (userStats.friendsCount || 0)
-            + 2 * (userStats.likesReceived || 0)
-            + 2 * (userStats.streak || 0)
-          // Simule le streak et le classement si non dispo
-          userStats.streak = userStats.streak || Math.floor(Math.random() * 10) + 1
-          userStats.daysActive = userStats.daysActive || Math.floor(Math.random() * 120) + 1
-          // Niveau = 1 + Math.floor(recipesCount / 5)
-          const recipesCount = userStats.recipesCount || 0;
-          const lvl = 1 + Math.floor(recipesCount / 5);
-          setLevel(lvl);
-        } catch (e) {}
-      }
-      if (isMounted) {
-        setStats(userStats)
-        setTrophies(trophyData)
-        setXP(xpCalc)
-        setLevelInfo(getLevel(xpCalc))
-        setLoading(false)
-      }
-    }
-    fetchData()
-    return () => { isMounted = false }
-  }, [user])
-
   // Ajout : Affichage de la ligue dans la progression
+  const level = 1 + Math.floor((stats.recipesCount || 0) / 5);
   const league = getLeague(level);
 
   return (
