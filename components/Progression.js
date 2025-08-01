@@ -841,7 +841,7 @@ export default function Progression({ user }) {
         color: '#6366f1',
         textAlign: 'center'
       }}>
-        Classement mensuel XP des utilisateurs
+        Classement mensuel des utilisateurs (recettes publiées sur les 30 derniers jours)
       </div>
       {leaderboardLoading ? (
         <div style={{ textAlign: 'center', color: '#6366f1', fontWeight: 600 }}>
@@ -860,7 +860,7 @@ export default function Progression({ user }) {
             <tr style={{ color: '#6366f1', fontWeight: 700 }}>
               <th style={{ padding: 8 }}>#</th>
               <th style={{ padding: 8 }}>Utilisateur</th>
-              <th style={{ padding: 8 }}>XP</th>
+              <th style={{ padding: 8 }}>Recettes (30j)</th>
             </tr>
           </thead>
           <tbody>
@@ -878,14 +878,14 @@ export default function Progression({ user }) {
                   {u.display_name}
                   {u.isYou && <span style={{ color: '#f59e0b', fontWeight: 700, marginLeft: 4 }}>(Vous)</span>}
                 </td>
-                <td style={{ padding: 8, textAlign: 'center' }}>{u.xp}</td>
+                <td style={{ padding: 8, textAlign: 'center' }}>{u.recipesCount}</td>
               </tr>
             ))}
           </tbody>
         </table>
       )}
       <div style={{ color: '#6366f1', fontSize: '0.95rem', textAlign: 'center' }}>
-        Basé sur l'activité du mois (XP = points trophées + recettes + amis + likes + streak)
+        Ce classement est basé sur le nombre de recettes publiées par chaque utilisateur au cours des 30 derniers jours.
       </div>
     </div>
   )
@@ -1252,36 +1252,36 @@ export default function Progression({ user }) {
           return
         }
 
-        // 2. Récupérer toutes les progressions (user_pass)
-        const { data: passData, error: passError } = await supabase
-          .from('user_pass')
-          .select('user_id,coins,streak,last_claimed,trophies,recipes_count,friends_count,likes_received')
-        if (passError) {
-          console.error("[Classement] Erreur user_pass:", passError)
+        // 2. Récupérer toutes les recettes du dernier mois
+        const oneMonthAgo = new Date();
+        oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+        const { data: recipesData, error: recipesError } = await supabase
+          .from('recipes')
+          .select('user_id,created_at')
+          .gte('created_at', oneMonthAgo.toISOString());
+        if (recipesError) {
+          console.error("[Classement] Erreur recipes:", recipesError)
         }
 
-        // 3. Mapper les progressions par user_id
-        const passMap = Object.fromEntries((passData || []).map(u => [u.user_id, u]))
+        // 3. Compter les recettes par utilisateur sur le dernier mois
+        const recipesCountMap = {};
+        (recipesData || []).forEach(r => {
+          recipesCountMap[r.user_id] = (recipesCountMap[r.user_id] || 0) + 1;
+        });
 
-        // 4. Calcul XP pour chaque utilisateur
+        // 4. Mapper les profils avec le nombre de recettes publiées
         const leaderboardData = (profilesData || []).map(profile => {
-          const pass = passMap[profile.user_id] || {}
-          const xp =
-            (pass.trophies?.totalPoints || 0) +
-            10 * (pass.recipes_count || 0) +
-            5 * (pass.friends_count || 0) +
-            2 * (pass.likes_received || 0) +
-            2 * (pass.streak || 0)
+          const count = recipesCountMap[profile.user_id] || 0;
           return {
             user_id: profile.user_id,
             display_name: profile.display_name || 'Utilisateur',
             avatar_url: profile.avatar_url || null,
-            xp,
+            recipesCount: count,
             isYou: user?.id === profile.user_id
           }
-        })
+        });
 
-        leaderboardData.sort((a, b) => b.xp - a.xp)
+        leaderboardData.sort((a, b) => b.recipesCount - a.recipesCount)
         setLeaderboard(leaderboardData)
       } catch (e) {
         console.error("[Classement] Exception générale:", e)
@@ -1562,6 +1562,7 @@ export default function Progression({ user }) {
 
           {/* Badges et trophées */}
           <div style={{ marginBottom: 32 }}>
+
             <div style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: 10, color: '#92400e' }}>
               Badges & Trophées débloqués
             </div>
