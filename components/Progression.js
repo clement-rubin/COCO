@@ -151,6 +151,20 @@ function getItemGlow(itemId) {
   }
 }
 
+// Définition des ligues par niveau
+const LEAGUES = [
+  { name: "Bronze", minLevel: 1, maxLevel: 2, color: "#bfa16c", icon: "🥉" },
+  { name: "Argent", minLevel: 3, maxLevel: 3, color: "#bfc9ca", icon: "🥈" },
+  { name: "Or", minLevel: 4, maxLevel: 4, color: "#ffd700", icon: "🥇" },
+  { name: "Platine", minLevel: 5, maxLevel: 5, color: "#aee6f7", icon: "🏆" },
+  { name: "Diamant", minLevel: 6, maxLevel: 6, color: "#7dd3fc", icon: "💎" }
+]
+
+// Fonction pour obtenir la ligue selon le niveau
+function getLeague(level) {
+  return LEAGUES.find(l => level >= l.minLevel && level <= l.maxLevel) || LEAGUES[0]
+}
+
 export default function Progression({ user }) {
   const [xp, setXP] = useState(0)
   const [levelInfo, setLevelInfo] = useState(getLevel(0))
@@ -1277,6 +1291,9 @@ export default function Progression({ user }) {
     )
   }
 
+  // Ajout de la ligue actuelle
+  const league = getLeague(levelInfo.current.level)
+
   return (
     <div className={styles.trophyContainer} style={{ maxWidth: 600, margin: '0 auto', padding: 24 }}>
       {/* Feedback achat/équipement */}
@@ -1366,6 +1383,18 @@ export default function Progression({ user }) {
                 </div>
                 <div style={{ fontSize: '1.1rem', fontWeight: 500 }}>
                   {user?.user_metadata?.display_name || user?.email || 'Utilisateur'}
+                </div>
+                {/* Ajout de la ligue */}
+                <div style={{
+                  marginTop: 8,
+                  fontWeight: 700,
+                  fontSize: '1.1rem',
+                  color: league.color,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8
+                }}>
+                  {league.icon} Ligue {league.name}
                 </div>
               </div>
             </div>
