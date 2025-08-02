@@ -1344,7 +1344,6 @@ export default function AddictiveFeed() {
                       }}
                     />
                   ) : (
-                    // Fallback: initiale ou emoji
                     post.user.name?.charAt(0)?.toUpperCase() || post.user.emoji || '👤'
                   )}
                 </span>
