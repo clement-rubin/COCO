@@ -1203,10 +1203,10 @@ export default function AddictiveFeed() {
 
   return (
     <div className={styles.feedContainer} ref={containerRef}>
-      {/* Podium visuel du classement mensuel (top 3) */}
+      {/* Podium visuel du classement mensuel (top 3) - placé en haut du feed */}
       <div style={{
         maxWidth: 500,
-        margin: '0 auto 32px',
+        margin: '0 auto 24px',
         background: 'linear-gradient(135deg,#e0e7ff 0%,#f3f4f6 100%)',
         borderRadius: 18,
         boxShadow: '0 4px 24px #6366f122',
