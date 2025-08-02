@@ -1132,57 +1132,71 @@ export default function AddictiveFeed() {
   }
   
   if (recipes.length === 0) {
+    // Afficher le podium du classement mensuel à la place de la section vide
     return (
       <div className={styles.emptyContainer}>
-        <div className={styles.emptyIcon}>👥</div>
-        <h3>
-          {user ? 'Aucune recette d\'amis à afficher' : 'Rejoignez COCO !'}
-        </h3>
-        <p>
-          {user 
-            ? 'Vous n\'avez pas encore d\'amis qui ont partagé des recettes, ou vos amis n\'ont pas encore publié de contenu. Les recettes n\'apparaissent que lorsque vous et votre ami vous êtes ajoutés mutuellement !'
-            : 'Connectez-vous pour découvrir les délicieuses recettes de vos amis sur COCO.'
-          }
-        </p>
-        <div className={styles.emptyActions}>
-          {user ? (
-            <>
-              <button 
-                onClick={() => router.push('/amis')} 
-                className={styles.primaryButton}
-              >
-                👥 Gérer mes amis
-              </button>
-              <button 
-                onClick={() => router.push('/collections')} 
-                className={styles.secondaryButton}
-              >
-                🔍 Explorer les collections
-              </button>
-              <button 
-                onClick={() => router.push('/share-photo')} 
-                className={styles.tertiaryButton}
-              >
-                📸 Partager une recette
-              </button>
-            </>
+        {/* Podium visuel du classement mensuel (top 3) */}
+        <div style={{
+          maxWidth: 500,
+          margin: '0 auto 32px',
+          background: 'linear-gradient(135deg,#e0e7ff 0%,#f3f4f6 100%)',
+          borderRadius: 18,
+          boxShadow: '0 4px 24px #6366f122',
+          padding: '18px 10px 10px 10px',
+          textAlign: 'center'
+        }}>
+          <div style={{ fontWeight: 700, fontSize: '1.1rem', color: '#6366f1', marginBottom: 10 }}>
+            🏆 Top 3 du classement mensuel (recettes publiées sur 30j)
+          </div>
+          {leaderboardLoading ? (
+            <div style={{ color: '#6366f1', fontWeight: 600, margin: '12px 0' }}>
+              Chargement du classement...
+            </div>
           ) : (
-            <>
-              <button 
-                onClick={() => router.push('/login')} 
-                className={styles.primaryButton}
-              >
-                🔐 Se connecter
-              </button>
-              <button 
-                onClick={() => router.push('/collections')} 
-                className={styles.secondaryButton}
-              >
-                🔍 Explorer les collections
-              </button>
-            </>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              gap: 18,
+              marginBottom: 6,
+              flexWrap: 'wrap'
+            }}>
+              {leaderboard.map((u, idx) => {
+                let bg = idx === 0 ? '#fef3c7' : idx === 1 ? '#e0e7ff' : '#f3f4f6'
+                let color = idx === 0 ? '#f59e0b' : idx === 1 ? '#6366f1' : '#a3a3a3'
+                let icon = idx === 0 ? '🥇' : idx === 1 ? '🥈' : '🥉'
+                return (
+                  <div key={u.user_id} style={{
+                    background: bg,
+                    borderRadius: 14,
+                    padding: '12px 16px',
+                    minWidth: 90,
+                    boxShadow: idx === 0 ? '0 4px 16px #f59e0b22' : '0 2px 8px #6366f122',
+                    transform: idx === 0 ? 'scale(1.08)' : 'scale(1)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center'
+                  }}>
+                    <div style={{ fontSize: 26, color, marginBottom: 4 }}>{icon}</div>
+                    {u.avatar_url && (
+                      <img src={u.avatar_url} alt="" style={{
+                        width: 36, height: 36, borderRadius: '50%',
+                        border: `2px solid ${color}`,
+                        marginBottom: 4
+                      }} />
+                    )}
+                    <div style={{ fontWeight: 900, color, fontSize: '1.05rem', marginBottom: 2 }}>
+                      {u.display_name}
+                    </div>
+                    <div style={{ color: '#374151', fontSize: '0.98rem', fontWeight: 700 }}>
+                      {u.recipesCount} recettes
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
           )}
         </div>
+        {/* Fin du podium */}
       </div>
     )
   }
