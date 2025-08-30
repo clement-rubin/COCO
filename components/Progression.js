@@ -1060,7 +1060,13 @@ export default function Progression({ user }) {
       <div>
         {/* Filtres par catégorie */}
         <div style={{
-          display: 'flex', gap: 10, justifyContent: 'center', marginBottom: 18, flexWrap: 'wrap'
+          display: 'flex', 
+          gap: 6, // Réduction
+          justifyContent: 'flex-start', 
+          marginBottom: 16, // Réduction
+          flexWrap: 'wrap',
+          overflowX: 'auto',
+          paddingBottom: 4
         }}>
           {ITEM_TYPES.map(cat => (
             <button
@@ -1070,16 +1076,17 @@ export default function Progression({ user }) {
                 background: shopFilter === cat.id ? '#f3f4f6' : 'transparent',
                 color: '#374151',
                 border: shopFilter === cat.id ? '2px solid #f59e0b' : '1px solid #e5e7eb',
-                borderRadius: 10,
-                padding: '7px 16px',
+                borderRadius: 8, // Réduction
+                padding: '6px 10px', // Réduction
                 fontWeight: 700,
-                fontSize: '1rem',
-                boxShadow: 'none',
+                fontSize: '0.8rem', // Réduction
                 cursor: 'pointer',
-                transition: 'all 0.2s'
+                transition: 'all 0.2s',
+                whiteSpace: 'nowrap',
+                minWidth: 'auto'
               }}
             >
-              <span style={{ fontSize: '1.2rem', marginRight: 4 }}>{cat.icon}</span>
+              <span style={{ fontSize: '1rem', marginRight: 2 }}>{cat.icon}</span>
               {cat.label}
               {cat.id !== 'all' && (
                 <span style={{
@@ -1422,35 +1429,44 @@ export default function Progression({ user }) {
   const league = getLeague(level);
 
   return (
-    <div className={styles.trophyContainer} style={{ maxWidth: 600, margin: '0 auto', padding: 24 }}>
-      {/* Feedback achat/équipement */}
+    <div className={styles.trophyContainer} style={{ 
+      maxWidth: 450, // Réduction pour mobile
+      margin: '0 auto', 
+      padding: '16px 12px', // Réduction du padding
+      background: '#fefefe',
+      minHeight: '100vh'
+    }}>
+      {/* Feedback achat/équipement - Version mobile */}
       {shopFeedback && (
         <div style={{
           position: 'fixed',
-          top: 30,
+          top: 16, // Réduction
           left: '50%',
           transform: 'translateX(-50%)',
           background: shopFeedback.type === 'success' ? '#10b981' : '#f59e0b',
           color: 'white',
-          padding: '12px 24px',
-          borderRadius: 16,
+          padding: '8px 16px', // Réduction
+          borderRadius: 12, // Réduction
           fontWeight: 700,
-          fontSize: '1.1rem',
+          fontSize: '0.9rem', // Réduction
           zIndex: 9999,
-          boxShadow: '0 8px 25px rgba(16,185,129,0.18)',
-          animation: 'shopFeedbackAnim 0.6s'
+          boxShadow: '0 4px 15px rgba(16,185,129,0.2)', // Réduction
+          animation: 'shopFeedbackAnim 0.6s',
+          maxWidth: '90%', // Limite la largeur
+          textAlign: 'center'
         }}>
           {shopFeedback.msg}
         </div>
       )}
-      {/* Animation gain de coins */}
+
+      {/* Animation gain de coins - Version mobile */}
       {coinAnim && (
         <div style={{
           position: 'fixed',
-          top: 80,
+          top: 60, // Réduction
           left: '50%',
           transform: 'translateX(-50%)',
-          fontSize: 32,
+          fontSize: 24, // Réduction
           color: '#f59e0b',
           fontWeight: 900,
           zIndex: 9999,
@@ -1460,185 +1476,284 @@ export default function Progression({ user }) {
         </div>
       )}
 
-      {/* Solde CocoCoins bien intégré */}
-      {renderCoinBalance()}
+      {/* Solde CocoCoins - Version mobile compacte */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8, // Réduction
+        marginBottom: 16, // Réduction
+        marginTop: 4, // Réduction
+        background: 'linear-gradient(90deg, #fffbe6 60%, #fef3c7 100%)',
+        borderRadius: 14, // Réduction
+        padding: '8px 18px', // Réduction
+        boxShadow: '0 2px 6px #f59e0b11', // Réduction
+        fontWeight: 700,
+        fontSize: '1rem', // Réduction
+        color: '#f59e0b'
+      }}>
+        <span style={{ fontSize: 20, marginRight: 4, animation: coinAnim ? 'coinSpin 0.8s' : 'none' }}>🪙</span>
+        <span style={{
+          fontWeight: 900,
+          fontSize: '1.2rem', // Réduction
+          color: '#f59e0b',
+          letterSpacing: '-0.5px'
+        }}>{coins}</span>
+        <span style={{
+          marginLeft: 4,
+          fontWeight: 600,
+          color: '#92400e',
+          fontSize: '0.95rem' // Réduction
+        }}>CocoCoins</span>
+      </div>
 
-      {/* Onglets navigation */}
-      {renderTabs()}
-      {/* Affichage selon l'onglet */}
+      {/* Onglets navigation - Version mobile */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        gap: 6, // Réduction
+        marginBottom: 18, // Réduction
+        overflowX: 'auto', // Scroll horizontal sur mobile
+        paddingBottom: 4
+      }}>
+        {[
+          { id: 'progression', label: 'Progression', color: '#f59e0b' },
+          { id: 'boutique', label: 'Boutique', color: '#10b981' },
+          { id: 'classement', label: 'Classement', color: '#6366f1' }
+        ].map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            style={{
+              background: activeTab === tab.id ? `linear-gradient(135deg, ${tab.color}, ${tab.color}cc)` : '#fff',
+              color: activeTab === tab.id ? 'white' : tab.color,
+              border: 'none',
+              borderRadius: 10, // Réduction
+              padding: '8px 14px', // Réduction
+              fontWeight: 700,
+              fontSize: '0.85rem', // Réduction
+              boxShadow: activeTab === tab.id ? `0 2px 6px ${tab.color}33` : 'none',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              minWidth: 'auto', // Permet la flexibilité
+              whiteSpace: 'nowrap' // Évite le retour à la ligne
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
+        <button
+          onClick={() => setDressingOpen(true)}
+          style={{
+            background: dressingOpen ? 'linear-gradient(135deg, #f59e0b, #fbbf24)' : '#fff',
+            color: dressingOpen ? 'white' : '#f59e0b',
+            border: 'none',
+            borderRadius: 10,
+            padding: '8px 14px',
+            fontWeight: 700,
+            fontSize: '0.85rem',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            minWidth: 'auto'
+          }}
+        >
+          👗
+        </button>
+      </div>
+
+      {/* Contenu selon l'onglet */}
       {activeTab === 'progression' ? (
         <>
-          {/* Progression classique */}
+          {/* Progression principale - Version mobile compacte */}
           <div style={{
             background: 'linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)',
-            borderRadius: 24,
-            padding: 24,
-            marginBottom: 32,
+            borderRadius: 18, // Réduction
+            padding: '16px 18px', // Réduction
+            marginBottom: 20, // Réduction
             color: 'white',
-            boxShadow: '0 8px 32px #f59e0b22'
+            boxShadow: '0 6px 20px #f59e0b22' // Réduction
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
-              {/* Avatar chef customisable */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}> {/* Réduction */}
+              {/* Avatar chef - Version mobile */}
               <div
                 style={{
-                  width: 90, height: 90, borderRadius: '50%', background: 'white',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '2.2rem', color: '#f59e0b', fontWeight: 900, boxShadow: '0 2px 12px #f59e0b33',
+                  width: 60, height: 60, // Réduction importante
+                  borderRadius: '50%', 
+                  background: 'white',
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  fontSize: '1.8rem', // Réduction
+                  color: '#f59e0b', 
+                  fontWeight: 900, 
+                  boxShadow: '0 2px 8px #f59e0b33', // Réduction
                   position: 'relative',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  flexShrink: 0 // Empêche la réduction
                 }}
-                title="Voir et personnaliser mon avatar"
+                title="Personnaliser mon avatar"
                 onClick={() => setDressingOpen(true)}
               >
-                {renderChefAvatar()}
+                {renderChefAvatar({ size: 60 })} {/* Taille réduite */}
                 <span style={{
                   position: 'absolute',
-                  bottom: 2, right: 2,
+                  bottom: 0, right: 0,
                   background: '#f59e0b',
                   color: 'white',
-                  fontSize: 13,
-                  borderRadius: 8,
-                  padding: '2px 6px',
+                  fontSize: 10, // Réduction
+                  borderRadius: 6, // Réduction
+                  padding: '1px 4px', // Réduction
                   fontWeight: 700,
-                  boxShadow: '0 2px 8px #f59e0b33'
+                  boxShadow: '0 1px 4px #f59e0b33'
                 }}>👗</span>
               </div>
-              <div>
-                <div style={{ fontWeight: 800, fontSize: '1.3rem', letterSpacing: '-0.5px' }}>
+              <div style={{ flex: 1, minWidth: 0 }}> {/* Permet la troncature */}
+                <div style={{ fontWeight: 800, fontSize: '1.1rem', letterSpacing: '-0.5px', marginBottom: 2 }}>
                   Progression COCO
                 </div>
-                <div style={{ fontSize: '1.1rem', fontWeight: 500 }}>
-                  {user?.user_metadata?.display_name || user?.email || 'Utilisateur'}
+                <div style={{ 
+                  fontSize: '0.9rem', 
+                  fontWeight: 500,
+                  opacity: 0.9,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}>
+                  {user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'Chef'}
                 </div>
               </div>
             </div>
-            <div style={{ marginTop: 18 }}>
-              <div style={{ fontWeight: 700, fontSize: '1.1rem' }}>
-                Niveau <span style={{ fontSize: '1.5rem', color: '#fff' }}>{levelInfo.current.level}</span> <span style={{ fontSize: '1rem', fontWeight: 500 }}>({levelInfo.current.label})</span>
+            
+            {/* Niveau et barre de progression - Version compacte */}
+            <div>
+              <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: 8 }}>
+                Niveau <span style={{ fontSize: '1.3rem', color: '#fff' }}>{levelInfo.current.level}</span> 
+                <span style={{ fontSize: '0.9rem', fontWeight: 500, marginLeft: 4 }}>({levelInfo.current.label})</span>
               </div>
               <div style={{
-                background: 'rgba(255,255,255,0.3)', borderRadius: 12, height: 16, margin: '10px 0', overflow: 'hidden'
+                background: 'rgba(255,255,255,0.3)', 
+                borderRadius: 10, // Réduction
+                height: 12, // Réduction
+                margin: '8px 0', // Réduction
+                overflow: 'hidden'
               }}>
                 <div style={{
                   width: `${percent}%`,
                   height: '100%',
                   background: `linear-gradient(90deg,${levelInfo.current.color},#f59e0b)`,
-                  borderRadius: 12,
+                  borderRadius: 10,
                   transition: 'width 0.5s'
                 }} />
               </div>
-              <div style={{ fontSize: '0.95rem', color: '#fff', display: 'flex', justifyContent: 'space-between' }}>
+              <div style={{ 
+                fontSize: '0.85rem', // Réduction
+                color: '#fff', 
+                display: 'flex', 
+                justifyContent: 'space-between',
+                marginBottom: 6
+              }}>
                 <span>{xp} XP</span>
                 <span>{levelInfo.next.xp} XP pour niv. {levelInfo.next.level}</span>
               </div>
-              <div style={{ fontSize: '0.95rem', color: '#fff', marginTop: 8 }}>
-                XP = 10 par recette + 40 par quiz du jour réussi
+              <div style={{ fontSize: '0.8rem', color: '#fff', opacity: 0.9 }}>
+                XP = 10 par recette + 40 par quiz réussi
               </div>
             </div>
           </div>
 
-          {/* Statistiques */}
+          {/* Statistiques - Grille mobile optimisée */}
           <div style={{
-            display: 'flex', gap: 16, justifyContent: 'center', marginBottom: 28, flexWrap: 'wrap'
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)', // 3 colonnes sur mobile
+            gap: 8, // Réduction
+            marginBottom: 20 // Réduction
           }}>
-            <div style={{
-              background: '#fff', borderRadius: 16, padding: '16px 18px', minWidth: 80,
-              boxShadow: '0 2px 8px #f59e0b11', textAlign: 'center'
-            }}>
-              <div style={{ fontWeight: 800, fontSize: '1.2rem', color: '#f59e0b' }}>{xp}</div>
-              <div style={{ fontSize: '0.9rem', color: '#92400e' }}>XP</div>
-            </div>
-            <div style={{
-              background: '#fff', borderRadius: 16, padding: '16px 18px', minWidth: 80,
-              boxShadow: '0 2px 8px #f59e0b11', textAlign: 'center'
-            }}>
-              <div style={{ fontWeight: 800, fontSize: '1.2rem', color: '#10b981' }}>{trophies.unlockedCount}</div>
-              <div style={{ fontSize: '0.9rem', color: '#059669' }}>Trophées</div>
-            </div>
-            <div style={{
-              background: '#fff', borderRadius: 16, padding: '16px 18px', minWidth: 80,
-              boxShadow: '0 2px 8px #f59e0b11', textAlign: 'center'
-            }}>
-              <div style={{ fontWeight: 800, fontSize: '1.2rem', color: '#6366f1' }}>{trophies.totalCount}</div>
-              <div style={{ fontSize: '0.9rem', color: '#6366f1' }}>Total</div>
-            </div>
-            <div style={{
-              background: '#fff', borderRadius: 16, padding: '16px 18px', minWidth: 80,
-              boxShadow: '0 2px 8px #f59e0b11', textAlign: 'center'
-            }}>
-              <div style={{ fontWeight: 800, fontSize: '1.2rem', color: '#f59e0b' }}>{stats.recipesCount}</div>
-              <div style={{ fontSize: '0.9rem', color: '#92400e' }}>Recettes</div>
-            </div>
-            <div style={{
-              background: '#fff', borderRadius: 16, padding: '16px 18px', minWidth: 80,
-              boxShadow: '0 2px 8px #f59e0b11', textAlign: 'center'
-            }}>
-              <div style={{ fontWeight: 800, fontSize: '1.2rem', color: '#3b82f6' }}>{stats.friendsCount}</div>
-              <div style={{ fontSize: '0.9rem', color: '#3b82f6' }}>Amis</div>
-            </div>
-            <div style={{
-              background: '#fff', borderRadius: 16, padding: '16px 18px', minWidth: 80,
-              boxShadow: '0 2px 8px #f59e0b11', textAlign: 'center'
-            }}>
-              <div style={{ fontWeight: 800, fontSize: '1.2rem', color: '#ef4444' }}>{stats.likesReceived}</div>
-              <div style={{ fontSize: '0.9rem', color: '#ef4444' }}>Likes</div>
-            </div>
-            <div style={{
-              background: '#fff', borderRadius: 16, padding: '16px 18px', minWidth: 80,
-              boxShadow: '0 2px 8px #f59e0b11', textAlign: 'center'
-            }}>
-              <div style={{ fontWeight: 800, fontSize: '1.2rem', color: '#f59e0b' }}>{stats.streak}</div>
-              <div style={{ fontSize: '0.9rem', color: '#f59e0b' }}>Streak 🔥</div>
-            </div>
+            {[
+              { value: xp, label: 'XP', color: '#f59e0b' },
+              { value: trophies.unlockedCount, label: 'Trophées', color: '#10b981' },
+              { value: stats.recipesCount, label: 'Recettes', color: '#f59e0b' },
+              { value: stats.friendsCount, label: 'Amis', color: '#3b82f6' },
+              { value: stats.likesReceived, label: 'Likes', color: '#ef4444' },
+              { value: stats.streak, label: 'Streak 🔥', color: '#f59e0b' }
+            ].map((stat, index) => (
+              <div key={index} style={{
+                background: '#fff', 
+                borderRadius: 12, // Réduction
+                padding: '10px 8px', // Réduction
+                boxShadow: '0 2px 6px #f59e0b11', // Réduction
+                textAlign: 'center'
+              }}>
+                <div style={{ fontWeight: 800, fontSize: '1rem', color: stat.color, marginBottom: 2 }}>
+                  {stat.value}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 600 }}>
+                  {stat.label}
+                </div>
+              </div>
+            ))}
           </div>
 
-          {/* Streak & Daily Reward */}
+          {/* Streak & Daily Reward - Version mobile */}
           <div style={{
             background: '#fffbe6',
-            borderRadius: 16,
-            padding: '18px 22px',
-            marginBottom: 28,
+            borderRadius: 14, // Réduction
+            padding: '14px 16px', // Réduction
+            marginBottom: 20, // Réduction
             textAlign: 'center',
             fontWeight: 600,
             color: '#f59e0b',
-            fontSize: '1.1rem',
-            boxShadow: '0 2px 8px #f59e0b11',
-            position: 'relative'
+            fontSize: '1rem', // Réduction
+            boxShadow: '0 2px 6px #f59e0b11'
           }}>
-            <div style={{ marginBottom: 12 }}>
-              🔥 Série de connexion : {stats.streak || 0} jour{(stats.streak || 0) > 1 ? 's' : ''}
+            <div style={{ marginBottom: 10, fontSize: '0.95rem' }}>
+              🔥 Série : {stats.streak || 0} jour{(stats.streak || 0) > 1 ? 's' : ''}
             </div>
             <button
               onClick={async () => {
                 const today = new Date().toISOString().slice(0, 10);
                 if (stats.lastClaimed === today) return;
                 
-                // Calcul sécurisé de la récompense
-                const currentStreak = stats.streak || 0;
-                const reward = 20 + 10 * Math.min(currentStreak + 1, 7);
-                const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-                
-                // Calculer le nouveau streak
-                const newStreak = stats.lastClaimed === yesterday ? currentStreak + 1 : 1;
-                
                 try {
+                  // Fonction helper pour calculer le nouveau streak
+                  const isYesterday = (dateStr) => {
+                    if (!dateStr) return false
+                    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
+                    return dateStr === yesterday
+                  }
+                  
+                  // Calcul sécurisé du nouveau streak
+                  const currentStreak = stats.streak || 0;
+                  const newStreak = !stats.lastClaimed ? 1 : // Première fois
+                                   isYesterday(stats.lastClaimed) ? currentStreak + 1 : // Continuité
+                                   1; // Rupture, on recommence
+                  
+                  // Calcul de la récompense basé sur le nouveau streak
+                  const REWARDS = [20, 25, 30, 40, 50, 60, 100];
+                  const rewardIndex = Math.min(newStreak - 1, REWARDS.length - 1);
+                  const reward = REWARDS[rewardIndex];
+                  
                   // Update Supabase
-                  await supabase.from('user_pass').upsert({
+                  const { error } = await supabase.from('user_pass').upsert({
                     user_id: user.id,
                     last_claimed: today,
                     streak: newStreak,
                     coins: (coins || 0) + reward
                   });
                   
+                  if (error) throw error;
+                  
                   setCoins(prev => (prev || 0) + reward);
-                  setStats(s => ({
-                    ...s,
+                  setStats(prev => ({
+                    ...prev,
                     streak: newStreak,
                     lastClaimed: today
                   }));
                   
-                  setShopFeedback({ type: 'success', msg: `+${reward} CocoCoins ! Série : ${newStreak} jours` });
-                  setTimeout(() => setShopFeedback(null), 2000);
+                  setShopFeedback({ 
+                    type: 'success', 
+                    msg: `+${reward} CocoCoins ! Série : ${newStreak} jour${newStreak > 1 ? 's' : ''}` 
+                  });
+                  setTimeout(() => setShopFeedback(null), 3000);
                 } catch (error) {
                   console.error('Erreur lors de la récupération de la récompense:', error);
                   setShopFeedback({ type: 'error', msg: 'Erreur lors de la récupération' });
@@ -1654,86 +1769,123 @@ export default function Progression({ user }) {
                   ? '#9ca3af'
                   : 'white',
                 border: 'none',
-                borderRadius: 10,
-                padding: '8px 18px',
+                borderRadius: 8, // Réduction
+                padding: '8px 14px', // Réduction
                 fontWeight: 700,
-                fontSize: '1rem',
+                fontSize: '0.9rem', // Réduction
                 cursor: stats.lastClaimed === new Date().toISOString().slice(0, 10)
                   ? 'not-allowed'
                   : 'pointer',
                 marginBottom: 6,
                 boxShadow: stats.lastClaimed === new Date().toISOString().slice(0, 10)
                   ? 'none'
-                  : '0 2px 8px #f59e0b33',
-                transition: 'all 0.2s'
+                  : '0 2px 6px #f59e0b33',
+                transition: 'all 0.2s',
+                width: '100%' // Pleine largeur sur mobile
               }}
             >
-              {stats.lastClaimed === new Date().toISOString().slice(0, 10)
-                ? '✅ Récompense du jour récupérée'
-                : `🎁 Récupérer +${20 + 10 * Math.min((stats.streak || 0) + 1, 7)} CocoCoins`}
+              {(() => {
+                if (stats.lastClaimed === new Date().toISOString().slice(0, 10)) {
+                  return '✅ Déjà récupéré aujourd\'hui';
+                }
+                
+                const isYesterday = (dateStr) => {
+                  if (!dateStr) return false
+                  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
+                  return dateStr === yesterday
+                }
+                
+                const currentStreak = stats.streak || 0;
+                const nextStreak = !stats.lastClaimed ? 1 : 
+                                  isYesterday(stats.lastClaimed) ? currentStreak + 1 : 1;
+                const REWARDS = [20, 25, 30, 40, 50, 60, 100];
+                const rewardIndex = Math.min(nextStreak - 1, REWARDS.length - 1);
+                const reward = REWARDS[rewardIndex];
+                
+                return `🎁 +${reward} CocoCoins`;
+              })()}
             </button>
-            <div style={{ fontSize: '0.9rem', color: '#92400e', marginTop: 8 }}>
-              Connectez-vous chaque jour pour augmenter votre série !
+            <div style={{ fontSize: '0.8rem', color: '#92400e', marginTop: 6 }}>
+              Connectez-vous chaque jour !
             </div>
           </div>
 
-          {/* Badges et trophées */}
-          <div style={{ marginBottom: 32 }}>
+          {/* Badges et trophées - Version mobile */}
+          <div style={{ marginBottom: 20 }}>
 
-            <div style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: 10, color: '#92400e' }}>
-              Badges & Trophées débloqués
+            <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: 8, color: '#92400e' }}>
+              Badges & Trophées
             </div>
             <div style={{
-              display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', minHeight: 48
+              display: 'flex', 
+              gap: 8, // Réduction
+              flexWrap: 'wrap', 
+              alignItems: 'center', 
+              minHeight: 40 // Réduction
             }}>
               {trophies.unlocked.length === 0 && (
-                <span style={{ color: '#f59e0b', fontWeight: 600 }}>Aucun badge débloqué pour l'instant</span>
+                <span style={{ color: '#f59e0b', fontWeight: 600, fontSize: '0.9rem' }}>
+                  Aucun badge débloqué
+                </span>
               )}
-              {trophies.unlocked.slice(0, 8).map(trophy => (
+              {trophies.unlocked.slice(0, 6).map(trophy => ( // Moins de badges affichés
                 <div key={trophy.id} title={trophy.name} style={{
-                  background: '#fff', borderRadius: 12, padding: '8px 10px', fontSize: '1.3rem',
-                  boxShadow: '0 2px 8px #f59e0b11', display: 'flex', flexDirection: 'column', alignItems: 'center',
-                  animation: 'bounce 1.2s infinite alternate'
+                  background: '#fff', 
+                  borderRadius: 10, // Réduction
+                  padding: '6px 8px', // Réduction
+                  fontSize: '1.1rem', // Réduction
+                  boxShadow: '0 2px 6px #f59e0b11',
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  alignItems: 'center',
+                  animation: 'bounce 1.2s infinite alternate',
+                  minWidth: 'auto'
                 }}>
                   <span>{trophy.icon}</span>
-                  <span style={{ fontSize: '0.7rem', color: '#92400e', fontWeight: 600 }}>{trophy.name}</span>
+                  <span style={{ fontSize: '0.6rem', color: '#92400e', fontWeight: 600, textAlign: 'center' }}>
+                    {trophy.name.length > 8 ? trophy.name.substring(0, 8) + '...' : trophy.name}
+                  </span>
                 </div>
               ))}
-              {trophies.unlocked.length > 8 && (
-                <span style={{ color: '#f59e0b', fontWeight: 700 }}>+{trophies.unlocked.length - 8} autres</span>
+              {trophies.unlocked.length > 6 && (
+                <span style={{ color: '#f59e0b', fontWeight: 700, fontSize: '0.9rem' }}>
+                  +{trophies.unlocked.length - 6}
+                </span>
               )}
             </div>
           </div>
 
-          {/* Quiz du jour */}
-          <div style={{ marginBottom: 32 }}>
-            <div style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: 10, color: '#10b981' }}>
+          {/* Quiz du jour - Version mobile */}
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: 8, color: '#10b981' }}>
               Quiz du jour
             </div>
             <div style={{
               background: '#fffbe6',
-              borderRadius: 16,
-              padding: '18px 22px',
-              marginBottom: 8,
+              borderRadius: 14,
+              padding: '14px 16px',
               textAlign: 'center',
               fontWeight: 600,
               color: '#f59e0b',
-              fontSize: '1.1rem',
-              boxShadow: '0 2px 8px #f59e0b11',
-              position: 'relative'
+              fontSize: '1rem',
+              boxShadow: '0 2px 6px #f59e0b11'
             }}>
               {quizDoneToday ? (
                 quizState.success ? (
                   <div>
-                    <span style={{ color: '#10b981', fontWeight: 700 }}>✅ Quiz réussi aujourd'hui !</span>
-                    <div style={{ color: '#92400e', fontSize: '0.98rem', marginTop: 6 }}>
-                      Revenez demain pour un nouveau quiz.
+                    <span style={{ color: '#10b981', fontWeight: 700, fontSize: '0.95rem' }}>
+                      ✅ Quiz réussi !
+                    </span>
+                    <div style={{ color: '#92400e', fontSize: '0.85rem', marginTop: 4 }}>
+                      Revenez demain
                     </div>
                   </div>
                 ) : (
                   <div>
-                    <span style={{ color: '#ef4444', fontWeight: 700 }}>❌ Quiz raté aujourd'hui.</span>
-                    <div style={{ color: '#92400e', fontSize: '0.98rem', marginTop: 6 }}>
+                    <span style={{ color: '#ef4444', fontWeight: 700, fontSize: '0.95rem' }}>
+                      ❌ Quiz raté
+                    </span>
+                    <div style={{ color: '#92400e', fontSize: '0.85rem', marginTop: 4 }}>
                       Réessayez demain !
                     </div>
                   </div>
@@ -1745,43 +1897,48 @@ export default function Progression({ user }) {
                     background: 'linear-gradient(90deg,#10b981,#34d399)',
                     color: 'white',
                     border: 'none',
-                    borderRadius: 10,
-                    padding: '10px 28px',
+                    borderRadius: 8,
+                    padding: '10px 20px',
                     fontWeight: 700,
-                    fontSize: '1.1rem',
+                    fontSize: '0.95rem',
                     cursor: 'pointer',
-                    boxShadow: '0 2px 8px #10b98133',
-                    transition: 'all 0.2s'
+                    boxShadow: '0 2px 6px #10b98133',
+                    transition: 'all 0.2s',
+                    width: '100%'
                   }}
                 >
-                  🎯 Tenter le quiz du jour (+{quizReward} CocoCoins)
+                  🎯 Quiz (+{quizReward} CocoCoins)
                 </button>
               )}
             </div>
           </div>
-          {/* Modal quiz */}
+
+          {/* Modal quiz - Version mobile */}
           {quizModalOpen && quizQuestion && (
             <div style={{
               position: 'fixed',
               top: 0, left: 0, right: 0, bottom: 0,
-              background: 'rgba(0,0,0,0.45)',
+              background: 'rgba(0,0,0,0.5)',
               zIndex: 9999,
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              padding: '20px' // Ajout padding mobile
             }}
               onClick={() => setQuizModalOpen(false)}
             >
               <div
                 style={{
                   background: '#fff',
-                  borderRadius: 24,
-                  maxWidth: 380,
-                  width: '95%',
-                  padding: 28,
-                  boxShadow: '0 12px 40px #0002',
+                  borderRadius: 18, // Réduction
+                  width: '100%',
+                  maxWidth: 340, // Réduction
+                  padding: '20px', // Réduction
+                  boxShadow: '0 8px 30px #0002',
                   position: 'relative',
-                  animation: 'dressingPop 0.3s'
+                  animation: 'dressingPop 0.3s',
+                  maxHeight: '80vh', // Limite la hauteur
+                  overflowY: 'auto' // Scroll si nécessaire
                 }}
                 onClick={e => e.stopPropagation()}
               >
@@ -1789,23 +1946,23 @@ export default function Progression({ user }) {
                   onClick={() => setQuizModalOpen(false)}
                   style={{
                     position: 'absolute',
-                    top: 14, right: 18,
+                    top: 10, right: 12,
                     background: 'none',
                     border: 'none',
-                    fontSize: 22,
+                    fontSize: 18,
                     color: '#f59e0b',
                     cursor: 'pointer',
                     fontWeight: 700
                   }}
-
                 >✕</button>
-                <div style={{ fontWeight: 800, fontSize: '1.2rem', color: '#10b981', marginBottom: 16 }}>
+                
+                <div style={{ fontWeight: 800, fontSize: '1.1rem', color: '#10b981', marginBottom: 12 }}>
                   Quiz du jour
                 </div>
-                <div style={{ fontWeight: 600, fontSize: '1.05rem', marginBottom: 18, color: '#374151' }}>
+                <div style={{ fontWeight: 600, fontSize: '0.95rem', marginBottom: 16, color: '#374151', lineHeight: 1.4 }}>
                   {quizQuestion.question}
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 18 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
                   {quizQuestion.options.map((opt, idx) => (
                     <button
                       key={idx}
@@ -1815,12 +1972,13 @@ export default function Progression({ user }) {
                         background: quizAnswer === idx ? '#10b981' : '#f3f4f6',
                         color: quizAnswer === idx ? 'white' : '#374151',
                         border: quizAnswer === idx ? '2px solid #10b981' : '1px solid #e5e7eb',
-                        borderRadius: 10,
+                        borderRadius: 8, // Réduction
                         padding: '10px 12px',
-                        fontWeight: 700,
-                        fontSize: '1rem',
+                        fontWeight: 600, // Réduction
+                        fontSize: '0.9rem', // Réduction
                         cursor: quizLoading ? 'not-allowed' : 'pointer',
-                        transition: 'all 0.2s'
+                        transition: 'all 0.2s',
+                        textAlign: 'left'
                       }}
                     >
                       {opt}
@@ -1834,22 +1992,23 @@ export default function Progression({ user }) {
                     background: quizAnswer !== null ? 'linear-gradient(90deg,#10b981,#34d399)' : '#e5e7eb',
                     color: quizAnswer !== null ? 'white' : '#9ca3af',
                     border: 'none',
-                    borderRadius: 10,
-                    padding: '10px 28px',
+                    borderRadius: 8,
+                    padding: '10px 20px',
                     fontWeight: 700,
-                    fontSize: '1.1rem',
+                    fontSize: '1rem',
                     cursor: quizAnswer !== null ? 'pointer' : 'not-allowed',
-                    marginTop: 10
+                    width: '100%'
                   }}
                 >
                   {quizLoading ? 'Vérification...' : 'Valider'}
                 </button>
                 {quizFeedback && (  
                   <div style={{
-                    marginTop: 18,
+                    marginTop: 12,
                     color: quizFeedback.type === 'success' ? '#10b981' : '#ef4444',
                     fontWeight: 700,
-                    fontSize: '1.05rem'
+                    fontSize: '0.95rem',
+                    textAlign: 'center'
                   }}>
                     {quizFeedback.msg}
                   </div>
@@ -1859,29 +2018,569 @@ export default function Progression({ user }) {
           )}
         </>
       ) : activeTab === 'boutique' ? (
-        renderShopTab()
-      ) : (
-        renderLeaderboardTab()
-      )}
-      {/* Dressing modal */}
-      {dressingOpen && renderDressing()}
+        // Boutique - Version mobile optimisée
+        <div>
+          {/* Filtres par catégorie - Version mobile */}
+          <div style={{
+            display: 'flex', 
+            gap: 6, // Réduction
+            justifyContent: 'flex-start', 
+            marginBottom: 16, // Réduction
+            flexWrap: 'wrap',
+            overflowX: 'auto',
+            paddingBottom: 4
+          }}>
+            {ITEM_TYPES.slice(0, 5).map(cat => ( // Limite les catégories affichées
+              <button
+                key={cat.id}
+                onClick={() => setShopFilter(cat.id)}
+                style={{
+                  background: shopFilter === cat.id ? '#f3f4f6' : 'transparent',
+                  color: '#374151',
+                  border: shopFilter === cat.id ? '2px solid #f59e0b' : '1px solid #e5e7eb',
+                  borderRadius: 8, // Réduction
+                  padding: '6px 10px', // Réduction
+                  fontWeight: 700,
+                  fontSize: '0.8rem', // Réduction
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  whiteSpace: 'nowrap',
+                  minWidth: 'auto'
+                }}
+              >
+                <span style={{ fontSize: '1rem', marginRight: 2 }}>{cat.icon}</span>
+                {cat.label}
+              </button>
+            ))}
+          </div>
 
-      {/* Animation et encouragement */}
+          {/* Grille boutique - Version mobile */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)', // 2 colonnes sur mobile
+            gap: 12, // Réduction
+            marginBottom: 16
+          }}>
+            {SHOP_ITEMS.filter(item => shopFilter === 'all' || item.type === shopFilter).slice(0, 8).map(item => (
+              <div key={item.id} style={{
+                background: '#fff',
+                border: ownedItems.includes(item.id)
+                  ? `1.5px solid ${item.rarity === 'legendary' ? '#f59e0b' : '#e5e7eb'}`
+                  : '1px solid #e5e7eb',
+                borderRadius: 12, // Réduction
+                padding: '12px 10px', // Réduction
+                textAlign: 'center',
+                opacity: ownedItems.includes(item.id) ? 1 : 0.85,
+                position: 'relative',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                transition: 'border 0.2s, box-shadow 0.2s'
+              }}>
+                {/* Badge rareté */}
+                {item.rarity !== 'common' && (
+                  <div style={{
+                    position: 'absolute',
+                    top: 6,
+                    right: 6,
+                    fontSize: 8,
+                    fontWeight: 700,
+                    color: item.rarity === 'legendary' ? '#f59e0b' : '#8b5cf6'
+                  }}>
+                    {item.rarity === 'legendary' ? '★' : '✦'}
+                  </div>
+                )}
+                
+                {/* Icône objet */}
+                <div style={{
+                  fontSize: 28, // Réduction
+                  marginBottom: 6,
+                  filter: getItemGlow(item.id)
+                }}>{item.icon}</div>
+                
+                <div style={{ 
+                  fontWeight: 700, 
+                  fontSize: 12, // Réduction
+                  marginBottom: 4, 
+                  color: '#1f2937',
+                  textAlign: 'center',
+                  lineHeight: 1.2
+                }}>
+                  {item.name.length > 12 ? item.name.substring(0, 12) + '...' : item.name}
+                </div>
+                
+                <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 8 }}>
+                  {item.price} 🪙
+                </div>
+
+                {/* Actions */}
+                {ownedItems.includes(item.id) ? (
+                  <button
+                    style={{
+                      background: equipped[item.type] === item.id ? '#10b981' : '#f3f4f6',
+                      color: equipped[item.type] === item.id ? 'white' : '#059669',
+                      border: 'none',
+                      borderRadius: 6,
+                      padding: '6px 8px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      fontSize: 11,
+                      width: '100%'
+                    }}
+                    onClick={() => equipItem(item)}
+                  >
+                    {equipped[item.type] === item.id ? 'Équipé' : 'Équiper'}
+                  </button>
+                ) : (
+                  <button
+                    style={{
+                      background: coins >= item.price ? '#f59e0b' : '#f3f4f6',
+                      color: coins >= item.price ? 'white' : '#f59e0b',
+                      border: 'none',
+                      borderRadius: 6,
+                      padding: '6px 8px',
+                      fontWeight: 700,
+                      cursor: coins >= item.price ? 'pointer' : 'not-allowed',
+                      fontSize: 11,
+                      width: '100%'
+                    }}
+                    disabled={coins < item.price}
+                    onClick={() => buyItem(item)}
+                  >
+                    Acheter
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        // Classement - Version mobile optimisée
+        <div>
+          <div style={{
+            fontWeight: 700,
+            fontSize: '1rem', // Réduction
+            marginBottom: 14, // Réduction
+            color: '#6366f1',
+            textAlign: 'center',
+            lineHeight: 1.3
+          }}>
+            Classement mensuel (recettes publiées)
+          </div>
+          
+          {leaderboardLoading ? (
+            <div style={{ textAlign: 'center', color: '#6366f1', fontWeight: 600, fontSize: '0.9rem' }}>
+              Chargement...
+            </div>
+          ) : (
+            <div style={{
+              background: 'linear-gradient(135deg,#e0e7ff 0%,#f3f4f6 100%)',
+              borderRadius: 14, // Réduction
+              boxShadow: '0 4px 16px #6366f122', // Réduction
+              padding: '14px 8px 8px 8px', // Réduction
+              marginBottom: 20
+            }}>
+              {/* Top 3 - Version mobile compacte */}
+              {leaderboard.slice(0, 3).length > 0 && (
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  gap: 10, // Réduction
+                  marginBottom: 14,
+                  flexWrap: 'wrap'
+                }}>
+                  {leaderboard.slice(0, 3).map((user, idx) => (
+                    <div key={user.user_id} style={{
+                      background: idx === 0 ? 'linear-gradient(135deg,#fef3c7 60%,#fffbe6 100%)' :
+                                 idx === 1 ? '#e0e7ff' : '#f3f4f6',
+                      borderRadius: 10,
+                      padding: '8px 10px', // Réduction
+                      textAlign: 'center',
+                      minWidth: 60, // Réduction
+                      transform: idx === 0 ? 'scale(1.05)' : 'scale(1)',
+                      boxShadow: idx === 0 ? '0 2px 8px #f59e0b22' : '0 1px 4px #6366f122'
+                    }}>
+                      <div style={{ fontSize: idx === 0 ? 20 : 16 }}>
+                        {idx === 0 ? '🥇' : idx === 1 ? '🥈' : '🥉'}
+                      </div>
+                      <div style={{ 
+                        fontWeight: 700, 
+                        color: idx === 0 ? '#f59e0b' : idx === 1 ? '#6366f1' : '#a3a3a3',
+                        fontSize: '0.8rem',
+                        marginBottom: 2
+                      }}>
+                        {user.display_name.length > 8 ? user.display_name.substring(0, 8) + '...' : user.display_name}
+                      </div>
+                      <div style={{ 
+                        color: '#374151', 
+                        fontSize: '0.75rem',
+                        fontWeight: 600
+                      }}>
+                        {user.recipesCount}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Liste complète - Version mobile */}
+              <div style={{ maxHeight: '250px', overflowY: 'auto' }}>
+                {leaderboard.slice(0, 10).map((u, idx) => (
+                  <div key={u.user_id} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '6px 8px', // Réduction
+                    background: u.isYou ? '#f3f4f6' : 'transparent',
+                    borderRadius: 8,
+                    margin: '2px 0',
+                    fontSize: '0.85rem' // Réduction
+                  }}>
+                    <div style={{
+                      width: 24, // Réduction
+                      textAlign: 'center',
+                      fontWeight: 700,
+                      color: idx < 3 ? (idx === 0 ? '#f59e0b' : idx === 1 ? '#6366f1' : '#a3a3a3') : '#374151'
+                    }}>
+                      {idx + 1}
+                    </div>
+                    <div style={{
+                      flex: 1,
+                      marginLeft: 8,
+                      fontWeight: u.isYou ? 700 : 500,
+                      color: u.isYou ? '#f59e0b' : '#374151',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {u.display_name}
+                      {u.isYou && <span style={{ color: '#f59e0b', fontSize: '0.75rem' }}> (Vous)</span>}
+                    </div>
+                    <div style={{
+                      fontWeight: 700,
+                      color: idx < 3 ? '#10b981' : '#374151',
+                      minWidth: 30,
+                      textAlign: 'right'
+                    }}>
+                      {u.recipesCount}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Dressing modal - Version mobile */}
+      {dressingOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.55)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px'
+        }}
+          onClick={() => setDressingOpen(false)}
+        >
+          <div
+            style={{
+              background: '#fff',
+              borderRadius: 18,
+              width: '100%',
+              maxWidth: 360, // Réduction
+              padding: '20px', // Réduction
+              boxShadow: '0 8px 30px #0002',
+              position: 'relative',
+              animation: 'dressingPop 0.3s',
+              maxHeight: '90vh',
+              overflowY: 'auto'
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setDressingOpen(false)}
+              style={{
+                position: 'absolute',
+                top: 12, right: 14,
+                background: 'none',
+                border: 'none',
+                fontSize: 18,
+                color: '#f59e0b',
+                cursor: 'pointer',
+                fontWeight: 700
+              }}
+            >✕</button>
+            
+            <div style={{ textAlign: 'center', marginBottom: 16 }}>
+              <div style={{
+                fontWeight: 800,
+                fontSize: '1.2rem',
+                color: '#f59e0b',
+                marginBottom: 4
+              }}>Mon avatar chef</div>
+              <div style={{
+                fontSize: '0.9rem',
+                color: '#6b7280',
+                marginBottom: 8
+              }}>Personnalisez votre chef !</div>
+            </div>
+
+            {/* Avatar en grand - Version mobile */}
+            <div style={{
+              width: 120, height: 120, // Réduction
+              margin: '0 auto 16px auto',
+              position: 'relative', 
+              background: '#fef3c7', 
+              borderRadius: '50%',
+              boxShadow: '0 2px 12px #f59e0b22', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center'
+            }}>
+              {renderChefAvatar({ size: 120 })}
+            </div>
+
+            {/* Tabs catégories - Version mobile */}
+            <div style={{
+              display: 'flex', 
+              gap: 4, 
+              justifyContent: 'center', 
+              marginBottom: 12, 
+              flexWrap: 'wrap',
+              overflowX: 'auto'
+            }}>
+              {ITEM_TYPES.filter(t => t.id !== 'all').slice(0, 6).map(cat => (
+                <button
+                  key={cat.id}
+                  onClick={() => setDressingTab(cat.id)}
+                  style={{
+                    background: dressingTab === cat.id ? 'linear-gradient(135deg, #f59e0b, #fbbf24)' : '#fff',
+                    color: dressingTab === cat.id ? 'white' : '#f59e0b',
+                    border: dressingTab === cat.id ? '2px solid #f59e0b' : '1px solid #e5e7eb',
+                    borderRadius: 8,
+                    padding: '4px 8px',
+                    fontWeight: 700,
+                    fontSize: '0.75rem',
+                    cursor: 'pointer',
+                    minWidth: 'auto',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  {cat.icon}
+                </button>
+              ))}
+            </div>
+
+            {/* Objets équipables - Version mobile */}
+            <div style={{
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(3, 1fr)', // 3 colonnes sur mobile
+              gap: 8, 
+              marginBottom: 8,
+              minHeight: 80
+            }}>
+              {SHOP_ITEMS.filter(i => i.type === dressingTab && ownedItems.includes(i.id)).length === 0 && (
+                <div style={{ 
+                  gridColumn: '1 / -1',
+                  textAlign: 'center',
+                  color: '#f59e0b', 
+                  fontWeight: 600, 
+                  fontSize: '0.85rem',
+                  padding: '20px 0'
+                }}>
+                  Aucun objet débloqué
+                </div>
+              )}
+              {SHOP_ITEMS.filter(i => i.type === dressingTab && ownedItems.includes(i.id)).map(item => (
+                <div key={item.id} style={{
+                  background: equipped[dressingTab] === item.id ? '#f59e0b' : '#f3f4f6',
+                  color: equipped[dressingTab] === item.id ? 'white' : '#92400e',
+                  borderRadius: 8,
+                  padding: '8px 6px',
+                  fontWeight: 700,
+                  fontSize: 16,
+                  cursor: 'pointer',
+                  boxShadow: equipped[dressingTab] === item.id ? '0 2px 6px #f59e0b33' : 'none',
+                  border: equipped[dressingTab] === item.id ? '2px solid #f59e0b' : '1px solid #e5e7eb',
+                  transition: 'all 0.2s',
+                  textAlign: 'center',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center'
+                }}
+                  onClick={() => equipItem(item)}
+                >
+                  <div style={{ marginBottom: 2 }}>{item.icon}</div>
+                  <div style={{
+                    fontSize: 9,
+                    fontWeight: 600,
+                    lineHeight: 1,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    width: '100%'
+                  }}>
+                    {item.name.length > 8 ? item.name.substring(0, 8) : item.name}
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            <div style={{ 
+              textAlign: 'center', 
+              color: '#6b7280', 
+              fontSize: '0.8rem', 
+              marginTop: 8,
+              lineHeight: 1.3
+            }}>
+              Cliquez sur un objet pour l'équiper/retirer
+            </div>
+          </div>
+        </div>
+      ) } (
+        // Classement - Version mobile optimisée
+        <div>
+          <div style={{
+            fontWeight: 700,
+            fontSize: '1rem', // Réduction
+            marginBottom: 14, // Réduction
+            color: '#6366f1',
+            textAlign: 'center',
+            lineHeight: 1.3
+          }}>
+            Classement mensuel (recettes publiées)
+          </div>
+          
+          {leaderboardLoading ? (
+            <div style={{ textAlign: 'center', color: '#6366f1', fontWeight: 600, fontSize: '0.9rem' }}>
+              Chargement...
+            </div>
+          ) : (
+            <div style={{
+              background: 'linear-gradient(135deg,#e0e7ff 0%,#f3f4f6 100%)',
+              borderRadius: 14, // Réduction
+              boxShadow: '0 4px 16px #6366f122', // Réduction
+              padding: '14px 8px 8px 8px', // Réduction
+              marginBottom: 20
+            }}>
+              {/* Top 3 - Version mobile compacte */}
+              {leaderboard.slice(0, 3).length > 0 && (
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  gap: 10, // Réduction
+                  marginBottom: 14,
+                  flexWrap: 'wrap'
+                }}>
+                  {leaderboard.slice(0, 3).map((user, idx) => (
+                    <div key={user.user_id} style={{
+                      background: idx === 0 ? 'linear-gradient(135deg,#fef3c7 60%,#fffbe6 100%)' :
+                                 idx === 1 ? '#e0e7ff' : '#f3f4f6',
+                      borderRadius: 10,
+                      padding: '8px 10px', // Réduction
+                      textAlign: 'center',
+                      minWidth: 60, // Réduction
+                      transform: idx === 0 ? 'scale(1.05)' : 'scale(1)',
+                      boxShadow: idx === 0 ? '0 2px 8px #f59e0b22' : '0 1px 4px #6366f122'
+                    }}>
+                      <div style={{ fontSize: idx === 0 ? 20 : 16 }}>
+                        {idx === 0 ? '🥇' : idx === 1 ? '🥈' : '🥉'}
+                      </div>
+                      <div style={{ 
+                        fontWeight: 700, 
+                        color: idx === 0 ? '#f59e0b' : idx === 1 ? '#6366f1' : '#a3a3a3',
+                        fontSize: '0.8rem',
+                        marginBottom: 2
+                      }}>
+                        {user.display_name.length > 8 ? user.display_name.substring(0, 8) + '...' : user.display_name}
+                      </div>
+                      <div style={{ 
+                        color: '#374151', 
+                        fontSize: '0.75rem',
+                        fontWeight: 600
+                      }}>
+                        {user.recipesCount}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Liste complète - Version mobile */}
+              <div style={{ maxHeight: '250px', overflowY: 'auto' }}>
+                {leaderboard.slice(0, 10).map((u, idx) => (
+                  <div key={u.user_id} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '6px 8px', // Réduction
+                    background: u.isYou ? '#f3f4f6' : 'transparent',
+                    borderRadius: 8,
+                    margin: '2px 0',
+                    fontSize: '0.85rem' // Réduction
+                  }}>
+                    <div style={{
+                      width: 24, // Réduction
+                      textAlign: 'center',
+                      fontWeight: 700,
+                      color: idx < 3 ? (idx === 0 ? '#f59e0b' : idx === 1 ? '#6366f1' : '#a3a3a3') : '#374151'
+                    }}>
+                      {idx + 1}
+                    </div>
+                    <div style={{
+                      flex: 1,
+                      marginLeft: 8,
+                      fontWeight: u.isYou ? 700 : 500,
+                      color: u.isYou ? '#f59e0b' : '#374151',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {u.display_name}
+                      {u.isYou && <span style={{ color: '#f59e0b', fontSize: '0.75rem' }}> (Vous)</span>}
+                    </div>
+                    <div style={{
+                      fontWeight: 700,
+                      color: idx < 3 ? '#10b981' : '#374151',
+                      minWidth: 30,
+                      textAlign: 'right'
+                    }}>
+                      {u.recipesCount}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )
+
+      {/* Message d'encouragement - Version mobile */}
       <div style={{
-        marginTop: 24,
-        fontSize: 16,
+        marginTop: 20,
+        fontSize: 14, // Réduction
         color: '#10b981',
         fontWeight: 700,
-        animation: 'pulse 1.5s infinite alternate'
+        animation: 'pulse 1.5s infinite alternate',
+        textAlign: 'center',
+        lineHeight: 1.3,
+        padding: '0 10px'
       }}>
         {percent === 100
-          ? "🎉 Bravo, vous avez atteint un nouveau niveau !"
+          ? "🎉 Nouveau niveau atteint !"
           : activeTab === 'progression'
-            ? "Continuez à cuisiner, partager et personnaliser votre chef !"
+            ? "Continuez à cuisiner et partager !"
             : activeTab === 'boutique'
-              ? "Faites-vous plaisir avec de nouveaux objets d'habillage !"
-              : ""}
+              ? "Personnalisez votre chef !"
+              : "Montez dans le classement !"}
       </div>
+
+      {/* CSS Animations */}
       <style jsx>{`
         @keyframes shopFeedbackAnim {
           0% { opacity: 0; transform: translateY(-20px);}
@@ -1898,11 +2597,28 @@ export default function Progression({ user }) {
         }
         @keyframes bounce {
           0%,100% { transform: translateY(0);}
-          50% { transform: translateY(-10px);}
+          50% { transform: translateY(-5px);}
         }
         @keyframes pulse {
           0%,100% { opacity: 1;}
-          50% { opacity: 0.6;}
+          50% { opacity: 0.7;}
+        }
+        @keyframes dressingPop {
+          0% { opacity: 0; transform: scale(0.9);}
+          100% { opacity: 1; transform: scale(1);}
+        }
+        
+        /* Responsive spécifique */
+        @media (max-width: 380px) {
+          .trophyContainer {
+            padding: 12px 8px !important;
+          }
+        }
+        
+        @media (max-width: 320px) {
+          .trophyContainer {
+            padding: 8px 6px !important;
+          }
         }
       `}</style>
     </div>
