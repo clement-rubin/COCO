@@ -252,7 +252,7 @@ const HomePage = () => {
               </button>
             </div>
             
-            {/* ...existing content... */}
+            {/* ...existing sections... */}
             
           </div>
         </section>
