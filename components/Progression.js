@@ -1608,7 +1608,7 @@ export default function Progression({ user }) {
             <button
               onClick={async () => {
                 if (stats.lastClaimed === new Date().toISOString().slice(0, 10)) return;
-                // Calcul de la récompense (exemple : 20 + 10*streak)
+                // Calcul de la récompense (exemple : 20 + 10*streak)
                 const reward = 20 + 10 * Math.min(stats.streak + 1, 7);
                 const today = new Date().toISOString().slice(0, 10);
                 // Update Supabase
@@ -1657,9 +1657,6 @@ export default function Progression({ user }) {
                 ? 'Récompense du jour prise'
                 : `Récupérer +${20 + 10 * Math.min(stats.streak + 1, 7)} 🪙`}
             </button>
-            <div style={{ fontSize: '0.95rem', color: '#6b7280' }}>
-              Connectez-vous chaque jour pour augmenter votre série et gagner plus de CocoCoins !
-            </div>
           </div>
 
           {/* Badges et trophées */}
