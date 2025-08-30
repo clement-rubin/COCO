@@ -502,61 +502,61 @@ export default function AddictiveFeed() {
 
   // Charger le classement mensuel (top 3)
   useEffect(() => {
-    async function fetchLeaderboard() {
-      setLeaderboardLoading(true)
-      try {
-        // 1. Récupérer tous les profils utilisateurs
-        const { data: profilesData, error: profilesError } = await supabase
-          .from('profiles')
-          .select('user_id,display_name,avatar_url')
-        if (profilesError) {
-          console.error("[Classement] Erreur profiles:", profilesError)
-          setLeaderboard([])
-          setLeaderboardLoading(false)
-          return
-        }
-
-        // 2. Récupérer toutes les recettes du dernier mois
-        const oneMonthAgo = new Date()
-        oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
-        const { data: recipesData, error: recipesError } = await supabase
-          .from('recipes')
-          .select('user_id,created_at')
-          .gte('created_at', oneMonthAgo.toISOString())
-        if (recipesError) {
-          console.error("[Classement] Erreur recipes:", recipesError)
-        }
-
-        // 3. Compter les recettes par utilisateur sur le dernier mois
-        const recipesCountMap = {}
-        ;(recipesData || []).forEach(r => {
-          recipesCountMap[r.user_id] = (recipesCountMap[r.user_id] || 0) + 1
-        })
-
-        // 4. Mapper les profils avec le nombre de recettes publiées
-        const leaderboardData = (profilesData || []).map(profile => {
-          const count = recipesCountMap[profile.user_id] || 0
-          return {
-            user_id: profile.user_id,
-            display_name: profile.display_name || 'Utilisateur',
-            avatar_url: profile.avatar_url || null,
-            recipesCount: count,
-            isYou: user?.id === profile.user_id
-          }
-        })
-
-        leaderboardData.sort((a, b) => b.recipesCount - a.recipesCount)
-        setLeaderboard(leaderboardData.slice(0, 10)) // Garde les 10 premiers pour affichage complet si besoin
-      } catch (e) {
-        console.error("[Classement] Exception générale:", e)
-        setLeaderboard([])
-      }
-      setLeaderboardLoading(false)
-    }
-    if (user?.id) {
-      fetchLeaderboard()
-    }
+    fetchLeaderboard()
   }, [user])
+
+  // Fonction pour charger le classement (extracted for reuse)
+  const fetchLeaderboard = async () => {
+    setLeaderboardLoading(true)
+    try {
+      // 1. Récupérer tous les profils utilisateurs
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('user_id,display_name,avatar_url')
+      if (profilesError) {
+        console.error("[Classement] Erreur profiles:", profilesError)
+        setLeaderboard([])
+        setLeaderboardLoading(false)
+        return
+      }
+
+      // 2. Récupérer toutes les recettes du dernier mois
+      const oneMonthAgo = new Date()
+      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
+      const { data: recipesData, error: recipesError } = await supabase
+        .from('recipes')
+        .select('user_id,created_at')
+        .gte('created_at', oneMonthAgo.toISOString())
+      if (recipesError) {
+        console.error("[Classement] Erreur recipes:", recipesError)
+      }
+
+      // 3. Compter les recettes par utilisateur sur le dernier mois
+      const recipesCountMap = {}
+      ;(recipesData || []).forEach(r => {
+        recipesCountMap[r.user_id] = (recipesCountMap[r.user_id] || 0) + 1
+      })
+
+      // 4. Mapper les profils avec le nombre de recettes publiées
+      const leaderboardData = (profilesData || []).map(profile => {
+        const count = recipesCountMap[profile.user_id] || 0
+        return {
+          user_id: profile.user_id,
+          display_name: profile.display_name || 'Utilisateur',
+          avatar_url: profile.avatar_url || null,
+          recipesCount: count,
+          isYou: user?.id === profile.user_id
+        }
+      })
+
+      leaderboardData.sort((a, b) => b.recipesCount - a.recipesCount)
+      setLeaderboard(leaderboardData.slice(0, 10)) // Garde les 10 premiers pour affichage complet si besoin
+    } catch (e) {
+      console.error("[Classement] Exception générale:", e)
+      setLeaderboard([])
+    }
+    setLeaderboardLoading(false)
+  }
 
   // Affichage du message d'accueil pendant le chargement initial
   if (showWelcome) {
@@ -1086,6 +1086,52 @@ export default function AddictiveFeed() {
             50% { transform: scale(1.1); }
           }
 
+          @keyframes slowRotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+
+          @keyframes trophyFloat {
+            0%, 100% { 
+              transform: translateY(0px) rotate(0deg);
+            }
+            50% { 
+              transform: translateY(-3px) rotate(2deg);
+            }
+          }
+
+          @keyframes buttonShine {
+            0%, 100% { left: -100%; }
+            50% { left: 100%; }
+          }
+
+          @keyframes crownFloat {
+            0%, 100% { 
+              transform: scale(1.15) translateZ(25px) translateY(0px);
+            }
+            50% { 
+              transform: scale(1.15) translateZ(25px) translateY(-5px);
+            }
+          }
+
+          @keyframes podiumFloat {
+            0%, 100% { 
+              transform: rotateY(-8deg) translateZ(15px) translateY(0px);
+            }
+            50% { 
+              transform: rotateY(-8deg) translateZ(15px) translateY(-3px);
+            }
+          }
+
+          @keyframes goldenGlow {
+            0% { 
+              box-shadow: 0 12px 30px rgba(245, 158, 11, 0.5), inset 0 2px 4px rgba(255,255,255,0.3);
+            }
+            100% { 
+              box-shadow: 0 16px 40px rgba(245, 158, 11, 0.7), inset 0 2px 4px rgba(255,255,255,0.4);
+            }
+          }
+
           /* Responsive */
           @media (max-width: 480px) {
             .${styles.modernCulinaryLoader} {
@@ -1222,87 +1268,183 @@ export default function AddictiveFeed() {
 
   return (
     <div className={styles.feedContainer} ref={containerRef}>
-      {/* Podium du classement mensuel - VERSION INTÉGRÉE */}
+      {/* Podium du classement mensuel - VERSION AMÉLIORÉE */}
       <div style={{
         maxWidth: '100%',
         margin: '0 auto 20px',
-        background: 'linear-gradient(135deg, #e0e7ff 0%, #f3f4f6 100%)',
-        borderRadius: 16,
-        boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-        padding: '16px 12px',
+        background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 25%, #f1f5f9 50%, #ffffff 100%)',
+        borderRadius: 20,
+        boxShadow: '0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)',
+        padding: '20px 16px',
         textAlign: 'center',
-        border: '1px solid rgba(99, 102, 241, 0.1)'
+        border: '1px solid rgba(148, 163, 184, 0.2)',
+        position: 'relative',
+        overflow: 'hidden'
       }}>
-        {/* En-tête du podium */}
+        {/* Effet de brillance de fond */}
+        <div style={{
+          position: 'absolute',
+          top: '-50%',
+          left: '-50%',
+          width: '200%',
+          height: '200%',
+          background: 'conic-gradient(from 0deg at 50% 50%, transparent 0deg, rgba(59, 130, 246, 0.03) 90deg, transparent 180deg, rgba(168, 85, 247, 0.03) 270deg, transparent 360deg)',
+          animation: 'slowRotate 20s linear infinite',
+          zIndex: 0
+        }} />
+
+        {/* En-tête du podium amélioré */}
         <div style={{ 
-          marginBottom: 12,
+          marginBottom: 16,
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center',
-          gap: 8
+          justifyContent: 'space-between',
+          position: 'relative',
+          zIndex: 1
         }}>
           <div style={{
-            background: 'linear-gradient(135deg, #fbbf24, #f59e0b)',
-            width: 28,
-            height: 28,
-            borderRadius: '50%',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '0.9rem'
+            gap: 12,
+            flex: 1
           }}>
-            🏆
-          </div>
-          <div>
-            <div style={{ 
-              fontWeight: 700, 
-              fontSize: '1rem', 
-              color: '#4338ca',
-              marginBottom: 2
+            <div style={{
+              background: 'linear-gradient(135deg, #fbbf24, #f59e0b)',
+              width: 36,
+              height: 36,
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '1.1rem',
+              boxShadow: '0 4px 12px rgba(251, 191, 36, 0.4)',
+              animation: 'trophyFloat 3s ease-in-out infinite'
             }}>
-              Top Chefs du Mois
+              🏆
             </div>
-            <div style={{ 
-              fontSize: '0.8rem', 
-              color: '#6366f1',
-              fontWeight: 500
-            }}>
-              Recettes publiées sur 30 jours
+            <div style={{ textAlign: 'left' }}>
+              <div style={{ 
+                fontWeight: 800, 
+                fontSize: '1.1rem', 
+                color: '#1e293b',
+                marginBottom: 2,
+                background: 'linear-gradient(135deg, #1e293b, #475569)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent'
+              }}>
+                Top Chefs du Mois
+              </div>
+              <div style={{ 
+                fontSize: '0.8rem', 
+                color: '#64748b',
+                fontWeight: 500
+              }}>
+                Recettes publiées sur 30 jours
+              </div>
             </div>
           </div>
+
+          {/* Bouton d'actualisation amélioré */}
+          <button
+            onClick={fetchLeaderboard}
+            disabled={leaderboardLoading}
+            style={{
+              background: leaderboardLoading 
+                ? 'linear-gradient(135deg, #e2e8f0, #cbd5e1)' 
+                : 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+              color: leaderboardLoading ? '#64748b' : 'white',
+              border: 'none',
+              padding: '8px 16px',
+              borderRadius: 12,
+              fontSize: '0.8rem',
+              fontWeight: 600,
+              cursor: leaderboardLoading ? 'not-allowed' : 'pointer',
+              transition: 'all 0.3s ease',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              boxShadow: leaderboardLoading 
+                ? '0 2px 4px rgba(0,0,0,0.1)' 
+                : '0 4px 12px rgba(59, 130, 246, 0.3)',
+              position: 'relative',
+              overflow: 'hidden'
+            }}
+            onMouseEnter={(e) => {
+              if (!leaderboardLoading) {
+                e.target.style.transform = 'translateY(-1px)'
+                e.target.style.boxShadow = '0 6px 16px rgba(59, 130, 246, 0.4)'
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!leaderboardLoading) {
+                e.target.style.transform = 'translateY(0)'
+                e.target.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)'
+              }
+            }}
+          >
+            <div style={{
+              fontSize: '0.9rem',
+              animation: leaderboardLoading ? 'spin 1s linear infinite' : 'none'
+            }}>
+              {leaderboardLoading ? '⟳' : '🔄'}
+            </div>
+            <span>
+              {leaderboardLoading ? 'Actualisation...' : 'Actualiser'}
+            </span>
+            
+            {/* Effet de brillance sur le bouton */}
+            {!leaderboardLoading && (
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: '-100%',
+                width: '100%',
+                height: '100%',
+                background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent)',
+                animation: 'buttonShine 3s ease-in-out infinite'
+              }} />
+            )}
+          </button>
         </div>
 
         {/* Contenu du podium */}
         {leaderboardLoading ? (
           <div style={{ 
-            color: '#6366f1', 
+            color: '#64748b', 
             fontWeight: 600, 
-            margin: '16px 0',
-            fontSize: '0.9rem'
+            margin: '24px 0',
+            fontSize: '0.9rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            position: 'relative',
+            zIndex: 1
           }}>
             <div style={{
               display: 'inline-block',
               width: 16,
               height: 16,
               border: '2px solid #e5e7eb',
-              borderTop: '2px solid #6366f1',
+              borderTop: '2px solid #3b82f6',
               borderRadius: '50%',
-              animation: 'spin 1s linear infinite',
-              marginRight: 8
+              animation: 'spin 1s linear infinite'
             }} />
             Chargement du classement...
           </div>
         ) : leaderboard.length > 0 ? (
           <>
-            {/* Podium visuel en 3D */}
+            {/* Podium visuel en 3D amélioré */}
             <div style={{
               display: 'flex',
               justifyContent: 'center',
               alignItems: 'flex-end',
-              gap: 8,
-              marginBottom: 12,
-              height: 100,
-              perspective: '300px'
+              gap: 12,
+              marginBottom: 16,
+              height: 120,
+              perspective: '400px',
+              position: 'relative',
+              zIndex: 1
             }}>
               {/* 2ème place */}
               {leaderboard[1] && (
@@ -1311,71 +1453,79 @@ export default function AddictiveFeed() {
                   flexDirection: 'column',
                   alignItems: 'center',
                   order: 1,
-                  transform: 'rotateY(-5deg) translateZ(10px)'
+                  transform: 'rotateY(-8deg) translateZ(15px)',
+                  animation: 'podiumFloat 4s ease-in-out infinite 0.5s'
                 }}>
                   <div style={{
-                    background: 'linear-gradient(135deg, #e5e7eb, #d1d5db)',
-                    width: 50,
-                    height: 60,
-                    borderRadius: 8,
+                    background: 'linear-gradient(135deg, #e5e7eb, #d1d5db, #f3f4f6)',
+                    width: 55,
+                    height: 70,
+                    borderRadius: 12,
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    marginBottom: 4,
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                    marginBottom: 6,
+                    boxShadow: '0 8px 20px rgba(0,0,0,0.15), inset 0 2px 4px rgba(255,255,255,0.3)',
                     position: 'relative',
                     border: '2px solid #9ca3af'
                   }}>
-                    <div style={{ fontSize: '1.4rem', marginBottom: 4 }}>🥈</div>
+                    <div style={{ fontSize: '1.6rem', marginBottom: 4, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))' }}>🥈</div>
                     {leaderboard[1].avatar_url ? (
                       <img 
                         src={leaderboard[1].avatar_url} 
                         alt="" 
                         style={{
-                          width: 24, 
-                          height: 24, 
+                          width: 28, 
+                          height: 28, 
                           borderRadius: '50%',
-                          border: '2px solid #9ca3af',
+                          border: '3px solid #9ca3af',
                           position: 'absolute',
-                          bottom: -6
+                          bottom: -8,
+                          boxShadow: '0 4px 8px rgba(0,0,0,0.2)'
                         }} 
                       />
                     ) : (
                       <div style={{
-                        width: 24,
-                        height: 24,
-                        background: '#9ca3af',
+                        width: 28,
+                        height: 28,
+                        background: 'linear-gradient(135deg, #9ca3af, #6b7280)',
                         borderRadius: '50%',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: '0.7rem',
+                        fontSize: '0.8rem',
                         color: 'white',
                         fontWeight: 700,
                         position: 'absolute',
-                        bottom: -6
+                        bottom: -8,
+                        boxShadow: '0 4px 8px rgba(0,0,0,0.2)'
                       }}>
-                        {leaderboard[1].display_name?.charAt(0)?.toUpperCase() || '?'}
+                        {leaderboard[1].display_name?.charAt(0)?.toUpperCase() || '?'
+                        }
                       </div>
                     )}
                   </div>
                   <div style={{ 
-                    fontSize: '0.7rem', 
+                    fontSize: '0.75rem', 
                     fontWeight: 700, 
-                    color: '#4338ca',
-                    maxWidth: 60,
+                    color: '#1e293b',
+                    maxWidth: 65,
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
-                    textAlign: 'center'
+                    textAlign: 'center',
+                    marginBottom: 2
                   }}>
                     {leaderboard[1].display_name}
                   </div>
                   <div style={{ 
-                    fontSize: '0.6rem', 
-                    color: '#6b7280',
-                    fontWeight: 600
+                    fontSize: '0.65rem', 
+                    color: '#64748b',
+                    fontWeight: 600,
+                    background: 'rgba(148, 163, 184, 0.1)',
+                    padding: '2px 6px',
+                    borderRadius: 6
                   }}>
                     {leaderboard[1].recipesCount} recettes
                   </div>
@@ -1389,74 +1539,83 @@ export default function AddictiveFeed() {
                   flexDirection: 'column',
                   alignItems: 'center',
                   order: 2,
-                  transform: 'scale(1.1) translateZ(20px)',
-                  zIndex: 2
+                  transform: 'scale(1.15) translateZ(25px)',
+                  zIndex: 3,
+                  animation: 'crownFloat 3s ease-in-out infinite'
                 }}>
                   <div style={{
-                    background: 'linear-gradient(135deg, #fbbf24, #f59e0b)',
-                    width: 60,
-                    height: 75,
-                    borderRadius: 12,
+                    background: 'linear-gradient(135deg, #fbbf24, #f59e0b, #d97706)',
+                    width: 70,
+                    height: 85,
+                    borderRadius: 16,
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    marginBottom: 4,
-                    boxShadow: '0 8px 25px rgba(245, 158, 11, 0.4)',
+                    marginBottom: 6,
+                    boxShadow: '0 12px 30px rgba(245, 158, 11, 0.5), inset 0 2px 4px rgba(255,255,255,0.3)',
                     position: 'relative',
                     border: '3px solid #f59e0b',
-                    animation: 'crownGlow 2s ease-in-out infinite alternate'
+                    animation: 'goldenGlow 2s ease-in-out infinite alternate'
                   }}>
-                    <div style={{ fontSize: '1.8rem', marginBottom: 4 }}>🥇</div>
+                    <div style={{ fontSize: '2rem', marginBottom: 4, filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.3))' }}>🥇</div>
                     {leaderboard[0].avatar_url ? (
                       <img 
                         src={leaderboard[0].avatar_url} 
                         alt="" 
                         style={{
-                          width: 28, 
-                          height: 28, 
+                          width: 32, 
+                          height: 32, 
                           borderRadius: '50%',
-                          border: '3px solid #f59e0b',
+                          border: '4px solid #f59e0b',
                           position: 'absolute',
-                          bottom: -8
+                          bottom: -10,
+                          boxShadow: '0 6px 12px rgba(0,0,0,0.3)'
                         }} 
                       />
                     ) : (
                       <div style={{
-                        width: 28,
-                        height: 28,
-                        background: '#f59e0b',
+                        width: 32,
+                        height: 32,
+                        background: 'linear-gradient(135deg, #f59e0b, #d97706)',
                         borderRadius: '50%',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: '0.8rem',
+                        fontSize: '0.9rem',
                         color: 'white',
                         fontWeight: 700,
                         position: 'absolute',
-                        bottom: -8
+                        bottom: -10,
+                        boxShadow: '0 6px 12px rgba(0,0,0,0.3)'
                       }}>
                         {leaderboard[0].display_name?.charAt(0)?.toUpperCase() || '?'}
                       </div>
                     )}
                   </div>
                   <div style={{ 
-                    fontSize: '0.8rem', 
+                    fontSize: '0.85rem', 
                     fontWeight: 800, 
                     color: '#f59e0b',
-                    maxWidth: 70,
+                    maxWidth: 80,
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
-                    textAlign: 'center'
+                    textAlign: 'center',
+                    marginBottom: 2,
+                    textShadow: '0 1px 2px rgba(0,0,0,0.1)'
                   }}>
                     {leaderboard[0].display_name}
-                    {leaderboard[0].isYou && <span style={{ color: '#f59e0b', fontSize: '0.6rem' }}> (Vous)</span>}
+                    {leaderboard[0].isYou && <div style={{ color: '#f59e0b', fontSize: '0.6rem', fontWeight: 600 }}>(Vous)</div>}
                   </div>
                   <div style={{ 
                     fontSize: '0.7rem', 
                     color: '#92400e',
-                    fontWeight: 700
+                    fontWeight: 700,
+                    background: 'rgba(245, 158, 11, 0.1)',
+                    padding: '3px 8px',
+                    borderRadius: 8,
+                    border: '1px solid rgba(245, 158, 11, 0.2)'
                   }}>
                     {leaderboard[0].recipesCount} recettes
                   </div>
@@ -1470,50 +1629,53 @@ export default function AddictiveFeed() {
                   flexDirection: 'column',
                   alignItems: 'center',
                   order: 3,
-                  transform: 'rotateY(5deg) translateZ(10px)'
+                  transform: 'rotateY(8deg) translateZ(15px)',
+                  animation: 'podiumFloat 4s ease-in-out infinite 1s'
                 }}>
                   <div style={{
-                    background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                    width: 45,
-                    height: 50,
-                    borderRadius: 6,
+                    background: 'linear-gradient(135deg, #f59e0b, #d97706, #b45309)',
+                    width: 50,
+                    height: 60,
+                    borderRadius: 10,
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    marginBottom: 4,
-                    boxShadow: '0 3px 10px rgba(217, 119, 6, 0.3)',
+                    marginBottom: 6,
+                    boxShadow: '0 6px 15px rgba(217, 119, 6, 0.4), inset 0 2px 4px rgba(255,255,255,0.2)',
                     position: 'relative',
                     border: '2px solid #d97706'
                   }}>
-                    <div style={{ fontSize: '1.2rem', marginBottom: 2 }}>🥉</div>
+                    <div style={{ fontSize: '1.4rem', marginBottom: 4, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))' }}>🥉</div>
                     {leaderboard[2].avatar_url ? (
                       <img 
                         src={leaderboard[2].avatar_url} 
                         alt="" 
                         style={{
-                          width: 20, 
-                          height: 20, 
+                          width: 24, 
+                          height: 24, 
                           borderRadius: '50%',
-                          border: '2px solid #d97706',
+                          border: '3px solid #d97706',
                           position: 'absolute',
-                          bottom: -4
+                          bottom: -6,
+                          boxShadow: '0 3px 6px rgba(0,0,0,0.2)'
                         }} 
                       />
                     ) : (
                       <div style={{
-                        width: 20,
-                        height: 20,
-                        background: '#d97706',
+                        width: 24,
+                        height: 24,
+                        background: 'linear-gradient(135deg, #d97706, #b45309)',
                         borderRadius: '50%',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: '0.6rem',
+                        fontSize: '0.7rem',
                         color: 'white',
                         fontWeight: 700,
                         position: 'absolute',
-                        bottom: -4
+                        bottom: -6,
+                        boxShadow: '0 3px 6px rgba(0,0,0,0.2)'
                       }}>
                         {leaderboard[2].display_name?.charAt(0)?.toUpperCase() || '?'}
                       </div>
@@ -1522,19 +1684,23 @@ export default function AddictiveFeed() {
                   <div style={{ 
                     fontSize: '0.7rem', 
                     fontWeight: 700, 
-                    color: '#4338ca',
-                    maxWidth: 55,
+                    color: '#1e293b',
+                    maxWidth: 60,
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
-                    textAlign: 'center'
+                    textAlign: 'center',
+                    marginBottom: 2
                   }}>
                     {leaderboard[2].display_name}
                   </div>
                   <div style={{ 
                     fontSize: '0.6rem', 
-                    color: '#6b7280',
-                    fontWeight: 600
+                    color: '#64748b',
+                    fontWeight: 600,
+                    background: 'rgba(217, 119, 6, 0.1)',
+                    padding: '2px 6px',
+                    borderRadius: 6
                   }}>
                     {leaderboard[2].recipesCount} recettes
                   </div>
@@ -1542,18 +1708,29 @@ export default function AddictiveFeed() {
               )}
             </div>
 
-            {/* Message d'encouragement */}
+            {/* Message d'encouragement amélioré */}
             <div style={{
-              background: 'rgba(99, 102, 241, 0.1)',
-              border: '1px solid rgba(99, 102, 241, 0.2)',
-              borderRadius: 8,
-              padding: '8px 12px',
-              fontSize: '0.75rem',
-              color: '#4338ca',
+              background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 51, 234, 0.05))',
+              border: '1px solid rgba(59, 130, 246, 0.2)',
+              borderRadius: 12,
+              padding: '12px 16px',
+              fontSize: '0.8rem',
+              color: '#1e40af',
               fontWeight: 600,
-              lineHeight: '1.3'
+              lineHeight: '1.4',
+              position: 'relative',
+              zIndex: 1,
+              backdrop: 'blur(5px)'
             }}>
-              ✨ Publiez plus de recettes pour grimper dans le classement !
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6
+              }}>
+                <span style={{ fontSize: '1rem' }}>✨</span>
+                <span>Publiez plus de recettes pour grimper dans le classement !</span>
+              </div>
             </div>
           </>
         ) : (
@@ -1561,7 +1738,9 @@ export default function AddictiveFeed() {
             color: '#6b7280',
             fontSize: '0.85rem',
             fontStyle: 'italic',
-            padding: '12px'
+            padding: '20px',
+            position: 'relative',
+            zIndex: 1
           }}>
             Aucune donnée de classement disponible
           </div>
@@ -1751,6 +1930,104 @@ export default function AddictiveFeed() {
           100% {
             transform: translate(-50%, -70%) scale(1.3);
             opacity: 0;
+          }
+        }
+
+        @keyframes slowRotate {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+
+        @keyframes trophyFloat {
+          0%, 100% { 
+            transform: translateY(0px) rotate(0deg);
+          }
+          50% { 
+            transform: translateY(-3px) rotate(2deg);
+          }
+        }
+
+        @keyframes buttonShine {
+          0%, 100% { left: -100%; }
+          50% { left: 100%; }
+        }
+
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+
+        @keyframes crownFloat {
+          0%, 100% { 
+            transform: scale(1.15) translateZ(25px) translateY(0px);
+          }
+          50% { 
+            transform: scale(1.15) translateZ(25px) translateY(-5px);
+          }
+        }
+
+        @keyframes podiumFloat {
+          0%, 100% { 
+            transform: rotateY(-8deg) translateZ(15px) translateY(0px);
+          }
+          50% { 
+            transform: rotateY(-8deg) translateZ(15px) translateY(-3px);
+          }
+        }
+
+        @keyframes goldenGlow {
+          0% { 
+            box-shadow: 0 12px 30px rgba(245, 158, 11, 0.5), inset 0 2px 4px rgba(255,255,255,0.3);
+          }
+          100% { 
+            box-shadow: 0 16px 40px rgba(245, 158, 11, 0.7), inset 0 2px 4px rgba(255,255,255,0.4);
+          }
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+          .${styles.modernCulinaryLoader} {
+            min-height: 350px;
+            padding: 30px 15px;
+            margin: 15px;
+          }
+
+          .${styles.culinaryPlate} {
+            width: 160px;
+            height: 160px;
+            margin-bottom: 30px;
+          }
+
+          .${styles.masterChef} {
+            font-size: 2.8rem;
+          }
+
+          .${styles.ingredientOrbit} {
+            width: 200px;
+            height: 200px;
+          }
+
+          .${styles.ingredient} {
+            transform: 
+              rotate(var(--orbit-angle)) 
+              translateX(100px) 
+              rotate(calc(-1 * var(--orbit-angle)));
+          }
+
+          .${styles.messageText} {
+            font-size: 1.1rem;
+          }
+
+          .${styles.loadingStats} {
+            gap: 8px;
+          }
+
+          .${styles.loadingStat} {
+            padding: 10px 12px;
+          }
+
+          .${styles.statText} {
+            font-size: 0.8rem;
           }
         }
       `}</style>

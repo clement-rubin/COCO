@@ -1357,59 +1357,61 @@ export default function Progression({ user }) {
 
   // --- Charger le vrai classement mensuel XP ---
   useEffect(() => {
-    async function fetchLeaderboard() {
-      setLeaderboardLoading(true)
-      try {
-        // 1. Récupérer tous les profils utilisateurs
-        const { data: profilesData, error: profilesError } = await supabase
-          .from('profiles')
-          .select('user_id,display_name,avatar_url')
-        if (profilesError) {
-          console.error("[Classement] Erreur profiles:", profilesError)
-          setLeaderboard([])
-          setLeaderboardLoading(false)
-          return
-        }
-
-        // 2. Récupérer toutes les recettes du dernier mois
-        const oneMonthAgo = new Date();
-        oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-        const { data: recipesData, error: recipesError } = await supabase
-          .from('recipes')
-          .select('user_id,created_at')
-          .gte('created_at', oneMonthAgo.toISOString());
-        if (recipesError) {
-          console.error("[Classement] Erreur recipes:", recipesError)
-        }
-
-        // 3. Compter les recettes par utilisateur sur le dernier mois
-        const recipesCountMap = {};
-        (recipesData || []).forEach(r => {
-          recipesCountMap[r.user_id] = (recipesCountMap[r.user_id] || 0) + 1;
-        });
-
-        // 4. Mapper les profils avec le nombre de recettes publiées
-        const leaderboardData = (profilesData || []).map(profile => {
-          const count = recipesCountMap[profile.user_id] || 0;
-          return {
-            user_id: profile.user_id,
-            display_name: profile.display_name || 'Utilisateur',
-            avatar_url: profile.avatar_url || null,
-            recipesCount: count,
-            isYou: user?.id === profile.user_id
-          }
-        });
-
-        leaderboardData.sort((a, b) => b.recipesCount - a.recipesCount)
-        setLeaderboard(leaderboardData)
-      } catch (e) {
-        console.error("[Classement] Exception générale:", e)
-        setLeaderboard([])
-      }
-      setLeaderboardLoading(false)
-    }
     fetchLeaderboard()
   }, [user])
+
+  // Fonction pour charger le classement (extracted for reuse)
+  const fetchLeaderboard = async () => {
+    setLeaderboardLoading(true)
+    try {
+      // 1. Récupérer tous les profils utilisateurs
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('user_id,display_name,avatar_url')
+      if (profilesError) {
+        console.error("[Classement] Erreur profiles:", profilesError)
+        setLeaderboard([])
+        setLeaderboardLoading(false)
+        return
+      }
+
+      // 2. Récupérer toutes les recettes du dernier mois
+      const oneMonthAgo = new Date()
+      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
+      const { data: recipesData, error: recipesError } = await supabase
+        .from('recipes')
+        .select('user_id,created_at')
+        .gte('created_at', oneMonthAgo.toISOString())
+      if (recipesError) {
+        console.error("[Classement] Erreur recipes:", recipesError)
+      }
+
+      // 3. Compter les recettes par utilisateur sur le dernier mois
+      const recipesCountMap = {}
+      ;(recipesData || []).forEach(r => {
+        recipesCountMap[r.user_id] = (recipesCountMap[r.user_id] || 0) + 1
+      })
+
+      // 4. Mapper les profils avec le nombre de recettes publiées
+      const leaderboardData = (profilesData || []).map(profile => {
+        const count = recipesCountMap[profile.user_id] || 0
+        return {
+          user_id: profile.user_id,
+          display_name: profile.display_name || 'Utilisateur',
+          avatar_url: profile.avatar_url || null,
+          recipesCount: count,
+          isYou: user?.id === profile.user_id
+        }
+      })
+
+      leaderboardData.sort((a, b) => b.recipesCount - a.recipesCount)
+      setLeaderboard(leaderboardData)
+    } catch (e) {
+      console.error("[Classement] Exception générale:", e)
+      setLeaderboard([])
+    }
+    setLeaderboardLoading(false)
+  }
 
   if (loading) {
     return (
@@ -1532,11 +1534,10 @@ export default function Progression({ user }) {
               padding: '8px 14px', // Réduction
               fontWeight: 700,
               fontSize: '0.85rem', // Réduction
-              boxShadow: activeTab === tab.id ? `0 2px 6px ${tab.color}33` : 'none',
               cursor: 'pointer',
               transition: 'all 0.2s',
-              minWidth: 'auto', // Permet la flexibilité
-              whiteSpace: 'nowrap' // Évite le retour à la ligne
+              minWidth: 'auto',
+              whiteSpace: 'nowrap'
             }}
           >
             {tab.label}
@@ -2190,19 +2191,79 @@ export default function Progression({ user }) {
         </div>
       ) : (
         <div>
+          {/* En-tête avec bouton d'actualisation */}
           <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
             fontWeight: 700,
             fontSize: '1rem', // Réduction
             marginBottom: 14, // Réduction
-            color: '#6366f1',
-            textAlign: 'center',
-            lineHeight: 1.3
+            color: '#6366f1'
           }}>
-            Classement mensuel (recettes publiées)
+            <div style={{
+              textAlign: 'left',
+              lineHeight: 1.3
+            }}>
+              Classement mensuel
+              <div style={{
+                fontSize: '0.7rem',
+                fontWeight: 500,
+                color: '#64748b',
+                marginTop: 2
+              }}>
+                Recettes publiées (30j)
+              </div>
+            </div>
+            
+            {/* Bouton d'actualisation compact */}
+            <button
+              onClick={fetchLeaderboard}
+              disabled={leaderboardLoading}
+              style={{
+                background: leaderboardLoading 
+                  ? 'linear-gradient(135deg, #e2e8f0, #cbd5e1)' 
+                  : 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                color: leaderboardLoading ? '#64748b' : 'white',
+                border: 'none',
+                padding: '6px 10px',
+                borderRadius: 8,
+                fontSize: '0.7rem',
+                fontWeight: 600,
+                cursor: leaderboardLoading ? 'not-allowed' : 'pointer',
+                transition: 'all 0.3s ease',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                boxShadow: leaderboardLoading 
+                  ? '0 2px 4px rgba(0,0,0,0.1)' 
+                  : '0 3px 8px rgba(99, 102, 241, 0.3)'
+              }}
+            >
+              <div style={{
+                fontSize: '0.8rem',
+                animation: leaderboardLoading ? 'spin 1s linear infinite' : 'none'
+              }}>
+                {leaderboardLoading ? '⟳' : '🔄'}
+              </div>
+              <span style={{ display: leaderboardLoading ? 'none' : 'block' }}>
+                Actualiser
+              </span>
+            </button>
           </div>
           
           {leaderboardLoading ? (
             <div style={{ textAlign: 'center', color: '#6366f1', fontWeight: 600, fontSize: '0.9rem' }}>
+              <div style={{
+                display: 'inline-block',
+                width: 16,
+                height: 16,
+                border: '2px solid #e5e7eb',
+                borderTop: '2px solid #6366f1',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite',
+                marginRight: 8
+              }} />
               Chargement...
             </div>
           ) : (
@@ -2231,7 +2292,8 @@ export default function Progression({ user }) {
                       textAlign: 'center',
                       minWidth: 60, // Réduction
                       transform: idx === 0 ? 'scale(1.05)' : 'scale(1)',
-                      boxShadow: idx === 0 ? '0 2px 8px #f59e0b22' : '0 1px 4px #6366f122'
+                      boxShadow: idx === 0 ? '0 2px 8px #f59e0b22' : '0 1px 4px #6366f122',
+                      animation: idx === 0 ? 'goldenPulse 2s ease-in-out infinite' : 'none'
                     }}>
                       <div style={{ fontSize: idx === 0 ? 20 : 16 }}>
                         {idx === 0 ? '🥇' : idx === 1 ? '🥈' : '🥉'}
@@ -2263,10 +2325,11 @@ export default function Progression({ user }) {
                     display: 'flex',
                     alignItems: 'center',
                     padding: '6px 8px', // Réduction
-                    background: u.isYou ? '#f3f4f6' : 'transparent',
+                    background: u.isYou ? 'rgba(245, 158, 11, 0.1)' : 'transparent',
                     borderRadius: 8,
                     margin: '2px 0',
-                    fontSize: '0.85rem' // Réduction
+                    fontSize: '0.85rem', // Réduction
+                    border: u.isYou ? '1px solid rgba(245, 158, 11, 0.3)' : 'none'
                   }}>
                     <div style={{
                       width: 24, // Réduction
@@ -2303,293 +2366,6 @@ export default function Progression({ user }) {
           )}
         </div>
       )}
-
-      {/* Dressing modal - Version mobile */}
-      {dressingOpen && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0,0,0,0.55)',
-          zIndex: 9999,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '20px'
-        }}
-          onClick={() => setDressingOpen(false)}
-        >
-          <div
-            style={{
-              background: '#fff',
-              borderRadius: 18,
-              width: '100%',
-              maxWidth: 360, // Réduction
-              padding: '20px', // Réduction
-              boxShadow: '0 8px 30px #0002',
-              position: 'relative',
-              animation: 'dressingPop 0.3s',
-              maxHeight: '90vh',
-              overflowY: 'auto'
-            }}
-            onClick={e => e.stopPropagation()}
-          >
-            <button
-              onClick={() => setDressingOpen(false)}
-              style={{
-                position: 'absolute',
-                top: 12, right: 14,
-                background: 'none',
-                border: 'none',
-                fontSize: 18,
-                color: '#f59e0b',
-                cursor: 'pointer',
-                fontWeight: 700
-              }}
-            >✕</button>
-            
-            <div style={{ textAlign: 'center', marginBottom: 16 }}>
-              <div style={{
-                fontWeight: 800,
-                fontSize: '1.2rem',
-                color: '#f59e0b',
-                marginBottom: 4
-              }}>Mon avatar chef</div>
-              <div style={{
-                fontSize: '0.9rem',
-                color: '#6b7280',
-                marginBottom: 8
-              }}>Personnalisez votre chef !</div>
-            </div>
-
-            {/* Avatar en grand - Version mobile */}
-            <div style={{
-              width: 120, height: 120, // Réduction
-              margin: '0 auto 16px auto',
-              position: 'relative', 
-              background: '#fef3c7', 
-              borderRadius: '50%',
-              boxShadow: '0 2px 12px #f59e0b22', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center'
-            }}>
-              {renderChefAvatar({ size: 120 })}
-            </div>
-
-            {/* Tabs catégories - Version mobile */}
-            <div style={{
-              display: 'flex', 
-              gap: 4, 
-              justifyContent: 'center', 
-              marginBottom: 12, 
-              flexWrap: 'wrap',
-              overflowX: 'auto'
-            }}>
-              {ITEM_TYPES.filter(t => t.id !== 'all').slice(0, 6).map(cat => (
-                <button
-                  key={cat.id}
-                  onClick={() => setDressingTab(cat.id)}
-                  style={{
-                    background: dressingTab === cat.id ? 'linear-gradient(135deg, #f59e0b, #fbbf24)' : '#fff',
-                    color: dressingTab === cat.id ? 'white' : '#f59e0b',
-                    border: dressingTab === cat.id ? '2px solid #f59e0b' : '1px solid #e5e7eb',
-                    borderRadius: 8,
-                    padding: '4px 8px',
-                    fontWeight: 700,
-                    fontSize: '0.75rem',
-                    cursor: 'pointer',
-                    minWidth: 'auto',
-                    whiteSpace: 'nowrap'
-                  }}
-                >
-                  {cat.icon}
-                </button>
-              ))}
-            </div>
-
-            {/* Objets équipables - Version mobile */}
-            <div style={{
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(3, 1fr)', // 3 colonnes sur mobile
-              gap: 8, 
-              marginBottom: 8,
-              minHeight: 80
-            }}>
-              {SHOP_ITEMS.filter(i => i.type === dressingTab && ownedItems.includes(i.id)).length === 0 && (
-                <div style={{ 
-                  gridColumn: '1 / -1',
-                  textAlign: 'center',
-                  color: '#f59e0b', 
-                  fontWeight: 600, 
-                  fontSize: '0.85rem',
-                  padding: '20px 0'
-                }}>
-                  Aucun objet débloqué
-                </div>
-              )}
-              {SHOP_ITEMS.filter(i => i.type === dressingTab && ownedItems.includes(i.id)).map(item => (
-                <div key={item.id} style={{
-                  background: equipped[dressingTab] === item.id ? '#f59e0b' : '#f3f4f6',
-                  color: equipped[dressingTab] === item.id ? 'white' : '#92400e',
-                  borderRadius: 8,
-                  padding: '8px 6px',
-                  fontWeight: 700,
-                  fontSize: 16,
-                  cursor: 'pointer',
-                  boxShadow: equipped[dressingTab] === item.id ? '0 2px 6px #f59e0b33' : 'none',
-                  border: equipped[dressingTab] === item.id ? '2px solid #f59e0b' : '1px solid #e5e7eb',
-                  transition: 'all 0.2s',
-                  textAlign: 'center',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center'
-                }}
-                  onClick={() => equipItem(item)}
-                >
-                  <div style={{ marginBottom: 2 }}>{item.icon}</div>
-                  <div style={{
-                    fontSize: 9,
-                    fontWeight: 600,
-                    lineHeight: 1,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    width: '100%'
-                  }}>
-                    {item.name.length > 8 ? item.name.substring(0, 8) : item.name}
-                  </div>
-                </div>
-              ))}
-            </div>
-            
-            <div style={{ 
-              textAlign: 'center', 
-              color: '#6b7280', 
-              fontSize: '0.8rem', 
-              marginTop: 8,
-              lineHeight: 1.3
-            }}>
-              Cliquez sur un objet pour l'équiper/retirer
-            </div>
-          </div>
-        </div>
-      ) }
-        <div>
-          <div style={{
-            fontWeight: 700,
-            fontSize: '1rem', // Réduction
-            marginBottom: 14, // Réduction
-            color: '#6366f1',
-            textAlign: 'center',
-            lineHeight: 1.3
-          }}>
-            Classement mensuel (recettes publiées)
-          </div>
-          
-          {leaderboardLoading ? (
-            <div style={{ textAlign: 'center', color: '#6366f1', fontWeight: 600, fontSize: '0.9rem' }}>
-              Chargement...
-            </div>
-          ) : (
-            <div style={{
-              background: 'linear-gradient(135deg,#e0e7ff 0%,#f3f4f6 100%)',
-              borderRadius: 14, // Réduction
-              boxShadow: '0 4px 16px #6366f122', // Réduction
-              padding: '14px 8px 8px 8px', // Réduction
-              marginBottom: 20
-            }}>
-              {/* Top 3 - Version mobile compacte */}
-              {leaderboard.slice(0, 3).length > 0 && (
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'center',
-                  gap: 10, // Réduction
-                  marginBottom: 14,
-                  flexWrap: 'wrap'
-                }}>
-                  {leaderboard.slice(0, 3).map((user, idx) => (
-                    <div key={user.user_id} style={{
-                      background: idx === 0 ? 'linear-gradient(135deg,#fef3c7 60%,#fffbe6 100%)' :
-                                 idx === 1 ? '#e0e7ff' : '#f3f4f6',
-                      borderRadius: 10,
-                      padding: '8px 10px', // Réduction
-                      textAlign: 'center',
-                      minWidth: 60, // Réduction
-                      transform: idx === 0 ? 'scale(1.05)' : 'scale(1)',
-                      boxShadow: idx === 0 ? '0 2px 8px #f59e0b22' : '0 1px 4px #6366f122'
-                    }}>
-                      <div style={{ fontSize: idx === 0 ? 20 : 16 }}>
-                        {idx === 0 ? '🥇' : idx === 1 ? '🥈' : '🥉'}
-                      </div>
-                      <div style={{ 
-                        fontWeight: 700, 
-                        color: idx === 0 ? '#f59e0b' : idx === 1 ? '#6366f1' : '#a3a3a3',
-                        fontSize: '0.8rem',
-                        marginBottom: 2
-                      }}>
-                        {user.display_name.length > 8 ? user.display_name.substring(0, 8) + '...' : user.display_name}
-                      </div>
-                      <div style={{ 
-                        color: '#374151', 
-                        fontSize: '0.75rem',
-                        fontWeight: 600
-                      }}>
-                        {user.recipesCount}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Liste complète - Version mobile */}
-              <div style={{ maxHeight: '250px', overflowY: 'auto' }}>
-                {leaderboard.slice(0, 10).map((u, idx) => (
-                  <div key={u.user_id} style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    padding: '6px 8px', // Réduction
-                    background: u.isYou ? '#f3f4f6' : 'transparent',
-                    borderRadius: 8,
-                    margin: '2px 0',
-                    fontSize: '0.85rem' // Réduction
-                  }}>
-                    <div style={{
-                      width: 24, // Réduction
-                      textAlign: 'center',
-                      fontWeight: 700,
-                      color: idx < 3 ? (idx === 0 ? '#f59e0b' : idx === 1 ? '#6366f1' : '#a3a3a3') : '#374151'
-                    }}>
-                      {idx + 1}
-                    </div>
-                    <div style={{
-                      flex: 1,
-                      marginLeft: 8,
-                      fontWeight: u.isYou ? 700 : 500,
-                      color: u.isYou ? '#f59e0b' : '#374151',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap'
-                    }}>
-                      {u.display_name}
-                      {u.isYou && <span style={{ color: '#f59e0b', fontSize: '0.75rem' }}> (Vous)</span>}
-                    </div>
-                    <div style={{
-                      fontWeight: 700,
-                      color: idx < 3 ? '#10b981' : '#374151',
-                      minWidth: 30,
-                      textAlign: 'right'
-                    }}>
-                      {u.recipesCount}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
 
       {/* Message d'encouragement - Version mobile */}
       <div style={{
@@ -2637,6 +2413,22 @@ export default function Progression({ user }) {
         @keyframes dressingPop {
           0% { opacity: 0; transform: scale(0.9);}
           100% { opacity: 1; transform: scale(1);}
+        }
+        
+        @keyframes spin {
+          0% { transform: rotate(0deg);}
+          100% { transform: rotate(360deg);}
+        }
+
+        @keyframes goldenPulse {
+          0%, 100% { 
+            transform: scale(1.05);
+            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2);
+          }
+          50% { 
+            transform: scale(1.08);
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+          }
         }
         
         /* Responsive spécifique */

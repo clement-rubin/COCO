@@ -8,6 +8,7 @@ import RecipeOfWeek from '../components/RecipeOfWeek'
 import NotificationCenter from '../components/NotificationCenter'
 import DailyStreakReward from '../components/DailyStreakReward'
 import styles from '../styles/Layout.module.css'
+import { supabase } from '../utils/supabaseClient'
 
 export default function Home() {
   const { user, loading } = useAuth()
@@ -21,6 +22,8 @@ export default function Home() {
     totalComments: 0,
     activeChefs: 0
   })
+  const [leaderboard, setLeaderboard] = useState([])
+  const [leaderboardLoading, setLeaderboardLoading] = useState(false)
   const heroRef = useRef(null)
 
   // Détection du scroll
@@ -111,6 +114,66 @@ export default function Home() {
       fetchFeedStats()
     }
   }, [user])
+
+  // Charger le classement mensuel (top 3)
+  useEffect(() => {
+    if (user?.id) {
+      fetchLeaderboard()
+    }
+  }, [user])
+
+  // Fonction pour charger le classement
+  const fetchLeaderboard = async () => {
+    setLeaderboardLoading(true)
+    try {
+      // 1. Récupérer tous les profils utilisateurs
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('user_id,display_name,avatar_url')
+      if (profilesError) {
+        console.error("[Classement] Erreur profiles:", profilesError)
+        setLeaderboard([])
+        setLeaderboardLoading(false)
+        return
+      }
+
+      // 2. Récupérer toutes les recettes du dernier mois
+      const oneMonthAgo = new Date()
+      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
+      const { data: recipesData, error: recipesError } = await supabase
+        .from('recipes')
+        .select('user_id,created_at')
+        .gte('created_at', oneMonthAgo.toISOString())
+      if (recipesError) {
+        console.error("[Classement] Erreur recipes:", recipesError)
+      }
+
+      // 3. Compter les recettes par utilisateur sur le dernier mois
+      const recipesCountMap = {}
+      ;(recipesData || []).forEach(r => {
+        recipesCountMap[r.user_id] = (recipesCountMap[r.user_id] || 0) + 1
+      })
+
+      // 4. Mapper les profils avec le nombre de recettes publiées
+      const leaderboardData = (profilesData || []).map(profile => {
+        const count = recipesCountMap[profile.user_id] || 0
+        return {
+          user_id: profile.user_id,
+          display_name: profile.display_name || 'Utilisateur',
+          avatar_url: profile.avatar_url || null,
+          recipesCount: count,
+          isYou: user?.id === profile.user_id
+        }
+      })
+
+      leaderboardData.sort((a, b) => b.recipesCount - a.recipesCount)
+      setLeaderboard(leaderboardData.slice(0, 10))
+    } catch (e) {
+      console.error("[Classement] Exception générale:", e)
+      setLeaderboard([])
+    }
+    setLeaderboardLoading(false)
+  }
 
   // Accès discret aux logs (seulement pour les développeurs/admins)
   const [secretClickCount, setSecretClickCount] = useState(0)
@@ -1217,116 +1280,322 @@ export default function Home() {
               </button>
             </div>
 
-            {/* Statistiques RÉDUITES ET OPTIMISÉES */}
+            {/* Podium du classement mensuel - VERSION INTÉGRÉE AMÉLIORÉE */}
             <div style={{
-              display: 'flex',
-              justifyContent: 'center',
-              gap: '12px', // Réduction
-              marginBottom: '16px', // Réduction
-              flexWrap: 'wrap'
+              maxWidth: '100%',
+              margin: '0 auto 20px',
+              background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 25%, #f1f5f9 50%, #ffffff 100%)',
+              borderRadius: 18,
+              boxShadow: '0 8px 25px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04)',
+              padding: '18px 14px',
+              textAlign: 'center',
+              border: '1px solid rgba(148, 163, 184, 0.15)',
+              position: 'relative',
+              overflow: 'hidden'
             }}>
-              {user && [
-                { 
-                  number: feedStats.totalRecipes, 
-                  label: 'Recettes', 
-                  color: '#ff6b35', 
-                  animation: 'recipeIcon',
-                  icon: '🍽️'
-                },
-                { 
-                  number: feedStats.totalLikes, 
-                  label: 'Likes', 
-                  color: '#e91e63', 
-                  animation: 'heartBeat',
-                  icon: '❤️'
-                },
-                { 
-                  number: feedStats.activeChefs, 
-                  label: 'Chefs', 
-                  color: '#4caf50', 
-                  animation: 'chefIcon',
-                  icon: '👨‍🍳'
-                }
-              ].map((stat, index) => (
-                <div key={index} style={{
-                  background: 'rgba(255, 255, 255, 0.95)',
-                  backdropFilter: 'blur(15px)',
-                  padding: '12px 16px', // Réduction
-                  borderRadius: '16px', // Réduction
-                  border: `2px solid ${stat.color}20`,
-                  minWidth: '90px', // Réduction importante
-                  animation: `fadeInUp 0.6s ease-out ${index * 0.15}s both`,
-                  boxShadow: `0 4px 15px ${stat.color}15`, // Réduction
-                  textAlign: 'center',
-                  position: 'relative',
-                  overflow: 'hidden'
-                }}>
-                  {/* Icône principale réduite */}
-                  <div style={{ 
-                    fontSize: '1.4rem', // Réduction importante
-                    marginBottom: '4px', // Réduction
-                    animation: `${stat.animation} 2s ease-in-out infinite`,
-                    transformOrigin: 'center',
-                    position: 'relative',
-                    zIndex: 2
-                  }}>
-                    {stat.icon}
-                  </div>
-                  
-                  {/* Nombre principal réduit */}
-                  <div style={{
-                    fontSize: '1.2rem', // Réduction
-                    fontWeight: '900',
-                    color: stat.color,
-                    marginBottom: '2px', // Réduction
-                    position: 'relative',
-                    zIndex: 2
-                  }}>
-                    {stat.number}
-                  </div>
-                  
-                  {/* Label réduit */}
-                  <div style={{
-                    fontSize: '0.75rem', // Réduction
-                    color: '#6b7280',
-                    fontWeight: '700',
-                    position: 'relative',
-                    zIndex: 2
-                  }}>
-                    {stat.label}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Indicateur de scroll - VERSION COMPACTE */}
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '4px', // Réduction
-              opacity: 0.5 // Réduction de l'opacité
-            }}>
-              <span style={{
-                fontSize: '0.75rem', // Réduction
-                color: '#9ca3af',
-                fontWeight: '600'
-              }}>
-                Découvrez les recettes
-              </span>
+              {/* Effet de brillance de fond subtil */}
               <div style={{
-                width: '16px', // Réduction
-                height: '16px',
-                border: '2px solid #ff6b35',
-                borderRadius: '50%',
+                position: 'absolute',
+                top: '-30%',
+                left: '-30%',
+                width: '160%',
+                height: '160%',
+                background: 'conic-gradient(from 0deg at 50% 50%, transparent 0deg, rgba(59, 130, 246, 0.02) 90deg, transparent 180deg, rgba(99, 102, 241, 0.02) 270deg, transparent 360deg)',
+                animation: 'slowRotate 25s linear infinite',
+                zIndex: 0
+              }} />
+
+              {/* En-tête du podium */}
+              <div style={{ 
+                marginBottom: 14,
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                animation: 'bounceDown 2s infinite',
-                background: 'rgba(255, 107, 53, 0.1)'
+                justifyContent: 'space-between',
+                position: 'relative',
+                zIndex: 1
               }}>
-                <span style={{ fontSize: '0.6rem', color: '#ff6b35' }}>↓</span>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  flex: 1
+                }}>
+                  <div style={{
+                    background: 'linear-gradient(135deg, #fbbf24, #f59e0b)',
+                    width: 32,
+                    height: 32,
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1rem',
+                    boxShadow: '0 4px 10px rgba(251, 191, 36, 0.3)',
+                    animation: 'trophyBounce 3s ease-in-out infinite'
+                  }}>
+                    🏆
+                  </div>
+                  <div style={{ textAlign: 'left' }}>
+                    <div style={{ 
+                      fontWeight: 800, 
+                      fontSize: '1rem', 
+                      color: '#1e293b',
+                      marginBottom: 2,
+                      background: 'linear-gradient(135deg, #1e293b, #475569)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent'
+                    }}>
+                      Top Chefs du Mois
+                    </div>
+                    <div style={{ 
+                      fontSize: '0.75rem', 
+                      color: '#64748b',
+                      fontWeight: 500
+                    }}>
+                      Recettes publiées sur 30 jours
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bouton d'actualisation compact */}
+                <button
+                  onClick={fetchLeaderboard}
+                  disabled={leaderboardLoading}
+                  style={{
+                    background: leaderboardLoading 
+                      ? 'linear-gradient(135deg, #e2e8f0, #cbd5e1)' 
+                      : 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+                    color: leaderboardLoading ? '#64748b' : 'white',
+                    border: 'none',
+                    padding: '6px 12px',
+                    borderRadius: 10,
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    cursor: leaderboardLoading ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.3s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    boxShadow: leaderboardLoading 
+                      ? '0 2px 4px rgba(0,0,0,0.1)' 
+                      : '0 3px 8px rgba(59, 130, 246, 0.25)',
+                    position: 'relative',
+                    overflow: 'hidden'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!leaderboardLoading) {
+                      e.target.style.transform = 'translateY(-1px)'
+                      e.target.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.35)'
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!leaderboardLoading) {
+                      e.target.style.transform = 'translateY(0)'
+                      e.target.style.boxShadow = '0 3px 8px rgba(59, 130, 246, 0.25)'
+                    }
+                  }}
+                >
+                  <div style={{
+                    fontSize: '0.8rem',
+                    animation: leaderboardLoading ? 'spin 1s linear infinite' : 'none'
+                  }}>
+                    {leaderboardLoading ? '⟳' : '🔄'}
+                  </div>
+                  <span style={{ fontSize: '0.7rem' }}>
+                    {leaderboardLoading ? 'Actualisation...' : 'Actualiser'}
+                  </span>
+                </button>
               </div>
+
+              {/* Contenu du podium */}
+              {leaderboardLoading ? (
+                <div style={{ 
+                  color: '#64748b', 
+                  fontWeight: 600, 
+                  margin: '20px 0',
+                  fontSize: '0.85rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  position: 'relative',
+                  zIndex: 1
+                }}>
+                  <div style={{
+                    display: 'inline-block',
+                    width: 14,
+                    height: 14,
+                    border: '2px solid #e5e7eb',
+                    borderTop: '2px solid #3b82f6',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite'
+                  }} />
+                  Chargement du classement...
+                </div>
+              ) : leaderboard.length > 0 ? (
+                <>
+                  {/* Podium visuel en 3D compact */}
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'flex-end',
+                    gap: 8,
+                    marginBottom: 12,
+                    height: 100,
+                    perspective: '300px',
+                    position: 'relative',
+                    zIndex: 1
+                  }}>
+                    {/* Places du podium avec animations */}
+                    {leaderboard.slice(0, 3).map((leader, idx) => {
+                      const isFirst = idx === 0
+                      const isSecond = idx === 1
+                      const isThird = idx === 2
+                      
+                      return (
+                        <div key={leader.user_id} style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          order: isFirst ? 2 : isSecond ? 1 : 3,
+                          transform: isFirst 
+                            ? 'scale(1.1) translateZ(20px)' 
+                            : `rotateY(${isSecond ? '-6deg' : '6deg'}) translateZ(10px)`,
+                          animation: `podiumFloat${idx + 1} 4s ease-in-out infinite`,
+                          zIndex: isFirst ? 3 : 2
+                        }}>
+                          <div style={{
+                            background: isFirst 
+                              ? 'linear-gradient(135deg, #fbbf24, #f59e0b, #d97706)'
+                              : isSecond 
+                                ? 'linear-gradient(135deg, #e5e7eb, #d1d5db)'
+                                : 'linear-gradient(135deg, #f59e0b, #d97706)',
+                            width: isFirst ? 60 : isSecond ? 50 : 45,
+                            height: isFirst ? 75 : isSecond ? 65 : 55,
+                            borderRadius: isFirst ? 14 : 12,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            marginBottom: 4,
+                            boxShadow: isFirst 
+                              ? '0 8px 20px rgba(245, 158, 11, 0.4), inset 0 2px 4px rgba(255,255,255,0.3)'
+                              : '0 4px 12px rgba(0,0,0,0.15), inset 0 2px 4px rgba(255,255,255,0.2)',
+                            position: 'relative',
+                            border: `2px solid ${isFirst ? '#f59e0b' : isSecond ? '#9ca3af' : '#d97706'}`,
+                            animation: isFirst ? 'goldenGlow 2s ease-in-out infinite alternate' : 'none'
+                          }}>
+                            <div style={{ 
+                              fontSize: isFirst ? '1.6rem' : isSecond ? '1.4rem' : '1.2rem', 
+                              marginBottom: 2, 
+                              filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))' 
+                            }}>
+                              {isFirst ? '🥇' : isSecond ? '🥈' : '🥉'}
+                            </div>
+                            
+                            {leader.avatar_url ? (
+                              <img 
+                                src={leader.avatar_url} 
+                                alt="" 
+                                style={{
+                                  width: isFirst ? 24 : 20, 
+                                  height: isFirst ? 24 : 20, 
+                                  borderRadius: '50%',
+                                  border: `2px solid ${isFirst ? '#f59e0b' : isSecond ? '#9ca3af' : '#d97706'}`,
+                                  position: 'absolute',
+                                  bottom: isFirst ? -6 : -4,
+                                  boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
+                                }} 
+                              />
+                            ) : (
+                              <div style={{
+                                width: isFirst ? 24 : 20,
+                                height: isFirst ? 24 : 20,
+                                background: `linear-gradient(135deg, ${isFirst ? '#f59e0b' : isSecond ? '#9ca3af' : '#d97706'}, ${isFirst ? '#d97706' : isSecond ? '#6b7280' : '#b45309'})`,
+                                borderRadius: '50%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: isFirst ? '0.7rem' : '0.6rem',
+                                color: 'white',
+                                fontWeight: 700,
+                                position: 'absolute',
+                                bottom: isFirst ? -6 : -4,
+                                boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
+                              }}>
+                                {leader.display_name?.charAt(0)?.toUpperCase() || '?'}
+                              </div>
+                            )}
+                          </div>
+                          
+                          <div style={{ 
+                            fontSize: '0.7rem', 
+                            fontWeight: 700, 
+                            color: isFirst ? '#f59e0b' : '#1e293b',
+                            maxWidth: isFirst ? 70 : 60,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            textAlign: 'center',
+                            marginBottom: 2,
+                            textShadow: isFirst ? '0 1px 2px rgba(0,0,0,0.1)' : 'none'
+                          }}>
+                            {leader.display_name}
+                            {leader.isYou && <div style={{ color: '#f59e0b', fontSize: '0.55rem', fontWeight: 600 }}>(Vous)</div>}
+                          </div>
+                          
+                          <div style={{ 
+                            fontSize: '0.6rem', 
+                            color: isFirst ? '#92400e' : '#64748b',
+                            fontWeight: 600,
+                            background: `rgba(${isFirst ? '245, 158, 11' : '100, 116, 139'}, 0.1)`,
+                            padding: '2px 6px',
+                            borderRadius: 6,
+                            border: `1px solid rgba(${isFirst ? '245, 158, 11' : '100, 116, 139'}, 0.2)`
+                          }}>
+                            {leader.recipesCount} recettes
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  {/* Message d'encouragement stylisé */}
+                  <div style={{
+                    background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(147, 51, 234, 0.04))',
+                    border: '1px solid rgba(59, 130, 246, 0.15)',
+                    borderRadius: 10,
+                    padding: '10px 12px',
+                    fontSize: '0.75rem',
+                    color: '#1e40af',
+                    fontWeight: 600,
+                    lineHeight: '1.3',
+                    position: 'relative',
+                    zIndex: 1,
+                    backdropFilter: 'blur(5px)'
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6
+                    }}>
+                      <span style={{ fontSize: '0.9rem' }}>✨</span>
+                      <span>Publiez plus de recettes pour grimper dans le classement !</span>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div style={{
+                  color: '#6b7280',
+                  fontSize: '0.8rem',
+                  fontStyle: 'italic',
+                  padding: '16px',
+                  position: 'relative',
+                  zIndex: 1
+                }}>
+                  Aucune donnée de classement disponible
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1660,6 +1929,7 @@ export default function Home() {
             box-shadow: 0 0 20px rgba(255, 107, 53, 0.4);
           }
           50% { 
+ 
             transform: scale(1.1);
             box-shadow: 0 0 30px rgba(255, 107, 53, 0.6), 0 0 40px rgba(255, 107, 53, 0.3);
           }
