@@ -1203,67 +1203,337 @@ export default function AddictiveFeed() {
 
   return (
     <div className={styles.feedContainer} ref={containerRef}>
-      {/* Podium visuel du classement mensuel (top 3) - placé en haut du feed */}
+      {/* Podium du classement mensuel - VERSION INTÉGRÉE ET AMÉLIORÉE */}
       <div style={{
-        maxWidth: 500,
-        margin: '0 auto 24px',
-        background: 'linear-gradient(135deg,#e0e7ff 0%,#f3f4f6 100%)',
-        borderRadius: 18,
-        boxShadow: '0 4px 24px #6366f122',
-        padding: '18px 10px 10px 10px',
-        textAlign: 'center'
+        maxWidth: '100%',
+        margin: '0 auto 20px',
+        background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+        borderRadius: 16,
+        boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+        padding: '16px 12px',
+        textAlign: 'center',
+        border: '1px solid rgba(148, 163, 184, 0.1)'
       }}>
-        <div style={{ fontWeight: 700, fontSize: '1.1rem', color: '#6366f1', marginBottom: 10 }}>
-          🏆 Top 3 du classement mensuel (recettes publiées sur 30j)
+        {/* En-tête du podium */}
+        <div style={{ 
+          marginBottom: 12,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 8
+        }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #fbbf24, #f59e0b)',
+            width: 28,
+            height: 28,
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '0.9rem'
+          }}>
+            🏆
+          </div>
+          <div>
+            <div style={{ 
+              fontWeight: 700, 
+              fontSize: '1rem', 
+              color: '#374151',
+              marginBottom: 2
+            }}>
+              Top Chefs du Mois
+            </div>
+            <div style={{ 
+              fontSize: '0.8rem', 
+              color: '#6b7280',
+              fontWeight: 500
+            }}>
+              Recettes publiées sur 30 jours
+            </div>
+          </div>
         </div>
+
+        {/* Contenu du podium */}
         {leaderboardLoading ? (
-          <div style={{ color: '#6366f1', fontWeight: 600, margin: '12px 0' }}>
+          <div style={{ 
+            color: '#6b7280', 
+            fontWeight: 600, 
+            margin: '16px 0',
+            fontSize: '0.9rem'
+          }}>
+            <div style={{
+              display: 'inline-block',
+              width: 16,
+              height: 16,
+              border: '2px solid #e5e7eb',
+              borderTop: '2px solid #f59e0b',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite',
+              marginRight: 8
+            }} />
             Chargement du classement...
           </div>
-        ) : (
-          <div style={{
-            display: 'flex',
-            justifyContent: 'center',
-            gap: 18,
-            marginBottom: 6,
-            flexWrap: 'wrap'
-          }}>
-            {leaderboard.map((u, idx) => {
-              let bg = idx === 0 ? '#fef3c7' : idx === 1 ? '#e0e7ff' : '#f3f4f6'
-              let color = idx === 0 ? '#f59e0b' : idx === 1 ? '#6366f1' : '#a3a3a3'
-              let icon = idx === 0 ? '🥇' : idx === 1 ? '🥈' : '🥉'
-              return (
-                <div key={u.user_id} style={{
-                  background: bg,
-                  borderRadius: 14,
-                  padding: '12px 16px',
-                  minWidth: 90,
-                  boxShadow: idx === 0 ? '0 4px 16px #f59e0b22' : '0 2px 8px #6366f122',
-                  transform: idx === 0 ? 'scale(1.08)' : 'scale(1)',
+        ) : leaderboard.length > 0 ? (
+          <>
+            {/* Podium visuel */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'flex-end',
+              gap: 8,
+              marginBottom: 12,
+              height: 80
+            }}>
+              {/* 2ème place */}
+              {leaderboard[1] && (
+                <div style={{
                   display: 'flex',
                   flexDirection: 'column',
-                  alignItems: 'center'
+                  alignItems: 'center',
+                  order: 1
                 }}>
-                  <div style={{ fontSize: 26, color, marginBottom: 4 }}>{icon}</div>
-                  {u.avatar_url && (
-                    <img src={u.avatar_url} alt="" style={{
-                      width: 36, height: 36, borderRadius: '50%',
-                      border: `2px solid ${color}`,
-                      marginBottom: 4
-                    }} />
-                  )}
-                  <div style={{ fontWeight: 900, color, fontSize: '1.05rem', marginBottom: 2 }}>
-                    {u.display_name}
+                  <div style={{
+                    background: 'linear-gradient(135deg, #e5e7eb, #d1d5db)',
+                    width: 50,
+                    height: 50,
+                    borderRadius: 8,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: 4,
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                  }}>
+                    <div style={{ fontSize: '1.2rem', marginBottom: 2 }}>🥈</div>
+                    {leaderboard[1].avatar_url ? (
+                      <img 
+                        src={leaderboard[1].avatar_url} 
+                        alt="" 
+                        style={{
+                          width: 24, 
+                          height: 24, 
+                          borderRadius: '50%',
+                          border: '2px solid #9ca3af',
+                          position: 'absolute',
+                          bottom: -2
+                        }} 
+                      />
+                    ) : (
+                      <div style={{
+                        width: 24,
+                        height: 24,
+                        background: '#9ca3af',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.7rem',
+                        color: 'white',
+                        fontWeight: 700,
+                        position: 'absolute',
+                        bottom: -2
+                      }}>
+                        {leaderboard[1].display_name?.charAt(0)?.toUpperCase() || '?'}
+                      </div>
+                    )}
                   </div>
-                  <div style={{ color: '#374151', fontSize: '0.98rem', fontWeight: 700 }}>
-                    {u.recipesCount} recettes
+                  <div style={{ 
+                    fontSize: '0.7rem', 
+                    fontWeight: 700, 
+                    color: '#374151',
+                    maxWidth: 60,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    {leaderboard[1].display_name}
+                  </div>
+                  <div style={{ 
+                    fontSize: '0.6rem', 
+                    color: '#6b7280',
+                    fontWeight: 600
+                  }}>
+                    {leaderboard[1].recipesCount} recettes
                   </div>
                 </div>
-              )
-            })}
+              )}
+
+              {/* 1ère place */}
+              {leaderboard[0] && (
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  order: 2,
+                  transform: 'scale(1.1)'
+                }}>
+                  <div style={{
+                    background: 'linear-gradient(135deg, #fbbf24, #f59e0b)',
+                    width: 60,
+                    height: 60,
+                    borderRadius: 12,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: 4,
+                    boxShadow: '0 4px 16px rgba(245, 158, 11, 0.3)',
+                    position: 'relative'
+                  }}>
+                    <div style={{ fontSize: '1.5rem', marginBottom: 2 }}>🥇</div>
+                    {leaderboard[0].avatar_url ? (
+                      <img 
+                        src={leaderboard[0].avatar_url} 
+                        alt="" 
+                        style={{
+                          width: 28, 
+                          height: 28, 
+                          borderRadius: '50%',
+                          border: '2px solid #f59e0b',
+                          position: 'absolute',
+                          bottom: -4
+                        }} 
+                      />
+                    ) : (
+                      <div style={{
+                        width: 28,
+                        height: 28,
+                        background: '#f59e0b',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.8rem',
+                        color: 'white',
+                        fontWeight: 700,
+                        position: 'absolute',
+                        bottom: -4
+                      }}>
+                        {leaderboard[0].display_name?.charAt(0)?.toUpperCase() || '?'}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ 
+                    fontSize: '0.8rem', 
+                    fontWeight: 800, 
+                    color: '#f59e0b',
+                    maxWidth: 70,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    {leaderboard[0].display_name}
+                  </div>
+                  <div style={{ 
+                    fontSize: '0.7rem', 
+                    color: '#92400e',
+                    fontWeight: 700
+                  }}>
+                    {leaderboard[0].recipesCount} recettes
+                  </div>
+                </div>
+              )}
+
+              {/* 3ème place */}
+              {leaderboard[2] && (
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  order: 3
+                }}>
+                  <div style={{
+                    background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                    width: 45,
+                    height: 45,
+                    borderRadius: 6,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: 4,
+                    boxShadow: '0 2px 8px rgba(217, 119, 6, 0.2)',
+                    position: 'relative'
+                  }}>
+                    <div style={{ fontSize: '1rem', marginBottom: 2 }}>🥉</div>
+                    {leaderboard[2].avatar_url ? (
+                      <img 
+                        src={leaderboard[2].avatar_url} 
+                        alt="" 
+                        style={{
+                          width: 20, 
+                          height: 20, 
+                          borderRadius: '50%',
+                          border: '2px solid #d97706',
+                          position: 'absolute',
+                          bottom: -2
+                        }} 
+                      />
+                    ) : (
+                      <div style={{
+                        width: 20,
+                        height: 20,
+                        background: '#d97706',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.6rem',
+                        color: 'white',
+                        fontWeight: 700,
+                        position: 'absolute',
+                        bottom: -2
+                      }}>
+                        {leaderboard[2].display_name?.charAt(0)?.toUpperCase() || '?'}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ 
+                    fontSize: '0.7rem', 
+                    fontWeight: 700, 
+                    color: '#374151',
+                    maxWidth: 55,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    {leaderboard[2].display_name}
+                  </div>
+                  <div style={{ 
+                    fontSize: '0.6rem', 
+                    color: '#6b7280',
+                    fontWeight: 600
+                  }}>
+                    {leaderboard[2].recipesCount} recettes
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Message d'encouragement */}
+            <div style={{
+              background: 'rgba(245, 158, 11, 0.1)',
+              border: '1px solid rgba(245, 158, 11, 0.2)',
+              borderRadius: 8,
+              padding: '8px 12px',
+              fontSize: '0.75rem',
+              color: '#92400e',
+              fontWeight: 600,
+              lineHeight: '1.3'
+            }}>
+              ✨ Publiez plus de recettes pour grimper dans le classement !
+            </div>
+          </>
+        ) : (
+          <div style={{
+            color: '#6b7280',
+            fontSize: '0.85rem',
+            fontStyle: 'italic',
+            padding: '12px'
+          }}>
+            Aucune donnée de classement disponible
           </div>
         )}
-        {/* Aperçu direct, suppression du lien "Voir le classement complet" */}
       </div>
       
       <div className={styles.recipesGrid}>

@@ -529,90 +529,46 @@
   animation: cardAppear 0.6s ease-out var(--animation-delay, 0s) both;
 }
 
-/* États vides et de chargement */
-.emptyContainer {
-  text-align: center;
-  padding: 60px 20px;
-  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-  border-radius: 24px;
-  margin: 20px 16px;
-  border: 1px solid rgba(226, 232, 240, 0.6);
+/* Animation pour le spinner de chargement */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
-.emptyIcon {
-  font-size: 4rem;
-  margin-bottom: 20px;
-  opacity: 0.7;
+/* Animation pour les éléments flottants */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
 }
 
-.emptyContainer h3 {
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: #1e293b;
-  margin-bottom: 12px;
+/* Responsive pour le podium */
+@media (max-width: 480px) {
+  .feedContainer > div:first-child {
+    margin: 0 8px 16px !important;
+    padding: 12px 8px !important;
+  }
+  
+  /* Ajustements pour les podiums sur mobile */
+  .feedContainer div[style*="gap: 8"] {
+    gap: 6px !important;
+  }
+  
+  .feedContainer div[style*="width: 60"] {
+    width: 50px !important;
+    height: 50px !important;
+  }
+  
+  .feedContainer div[style*="width: 50"] {
+    width: 42px !important;
+    height: 42px !important;
+  }
+  
+  .feedContainer div[style*="width: 45"] {
+    width: 38px !important;
+    height: 38px !important;
+  }
 }
 
-.emptyContainer p {
-  color: #64748b;
-  line-height: 1.6;
-  margin-bottom: 24px;
-  max-width: 400px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.emptyActions {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  max-width: 300px;
-  margin: 0 auto;
-}
-
-.primaryButton, .secondaryButton, .tertiaryButton {
-  padding: 12px 24px;
-  border-radius: 16px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  border: none;
-  font-size: 0.95rem;
-}
-
-.primaryButton {
-  background: linear-gradient(135deg, #ff6b35, #f7931e);
-  color: white;
-  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
-}
-
-.primaryButton:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4);
-}
-
-.secondaryButton {
-  background: linear-gradient(135deg, #ffffff, #f8fafc);
-  color: #ff6b35;
-  border: 2px solid #ff6b35;
-}
-
-.secondaryButton:hover {
-  background: linear-gradient(135deg, #fff5f0, #fef3e8);
-  transform: translateY(-2px);
-}
-
-.tertiaryButton {
-  background: transparent;
-  color: #64748b;
-  border: 1px solid #e2e8f0;
-}
-
-.tertiaryButton:hover {
-  background: #f8fafc;
-  color: #1e293b;
-}
-
-/* Responsive */
 @media (max-width: 768px) {
   .recipesGrid {
     gap: 20px;
