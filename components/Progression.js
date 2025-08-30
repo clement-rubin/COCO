@@ -1605,30 +1605,45 @@ export default function Progression({ user }) {
             boxShadow: '0 2px 8px #f59e0b11',
             position: 'relative'
           }}>
+            <div style={{ marginBottom: 12 }}>
+              🔥 Série de connexion : {stats.streak || 0} jour{(stats.streak || 0) > 1 ? 's' : ''}
+            </div>
             <button
               onClick={async () => {
-                if (stats.lastClaimed === new Date().toISOString().slice(0, 10)) return;
-                // Calcul de la récompense (exemple : 20 + 10*streak)
-                const reward = 20 + 10 * Math.min(stats.streak + 1, 7);
                 const today = new Date().toISOString().slice(0, 10);
-                // Update Supabase
-                await supabase.from('user_pass').update({
-                  last_claimed: today,
-                  streak: stats.lastClaimed === new Date(Date.now() - 86400000).toISOString().slice(0, 10)
-                    ? stats.streak + 1
-                    : 1,
-                  coins: coins + reward
-                }).eq('user_id', user.id);
-                setCoins(coins + reward);
-                setStats(s => ({
-                  ...s,
-                  streak: stats.lastClaimed === new Date(Date.now() - 86400000).toISOString().slice(0, 10)
-                    ? stats.streak + 1
-                    : 1,
-                  lastClaimed: today
-                }));
-                setShopFeedback({ type: 'success', msg: `+${reward} CocoCoins !` });
-                setTimeout(() => setShopFeedback(null), 1500);
+                if (stats.lastClaimed === today) return;
+                
+                // Calcul sécurisé de la récompense
+                const currentStreak = stats.streak || 0;
+                const reward = 20 + 10 * Math.min(currentStreak + 1, 7);
+                const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+                
+                // Calculer le nouveau streak
+                const newStreak = stats.lastClaimed === yesterday ? currentStreak + 1 : 1;
+                
+                try {
+                  // Update Supabase
+                  await supabase.from('user_pass').upsert({
+                    user_id: user.id,
+                    last_claimed: today,
+                    streak: newStreak,
+                    coins: (coins || 0) + reward
+                  });
+                  
+                  setCoins(prev => (prev || 0) + reward);
+                  setStats(s => ({
+                    ...s,
+                    streak: newStreak,
+                    lastClaimed: today
+                  }));
+                  
+                  setShopFeedback({ type: 'success', msg: `+${reward} CocoCoins ! Série : ${newStreak} jours` });
+                  setTimeout(() => setShopFeedback(null), 2000);
+                } catch (error) {
+                  console.error('Erreur lors de la récupération de la récompense:', error);
+                  setShopFeedback({ type: 'error', msg: 'Erreur lors de la récupération' });
+                  setTimeout(() => setShopFeedback(null), 2000);
+                }
               }}
               disabled={stats.lastClaimed === new Date().toISOString().slice(0, 10)}
               style={{
@@ -1654,9 +1669,12 @@ export default function Progression({ user }) {
               }}
             >
               {stats.lastClaimed === new Date().toISOString().slice(0, 10)
-                ? 'Récompense du jour prise'
-                : `Récupérer +${20 + 10 * Math.min(stats.streak + 1, 7)} 🪙`}
+                ? '✅ Récompense du jour récupérée'
+                : `🎁 Récupérer +${20 + 10 * Math.min((stats.streak || 0) + 1, 7)} CocoCoins`}
             </button>
+            <div style={{ fontSize: '0.9rem', color: '#92400e', marginTop: 8 }}>
+              Connectez-vous chaque jour pour augmenter votre série !
+            </div>
           </div>
 
           {/* Badges et trophées */}
@@ -1826,7 +1844,7 @@ export default function Progression({ user }) {
                 >
                   {quizLoading ? 'Vérification...' : 'Valider'}
                 </button>
-                {quizFeedback && (
+                {quizFeedback && (  
                   <div style={{
                     marginTop: 18,
                     color: quizFeedback.type === 'success' ? '#10b981' : '#ef4444',
