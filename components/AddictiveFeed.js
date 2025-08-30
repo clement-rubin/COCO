@@ -505,38 +505,57 @@ export default function AddictiveFeed() {
     async function fetchLeaderboard() {
       setLeaderboardLoading(true)
       try {
+        // 1. Récupérer tous les profils utilisateurs
         const { data: profilesData, error: profilesError } = await supabase
           .from('profiles')
           .select('user_id,display_name,avatar_url')
         if (profilesError) {
+          console.error("[Classement] Erreur profiles:", profilesError)
           setLeaderboard([])
           setLeaderboardLoading(false)
           return
         }
+
+        // 2. Récupérer toutes les recettes du dernier mois
         const oneMonthAgo = new Date()
         oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
         const { data: recipesData, error: recipesError } = await supabase
           .from('recipes')
           .select('user_id,created_at')
           .gte('created_at', oneMonthAgo.toISOString())
+        if (recipesError) {
+          console.error("[Classement] Erreur recipes:", recipesError)
+        }
+
+        // 3. Compter les recettes par utilisateur sur le dernier mois
         const recipesCountMap = {}
-        (recipesData || []).forEach(r => {
+        ;(recipesData || []).forEach(r => {
           recipesCountMap[r.user_id] = (recipesCountMap[r.user_id] || 0) + 1
         })
-        const leaderboardData = (profilesData || []).map(profile => ({
-          user_id: profile.user_id,
-          display_name: profile.display_name || 'Utilisateur',
-          avatar_url: profile.avatar_url || null,
-          recipesCount: recipesCountMap[profile.user_id] || 0
-        }))
+
+        // 4. Mapper les profils avec le nombre de recettes publiées
+        const leaderboardData = (profilesData || []).map(profile => {
+          const count = recipesCountMap[profile.user_id] || 0
+          return {
+            user_id: profile.user_id,
+            display_name: profile.display_name || 'Utilisateur',
+            avatar_url: profile.avatar_url || null,
+            recipesCount: count,
+            isYou: user?.id === profile.user_id
+          }
+        })
+
         leaderboardData.sort((a, b) => b.recipesCount - a.recipesCount)
-        setLeaderboard(leaderboardData.slice(0, 3))
+        setLeaderboard(leaderboardData.slice(0, 10)) // Garde les 10 premiers pour affichage complet si besoin
       } catch (e) {
+        console.error("[Classement] Exception générale:", e)
         setLeaderboard([])
       }
       setLeaderboardLoading(false)
     }
-    fetchLeaderboard()
+    if (user?.id) {
+      fetchLeaderboard()
+    }
   }, [user])
 
   // Affichage du message d'accueil pendant le chargement initial
@@ -1203,16 +1222,16 @@ export default function AddictiveFeed() {
 
   return (
     <div className={styles.feedContainer} ref={containerRef}>
-      {/* Podium du classement mensuel - VERSION INTÉGRÉE ET AMÉLIORÉE */}
+      {/* Podium du classement mensuel - VERSION INTÉGRÉE */}
       <div style={{
         maxWidth: '100%',
         margin: '0 auto 20px',
-        background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+        background: 'linear-gradient(135deg, #e0e7ff 0%, #f3f4f6 100%)',
         borderRadius: 16,
         boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
         padding: '16px 12px',
         textAlign: 'center',
-        border: '1px solid rgba(148, 163, 184, 0.1)'
+        border: '1px solid rgba(99, 102, 241, 0.1)'
       }}>
         {/* En-tête du podium */}
         <div style={{ 
@@ -1238,14 +1257,14 @@ export default function AddictiveFeed() {
             <div style={{ 
               fontWeight: 700, 
               fontSize: '1rem', 
-              color: '#374151',
+              color: '#4338ca',
               marginBottom: 2
             }}>
               Top Chefs du Mois
             </div>
             <div style={{ 
               fontSize: '0.8rem', 
-              color: '#6b7280',
+              color: '#6366f1',
               fontWeight: 500
             }}>
               Recettes publiées sur 30 jours
@@ -1256,7 +1275,7 @@ export default function AddictiveFeed() {
         {/* Contenu du podium */}
         {leaderboardLoading ? (
           <div style={{ 
-            color: '#6b7280', 
+            color: '#6366f1', 
             fontWeight: 600, 
             margin: '16px 0',
             fontSize: '0.9rem'
@@ -1266,7 +1285,7 @@ export default function AddictiveFeed() {
               width: 16,
               height: 16,
               border: '2px solid #e5e7eb',
-              borderTop: '2px solid #f59e0b',
+              borderTop: '2px solid #6366f1',
               borderRadius: '50%',
               animation: 'spin 1s linear infinite',
               marginRight: 8
@@ -1275,14 +1294,15 @@ export default function AddictiveFeed() {
           </div>
         ) : leaderboard.length > 0 ? (
           <>
-            {/* Podium visuel */}
+            {/* Podium visuel en 3D */}
             <div style={{
               display: 'flex',
               justifyContent: 'center',
               alignItems: 'flex-end',
               gap: 8,
               marginBottom: 12,
-              height: 80
+              height: 100,
+              perspective: '300px'
             }}>
               {/* 2ème place */}
               {leaderboard[1] && (
@@ -1290,21 +1310,24 @@ export default function AddictiveFeed() {
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  order: 1
+                  order: 1,
+                  transform: 'rotateY(-5deg) translateZ(10px)'
                 }}>
                   <div style={{
                     background: 'linear-gradient(135deg, #e5e7eb, #d1d5db)',
                     width: 50,
-                    height: 50,
+                    height: 60,
                     borderRadius: 8,
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
                     marginBottom: 4,
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                    position: 'relative',
+                    border: '2px solid #9ca3af'
                   }}>
-                    <div style={{ fontSize: '1.2rem', marginBottom: 2 }}>🥈</div>
+                    <div style={{ fontSize: '1.4rem', marginBottom: 4 }}>🥈</div>
                     {leaderboard[1].avatar_url ? (
                       <img 
                         src={leaderboard[1].avatar_url} 
@@ -1315,7 +1338,7 @@ export default function AddictiveFeed() {
                           borderRadius: '50%',
                           border: '2px solid #9ca3af',
                           position: 'absolute',
-                          bottom: -2
+                          bottom: -6
                         }} 
                       />
                     ) : (
@@ -1331,7 +1354,7 @@ export default function AddictiveFeed() {
                         color: 'white',
                         fontWeight: 700,
                         position: 'absolute',
-                        bottom: -2
+                        bottom: -6
                       }}>
                         {leaderboard[1].display_name?.charAt(0)?.toUpperCase() || '?'}
                       </div>
@@ -1340,11 +1363,12 @@ export default function AddictiveFeed() {
                   <div style={{ 
                     fontSize: '0.7rem', 
                     fontWeight: 700, 
-                    color: '#374151',
+                    color: '#4338ca',
                     maxWidth: 60,
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
+                    whiteSpace: 'nowrap',
+                    textAlign: 'center'
                   }}>
                     {leaderboard[1].display_name}
                   </div>
@@ -1365,22 +1389,25 @@ export default function AddictiveFeed() {
                   flexDirection: 'column',
                   alignItems: 'center',
                   order: 2,
-                  transform: 'scale(1.1)'
+                  transform: 'scale(1.1) translateZ(20px)',
+                  zIndex: 2
                 }}>
                   <div style={{
                     background: 'linear-gradient(135deg, #fbbf24, #f59e0b)',
                     width: 60,
-                    height: 60,
+                    height: 75,
                     borderRadius: 12,
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
                     marginBottom: 4,
-                    boxShadow: '0 4px 16px rgba(245, 158, 11, 0.3)',
-                    position: 'relative'
+                    boxShadow: '0 8px 25px rgba(245, 158, 11, 0.4)',
+                    position: 'relative',
+                    border: '3px solid #f59e0b',
+                    animation: 'crownGlow 2s ease-in-out infinite alternate'
                   }}>
-                    <div style={{ fontSize: '1.5rem', marginBottom: 2 }}>🥇</div>
+                    <div style={{ fontSize: '1.8rem', marginBottom: 4 }}>🥇</div>
                     {leaderboard[0].avatar_url ? (
                       <img 
                         src={leaderboard[0].avatar_url} 
@@ -1389,9 +1416,9 @@ export default function AddictiveFeed() {
                           width: 28, 
                           height: 28, 
                           borderRadius: '50%',
-                          border: '2px solid #f59e0b',
+                          border: '3px solid #f59e0b',
                           position: 'absolute',
-                          bottom: -4
+                          bottom: -8
                         }} 
                       />
                     ) : (
@@ -1407,7 +1434,7 @@ export default function AddictiveFeed() {
                         color: 'white',
                         fontWeight: 700,
                         position: 'absolute',
-                        bottom: -4
+                        bottom: -8
                       }}>
                         {leaderboard[0].display_name?.charAt(0)?.toUpperCase() || '?'}
                       </div>
@@ -1420,9 +1447,11 @@ export default function AddictiveFeed() {
                     maxWidth: 70,
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
+                    whiteSpace: 'nowrap',
+                    textAlign: 'center'
                   }}>
                     {leaderboard[0].display_name}
+                    {leaderboard[0].isYou && <span style={{ color: '#f59e0b', fontSize: '0.6rem' }}> (Vous)</span>}
                   </div>
                   <div style={{ 
                     fontSize: '0.7rem', 
@@ -1440,22 +1469,24 @@ export default function AddictiveFeed() {
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  order: 3
+                  order: 3,
+                  transform: 'rotateY(5deg) translateZ(10px)'
                 }}>
                   <div style={{
                     background: 'linear-gradient(135deg, #f59e0b, #d97706)',
                     width: 45,
-                    height: 45,
+                    height: 50,
                     borderRadius: 6,
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
                     marginBottom: 4,
-                    boxShadow: '0 2px 8px rgba(217, 119, 6, 0.2)',
-                    position: 'relative'
+                    boxShadow: '0 3px 10px rgba(217, 119, 6, 0.3)',
+                    position: 'relative',
+                    border: '2px solid #d97706'
                   }}>
-                    <div style={{ fontSize: '1rem', marginBottom: 2 }}>🥉</div>
+                    <div style={{ fontSize: '1.2rem', marginBottom: 2 }}>🥉</div>
                     {leaderboard[2].avatar_url ? (
                       <img 
                         src={leaderboard[2].avatar_url} 
@@ -1466,7 +1497,7 @@ export default function AddictiveFeed() {
                           borderRadius: '50%',
                           border: '2px solid #d97706',
                           position: 'absolute',
-                          bottom: -2
+                          bottom: -4
                         }} 
                       />
                     ) : (
@@ -1482,7 +1513,7 @@ export default function AddictiveFeed() {
                         color: 'white',
                         fontWeight: 700,
                         position: 'absolute',
-                        bottom: -2
+                        bottom: -4
                       }}>
                         {leaderboard[2].display_name?.charAt(0)?.toUpperCase() || '?'}
                       </div>
@@ -1491,11 +1522,12 @@ export default function AddictiveFeed() {
                   <div style={{ 
                     fontSize: '0.7rem', 
                     fontWeight: 700, 
-                    color: '#374151',
+                    color: '#4338ca',
                     maxWidth: 55,
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
+                    whiteSpace: 'nowrap',
+                    textAlign: 'center'
                   }}>
                     {leaderboard[2].display_name}
                   </div>
@@ -1512,12 +1544,12 @@ export default function AddictiveFeed() {
 
             {/* Message d'encouragement */}
             <div style={{
-              background: 'rgba(245, 158, 11, 0.1)',
-              border: '1px solid rgba(245, 158, 11, 0.2)',
+              background: 'rgba(99, 102, 241, 0.1)',
+              border: '1px solid rgba(99, 102, 241, 0.2)',
               borderRadius: 8,
               padding: '8px 12px',
               fontSize: '0.75rem',
-              color: '#92400e',
+              color: '#4338ca',
               fontWeight: 600,
               lineHeight: '1.3'
             }}>

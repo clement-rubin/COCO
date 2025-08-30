@@ -1711,9 +1711,24 @@ export default function Progression({ user }) {
             <button
               onClick={async () => {
                 const today = new Date().toISOString().slice(0, 10);
-                if (stats.lastClaimed === today) return;
                 
                 try {
+                  // SÉCURITÉ: Vérifier les données actuelles en base de données
+                  const { data: currentData, error: checkError } = await supabase
+                    .from('user_pass')
+                    .select('last_claimed, streak, coins')
+                    .eq('user_id', user.id)
+                    .single()
+
+                  if (checkError) throw checkError
+
+                  // Si déjà récupéré aujourd'hui, ne rien faire
+                  if (currentData?.last_claimed === today) {
+                    setShopFeedback({ type: 'info', msg: 'Récompense déjà récupérée aujourd\'hui' })
+                    setTimeout(() => setShopFeedback(null), 2000)
+                    return
+                  }
+
                   // Fonction helper pour calculer le nouveau streak
                   const isYesterday = (dateStr) => {
                     if (!dateStr) return false
@@ -1721,28 +1736,37 @@ export default function Progression({ user }) {
                     return dateStr === yesterday
                   }
                   
-                  // Calcul sécurisé du nouveau streak
-                  const currentStreak = stats.streak || 0;
-                  const newStreak = !stats.lastClaimed ? 1 : // Première fois
-                                   isYesterday(stats.lastClaimed) ? currentStreak + 1 : // Continuité
+                  // Calcul sécurisé du nouveau streak avec les données de la DB
+                  const currentStreak = currentData?.streak || 0;
+                  const lastClaimedFromDB = currentData?.last_claimed;
+                  const currentCoins = currentData?.coins || 0;
+                  
+                  const newStreak = !lastClaimedFromDB ? 1 : // Première fois
+                                   isYesterday(lastClaimedFromDB) ? currentStreak + 1 : // Continuité
                                    1; // Rupture, on recommence
                   
                   // Calcul de la récompense basé sur le nouveau streak
                   const REWARDS = [20, 25, 30, 40, 50, 60, 100];
                   const rewardIndex = Math.min(newStreak - 1, REWARDS.length - 1);
                   const reward = REWARDS[rewardIndex];
+                  const newCoins = currentCoins + reward;
                   
-                  // Update Supabase
-                  const { error } = await supabase.from('user_pass').upsert({
-                    user_id: user.id,
-                    last_claimed: today,
-                    streak: newStreak,
-                    coins: (coins || 0) + reward
-                  });
+                  // Update Supabase avec vérification de concurrence
+                  const { error } = await supabase
+                    .from('user_pass')
+                    .update({
+                      last_claimed: today,
+                      streak: newStreak,
+                      coins: newCoins,
+                      updated_at: new Date().toISOString()
+                    })
+                    .eq('user_id', user.id)
+                    .eq('last_claimed', lastClaimedFromDB) // Vérification de concurrence
                   
                   if (error) throw error;
                   
-                  setCoins(prev => (prev || 0) + reward);
+                  // Mise à jour de l'état local SEULEMENT après succès
+                  setCoins(newCoins);
                   setStats(prev => ({
                     ...prev,
                     streak: newStreak,
@@ -1754,38 +1778,48 @@ export default function Progression({ user }) {
                     msg: `+${reward} CocoCoins ! Série : ${newStreak} jour${newStreak > 1 ? 's' : ''}` 
                   });
                   setTimeout(() => setShopFeedback(null), 3000);
+
                 } catch (error) {
                   console.error('Erreur lors de la récupération de la récompense:', error);
                   setShopFeedback({ type: 'error', msg: 'Erreur lors de la récupération' });
                   setTimeout(() => setShopFeedback(null), 2000);
                 }
               }}
-              disabled={stats.lastClaimed === new Date().toISOString().slice(0, 10)}
+              disabled={(() => {
+                const today = new Date().toISOString().slice(0, 10);
+                return stats.lastClaimed === today;
+              })()}
               style={{
-                background: stats.lastClaimed === new Date().toISOString().slice(0, 10)
-                  ? '#e5e7eb'
-                  : 'linear-gradient(90deg,#f59e0b,#fbbf24)',
-                color: stats.lastClaimed === new Date().toISOString().slice(0, 10)
-                  ? '#9ca3af'
-                  : 'white',
+                background: (() => {
+                  const today = new Date().toISOString().slice(0, 10);
+                  return stats.lastClaimed === today ? '#e5e7eb' : 'linear-gradient(90deg,#f59e0b,#fbbf24)';
+                })(),
+                color: (() => {
+                  const today = new Date().toISOString().slice(0, 10);
+                  return stats.lastClaimed === today ? '#9ca3af' : 'white';
+                })(),
                 border: 'none',
                 borderRadius: 8, // Réduction
                 padding: '8px 14px', // Réduction
                 fontWeight: 700,
                 fontSize: '0.9rem', // Réduction
-                cursor: stats.lastClaimed === new Date().toISOString().slice(0, 10)
-                  ? 'not-allowed'
-                  : 'pointer',
+                cursor: (() => {
+                  const today = new Date().toISOString().slice(0, 10);
+                  return stats.lastClaimed === today ? 'not-allowed' : 'pointer';
+                })(),
                 marginBottom: 6,
-                boxShadow: stats.lastClaimed === new Date().toISOString().slice(0, 10)
-                  ? 'none'
-                  : '0 2px 6px #f59e0b33',
+                boxShadow: (() => {
+                  const today = new Date().toISOString().slice(0, 10);
+                  return stats.lastClaimed === today ? 'none' : '0 2px 6px #f59e0b33';
+                })(),
                 transition: 'all 0.2s',
                 width: '100%' // Pleine largeur sur mobile
               }}
             >
               {(() => {
-                if (stats.lastClaimed === new Date().toISOString().slice(0, 10)) {
+                const today = new Date().toISOString().slice(0, 10);
+                
+                if (stats.lastClaimed === today) {
                   return '✅ Déjà récupéré aujourd\'hui';
                 }
                 
@@ -2155,7 +2189,6 @@ export default function Progression({ user }) {
           </div>
         </div>
       ) : (
-        // Classement - Version mobile optimisée
         <div>
           <div style={{
             fontWeight: 700,
@@ -2443,8 +2476,7 @@ export default function Progression({ user }) {
             </div>
           </div>
         </div>
-      ) } (
-        // Classement - Version mobile optimisée
+      ) }
         <div>
           <div style={{
             fontWeight: 700,
@@ -2558,7 +2590,6 @@ export default function Progression({ user }) {
             </div>
           )}
         </div>
-      )
 
       {/* Message d'encouragement - Version mobile */}
       <div style={{

@@ -33,7 +33,11 @@ export default function DailyStreakReward({ user, onCoinsChange }) {
         setStreak(currentStreak)
         setLastClaimed(lastClaimedDate)
         setCoins(currentCoins)
-        setCanClaim(calculateCanClaim(lastClaimedDate))
+        
+        // CORRECTION: Vérifier avec les vraies données de la DB
+        const today = new Date().toISOString().slice(0, 10)
+        const canClaimToday = !lastClaimedDate || lastClaimedDate !== today
+        setCanClaim(canClaimToday)
       } else {
         // Première connexion - créer l'entrée
         await createInitialUserData()
@@ -96,23 +100,49 @@ export default function DailyStreakReward({ user, onCoinsChange }) {
     setLoading(true)
     try {
       const today = new Date().toISOString().slice(0, 10)
-      const newStreak = calculateNewStreak(streak, lastClaimed)
-      const reward = calculateReward(newStreak)
-      const newCoins = coins + reward
+      
+      // SÉCURITÉ: Vérifier une dernière fois en base avant de continuer
+      const { data: currentData, error: checkError } = await supabase
+        .from('user_pass')
+        .select('last_claimed, streak, coins')
+        .eq('user_id', user.id)
+        .single()
 
-      // Mise à jour en base
+      if (checkError) throw checkError
+
+      // Si l'utilisateur a déjà récupéré aujourd'hui, bloquer
+      if (currentData?.last_claimed === today) {
+        setCanClaim(false)
+        setLastClaimed(today)
+        setFeedback('Récompense déjà récupérée aujourd\'hui')
+        setTimeout(() => setFeedback(null), 3000)
+        setLoading(false)
+        return
+      }
+
+      const currentStreak = currentData?.streak || 0
+      const currentCoins = currentData?.coins || 0
+      const lastClaimedFromDB = currentData?.last_claimed
+
+      const newStreak = calculateNewStreak(currentStreak, lastClaimedFromDB)
+      const reward = calculateReward(newStreak)
+      const newCoins = currentCoins + reward
+
+      // Mise à jour en base avec vérification de concurrence
       const { error } = await supabase
         .from('user_pass')
-        .upsert({
-          user_id: user.id,
+        .update({
           last_claimed: today,
           streak: newStreak,
-          coins: newCoins
+          coins: newCoins,
+          updated_at: new Date().toISOString()
         })
+        .eq('user_id', user.id)
+        .eq('last_claimed', lastClaimedFromDB) // Vérification de concurrence
 
       if (error) throw error
 
-      // Mise à jour de l'état local
+      // Mise à jour de l'état local SEULEMENT après succès DB
       setStreak(newStreak)
       setLastClaimed(today)
       setCoins(newCoins)
@@ -129,6 +159,10 @@ export default function DailyStreakReward({ user, onCoinsChange }) {
 
     } catch (error) {
       console.error('Erreur lors de la récupération de la récompense:', error)
+      
+      // En cas d'erreur, recharger les données pour avoir l'état correct
+      await loadUserData()
+      
       setFeedback('Erreur lors de la récupération')
       setTimeout(() => setFeedback(null), 3000)
     } finally {
