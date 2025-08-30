@@ -8,7 +8,7 @@ import RecipeOfWeek from '../components/RecipeOfWeek'
 import NotificationCenter from '../components/NotificationCenter'
 import DailyStreakReward from '../components/DailyStreakReward'
 import styles from '../styles/Layout.module.css'
-import { supabase } from '../utils/supabaseClient'
+import { supabase } from '../lib/supabaseClient' // Correction du chemin d'import
 
 export default function Home() {
   const { user, loading } = useAuth()
@@ -1927,9 +1927,8 @@ export default function Home() {
           0%, 100% { 
             transform: scale(1);
             box-shadow: 0 0 20px rgba(255, 107, 53, 0.4);
-          }
+                   }
           50% { 
- 
             transform: scale(1.1);
             box-shadow: 0 0 30px rgba(255, 107, 53, 0.6), 0 0 40px rgba(255, 107, 53, 0.3);
           }
