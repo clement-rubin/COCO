@@ -243,14 +243,14 @@ export default function Explorer() {
   // Routes principales pour la navigation par swipe
   const mainRoutes = [
     { path: '/', label: 'Accueil' },
-    { path: '/explorer', label: 'Explorer' },
+    { path: '/progression', label: 'Progression' },
     { path: '/share-photo', label: 'Partager' },
-    { path: '/progression', label: 'Progression' }
+    { path: '/amis', label: 'Amis' }
   ];
 
   useEffect(() => {
-    // Redirection automatique vers la nouvelle page Collections
-    router.replace('/collections')
+    // Redirection automatique vers la nouvelle page Progression
+    router.replace('/progression')
   }, [router])
 
   if (loading) {

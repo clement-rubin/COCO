@@ -24,6 +24,16 @@ export const TROPHY_DEFINITIONS = {
     condition: { type: 'recipes_count', value: 10 },
     points: 200
   },
+  recipe_master: {
+    id: 'recipe_master',
+    name: 'Maître Cuistot',
+    description: 'Créer 25 recettes',
+    icon: '🍳',
+    category: 'creation',
+    rarity: 'rare',
+    condition: { type: 'recipes_count', value: 25 },
+    points: 500
+  },
   master_chef: {
     id: 'master_chef',
     name: 'Chef Étoilé',
@@ -33,6 +43,16 @@ export const TROPHY_DEFINITIONS = {
     rarity: 'legendary',
     condition: { type: 'recipes_count', value: 50 },
     points: 1000
+  },
+  culinary_legend: {
+    id: 'culinary_legend',
+    name: 'Légende Culinaire',
+    description: 'Créer 100 recettes',
+    icon: '⭐',
+    category: 'creation',
+    rarity: 'mythic',
+    condition: { type: 'recipes_count', value: 100 },
+    points: 2500
   },
 
   // Trophées sociaux
@@ -66,6 +86,16 @@ export const TROPHY_DEFINITIONS = {
     condition: { type: 'friends_count', value: 50 },
     points: 1000
   },
+  community_leader: {
+    id: 'community_leader',
+    name: 'Leader Communautaire',
+    description: 'Avoir 100 amis actifs',
+    icon: '👑',
+    category: 'social',
+    rarity: 'mythic',
+    condition: { type: 'friends_count', value: 100 },
+    points: 2000
+  },
 
   // Trophées d'engagement
   profile_complete: {
@@ -88,8 +118,82 @@ export const TROPHY_DEFINITIONS = {
     condition: { type: 'days_since_registration', value: 30 },
     points: 300
   },
+  veteran: {
+    id: 'veteran',
+    name: 'Vétéran',
+    description: 'Membre actif depuis 6 mois',
+    icon: '🏅',
+    category: 'engagement',
+    rarity: 'epic',
+    condition: { type: 'days_since_registration', value: 180 },
+    points: 750
+  },
+  
+  // Nouveaux trophées de qualité
+  quality_chef: {
+    id: 'quality_chef',
+    name: 'Chef de Qualité',
+    description: 'Recevoir 100 likes au total',
+    icon: '❤️',
+    category: 'quality',
+    rarity: 'rare',
+    condition: { type: 'likes_received', value: 100 },
+    points: 400
+  },
+  popular_creator: {
+    id: 'popular_creator',
+    name: 'Créateur Populaire',
+    description: 'Recevoir 500 likes au total',
+    icon: '🔥',
+    category: 'quality',
+    rarity: 'epic',
+    condition: { type: 'likes_received', value: 500 },
+    points: 1000
+  },
+  viral_chef: {
+    id: 'viral_chef',
+    name: 'Chef Viral',
+    description: 'Recevoir 1000 likes au total',
+    icon: '💎',
+    category: 'quality',
+    rarity: 'legendary',
+    condition: { type: 'likes_received', value: 1000 },
+    points: 2000
+  },
 
-  // Trophées spéciaux
+  // Trophées de constance
+  streak_warrior: {
+    id: 'streak_warrior',
+    name: 'Guerrier de la Série',
+    description: 'Maintenir une série de 7 jours',
+    icon: '🔥',
+    category: 'consistency',
+    rarity: 'uncommon',
+    condition: { type: 'max_streak', value: 7 },
+    points: 200
+  },
+  streak_legend: {
+    id: 'streak_legend',
+    name: 'Légende de la Constance',
+    description: 'Maintenir une série de 30 jours',
+    icon: '⚡',
+    category: 'consistency',
+    rarity: 'epic',
+    condition: { type: 'max_streak', value: 30 },
+    points: 800
+  },
+  streak_immortal: {
+    id: 'streak_immortal',
+    name: 'Immortel de la Série',
+    description: 'Maintenir une série de 100 jours',
+    icon: '🌟',
+    category: 'consistency',
+    rarity: 'mythic',
+    condition: { type: 'max_streak', value: 100 },
+    points: 3000
+  },
+
+  // Trophées spéciaux et saisonniers
   welcome_aboard: {
     id: 'welcome_aboard',
     name: 'Bienvenue!',
@@ -99,42 +203,151 @@ export const TROPHY_DEFINITIONS = {
     rarity: 'common',
     condition: { type: 'account_created', value: true },
     points: 10
+  },
+  seasonal_spring: {
+    id: 'seasonal_spring',
+    name: 'Chef de Printemps',
+    description: 'Créer 5 recettes en mars-mai',
+    icon: '🌸',
+    category: 'seasonal',
+    rarity: 'rare',
+    condition: { type: 'seasonal_recipes', value: 5, season: 'spring' },
+    points: 300
+  },
+  quiz_master: {
+    id: 'quiz_master',
+    name: 'Maître du Quiz',
+    description: 'Réussir 10 quiz consécutifs',
+    icon: '🧠',
+    category: 'knowledge',
+    rarity: 'epic',
+    condition: { type: 'quiz_streak', value: 10 },
+    points: 600
   }
-}
+};
 
-// Couleurs par rareté
+// Couleurs par rareté améliorées
 export const TROPHY_RARITIES = {
   common: {
     name: 'Commun',
     color: '#6b7280',
     gradient: 'linear-gradient(135deg, #6b7280, #4b5563)',
-    glow: 'rgba(107, 114, 128, 0.3)'
+    glow: 'rgba(107, 114, 128, 0.3)',
+    bgColor: '#f9fafb'
   },
   uncommon: {
     name: 'Peu commun',
     color: '#10b981',
     gradient: 'linear-gradient(135deg, #10b981, #059669)',
-    glow: 'rgba(16, 185, 129, 0.4)'
+    glow: 'rgba(16, 185, 129, 0.4)',
+    bgColor: '#ecfdf5'
   },
   rare: {
     name: 'Rare',
     color: '#3b82f6',
     gradient: 'linear-gradient(135deg, #3b82f6, #2563eb)',
-    glow: 'rgba(59, 130, 246, 0.4)'
+    glow: 'rgba(59, 130, 246, 0.4)',
+    bgColor: '#eff6ff'
   },
   epic: {
     name: 'Épique',
     color: '#8b5cf6',
     gradient: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
-    glow: 'rgba(139, 92, 246, 0.4)'
+    glow: 'rgba(139, 92, 246, 0.4)',
+    bgColor: '#f5f3ff'
   },
   legendary: {
     name: 'Légendaire',
     color: '#f59e0b',
     gradient: 'linear-gradient(135deg, #f59e0b, #d97706)',
-    glow: 'rgba(245, 158, 11, 0.5)'
+    glow: 'rgba(245, 158, 11, 0.5)',
+    bgColor: '#fffbeb'
+  },
+  mythic: {
+    name: 'Mythique',
+    color: '#ef4444',
+    gradient: 'linear-gradient(135deg, #ef4444, #dc2626)',
+    glow: 'rgba(239, 68, 68, 0.6)',
+    bgColor: '#fef2f2'
   }
 }
+
+// Nouvelles missions quotidiennes et hebdomadaires
+export const DAILY_MISSIONS = [
+  {
+    id: 'daily_recipe',
+    title: 'Créateur du Jour',
+    description: 'Créer une nouvelle recette',
+    icon: '🍽️',
+    reward: { xp: 50, coins: 30 },
+    type: 'daily'
+  },
+  {
+    id: 'daily_like',
+    title: 'Supporter',
+    description: 'Liker 5 recettes d\'amis',
+    icon: '❤️',
+    reward: { xp: 25, coins: 15 },
+    type: 'daily'
+  },
+  {
+    id: 'daily_comment',
+    title: 'Commentateur',
+    description: 'Commenter 3 recettes',
+    icon: '💬',
+    reward: { xp: 20, coins: 10 },
+    type: 'daily'
+  },
+  {
+    id: 'daily_quiz',
+    title: 'Quiz du Jour',
+    description: 'Réussir le quiz quotidien',
+    icon: '🧠',
+    reward: { xp: 40, coins: 25 },
+    type: 'daily'
+  }
+]
+
+export const WEEKLY_MISSIONS = [
+  {
+    id: 'weekly_explorer',
+    title: 'Explorateur Culinaire',
+    description: 'Créer 5 recettes cette semaine',
+    icon: '🗺️',
+    reward: { xp: 200, coins: 100, badge: 'explorer_week' },
+    type: 'weekly'
+  },
+  {
+    id: 'weekly_social',
+    title: 'Socialite',
+    description: 'Interagir avec 10 amis différents',
+    icon: '🤝',
+    reward: { xp: 150, coins: 75 },
+    type: 'weekly'
+  },
+  {
+    id: 'weekly_perfectionist',
+    title: 'Perfectionniste',
+    description: 'Créer 3 recettes avec 5+ likes chacune',
+    icon: '⭐',
+    reward: { xp: 300, coins: 150, badge: 'perfectionist' },
+    type: 'weekly'
+  }
+]
+
+// Système de niveaux amélioré
+export const ENHANCED_LEVELS = [
+  { level: 1, xp: 0, label: "Débutant", color: "#a7f3d0", reward: { coins: 50, badge: 'beginner' } },
+  { level: 2, xp: 100, label: "Apprenti", color: "#6ee7b7", reward: { coins: 75, item: 'hat_apprentice' } },
+  { level: 3, xp: 300, label: "Cuisinier", color: "#34d399", reward: { coins: 100, badge: 'cook' } },
+  { level: 4, xp: 700, label: "Chef", color: "#10b981", reward: { coins: 150, item: 'apron_chef' } },
+  { level: 5, xp: 1500, label: "Maître Chef", color: "#059669", reward: { coins: 200, badge: 'master_chef' } },
+  { level: 6, xp: 3000, label: "Grand Chef", color: "#047857", reward: { coins: 300, item: 'crown_gold' } },
+  { level: 7, xp: 5000, label: "Chef Étoilé", color: "#2563eb", reward: { coins: 400, badge: 'starred_chef' } },
+  { level: 8, xp: 8000, label: "Chef Légendaire", color: "#1d4ed8", reward: { coins: 500, item: 'aura_legendary' } },
+  { level: 9, xp: 12000, label: "Maître Culinaire", color: "#8b5cf6", reward: { coins: 750, badge: 'culinary_master' } },
+  { level: 10, xp: 20000, label: "Légende", color: "#f59e0b", reward: { coins: 1000, item: 'throne_legend', badge: 'legend' } }
+]
 
 /**
  * Vérifie et débloque automatiquement les trophées pour un utilisateur
@@ -1063,4 +1276,289 @@ export async function canManuallyUnlockTrophy(userId, trophyId) {
     logError('Error checking if trophy can be unlocked', error)
     return { canUnlock: false, progress: 0, reason: 'Erreur lors de la vérification' }
   }
+}
+
+/**
+ * Calcule les statistiques de progression avancées
+ * @param {string} userId - ID de l'utilisateur
+ * @returns {Promise<Object>} Statistiques avancées
+ */
+export async function getAdvancedProgressStats(userId) {
+  try {
+    const userStats = await getUserStatsForTrophies(userId)
+    const { unlocked, totalPoints } = await getUserTrophies(userId)
+    
+    // Calcul du niveau actuel avec le nouveau système
+    const currentLevel = ENHANCED_LEVELS.find((level, index) => {
+      const nextLevel = ENHANCED_LEVELS[index + 1]
+      return !nextLevel || userStats.totalXP < nextLevel.xp
+    }) || ENHANCED_LEVELS[ENHANCED_LEVELS.length - 1]
+    
+    // Progression par catégorie
+    const progressByCategory = {}
+    Object.values(TROPHY_DEFINITIONS).forEach(trophy => {
+      if (!progressByCategory[trophy.category]) {
+        progressByCategory[trophy.category] = {
+          total: 0,
+          unlocked: 0,
+          points: 0
+        }
+      }
+      progressByCategory[trophy.category].total++
+      if (unlocked.some(t => t.id === trophy.id)) {
+        progressByCategory[trophy.category].unlocked++
+        progressByCategory[trophy.category].points += trophy.points
+      }
+    })
+
+    // Streak et constance
+    const streakStats = {
+      current: userStats.streak || 0,
+      maxEver: userStats.maxStreak || 0,
+      streakBreaks: userStats.streakBreaks || 0,
+      perfectDays: userStats.perfectDays || 0
+    }
+
+    // Tendances et prédictions
+    const weeklyGrowth = calculateWeeklyGrowth(userStats)
+    const projectedLevel = predictNextLevel(userStats, weeklyGrowth)
+
+    return {
+      currentLevel,
+      totalXP: userStats.totalXP || 0,
+      totalPoints,
+      progressByCategory,
+      streakStats,
+      weeklyGrowth,
+      projectedLevel,
+      efficiency: calculateEfficiency(userStats),
+      socialScore: calculateSocialScore(userStats),
+      qualityScore: calculateQualityScore(userStats)
+    }
+
+  } catch (error) {
+    logError('Error calculating advanced progress stats', error)
+    return null
+  }
+}
+
+/**
+ * Calcule l'efficacité de l'utilisateur
+ */
+function calculateEfficiency(stats) {
+  const recipesPerDay = stats.recipesCount / Math.max(stats.daysSinceRegistration, 1)
+  const likesPerRecipe = stats.likesReceived / Math.max(stats.recipesCount, 1)
+  const friendsPerDay = stats.friendsCount / Math.max(stats.daysSinceRegistration, 1)
+  
+  return {
+    recipesPerDay: Math.round(recipesPerDay * 100) / 100,
+    likesPerRecipe: Math.round(likesPerRecipe * 10) / 10,
+    friendsPerDay: Math.round(friendsPerDay * 100) / 100,
+    overallScore: Math.min(100, Math.round((recipesPerDay * 30 + likesPerRecipe * 5 + friendsPerDay * 20)))
+  }
+}
+
+/**
+ * Calcule le score social
+ */
+function calculateSocialScore(stats) {
+  const baseScore = stats.friendsCount * 2
+  const engagementBonus = (stats.likesReceived + stats.commentsReceived) * 0.5
+  const communityBonus = stats.recipesShared * 1.5
+  
+  return Math.min(100, Math.round(baseScore + engagementBonus + communityBonus))
+}
+
+/**
+ * Calcule le score de qualité
+ */
+function calculateQualityScore(stats) {
+  if (stats.recipesCount === 0) return 0
+  
+  const likesRatio = stats.likesReceived / stats.recipesCount
+  const commentsRatio = stats.commentsReceived / stats.recipesCount
+  const completionRate = stats.profileCompleteness / 100
+  
+  return Math.min(100, Math.round((likesRatio * 30 + commentsRatio * 20 + completionRate * 50)))
+}
+
+/**
+ * Calcule la croissance hebdomadaire
+ */
+function calculateWeeklyGrowth(stats) {
+  // Simulation basée sur l'activité récente
+  const weeksSinceRegistration = Math.max(1, stats.daysSinceRegistration / 7)
+  const avgRecipesPerWeek = stats.recipesCount / weeksSinceRegistration
+  const avgXPPerWeek = (stats.totalXP || 0) / weeksSinceRegistration
+  
+  return {
+    recipes: Math.round(avgRecipesPerWeek * 10) / 10,
+    xp: Math.round(avgXPPerWeek),
+    trend: avgRecipesPerWeek > 1 ? 'up' : avgRecipesPerWeek > 0.5 ? 'stable' : 'down'
+  }
+}
+
+/**
+ * Prédit le prochain niveau
+ */
+function predictNextLevel(stats, growth) {
+  const currentXP = stats.totalXP || 0
+  const weeklyXP = growth.xp || 10
+  
+  const nextLevel = ENHANCED_LEVELS.find(level => level.xp > currentXP)
+  if (!nextLevel) return null
+  
+  const xpNeeded = nextLevel.xp - currentXP
+  const weeksToNext = Math.ceil(xpNeeded / Math.max(weeklyXP, 1))
+  
+  return {
+    level: nextLevel,
+    xpNeeded,
+    weeksToNext,
+    estimatedDate: new Date(Date.now() + weeksToNext * 7 * 24 * 60 * 60 * 1000)
+  }
+}
+
+/**
+ * Vérifie et débloquer les nouvelles missions
+ * @param {string} userId - ID de l'utilisateur
+ * @param {string} actionType - Type d'action effectuée
+ * @returns {Promise<Array>} Missions complétées
+ */
+export async function checkMissionProgress(userId, actionType) {
+  try {
+    const today = new Date().toISOString().slice(0, 10)
+    const thisWeek = getWeekStart(new Date()).toISOString().slice(0, 10)
+    
+    // Récupérer les missions en cours
+    const { data: userMissions } = await supabase
+      .from('user_missions')
+      .select('*')
+      .eq('user_id', userId)
+      .or(`date.eq.${today},week_start.eq.${thisWeek}`)
+    
+    const completedMissions = []
+    const userStats = await getUserStatsForTrophies(userId)
+    
+    // Vérifier les missions quotidiennes
+    for (const mission of DAILY_MISSIONS) {
+      const existingMission = userMissions?.find(m => m.mission_id === mission.id && m.date === today)
+      
+      if (!existingMission?.completed && shouldCompleteMission(mission, actionType, userStats, today)) {
+        await completeMission(userId, mission, 'daily', today)
+        completedMissions.push({ ...mission, type: 'daily' })
+      }
+    }
+    
+    // Vérifier les missions hebdomadaires
+    for (const mission of WEEKLY_MISSIONS) {
+      const existingMission = userMissions?.find(m => m.mission_id === mission.id && m.week_start === thisWeek)
+      
+      if (!existingMission?.completed && shouldCompleteMission(mission, actionType, userStats, thisWeek, 'weekly')) {
+        await completeMission(userId, mission, 'weekly', null, thisWeek)
+        completedMissions.push({ ...mission, type: 'weekly' })
+      }
+    }
+    
+    return completedMissions
+    
+  } catch (error) {
+    logError('Error checking mission progress', error)
+    return []
+  }
+}
+
+/**
+ * Vérifie si une mission doit être complétée
+ */
+function shouldCompleteMission(mission, actionType, userStats, period, type = 'daily') {
+  // Logique simplifiée - à améliorer selon les besoins spécifiques
+  switch (mission.id) {
+    case 'daily_recipe':
+      return actionType === 'recipe_created'
+    case 'daily_quiz':
+      return actionType === 'quiz_completed'
+    case 'weekly_explorer':
+      return type === 'weekly' && userStats.weeklyRecipes >= 5
+    default:
+      return false
+  }
+}
+
+/**
+ * Complete une mission et accorde les récompenses
+ */
+async function completeMission(userId, mission, type, date = null, weekStart = null) {
+  try {
+    // Enregistrer la mission complétée
+    const { error: missionError } = await supabase
+      .from('user_missions')
+      .upsert({
+        user_id: userId,
+        mission_id: mission.id,
+        completed: true,
+        completed_at: new Date().toISOString(),
+        date: date,
+        week_start: weekStart,
+        type: type
+      })
+    
+    if (missionError) throw missionError
+    
+    // Accorder les récompenses
+    if (mission.reward) {
+      await grantMissionRewards(userId, mission.reward)
+    }
+    
+    logInfo('Mission completed', {
+      userId: userId?.substring(0, 8) + '...',
+      missionId: mission.id,
+      type,
+      reward: mission.reward
+    })
+    
+  } catch (error) {
+    logError('Error completing mission', error)
+  }
+}
+
+/**
+ * Accorde les récompenses d'une mission
+ */
+async function grantMissionRewards(userId, reward) {
+  try {
+    const updates = {}
+    
+    if (reward.coins) updates.coins_increment = reward.coins
+    if (reward.xp) updates.xp_increment = reward.xp
+    
+    if (Object.keys(updates).length > 0) {
+      // Mise à jour des récompenses dans user_pass
+      const { error } = await supabase.rpc('increment_user_rewards', {
+        user_id: userId,
+        coins_amount: reward.coins || 0,
+        xp_amount: reward.xp || 0
+      })
+      
+      if (error) throw error
+    }
+    
+    // Débloquer badge ou item si applicable
+    if (reward.badge || reward.item) {
+      await unlockSpecialReward(userId, reward.badge, reward.item)
+    }
+    
+  } catch (error) {
+    logError('Error granting mission rewards', error)
+  }
+}
+
+/**
+ * Helper pour obtenir le début de la semaine
+ */
+function getWeekStart(date) {
+  const d = new Date(date)
+  const day = d.getDay()
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1) // Lundi comme premier jour
+  return new Date(d.setDate(diff))
 }

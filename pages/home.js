@@ -82,7 +82,7 @@ const HomePage = () => {
               gap: '12px',
               alignItems: 'center'
             }}>
-              <Link href="/collections" style={{
+              <Link href="/progression" style={{
                 padding: '8px 16px',
                 borderRadius: '20px',
                 background: 'rgba(59, 130, 246, 0.1)',
@@ -92,7 +92,7 @@ const HomePage = () => {
                 fontWeight: '600',
                 transition: 'all 0.2s ease'
               }}>
-                📚 Collections
+                🏆 Progression
               </Link>
               
               {user && (
