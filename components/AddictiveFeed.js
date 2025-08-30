@@ -1197,71 +1197,57 @@ export default function AddictiveFeed() {
   }
   
   if (recipes.length === 0) {
-    // Afficher le podium du classement mensuel à la place de la section vide
+    // Container vide simplifié sans le podium
     return (
       <div className={styles.emptyContainer}>
-        {/* Podium visuel du classement mensuel (top 3) */}
         <div style={{
-          maxWidth: 500,
-          margin: '0 auto 32px',
-          background: 'linear-gradient(135deg,#e0e7ff 0%,#f3f4f6 100%)',
-          borderRadius: 18,
-          boxShadow: '0 4px 24px #6366f122',
-          padding: '18px 10px 10px 10px',
-          textAlign: 'center'
+          textAlign: 'center',
+          padding: '40px 20px',
+          color: '#6b7280'
         }}>
-          <div style={{ fontWeight: 700, fontSize: '1.1rem', color: '#6366f1', marginBottom: 10 }}>
-            🏆 Top 3 du classement mensuel (recettes publiées sur 30j)
-          </div>
-          {leaderboardLoading ? (
-            <div style={{ color: '#6366f1', fontWeight: 600, margin: '12px 0' }}>
-              Chargement du classement...
-            </div>
-          ) : (
-            <div style={{
-              display: 'flex',
-              justifyContent: 'center',
-              gap: 18,
-              marginBottom: 6,
-              flexWrap: 'wrap'
-            }}>
-              {leaderboard.map((u, idx) => {
-                let bg = idx === 0 ? '#fef3c7' : idx === 1 ? '#e0e7ff' : '#f3f4f6'
-                let color = idx === 0 ? '#f59e0b' : idx === 1 ? '#6366f1' : '#a3a3a3'
-                let icon = idx === 0 ? '🥇' : idx === 1 ? '🥈' : '🥉'
-                return (
-                  <div key={u.user_id} style={{
-                    background: bg,
-                    borderRadius: 14,
-                    padding: '12px 16px',
-                    minWidth: 90,
-                    boxShadow: idx === 0 ? '0 4px 16px #f59e0b22' : '0 2px 8px #6366f122',
-                    transform: idx === 0 ? 'scale(1.08)' : 'scale(1)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center'
-                  }}>
-                    <div style={{ fontSize: 26, color, marginBottom: 4 }}>{icon}</div>
-                    {u.avatar_url && (
-                      <img src={u.avatar_url} alt="" style={{
-                        width: 36, height: 36, borderRadius: '50%',
-                        border: `2px solid ${color}`,
-                        marginBottom: 4
-                      }} />
-                    )}
-                    <div style={{ fontWeight: 900, color, fontSize: '1.05rem', marginBottom: 2 }}>
-                      {u.display_name}
-                    </div>
-                    <div style={{ color: '#374151', fontSize: '0.98rem', fontWeight: 700 }}>
-                      {u.recipesCount} recettes
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
+          <div style={{ fontSize: '3rem', marginBottom: '20px' }}>🍽️</div>
+          <h3 style={{ 
+            fontSize: '1.2rem', 
+            fontWeight: '700', 
+            color: '#374151',
+            marginBottom: '12px'
+          }}>
+            Aucune recette à afficher
+          </h3>
+          <p style={{ 
+            fontSize: '0.9rem', 
+            lineHeight: '1.5',
+            marginBottom: '24px',
+            maxWidth: '300px',
+            margin: '0 auto 24px'
+          }}>
+            Ajoutez des amis pour voir leurs délicieuses recettes dans votre feed !
+          </p>
+          <button
+            onClick={() => router.push('/amis')}
+            style={{
+              background: 'linear-gradient(135deg, #ff6b35, #f7931e)',
+              color: 'white',
+              border: 'none',
+              padding: '12px 24px',
+              borderRadius: '12px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              boxShadow: '0 4px 15px rgba(255, 107, 53, 0.3)'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-2px)'
+              e.target.style.boxShadow = '0 6px 20px rgba(255, 107, 53, 0.4)'
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)'
+              e.target.style.boxShadow = '0 4px 15px rgba(255, 107, 53, 0.3)'
+            }}
+          >
+            👥 Ajouter des amis
+          </button>
         </div>
-        {/* Fin du podium */}
       </div>
     )
   }
@@ -2013,6 +1999,8 @@ export default function AddictiveFeed() {
               translateX(100px) 
               rotate(calc(-1 * var(--orbit-angle)));
           }
+
+         
 
           .${styles.messageText} {
             font-size: 1.1rem;
