@@ -27,40 +27,472 @@ function getLevel(xp) {
   return { current, next }
 }
 
-// --- Ajout objets cosmétiques et monnaie ---
+// --- Système de boutique avancé ---
 // Catégories: hat, glasses, apron, accessory, face, background, effect, badge, mascot
 const SHOP_ITEMS = [
-  // Chapeaux
-  { id: 'hat_chef', name: 'Toque de Chef', icon: '👨‍🍳', price: 100, type: 'hat', rarity: 'common', isNew: false },
-  { id: 'hat_pirate', name: 'Chapeau Pirate', icon: '🏴‍☠️', price: 150, type: 'hat', rarity: 'rare', isNew: false },
-  { id: 'hat_crown', name: 'Couronne Royale', icon: '👑', price: 500, type: 'hat', rarity: 'legendary', isNew: true },
-  { id: 'hat_sombrero', name: 'Sombrero', icon: '🎩', price: 180, type: 'hat', rarity: 'uncommon', isNew: false },
-  // Lunettes
-  { id: 'glasses_cool', name: 'Lunettes Cool', icon: '🕶️', price: 80, type: 'glasses', rarity: 'common', isNew: false },
-  { id: 'glasses_star', name: 'Lunettes Star', icon: '🤩', price: 220, type: 'glasses', rarity: 'rare', isNew: true },
-  // Tabliers
-  { id: 'apron_red', name: 'Tablier Rouge', icon: '🟥', price: 120, type: 'apron', rarity: 'common', isNew: false },
-  { id: 'apron_blue', name: 'Tablier Bleu', icon: '🟦', price: 120, type: 'apron', rarity: 'common', isNew: false },
-  { id: 'apron_gold', name: 'Tablier Or', icon: '🟨', price: 350, type: 'apron', rarity: 'epic', isNew: true },
-  // Accessoires
-  { id: 'spoon_gold', name: 'Cuillère Or', icon: '🥄', price: 200, type: 'accessory', rarity: 'epic', isNew: false },
-  { id: 'fork_silver', name: 'Fourchette Argent', icon: '🍴', price: 140, type: 'accessory', rarity: 'uncommon', isNew: false },
-  { id: 'pepper', name: 'Poivrier', icon: '🌶️', price: 90, type: 'accessory', rarity: 'common', isNew: false },
-  // Visage
-  { id: 'mustache', name: 'Moustache', icon: '👨', price: 90, type: 'face', rarity: 'common', isNew: false },
-  { id: 'beard', name: 'Barbe', icon: '🧔', price: 120, type: 'face', rarity: 'uncommon', isNew: false },
-  // Fonds
-  { id: 'bg_kitchen', name: 'Cuisine Pro', icon: '🏠', price: 250, type: 'background', rarity: 'rare', isNew: true },
-  { id: 'bg_jungle', name: 'Jungle', icon: '🌴', price: 200, type: 'background', rarity: 'uncommon', isNew: false },
-  // Effets spéciaux
-  { id: 'fx_fire', name: 'Effet Flamme', icon: '🔥', price: 400, type: 'effect', rarity: 'legendary', isNew: true },
-  { id: 'fx_sparkle', name: 'Effet Étincelle', icon: '✨', price: 220, type: 'effect', rarity: 'epic', isNew: false },
-  // Badges exclusifs
-  { id: 'badge_early', name: 'Pionnier', icon: '🌟', price: 0, type: 'badge', rarity: 'legendary', isNew: false, exclusive: true },
-  // Mascottes
-  { id: 'mascot_chick', name: 'Poussin', icon: '🐥', price: 180, type: 'mascot', rarity: 'uncommon', isNew: false },
-  { id: 'mascot_cat', name: 'Chat', icon: '🐱', price: 220, type: 'mascot', rarity: 'rare', isNew: true }
+  // === CHAPEAUX ===
+  { 
+    id: 'hat_chef', 
+    name: 'Toque de Chef', 
+    icon: '👨‍🍳', 
+    price: 100, 
+    originalPrice: 100,
+    type: 'hat', 
+    rarity: 'common', 
+    isNew: false,
+    description: 'La toque classique du chef professionnel',
+    tags: ['classique', 'professionnel'],
+    unlockLevel: 1
+  },
+  { 
+    id: 'hat_pirate', 
+    name: 'Chapeau Pirate', 
+    icon: '🏴‍☠️', 
+    price: 150, 
+    originalPrice: 150,
+    type: 'hat', 
+    rarity: 'rare', 
+    isNew: false,
+    description: 'Pour les chefs aventuriers des sept mers',
+    tags: ['aventure', 'pirate'],
+    unlockLevel: 3
+  },
+  { 
+    id: 'hat_crown', 
+    name: 'Couronne Royale', 
+    icon: '👑', 
+    price: 400, 
+    originalPrice: 500,
+    type: 'hat', 
+    rarity: 'legendary', 
+    isNew: true,
+    description: 'Réservée aux maîtres de la cuisine royale',
+    tags: ['royal', 'prestige'],
+    unlockLevel: 10,
+    onSale: true,
+    saleEndDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 jours
+  },
+  { 
+    id: 'hat_sombrero', 
+    name: 'Sombrero', 
+    icon: '🎩', 
+    price: 180, 
+    originalPrice: 180,
+    type: 'hat', 
+    rarity: 'uncommon', 
+    isNew: false,
+    description: 'Parfait pour la cuisine mexicaine authentique',
+    tags: ['mexicain', 'festif'],
+    unlockLevel: 5
+  },
+  { 
+    id: 'hat_beret', 
+    name: 'Béret Français', 
+    icon: '🧑‍🎨', 
+    price: 160, 
+    originalPrice: 160,
+    type: 'hat', 
+    rarity: 'uncommon', 
+    isNew: true,
+    description: 'L\'élégance française en cuisine',
+    tags: ['français', 'artistique'],
+    unlockLevel: 4
+  },
+  
+  // === LUNETTES ===
+  { 
+    id: 'glasses_cool', 
+    name: 'Lunettes Cool', 
+    icon: '🕶️', 
+    price: 80, 
+    originalPrice: 80,
+    type: 'glasses', 
+    rarity: 'common', 
+    isNew: false,
+    description: 'Style décontracté pour chef moderne',
+    tags: ['cool', 'moderne'],
+    unlockLevel: 1
+  },
+  { 
+    id: 'glasses_star', 
+    name: 'Lunettes Star', 
+    icon: '🤩', 
+    price: 180, 
+    originalPrice: 220,
+    type: 'glasses', 
+    rarity: 'rare', 
+    isNew: true,
+    description: 'Brillez comme une star de la cuisine',
+    tags: ['star', 'brillant'],
+    unlockLevel: 6,
+    onSale: true
+  },
+  { 
+    id: 'glasses_smart', 
+    name: 'Lunettes Intelligentes', 
+    icon: '🤓', 
+    price: 200, 
+    originalPrice: 200,
+    type: 'glasses', 
+    rarity: 'epic', 
+    isNew: true,
+    description: 'Pour les chefs scientifiques',
+    tags: ['intelligent', 'science'],
+    unlockLevel: 8
+  },
+  
+  // === TABLIERS ===
+  { 
+    id: 'apron_red', 
+    name: 'Tablier Rouge', 
+    icon: '🟥', 
+    price: 120, 
+    originalPrice: 120,
+    type: 'apron', 
+    rarity: 'common', 
+    isNew: false,
+    description: 'Classique tablier rouge passion',
+    tags: ['classique', 'rouge'],
+    unlockLevel: 2
+  },
+  { 
+    id: 'apron_blue', 
+    name: 'Tablier Bleu', 
+    icon: '🟦', 
+    price: 120, 
+    originalPrice: 120,
+    type: 'apron', 
+    rarity: 'common', 
+    isNew: false,
+    description: 'Élégant tablier bleu océan',
+    tags: ['classique', 'bleu'],
+    unlockLevel: 2
+  },
+  { 
+    id: 'apron_gold', 
+    name: 'Tablier Or', 
+    icon: '🟨', 
+    price: 280, 
+    originalPrice: 350,
+    type: 'apron', 
+    rarity: 'epic', 
+    isNew: true,
+    description: 'Luxueux tablier doré pour occasions spéciales',
+    tags: ['luxe', 'or', 'spécial'],
+    unlockLevel: 12,
+    onSale: true
+  },
+  { 
+    id: 'apron_rainbow', 
+    name: 'Tablier Arc-en-ciel', 
+    icon: '🌈', 
+    price: 300, 
+    originalPrice: 300,
+    type: 'apron', 
+    rarity: 'epic', 
+    isNew: true,
+    description: 'Exprimez votre créativité culinaire',
+    tags: ['créatif', 'coloré'],
+    unlockLevel: 15
+  },
+  
+  // === ACCESSOIRES ===
+  { 
+    id: 'spoon_gold', 
+    name: 'Cuillère Or', 
+    icon: '🥄', 
+    price: 200, 
+    originalPrice: 200,
+    type: 'accessory', 
+    rarity: 'epic', 
+    isNew: false,
+    description: 'Cuillère en or pour goûter avec style',
+    tags: ['or', 'dégustation'],
+    unlockLevel: 10
+  },
+  { 
+    id: 'fork_silver', 
+    name: 'Fourchette Argent', 
+    icon: '🍴', 
+    price: 140, 
+    originalPrice: 140,
+    type: 'accessory', 
+    rarity: 'uncommon', 
+    isNew: false,
+    description: 'Fourchette argentée pour la finition',
+    tags: ['argent', 'finition'],
+    unlockLevel: 5
+  },
+  { 
+    id: 'pepper', 
+    name: 'Poivrier Magique', 
+    icon: '🌶️', 
+    price: 90, 
+    originalPrice: 90,
+    type: 'accessory', 
+    rarity: 'common', 
+    isNew: false,
+    description: 'Ajoute du piquant à vos créations',
+    tags: ['épice', 'piquant'],
+    unlockLevel: 3
+  },
+  { 
+    id: 'knife_master', 
+    name: 'Couteau de Maître', 
+    icon: '🔪', 
+    price: 250, 
+    originalPrice: 250,
+    type: 'accessory', 
+    rarity: 'rare', 
+    isNew: true,
+    description: 'Précision absolue pour découpes parfaites',
+    tags: ['précision', 'maître'],
+    unlockLevel: 8
+  },
+  
+  // === VISAGE ===
+  { 
+    id: 'mustache', 
+    name: 'Moustache Vintage', 
+    icon: '👨', 
+    price: 90, 
+    originalPrice: 90,
+    type: 'face', 
+    rarity: 'common', 
+    isNew: false,
+    description: 'Style rétro pour chef distingué',
+    tags: ['vintage', 'rétro'],
+    unlockLevel: 4
+  },
+  { 
+    id: 'beard', 
+    name: 'Barbe de Sage', 
+    icon: '🧔', 
+    price: 120, 
+    originalPrice: 120,
+    type: 'face', 
+    rarity: 'uncommon', 
+    isNew: false,
+    description: 'Sagesse culinaire ancestrale',
+    tags: ['sagesse', 'expérience'],
+    unlockLevel: 7
+  },
+  
+  // === FONDS ===
+  { 
+    id: 'bg_kitchen', 
+    name: 'Cuisine Professionnelle', 
+    icon: '🏠', 
+    price: 250, 
+    originalPrice: 250,
+    type: 'background', 
+    rarity: 'rare', 
+    isNew: true,
+    description: 'Ambiance cuisine de restaurant étoilé',
+    tags: ['professionnel', 'restaurant'],
+    unlockLevel: 10
+  },
+  { 
+    id: 'bg_jungle', 
+    name: 'Jungle Exotique', 
+    icon: '🌴', 
+    price: 200, 
+    originalPrice: 200,
+    type: 'background', 
+    rarity: 'uncommon', 
+    isNew: false,
+    description: 'Cuisine fusion dans un cadre tropical',
+    tags: ['exotique', 'nature'],
+    unlockLevel: 6
+  },
+  { 
+    id: 'bg_space', 
+    name: 'Cuisine Spatiale', 
+    icon: '🚀', 
+    price: 400, 
+    originalPrice: 400,
+    type: 'background', 
+    rarity: 'legendary', 
+    isNew: true,
+    description: 'Cuisinez dans l\'espace intersidéral',
+    tags: ['espace', 'futuriste'],
+    unlockLevel: 20
+  },
+  
+  // === EFFETS SPÉCIAUX ===
+  { 
+    id: 'fx_fire', 
+    name: 'Effet Flamme', 
+    icon: '🔥', 
+    price: 350, 
+    originalPrice: 400,
+    type: 'effect', 
+    rarity: 'legendary', 
+    isNew: true,
+    description: 'Flammes spectaculaires autour de votre avatar',
+    tags: ['feu', 'spectaculaire'],
+    unlockLevel: 15,
+    onSale: true
+  },
+  { 
+    id: 'fx_sparkle', 
+    name: 'Effet Étincelle', 
+    icon: '✨', 
+    price: 220, 
+    originalPrice: 220,
+    type: 'effect', 
+    rarity: 'epic', 
+    isNew: false,
+    description: 'Brillez de mille feux',
+    tags: ['brillant', 'magique'],
+    unlockLevel: 12
+  },
+  { 
+    id: 'fx_rainbow', 
+    name: 'Effet Arc-en-ciel', 
+    icon: '🌈', 
+    price: 300, 
+    originalPrice: 300,
+    type: 'effect', 
+    rarity: 'epic', 
+    isNew: true,
+    description: 'Aura colorée et joyeuse',
+    tags: ['coloré', 'joyeux'],
+    unlockLevel: 18
+  },
+  
+  // === BADGES EXCLUSIFS ===
+  { 
+    id: 'badge_early', 
+    name: 'Pionnier COCO', 
+    icon: '🌟', 
+    price: 0, 
+    originalPrice: 0,
+    type: 'badge', 
+    rarity: 'legendary', 
+    isNew: false, 
+    exclusive: true,
+    description: 'Badge exclusif des premiers utilisateurs',
+    tags: ['exclusif', 'pionnier'],
+    unlockLevel: 1
+  },
+  { 
+    id: 'badge_master', 
+    name: 'Maître Chef', 
+    icon: '🏆', 
+    price: 500, 
+    originalPrice: 500,
+    type: 'badge', 
+    rarity: 'legendary', 
+    isNew: true,
+    description: 'Reconnaissance ultime de maîtrise culinaire',
+    tags: ['maître', 'excellence'],
+    unlockLevel: 25
+  },
+  
+  // === MASCOTTES ===
+  { 
+    id: 'mascot_chick', 
+    name: 'Poussin Cuisinier', 
+    icon: '🐥', 
+    price: 180, 
+    originalPrice: 180,
+    type: 'mascot', 
+    rarity: 'uncommon', 
+    isNew: false,
+    description: 'Adorable compagnon de cuisine',
+    tags: ['mignon', 'compagnon'],
+    unlockLevel: 5
+  },
+  { 
+    id: 'mascot_cat', 
+    name: 'Chat Gourmet', 
+    icon: '🐱', 
+    price: 220, 
+    originalPrice: 220,
+    type: 'mascot', 
+    rarity: 'rare', 
+    isNew: true,
+    description: 'Chat raffiné amateur de bonne cuisine',
+    tags: ['raffiné', 'gourmet'],
+    unlockLevel: 8
+  },
+  { 
+    id: 'mascot_dragon', 
+    name: 'Dragon Cuisinier', 
+    icon: '🐲', 
+    price: 400, 
+    originalPrice: 400,
+    type: 'mascot', 
+    rarity: 'legendary', 
+    isNew: true,
+    description: 'Puissant dragon maître du feu culinaire',
+    tags: ['dragon', 'puissant', 'feu'],
+    unlockLevel: 20
+  }
 ]
+
+// === PACKS SPÉCIAUX ===
+const SHOP_PACKS = [
+  {
+    id: 'pack_starter',
+    name: 'Pack Débutant',
+    icon: '📦',
+    price: 250,
+    originalPrice: 300,
+    items: ['hat_chef', 'apron_red', 'pepper'],
+    rarity: 'common',
+    description: 'Tout ce qu\'il faut pour bien commencer',
+    discount: 17,
+    isNew: false
+  },
+  {
+    id: 'pack_professional',
+    name: 'Pack Professionnel',
+    icon: '🎁',
+    price: 480,
+    originalPrice: 600,
+    items: ['hat_crown', 'apron_gold', 'spoon_gold', 'bg_kitchen'],
+    rarity: 'epic',
+    description: 'Équipement complet du chef professionnel',
+    discount: 20,
+    isNew: true
+  },
+  {
+    id: 'pack_legend',
+    name: 'Pack Légendaire',
+    icon: '👑',
+    price: 800,
+    originalPrice: 1000,
+    items: ['hat_crown', 'fx_fire', 'badge_master', 'mascot_dragon', 'bg_space'],
+    rarity: 'legendary',
+    description: 'Collection exclusive des objets les plus rares',
+    discount: 20,
+    isNew: true
+  }
+]
+
+// === PROMOTIONS QUOTIDIENNES ===
+const getDailyDeals = () => {
+  const today = new Date().toDateString();
+  const dealSeed = today.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  
+  // Sélection pseudo-aléatoire basée sur la date
+  const availableItems = SHOP_ITEMS.filter(item => !item.exclusive && item.price > 100);
+  const dealCount = 3;
+  const deals = [];
+  
+  for (let i = 0; i < dealCount && i < availableItems.length; i++) {
+    const index = (dealSeed + i * 7) % availableItems.length;
+    const item = { ...availableItems[index] };
+    item.originalPrice = item.price;
+    item.price = Math.floor(item.price * 0.7); // 30% de réduction
+    item.isDailyDeal = true;
+    deals.push(item);
+  }
+  
+  return deals;
+}
 
 const ITEM_TYPES = [
   { id: 'all', label: 'Tout', icon: '🛒' },
@@ -309,8 +741,17 @@ export default function Progression({ user }) {
   const [activeTab, setActiveTab] = useState('progression') // 'progression' | 'boutique' | 'classement'
   const [favoriteItems, setFavoriteItems] = useState([])
   const [shopFilter, setShopFilter] = useState('all')
+  const [shopTab, setShopTab] = useState('items') // 'items', 'packs', 'deals'
   const [dressingOpen, setDressingOpen] = useState(false)
   const [dressingTab, setDressingTab] = useState('hat') // caté active dans le dressing
+  const [itemPreviewOpen, setItemPreviewOpen] = useState(null)
+  const [wishlist, setWishlist] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('coco_wishlist') || '[]');
+    } catch {
+      return [];
+    }
+  })
   const [completedChallenges, setCompletedChallenges] = useState(() => {
     // Stockage local pour empêcher la validation infinie des quêtes
     try {
@@ -320,6 +761,256 @@ export default function Progression({ user }) {
       return {};
     }
   });
+
+  // --- Modal d'aperçu d'objet ---
+  const renderItemPreview = (item) => (
+    <div style={{
+      position: 'fixed',
+      top: 0, left: 0, right: 0, bottom: 0,
+      background: 'rgba(0,0,0,0.7)',
+      zIndex: 9999,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '20px'
+    }}
+      onClick={() => setItemPreviewOpen(null)}
+    >
+      <div
+        style={{
+          background: '#fff',
+          borderRadius: 20,
+          maxWidth: 380,
+          width: '100%',
+          padding: 24,
+          boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+          position: 'relative',
+          animation: 'itemPreviewPop 0.4s ease-out'
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        <button
+          onClick={() => setItemPreviewOpen(null)}
+          style={{
+            position: 'absolute',
+            top: 12, right: 16,
+            background: 'none',
+            border: 'none',
+            fontSize: 20,
+            color: '#6b7280',
+            cursor: 'pointer',
+            fontWeight: 700
+          }}
+        >✕</button>
+
+        <div style={{ textAlign: 'center', marginBottom: 20 }}>
+          <div style={{
+            fontSize: 64,
+            marginBottom: 12,
+            filter: getItemGlow(item.id)
+          }}>
+            {item.icon}
+          </div>
+          
+          <div style={{
+            fontWeight: 800,
+            fontSize: '1.4rem',
+            color: '#1f2937',
+            marginBottom: 6
+          }}>
+            {item.name}
+          </div>
+          
+          <div style={{
+            fontSize: '0.9rem',
+            color: '#6b7280',
+            marginBottom: 12,
+            lineHeight: 1.4
+          }}>
+            {item.description}
+          </div>
+
+          {/* Tags */}
+          <div style={{
+            display: 'flex',
+            gap: 6,
+            justifyContent: 'center',
+            flexWrap: 'wrap',
+            marginBottom: 16
+          }}>
+            {item.tags?.map(tag => (
+              <span key={tag} style={{
+                background: '#f3f4f6',
+                color: '#6b7280',
+                padding: '4px 8px',
+                borderRadius: 12,
+                fontSize: '0.7rem',
+                fontWeight: 600
+              }}>
+                #{tag}
+              </span>
+            ))}
+          </div>
+
+          {/* Rareté et niveau */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            gap: 16,
+            marginBottom: 20
+          }}>
+            <div style={{
+              background: item.rarity === 'legendary' ? '#fef3c7' : 
+                         item.rarity === 'epic' ? '#f3e8ff' : 
+                         item.rarity === 'rare' ? '#dbeafe' : '#f3f4f6',
+              color: item.rarity === 'legendary' ? '#f59e0b' : 
+                     item.rarity === 'epic' ? '#8b5cf6' : 
+                     item.rarity === 'rare' ? '#3b82f6' : '#6b7280',
+              padding: '6px 12px',
+              borderRadius: 12,
+              fontSize: '0.8rem',
+              fontWeight: 700
+            }}>
+              {item.rarity === 'legendary' ? '★★★ Légendaire' :
+               item.rarity === 'epic' ? '★★ Épique' :
+               item.rarity === 'rare' ? '★ Rare' :
+               item.rarity === 'uncommon' ? 'Peu commun' : 'Commun'}
+            </div>
+            
+            {item.unlockLevel > 1 && (
+              <div style={{
+                background: levelInfo.current.level >= item.unlockLevel ? '#dcfce7' : '#fee2e2',
+                color: levelInfo.current.level >= item.unlockLevel ? '#16a34a' : '#dc2626',
+                padding: '6px 12px',
+                borderRadius: 12,
+                fontSize: '0.8rem',
+                fontWeight: 700
+              }}>
+                Niveau {item.unlockLevel}
+              </div>
+            )}
+          </div>
+
+          {/* Prix */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: 8,
+            marginBottom: 20
+          }}>
+            {item.onSale ? (
+              <>
+                <span style={{
+                  textDecoration: 'line-through',
+                  color: '#9ca3af',
+                  fontSize: '1rem'
+                }}>
+                  {item.originalPrice}🪙
+                </span>
+                <span style={{
+                  color: '#ef4444',
+                  fontWeight: 700,
+                  fontSize: '1.3rem'
+                }}>
+                  {item.price}🪙
+                </span>
+                <span style={{
+                  background: '#ef4444',
+                  color: 'white',
+                  padding: '2px 8px',
+                  borderRadius: 8,
+                  fontSize: '0.7rem',
+                  fontWeight: 700
+                }}>
+                  PROMO
+                </span>
+              </>
+            ) : (
+              <span style={{
+                color: '#f59e0b',
+                fontWeight: 700,
+                fontSize: '1.3rem'
+              }}>
+                {item.price}🪙
+              </span>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div style={{
+            display: 'flex',
+            gap: 12,
+            justifyContent: 'center'
+          }}>
+            <button
+              onClick={() => toggleWishlist(item.id)}
+              style={{
+                background: wishlist.includes(item.id) ? '#fef2f2' : '#f9fafb',
+                color: wishlist.includes(item.id) ? '#dc2626' : '#6b7280',
+                border: wishlist.includes(item.id) ? '1px solid #fecaca' : '1px solid #e5e7eb',
+                borderRadius: 12,
+                padding: '10px 16px',
+                fontWeight: 600,
+                fontSize: '0.9rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6
+              }}
+            >
+              {wishlist.includes(item.id) ? '❤️' : '🤍'}
+              {wishlist.includes(item.id) ? 'Dans ma wishlist' : 'Ajouter à la wishlist'}
+            </button>
+
+            {ownedItems.includes(item.id) ? (
+              <button
+                onClick={() => equipItem(item)}
+                style={{
+                  background: equipped[item.type] === item.id ? '#dcfce7' : 'linear-gradient(135deg, #10b981, #34d399)',
+                  color: equipped[item.type] === item.id ? '#16a34a' : 'white',
+                  border: 'none',
+                  borderRadius: 12,
+                  padding: '10px 20px',
+                  fontWeight: 700,
+                  fontSize: '0.9rem',
+                  cursor: 'pointer',
+                  boxShadow: equipped[item.type] === item.id ? 'none' : '0 4px 12px rgba(16, 185, 129, 0.3)'
+                }}
+              >
+                {equipped[item.type] === item.id ? '✅ Équipé' : 'Équiper'}
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  buyItem(item);
+                  setItemPreviewOpen(null);
+                }}
+                disabled={coins < item.price || levelInfo.current.level < (item.unlockLevel || 1)}
+                style={{
+                  background: coins >= item.price && levelInfo.current.level >= (item.unlockLevel || 1) 
+                    ? 'linear-gradient(135deg, #f59e0b, #fbbf24)' 
+                    : '#e5e7eb',
+                  color: coins >= item.price && levelInfo.current.level >= (item.unlockLevel || 1) ? 'white' : '#9ca3af',
+                  border: 'none',
+                  borderRadius: 12,
+                  padding: '10px 20px',
+                  fontWeight: 700,
+                  fontSize: '0.9rem',
+                  cursor: coins >= item.price && levelInfo.current.level >= (item.unlockLevel || 1) ? 'pointer' : 'not-allowed',
+                  boxShadow: coins >= item.price && levelInfo.current.level >= (item.unlockLevel || 1) 
+                    ? '0 4px 12px rgba(245, 158, 11, 0.3)' 
+                    : 'none'
+                }}
+              >
+                {levelInfo.current.level < (item.unlockLevel || 1) ? '🔒 Verrouillé' : 'Acheter'}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
   
   // --- Système de missions ---
   const [missions, setMissions] = useState(() => {
@@ -741,6 +1432,18 @@ export default function Progression({ user }) {
   // --- Gestion achat objet avec feedback et historique ---
   const buyItem = async (item) => {
     if (ownedItems.includes(item.id) || coins < item.price) return;
+    
+    // Vérifier le niveau requis
+    const userLevel = levelInfo.current.level;
+    if (item.unlockLevel && userLevel < item.unlockLevel) {
+      setShopFeedback({ 
+        type: 'error', 
+        msg: `🔒 Niveau ${item.unlockLevel} requis !` 
+      });
+      setTimeout(() => setShopFeedback(null), 3000);
+      return;
+    }
+    
     const newCoins = coins - item.price;
     const newOwned = [...ownedItems, item.id];
     setCoins(newCoins);
@@ -753,6 +1456,13 @@ export default function Progression({ user }) {
     ];
     setPurchaseHistory(newPurchaseHistory);
     
+    // Retirer de la wishlist si présent
+    if (wishlist.includes(item.id)) {
+      const newWishlist = wishlist.filter(id => id !== item.id);
+      setWishlist(newWishlist);
+      localStorage.setItem('coco_wishlist', JSON.stringify(newWishlist));
+    }
+    
     // Sauvegarder dans localStorage pour les missions
     try {
       localStorage.setItem('coco_purchase_history', JSON.stringify(newPurchaseHistory));
@@ -760,10 +1470,22 @@ export default function Progression({ user }) {
       console.error('Erreur sauvegarde historique achats:', error);
     }
     
-    setShopFeedback({ type: 'success', msg: `✅ ${item.name} acheté !` })
-    setTimeout(() => setShopFeedback(null), 2000)
-    setCoinAnim(true)
-    setTimeout(() => setCoinAnim(false), 900)
+    // Feedback enrichi selon la rareté
+    const rarityEmojis = {
+      'common': '✅',
+      'uncommon': '🎉',
+      'rare': '🌟',
+      'epic': '💫',
+      'legendary': '👑'
+    };
+    
+    setShopFeedback({ 
+      type: 'success', 
+      msg: `${rarityEmojis[item.rarity] || '✅'} ${item.name} acheté ! ${item.rarity === 'legendary' ? '🎊' : ''}` 
+    });
+    setTimeout(() => setShopFeedback(null), 3000);
+    setCoinAnim(true);
+    setTimeout(() => setCoinAnim(false), 900);
     
     // --- À chaque achat ou modification ---
     async function updateUserPass(newFields) {
@@ -782,7 +1504,69 @@ export default function Progression({ user }) {
     setTimeout(async () => {
       await syncAllMissions();
     }, 500);
-  }
+  };
+
+  // --- Gestion achat de pack ---
+  const buyPack = async (pack) => {
+    if (coins < pack.price) return;
+    
+    // Vérifier quels objets ne sont pas encore possédés
+    const itemsToBuy = pack.items.filter(itemId => !ownedItems.includes(itemId));
+    if (itemsToBuy.length === 0) {
+      setShopFeedback({ 
+        type: 'info', 
+        msg: '📦 Vous possédez déjà tous ces objets !' 
+      });
+      setTimeout(() => setShopFeedback(null), 2500);
+      return;
+    }
+    
+    const newCoins = coins - pack.price;
+    const newOwned = [...ownedItems, ...itemsToBuy];
+    setCoins(newCoins);
+    setOwnedItems(newOwned);
+    
+    const newPurchaseHistory = [
+      { date: new Date(), item: pack, price: pack.price, isPack: true },
+      ...purchaseHistory
+    ];
+    setPurchaseHistory(newPurchaseHistory);
+    
+    setShopFeedback({ 
+      type: 'success', 
+      msg: `🎁 Pack "${pack.name}" acheté ! ${itemsToBuy.length} nouveaux objets !` 
+    });
+    setTimeout(() => setShopFeedback(null), 4000);
+    setCoinAnim(true);
+    setTimeout(() => setCoinAnim(false), 900);
+    
+    // Mettre à jour la base
+    await supabase
+      .from('user_pass')
+      .update({ 
+        coins: newCoins, 
+        owned_items: newOwned,
+        purchase_history: newPurchaseHistory 
+      })
+      .eq('user_id', user.id);
+  };
+
+  // --- Gestion wishlist ---
+  const toggleWishlist = (itemId) => {
+    const newWishlist = wishlist.includes(itemId)
+      ? wishlist.filter(id => id !== itemId)
+      : [...wishlist, itemId];
+    
+    setWishlist(newWishlist);
+    localStorage.setItem('coco_wishlist', JSON.stringify(newWishlist));
+    
+    const isAdding = !wishlist.includes(itemId);
+    setShopFeedback({ 
+      type: 'info', 
+      msg: isAdding ? '❤️ Ajouté à la wishlist' : '💔 Retiré de la wishlist' 
+    });
+    setTimeout(() => setShopFeedback(null), 1500);
+  };
 
   // --- Gestion équipement objet avec feedback ---
   const equipItem = (item) => {
@@ -1509,28 +2293,72 @@ export default function Progression({ user }) {
     </div>
   )
 
-  // --- Boutique onglet dédié ---
+  // --- Boutique avec onglets avancés ---
   const renderShopTab = () => {
-    // Filtrage par type
+    const dailyDeals = getDailyDeals();
+    
+    return (
+      <div>
+        {/* Onglets boutique */}
+        <div style={{
+          display: 'flex',
+          gap: 8,
+          marginBottom: 16,
+          justifyContent: 'center'
+        }}>
+          {[
+            { id: 'items', label: 'Objets', icon: '🛍️' },
+            { id: 'packs', label: 'Packs', icon: '📦' },
+            { id: 'deals', label: 'Promos', icon: '💥' }
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setShopTab(tab.id)}
+              style={{
+                background: shopTab === tab.id ? 'linear-gradient(135deg, #10b981, #34d399)' : '#fff',
+                color: shopTab === tab.id ? 'white' : '#10b981',
+                border: shopTab === tab.id ? 'none' : '1px solid #10b981',
+                borderRadius: 10,
+                padding: '8px 14px',
+                fontWeight: 700,
+                fontSize: '0.9rem',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                boxShadow: shopTab === tab.id ? '0 2px 8px rgba(16, 185, 129, 0.3)' : 'none'
+              }}
+            >
+              <span style={{ marginRight: 4 }}>{tab.icon}</span>
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {shopTab === 'items' && renderItemsShop()}
+        {shopTab === 'packs' && renderPacksShop()}
+        {shopTab === 'deals' && renderDealsShop(dailyDeals)}
+      </div>
+    );
+  };
+
+  // --- Onglet objets individuels ---
+  const renderItemsShop = () => {
     const filtered = shopFilter === 'all'
-      ? SHOP_ITEMS
-      : SHOP_ITEMS.filter(i => i.type === shopFilter)
-    // Objets favoris
-    const favoriteObjs = SHOP_ITEMS.filter(i => favoriteItems.includes(i.id))
-    // Stats par catégorie
+      ? SHOP_ITEMS.filter(item => !item.exclusive)
+      : SHOP_ITEMS.filter(i => i.type === shopFilter && !i.exclusive);
+    
     const ownedByType = type =>
-      SHOP_ITEMS.filter(i => i.type === type && ownedItems.includes(i.id)).length
+      SHOP_ITEMS.filter(i => i.type === type && ownedItems.includes(i.id)).length;
     const totalByType = type =>
-      SHOP_ITEMS.filter(i => i.type === type).length
+      SHOP_ITEMS.filter(i => i.type === type).length;
 
     return (
       <div>
         {/* Filtres par catégorie */}
         <div style={{
           display: 'flex', 
-          gap: 6, // Réduction
+          gap: 6,
           justifyContent: 'flex-start', 
-          marginBottom: 16, // Réduction
+          marginBottom: 16,
           flexWrap: 'wrap',
           overflowX: 'auto',
           paddingBottom: 4
@@ -1543,14 +2371,13 @@ export default function Progression({ user }) {
                 background: shopFilter === cat.id ? '#f3f4f6' : 'transparent',
                 color: '#374151',
                 border: shopFilter === cat.id ? '2px solid #f59e0b' : '1px solid #e5e7eb',
-                borderRadius: 8, // Réduction
-                padding: '6px 10px', // Réduction
+                borderRadius: 8,
+                padding: '6px 10px',
                 fontWeight: 700,
-                fontSize: '0.8rem', // Réduction
+                fontSize: '0.8rem',
                 cursor: 'pointer',
                 transition: 'all 0.2s',
-                whiteSpace: 'nowrap',
-                minWidth: 'auto'
+                whiteSpace: 'nowrap'
               }}
             >
               <span style={{ fontSize: '1rem', marginRight: 2 }}>{cat.icon}</span>
@@ -1558,7 +2385,7 @@ export default function Progression({ user }) {
               {cat.id !== 'all' && (
                 <span style={{
                   marginLeft: 6,
-                  fontSize: '0.9rem',
+                  fontSize: '0.8rem',
                   color: '#f59e0b',
                   fontWeight: 600
                 }}>
@@ -1567,209 +2394,475 @@ export default function Progression({ user }) {
               )}
             </button>
           ))}
-          <button
-            onClick={unequipAll}
-            style={{
-              background: 'transparent',
-              color: '#f59e0b',
-              border: '1px solid #f59e0b',
-              borderRadius: 10,
-              padding: '7px 16px',
-              fontWeight: 700,
-              fontSize: '1rem',
-              marginLeft: 10,
-              cursor: 'pointer'
-            }}
-          >
-            Tout déséquiper
-          </button>
         </div>
-        {/* Objets favoris */}
-        {favoriteObjs.length > 0 && (
+
+        {/* Wishlist */}
+        {wishlist.length > 0 && (
           <div style={{
-            marginBottom: 18,
-            background: 'none',
+            marginBottom: 16,
+            background: 'linear-gradient(135deg, #fff5f5, #fef2f2)',
+            border: '1px solid #fecaca',
             borderRadius: 12,
-            padding: 0,
-            display: 'flex',
-            gap: 10,
-            flexWrap: 'wrap',
-            alignItems: 'center'
+            padding: '12px 16px'
           }}>
-            <span style={{ fontWeight: 700, color: '#f59e0b', fontSize: '1.05rem' }}>⭐ Favoris :</span>
-            {favoriteObjs.map(item => (
-              <span key={item.id} style={{
-                fontSize: 22,
-                marginRight: 4,
-                filter: getItemGlow(item.id)
-              }}>
-                {item.icon}
-              </span>
-            ))}
+            <div style={{ fontWeight: 700, color: '#dc2626', fontSize: '0.9rem', marginBottom: 8 }}>
+              ❤️ Ma Wishlist ({wishlist.length} objets)
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {SHOP_ITEMS.filter(item => wishlist.includes(item.id)).slice(0, 5).map(item => (
+                <div key={item.id} style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  background: '#fff',
+                  borderRadius: 8,
+                  padding: '4px 8px',
+                  fontSize: '0.8rem',
+                  border: '1px solid #e5e7eb'
+                }}>
+                  <span>{item.icon}</span>
+                  <span style={{ fontWeight: 600 }}>{item.name}</span>
+                  <span style={{ color: '#f59e0b' }}>{item.price}🪙</span>
+                </div>
+              ))}
+              {wishlist.length > 5 && (
+                <span style={{ color: '#6b7280', fontSize: '0.8rem', alignSelf: 'center' }}>
+                  +{wishlist.length - 5} autres...
+                </span>
+              )}
+            </div>
           </div>
         )}
-        {/* Grille boutique modernisée et épurée */}
+
+        {/* Grille d'objets */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-          gap: 22,
-          marginBottom: 18
+          gridTemplateColumns: 'repeat(2, 1fr)',
+          gap: 12,
+          marginBottom: 16
         }}>
           {filtered.map(item => (
             <div key={item.id} style={{
               background: '#fff',
               border: ownedItems.includes(item.id)
-                ? `1.5px solid ${item.rarity === 'legendary' ? '#f59e0b' : item.rarity === 'epic' ? '#8b5cf6' : item.rarity === 'rare' ? '#3b82f6' : '#e5e7eb'}`
+                ? `2px solid ${item.rarity === 'legendary' ? '#f59e0b' : item.rarity === 'epic' ? '#8b5cf6' : '#10b981'}`
                 : '1px solid #e5e7eb',
-              borderRadius: 16,
-              padding: 18,
-              minWidth: 120,
+              borderRadius: 12,
+              padding: '12px 10px',
               textAlign: 'center',
-              boxShadow: 'none',
-              opacity: ownedItems.includes(item.id) ? 1 : 0.85,
               position: 'relative',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              transition: 'border 0.2s, box-shadow 0.2s'
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              boxShadow: item.onSale ? '0 0 0 2px #ef4444, 0 4px 12px rgba(239, 68, 68, 0.2)' : 'none'
             }}
-              onMouseEnter={() => ownedItems.includes(item.id) && setPreviewEquip(item)}
+              onClick={() => setItemPreviewOpen(item)}
+              onMouseEnter={() => !ownedItems.includes(item.id) && setPreviewEquip(item)}
               onMouseLeave={() => setPreviewEquip(null)}
             >
-              {/* Badge rareté discret */}
-              <div style={{
-                position: 'absolute',
-                top: 10,
-                right: 10,
-                fontSize: 11,
-                fontWeight: 700,
-                color: item.rarity === 'legendary' ? '#f59e0b' : item.rarity === 'epic' ? '#8b5cf6' : item.rarity === 'rare' ? '#3b82f6' : '#a3a3a3',
-                background: 'none',
-                borderRadius: 6,
-                padding: '0 6px'
-              }}>
-                {item.rarity === 'legendary' ? '★' : item.rarity === 'epic' ? '✦' : item.rarity === 'rare' ? '◆' : ''}
-              </div>
-              {/* Badge nouveau */}
-              {item.isNew && (
+              {/* Badges promotion */}
+              {item.onSale && (
                 <div style={{
                   position: 'absolute',
-                  top: 10,
-                  left: 10,
-                  fontSize: 10,
+                  top: -8,
+                  left: -8,
+                  background: '#ef4444',
+                  color: 'white',
+                  borderRadius: 12,
+                  padding: '2px 8px',
+                  fontSize: '0.7rem',
                   fontWeight: 700,
-                  color: '#f59e0b',
-                  background: 'none',
-                  borderRadius: 6,
-                  padding: '0 6px'
+                  transform: 'rotate(-15deg)',
+                  animation: 'saleGlow 2s ease-in-out infinite alternate'
                 }}>
-                  Nouveau
+                  PROMO
                 </div>
               )}
-              {/* Icône objet */}
+
+              {/* Badge niveau requis */}
+              {item.unlockLevel && item.unlockLevel > 1 && (
+                <div style={{
+                  position: 'absolute',
+                  top: 6,
+                  left: 6,
+                  background: levelInfo.current.level >= item.unlockLevel ? '#10b981' : '#ef4444',
+                  color: 'white',
+                  borderRadius: 6,
+                  padding: '2px 6px',
+                  fontSize: '0.6rem',
+                  fontWeight: 700
+                }}>
+                  Niv.{item.unlockLevel}
+                </div>
+              )}
+
+              {/* Badge rareté */}
               <div style={{
-                fontSize: 38,
+                position: 'absolute',
+                top: 6,
+                right: 6,
+                fontSize: 12,
+                color: item.rarity === 'legendary' ? '#f59e0b' : item.rarity === 'epic' ? '#8b5cf6' : '#3b82f6'
+              }}>
+                {item.rarity === 'legendary' ? '★★★' : item.rarity === 'epic' ? '★★' : item.rarity === 'rare' ? '★' : ''}
+              </div>
+
+              {/* Icône principale */}
+              <div style={{
+                fontSize: 32,
                 marginBottom: 8,
                 filter: getItemGlow(item.id),
-                transition: 'filter 0.2s'
-              }}>{item.icon}</div>
-              <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 2, color: '#1f2937' }}>{item.name}</div>
-              <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 8 }}>{item.price} 🪙</div>
-              {/* Favori */}
+                opacity: levelInfo.current.level >= (item.unlockLevel || 1) ? 1 : 0.5
+              }}>
+                {levelInfo.current.level >= (item.unlockLevel || 1) ? item.icon : '🔒'}
+              </div>
+
+              {/* Nom et prix */}
+              <div style={{ 
+                fontWeight: 700, 
+                fontSize: 13, 
+                marginBottom: 4, 
+                color: '#1f2937',
+                lineHeight: 1.2
+              }}>
+                {item.name.length > 12 ? item.name.substring(0, 12) + '...' : item.name}
+              </div>
+
+              {/* Prix avec promotion */}
+              <div style={{ fontSize: 12, marginBottom: 8 }}>
+                {item.onSale ? (
+                  <div>
+                    <span style={{ textDecoration: 'line-through', color: '#9ca3af', marginRight: 4 }}>
+                      {item.originalPrice}🪙
+                    </span>
+                    <span style={{ color: '#ef4444', fontWeight: 700 }}>
+                      {item.price}🪙
+                    </span>
+                  </div>
+                ) : (
+                  <span style={{ color: '#6b7280' }}>{item.price}🪙</span>
+                )}
+              </div>
+
+              {/* Bouton wishlist */}
               <button
-                onClick={() => toggleFavorite(item.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleWishlist(item.id);
+                }}
                 style={{
                   position: 'absolute',
-                  bottom: 10,
-                  right: 10,
+                  bottom: 8,
+                  right: 8,
                   background: 'none',
                   border: 'none',
-                  fontSize: 18,
-                  color: favoriteItems.includes(item.id) ? '#f59e0b' : '#e5e7eb',
-                  cursor: 'pointer',
-                  transition: 'color 0.2s'
+                  fontSize: 16,
+                  color: wishlist.includes(item.id) ? '#ef4444' : '#d1d5db',
+                  cursor: 'pointer'
                 }}
-                title={favoriteItems.includes(item.id) ? 'Retirer des favoris' : 'Ajouter aux favoris'}
               >
-                {favoriteItems.includes(item.id) ? '★' : '☆'}
+                {wishlist.includes(item.id) ? '❤️' : '🤍'}
               </button>
-              {/* Actions achat/équipement */}
+
+              {/* Actions */}
               {ownedItems.includes(item.id) ? (
-                <button
-                  style={{
-                    background: equipped[item.type] === item.id ? '#10b981' : '#f3f4f6',
-                    color: equipped[item.type] === item.id ? 'white' : '#059669',
-                    border: 'none',
-                    borderRadius: 8,
-                    padding: '7px 0',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    fontSize: 15,
-                    marginTop: 8,
-                    width: '100%'
-                  }}
-                  onClick={() => equipItem(item)}
-                >
-                  {equipped[item.type] === item.id ? 'Équipé' : 'Équiper'}
-                </button>
+                <div style={{
+                  background: '#10b981',
+                  color: 'white',
+                  borderRadius: 6,
+                  padding: '4px 0',
+                  fontWeight: 700,
+                  fontSize: 11
+                }}>
+                  ✅ Possédé
+                </div>
               ) : (
                 <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    buyItem(item);
+                  }}
+                  disabled={coins < item.price || levelInfo.current.level < (item.unlockLevel || 1)}
                   style={{
-                    background: coins >= item.price ? '#f59e0b' : '#f3f4f6',
-                    color: coins >= item.price ? 'white' : '#f59e0b',
+                    background: coins >= item.price && levelInfo.current.level >= (item.unlockLevel || 1) ? '#f59e0b' : '#e5e7eb',
+                    color: coins >= item.price && levelInfo.current.level >= (item.unlockLevel || 1) ? 'white' : '#9ca3af',
                     border: 'none',
-                    borderRadius: 8,
-                    padding: '7px 0',
+                    borderRadius: 6,
+                    padding: '4px 8px',
                     fontWeight: 700,
-                    cursor: coins >= item.price ? 'pointer' : 'not-allowed',
-                    fontSize: 15,
-                    marginTop: 8,
+                    fontSize: 11,
+                    cursor: coins >= item.price && levelInfo.current.level >= (item.unlockLevel || 1) ? 'pointer' : 'not-allowed',
                     width: '100%'
                   }}
-                  disabled={coins < item.price}
-                  onClick={() => buyItem(item)}
                 >
-                  Acheter
+                  {levelInfo.current.level < (item.unlockLevel || 1) ? '🔒 Verrouillé' : 'Acheter'}
                 </button>
               )}
             </div>
           ))}
         </div>
-        {/* Historique d'achats */}
-        {purchaseHistory.length > 0 && (
-          <div style={{
-            marginTop: 18,
-            fontSize: '0.95rem',
-            color: '#92400e',
-            background: '#fff',
-            borderRadius: 10,
-            padding: 10,
-            boxShadow: '0 1px 4px #f59e0b11',
-            maxWidth: 340,
-            marginLeft: 'auto',
-            marginRight: 'auto'
-          }}>
-            <b>Historique d'achats :</b>
-            <ul style={{ margin: 0, paddingLeft: 18 }}>
-              {purchaseHistory.slice(0, 3).map((h, i) => (
-                <li key={i}>
-                  {h.item.icon} {h.item.name} <span style={{ color: '#f59e0b' }}>({h.item.price}🪙)</span> - {h.date.toLocaleTimeString('fr-FR')}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-        <div style={{
-          marginTop: 24,
-          textAlign: 'center',
-          color: '#6b7280',
-          fontSize: '0.95rem'
-        }}>
-          D'autres objets et styles d'habillage arrivent bientôt !
+      </div>
+    );
+  };
+
+  // --- Onglet packs ---
+  const renderPacksShop = () => (
+    <div>
+      <div style={{
+        textAlign: 'center',
+        marginBottom: 16,
+        color: '#6b7280',
+        fontSize: '0.9rem'
+      }}>
+        🎁 Économisez en achetant des packs complets !
+      </div>
+
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(1, 1fr)',
+        gap: 16
+      }}>
+        {SHOP_PACKS.map(pack => {
+          const itemsOwned = pack.items.filter(itemId => ownedItems.includes(itemId)).length;
+          const allOwned = itemsOwned === pack.items.length;
+          
+          return (
+            <div key={pack.id} style={{
+              background: '#fff',
+              border: pack.rarity === 'legendary' ? '2px solid #f59e0b' : '1px solid #e5e7eb',
+              borderRadius: 16,
+              padding: 16,
+              position: 'relative',
+              boxShadow: pack.rarity === 'legendary' ? '0 4px 20px rgba(245, 158, 11, 0.2)' : 'none'
+            }}>
+              {/* Badge réduction */}
+              <div style={{
+                position: 'absolute',
+                top: -8,
+                right: 12,
+                background: '#ef4444',
+                color: 'white',
+                borderRadius: 12,
+                padding: '4px 12px',
+                fontSize: '0.8rem',
+                fontWeight: 700
+              }}>
+                -{pack.discount}%
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                <div style={{ fontSize: 32 }}>{pack.icon}</div>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '1.1rem', color: '#1f2937' }}>
+                    {pack.name}
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>
+                    {pack.description}
+                  </div>
+                </div>
+              </div>
+
+              {/* Objets inclus */}
+              <div style={{
+                background: '#f8fafc',
+                borderRadius: 8,
+                padding: 8,
+                marginBottom: 12
+              }}>
+                <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+                  Objets inclus ({itemsOwned}/{pack.items.length} possédés):
+                </div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {pack.items.map(itemId => {
+                    const item = SHOP_ITEMS.find(i => i.id === itemId);
+                    if (!item) return null;
+                    
+                    return (
+                      <div key={itemId} style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        background: ownedItems.includes(itemId) ? '#dcfce7' : '#fff',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: 6,
+                        padding: '2px 6px',
+                        fontSize: '0.7rem'
+                      }}>
+                        <span>{item.icon}</span>
+                        <span style={{ 
+                          fontWeight: 600,
+                          color: ownedItems.includes(itemId) ? '#16a34a' : '#374151'
+                        }}>
+                          {item.name}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Prix et achat */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ 
+                      textDecoration: 'line-through', 
+                      color: '#9ca3af',
+                      fontSize: '0.9rem'
+                    }}>
+                      {pack.originalPrice}🪙
+                    </span>
+                    <span style={{ 
+                      color: '#ef4444', 
+                      fontWeight: 700,
+                      fontSize: '1.1rem'
+                    }}>
+                      {pack.price}🪙
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: '#10b981' }}>
+                    Économie: {pack.originalPrice - pack.price}🪙
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => buyPack(pack)}
+                  disabled={coins < pack.price || allOwned}
+                  style={{
+                    background: allOwned ? '#e5e7eb' : 
+                               coins >= pack.price ? 'linear-gradient(135deg, #10b981, #34d399)' : '#f3f4f6',
+                    color: allOwned ? '#9ca3af' : 
+                           coins >= pack.price ? 'white' : '#6b7280',
+                    border: 'none',
+                    borderRadius: 8,
+                    padding: '8px 16px',
+                    fontWeight: 700,
+                    fontSize: '0.9rem',
+                    cursor: allOwned || coins < pack.price ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  {allOwned ? '✅ Complet' : 'Acheter le pack'}
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  // --- Onglet promotions quotidiennes ---
+  const renderDealsShop = (dailyDeals) => (
+    <div>
+      <div style={{
+        textAlign: 'center',
+        marginBottom: 16,
+        background: 'linear-gradient(135deg, #fef3c7, #fed7aa)',
+        borderRadius: 12,
+        padding: 12
+      }}>
+        <div style={{ fontWeight: 700, color: '#f59e0b', fontSize: '1.1rem' }}>
+          💥 Promotions du jour !
+        </div>
+        <div style={{ fontSize: '0.8rem', color: '#92400e' }}>
+          Offres limitées - Renouvellement quotidien
         </div>
       </div>
-    )
-  }
+
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(1, 1fr)',
+        gap: 12
+      }}>
+        {dailyDeals.map(item => (
+          <div key={item.id} style={{
+            background: 'linear-gradient(135deg, #fff5f5, #fef2f2)',
+            border: '2px solid #ef4444',
+            borderRadius: 12,
+            padding: 12,
+            position: 'relative',
+            animation: 'dealPulse 2s ease-in-out infinite alternate'
+          }}>
+            {/* Flash promo */}
+            <div style={{
+              position: 'absolute',
+              top: -6,
+              left: 12,
+              background: '#ef4444',
+              color: 'white',
+              borderRadius: 8,
+              padding: '2px 8px',
+              fontSize: '0.7rem',
+              fontWeight: 700
+            }}>
+              ⚡ FLASH
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ fontSize: 32, filter: getItemGlow(item.id) }}>
+                {item.icon}
+              </div>
+              
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 700, fontSize: '1rem', color: '#1f2937' }}>
+                  {item.name}
+                </div>
+                <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: 6 }}>
+                  {item.description}
+                </div>
+                
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ 
+                    textDecoration: 'line-through', 
+                    color: '#9ca3af',
+                    fontSize: '0.9rem'
+                  }}>
+                    {item.originalPrice}🪙
+                  </span>
+                  <span style={{ 
+                    color: '#ef4444', 
+                    fontWeight: 700,
+                    fontSize: '1.2rem'
+                  }}>
+                    {item.price}🪙
+                  </span>
+                  <span style={{
+                    background: '#ef4444',
+                    color: 'white',
+                    borderRadius: 6,
+                    padding: '2px 6px',
+                    fontSize: '0.7rem',
+                    fontWeight: 700
+                  }}>
+                    -30%
+                  </span>
+                </div>
+              </div>
+
+              <button
+                onClick={() => buyItem(item)}
+                disabled={coins < item.price || ownedItems.includes(item.id)}
+                style={{
+                  background: ownedItems.includes(item.id) ? '#10b981' :
+                             coins >= item.price ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#e5e7eb',
+                  color: ownedItems.includes(item.id) ? 'white' :
+                         coins >= item.price ? 'white' : '#9ca3af',
+                  border: 'none',
+                  borderRadius: 8,
+                  padding: '8px 16px',
+                  fontWeight: 700,
+                  fontSize: '0.9rem',
+                  cursor: ownedItems.includes(item.id) || coins < item.price ? 'not-allowed' : 'pointer',
+                  boxShadow: coins >= item.price && !ownedItems.includes(item.id) ? '0 2px 8px rgba(239, 68, 68, 0.3)' : 'none'
+                }}
+              >
+                {ownedItems.includes(item.id) ? '✅ Possédé' : 'Acheter'}
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 
   // --- Quiz du jour: helpers ---
   const todayStr = new Date().toISOString().slice(0, 10)
@@ -2744,142 +3837,7 @@ export default function Progression({ user }) {
           )}
         </>
       ) : activeTab === 'boutique' ? (
-        // Boutique - Version mobile optimisée
-        <div>
-          {/* Filtres par catégorie - Version mobile */}
-          <div style={{
-            display: 'flex', 
-            gap: 6, // Réduction
-            justifyContent: 'flex-start', 
-            marginBottom: 16, // Réduction
-            flexWrap: 'wrap',
-            overflowX: 'auto',
-            paddingBottom: 4
-          }}>
-            {ITEM_TYPES.slice(0, 5).map(cat => ( // Limite les catégories affichées
-              <button
-                key={cat.id}
-                onClick={() => setShopFilter(cat.id)}
-                style={{
-                  background: shopFilter === cat.id ? '#f3f4f6' : 'transparent',
-                  color: '#374151',
-                  border: shopFilter === cat.id ? '2px solid #f59e0b' : '1px solid #e5e7eb',
-                  borderRadius: 8, // Réduction
-                  padding: '6px 10px', // Réduction
-                  fontWeight: 700,
-                  fontSize: '0.8rem', // Réduction
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  whiteSpace: 'nowrap',
-                  minWidth: 'auto'
-                }}
-              >
-                <span style={{ fontSize: '1rem', marginRight: 2 }}>{cat.icon}</span>
-                {cat.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Grille boutique - Version mobile */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, 1fr)', // 2 colonnes sur mobile
-            gap: 12, // Réduction
-            marginBottom: 16
-          }}>
-            {SHOP_ITEMS.filter(item => shopFilter === 'all' || item.type === shopFilter).slice(0, 8).map(item => (
-              <div key={item.id} style={{
-                background: '#fff',
-                border: ownedItems.includes(item.id)
-                  ? `1.5px solid ${item.rarity === 'legendary' ? '#f59e0b' : '#e5e7eb'}`
-                  : '1px solid #e5e7eb',
-                borderRadius: 12, // Réduction
-                padding: '12px 10px', // Réduction
-                textAlign: 'center',
-                opacity: ownedItems.includes(item.id) ? 1 : 0.85,
-                position: 'relative',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                transition: 'border 0.2s, box-shadow 0.2s'
-              }}>
-                {/* Badge rareté */}
-                {item.rarity !== 'common' && (
-                  <div style={{
-                    position: 'absolute',
-                    top: 6,
-                    right: 6,
-                    fontSize: 8,
-                    fontWeight: 700,
-                    color: item.rarity === 'legendary' ? '#f59e0b' : '#8b5cf6'
-                  }}>
-                    {item.rarity === 'legendary' ? '★' : '✦'}
-                  </div>
-                )}
-                
-                {/* Icône objet */}
-                <div style={{
-                  fontSize: 28, // Réduction
-                  marginBottom: 6,
-                  filter: getItemGlow(item.id)
-                }}>{item.icon}</div>
-                
-                <div style={{ 
-                  fontWeight: 700, 
-                  fontSize: 12, // Réduction
-                  marginBottom: 4, 
-                  color: '#1f2937',
-                  textAlign: 'center',
-                  lineHeight: 1.2
-                }}>
-                  {item.name.length > 12 ? item.name.substring(0, 12) + '...' : item.name}
-                </div>
-                
-                <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 8 }}>
-                  {item.price} 🪙
-                </div>
-
-                {/* Actions */}
-                {ownedItems.includes(item.id) ? (
-                  <button
-                    style={{
-                      background: equipped[item.type] === item.id ? '#10b981' : '#f3f4f6',
-                      color: equipped[item.type] === item.id ? 'white' : '#059669',
-                      border: 'none',
-                      borderRadius: 6,
-                      padding: '6px 8px',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      fontSize: 11,
-                      width: '100%'
-                    }}
-                    onClick={() => equipItem(item)}
-                  >
-                    {equipped[item.type] === item.id ? 'Équipé' : 'Équiper'}
-                  </button>
-                ) : (
-                  <button
-                    style={{
-                      background: coins >= item.price ? '#f59e0b' : '#f3f4f6',
-                      color: coins >= item.price ? 'white' : '#f59e0b',
-                      border: 'none',
-                      borderRadius: 6,
-                      padding: '6px 8px',
-                      fontWeight: 700,
-                      cursor: coins >= item.price ? 'pointer' : 'not-allowed',
-                      fontSize: 11,
-                      width: '100%'
-                    }}
-                    disabled={coins < item.price}
-                    onClick={() => buyItem(item)}
-                  >
-                    Acheter
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
+        renderShopTab()
       ) : (
         <div>
           {/* En-tête avec bouton d'actualisation */}
@@ -3078,6 +4036,9 @@ export default function Progression({ user }) {
               : "Montez dans le classement !"}
       </div>
 
+      {/* Modal d'aperçu d'objet */}
+      {itemPreviewOpen && renderItemPreview(itemPreviewOpen)}
+
       {/* CSS Animations */}
       <style jsx>{`
         @keyframes shopFeedbackAnim {
@@ -3126,6 +4087,21 @@ export default function Progression({ user }) {
           0% { transform: scale(0) rotate(0deg); opacity: 0; }
           50% { transform: scale(1.3) rotate(180deg); opacity: 1; }
           100% { transform: scale(1) rotate(360deg); opacity: 1; }
+        }
+        
+        @keyframes saleGlow {
+          0% { box-shadow: 0 0 5px rgba(239, 68, 68, 0.5); }
+          100% { box-shadow: 0 0 15px rgba(239, 68, 68, 0.8); }
+        }
+        
+        @keyframes dealPulse {
+          0% { transform: scale(1); }
+          100% { transform: scale(1.02); }
+        }
+        
+        @keyframes itemPreviewPop {
+          0% { opacity: 0; transform: scale(0.9) translateY(20px); }
+          100% { opacity: 1; transform: scale(1) translateY(0); }
         }
         
         /* Responsive spécifique */
