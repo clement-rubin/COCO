@@ -121,6 +121,117 @@ const DAILY_QUIZ_QUESTIONS = [
   }
 ]
 
+// --- Système de missions dynamiques ---
+const MISSIONS = [
+  // Missions recettes
+  {
+    id: 'first_recipe',
+    title: 'Première recette',
+    description: 'Publiez votre première recette',
+    icon: '📝',
+    type: 'recipe',
+    target: 1,
+    reward: { coins: 50, xp: 25 },
+    difficulty: 'facile'
+  },
+  {
+    id: 'recipe_master_5',
+    title: 'Chef en herbe',
+    description: 'Publiez 5 recettes',
+    icon: '👨‍🍳',
+    type: 'recipe',
+    target: 5,
+    reward: { coins: 150, xp: 75 },
+    difficulty: 'moyen'
+  },
+  {
+    id: 'recipe_master_10',
+    title: 'Maître cuisinier',
+    description: 'Publiez 10 recettes',
+    icon: '🍳',
+    type: 'recipe',
+    target: 10,
+    reward: { coins: 300, xp: 150, item: 'hat_crown' },
+    difficulty: 'difficile'
+  },
+  
+  // Missions sociales
+  {
+    id: 'first_like',
+    title: 'Premier like',
+    description: 'Recevez votre premier like',
+    icon: '❤️',
+    type: 'like',
+    target: 1,
+    reward: { coins: 20, xp: 10 },
+    difficulty: 'facile'
+  },
+  {
+    id: 'popular_chef',
+    title: 'Chef populaire',
+    description: 'Recevez 50 likes au total',
+    icon: '🌟',
+    type: 'like',
+    target: 50,
+    reward: { coins: 250, xp: 125 },
+    difficulty: 'difficile'
+  },
+  {
+    id: 'social_butterfly',
+    title: 'Papillon social',
+    description: 'Ajoutez 5 amis',
+    icon: '🤝',
+    type: 'friend',
+    target: 5,
+    reward: { coins: 100, xp: 50 },
+    difficulty: 'moyen'
+  },
+  
+  // Missions engagement
+  {
+    id: 'daily_quiz_streak',
+    title: 'Expert quiz',
+    description: 'Réussissez 3 quiz consécutifs',
+    icon: '🧠',
+    type: 'quiz_streak',
+    target: 3,
+    reward: { coins: 200, xp: 100, item: 'glasses_star' },
+    difficulty: 'moyen'
+  },
+  {
+    id: 'login_streak_7',
+    title: 'Assidu',
+    description: 'Connectez-vous 7 jours consécutifs',
+    icon: '🔥',
+    type: 'streak',
+    target: 7,
+    reward: { coins: 300, xp: 150 },
+    difficulty: 'moyen'
+  },
+  
+  // Missions spéciales
+  {
+    id: 'photo_perfectionist',
+    title: 'Photographe culinaire',
+    description: 'Partagez une photo de plat',
+    icon: '📸',
+    type: 'photo',
+    target: 1,
+    reward: { coins: 30, xp: 15 },
+    difficulty: 'facile'
+  },
+  {
+    id: 'complete_profile',
+    title: 'Profil complet',
+    description: 'Complétez votre profil',
+    icon: '👤',
+    type: 'profile',
+    target: 1,
+    reward: { coins: 80, xp: 40 },
+    difficulty: 'facile'
+  }
+]
+
 const DAILY_CHALLENGES = [
   { id: 'share_photo', label: "Partager une photo de plat", icon: "📸", reward: "+20 XP" },
   { id: 'comment', label: "Commenter une recette", icon: "💬", reward: "+10 XP" },
@@ -209,6 +320,109 @@ export default function Progression({ user }) {
       return {};
     }
   });
+  
+  // --- Système de missions ---
+  const [missions, setMissions] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('coco_missions') || '[]');
+      return saved.length > 0 ? saved : MISSIONS.slice(0, 4); // 4 missions actives par défaut
+    } catch {
+      return MISSIONS.slice(0, 4);
+    }
+  });
+  const [completedMissions, setCompletedMissions] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('coco_completed_missions') || '[]');
+    } catch {
+      return [];
+    }
+  });
+
+  // --- Fonctions helper pour missions ---
+  const getCurrentProgress = (mission) => {
+    if (!stats) return 0;
+    switch (mission.type) {
+      case 'recipe':
+        return stats.recipesCount || 0;
+      case 'like':
+        return stats.likesReceived || 0;
+      case 'friend':
+        return stats.friendsCount || 0;
+      case 'streak':
+        return stats.streak || 0;
+      case 'quiz_streak':
+        try {
+          const quizHistory = JSON.parse(localStorage.getItem('coco_quiz_history') || '[]');
+          // Calculer la série de quiz réussis consécutifs
+          let currentStreak = 0;
+          for (let i = quizHistory.length - 1; i >= 0; i--) {
+            if (quizHistory[i].success) {
+              currentStreak++;
+            } else {
+              break;
+            }
+          }
+          return currentStreak;
+        } catch {
+          return 0;
+        }
+      case 'photo':
+        // Simulé pour l'exemple - à adapter selon votre système
+        return 0;
+      case 'profile':
+        // Vérifie si le profil est complet
+        return (user?.user_metadata?.display_name && user?.user_metadata?.avatar_url) ? 1 : 0;
+      default:
+        return 0;
+    }
+  };
+
+  const checkMissionCompletion = async (mission) => {
+    const progress = getCurrentProgress(mission);
+    if (progress >= mission.target && !completedMissions.includes(mission.id)) {
+      // Mission complétée !
+      const newCompletedMissions = [...completedMissions, mission.id];
+      setCompletedMissions(newCompletedMissions);
+      localStorage.setItem('coco_completed_missions', JSON.stringify(newCompletedMissions));
+      
+      // Récompenses
+      if (mission.reward.coins) {
+        setCoins(prev => prev + mission.reward.coins);
+      }
+      if (mission.reward.xp) {
+        setXP(prev => prev + mission.reward.xp);
+      }
+      if (mission.reward.item && !ownedItems.includes(mission.reward.item)) {
+        setOwnedItems(prev => [...prev, mission.reward.item]);
+      }
+      
+      // Feedback visuel
+      setShopFeedback({ 
+        type: 'success', 
+        msg: `🎉 Mission "${mission.title}" terminée ! +${mission.reward.coins || 0} CocoCoins` 
+      });
+      setTimeout(() => setShopFeedback(null), 3000);
+      
+      // Animation coins
+      setCoinAnim(true);
+      setTimeout(() => setCoinAnim(false), 900);
+      
+      // Assigner une nouvelle mission aléatoirement
+      setTimeout(() => {
+        const remainingMissions = MISSIONS.filter(m => 
+          !newCompletedMissions.includes(m.id) && 
+          !missions.find(active => active.id === m.id)
+        );
+        if (remainingMissions.length > 0) {
+          const newMission = remainingMissions[Math.floor(Math.random() * remainingMissions.length)];
+          const updatedMissions = missions.map(m => m.id === mission.id ? newMission : m);
+          setMissions(updatedMissions);
+          localStorage.setItem('coco_missions', JSON.stringify(updatedMissions));
+        }
+      }, 2000);
+    }
+  };
+  
   // --- Quiz quotidien ---
   const [quizState, setQuizState] = useState(() => {
     try {
@@ -253,11 +467,27 @@ export default function Progression({ user }) {
         setXP(xpCalc)
         setLevelInfo(getLevel(xpCalc))
         setLoading(false)
+        
+        // Vérifier les missions après le chargement des stats
+        if (missions.length > 0) {
+          missions.forEach(mission => {
+            checkMissionCompletion(mission);
+          });
+        }
       }
     }
     fetchData()
     return () => { isMounted = false }
   }, [user, quizState])
+
+  // Effet pour vérifier les missions quand les stats changent
+  useEffect(() => {
+    if (!loading && missions.length > 0) {
+      missions.forEach(mission => {
+        checkMissionCompletion(mission);
+      });
+    }
+  }, [stats, missions, loading])
 
   useEffect(() => {
     setLevelInfo(getLevel(xp))
@@ -1890,6 +2120,229 @@ export default function Progression({ user }) {
             </div>
           </div>
 
+          {/* Missions actives - Version complète */}
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between',
+              marginBottom: 12 
+            }}>
+              <div style={{ fontWeight: 700, fontSize: '1rem', color: '#8b5cf6' }}>
+                Missions actives
+              </div>
+              <div style={{
+                fontSize: '0.8rem',
+                color: '#6b7280',
+                fontWeight: 600
+              }}>
+                {completedMissions.length} terminées
+              </div>
+            </div>
+
+            {/* Grille des missions */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(2, 1fr)',
+              gap: 10,
+              marginBottom: 16
+            }}>
+              {missions.map(mission => {
+                const progress = getCurrentProgress(mission);
+                const percent = Math.min(100, (progress / mission.target) * 100);
+                const isCompleted = completedMissions.includes(mission.id);
+                
+                return (
+                  <div key={mission.id} style={{
+                    background: isCompleted ? 
+                      'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)' : 
+                      'linear-gradient(135deg, #fff 0%, #f8fafc 100%)',
+                    border: isCompleted ? '2px solid #10b981' : '1px solid #e5e7eb',
+                    borderRadius: 14,
+                    padding: '12px 10px',
+                    textAlign: 'center',
+                    position: 'relative',
+                    boxShadow: isCompleted ? 
+                      '0 4px 12px rgba(16, 185, 129, 0.2)' : 
+                      '0 2px 6px rgba(0, 0, 0, 0.05)',
+                    transition: 'all 0.3s ease'
+                  }}>
+                    {/* Badge de completion */}
+                    {isCompleted && (
+                      <div style={{
+                        position: 'absolute',
+                        top: -6,
+                        right: -6,
+                        background: '#10b981',
+                        color: 'white',
+                        borderRadius: '50%',
+                        width: 20,
+                        height: 20,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: 10,
+                        fontWeight: 700,
+                        animation: 'completionBounce 0.6s ease-out'
+                      }}>✓</div>
+                    )}
+                    
+                    {/* Badge difficulté */}
+                    <div style={{
+                      position: 'absolute',
+                      top: 6,
+                      left: 6,
+                      fontSize: '0.6rem',
+                      fontWeight: 600,
+                      color: mission.difficulty === 'facile' ? '#10b981' : 
+                             mission.difficulty === 'moyen' ? '#f59e0b' : '#ef4444',
+                      background: 'rgba(255,255,255,0.9)',
+                      borderRadius: 6,
+                      padding: '2px 4px'
+                    }}>
+                      {mission.difficulty === 'facile' ? '●' : 
+                       mission.difficulty === 'moyen' ? '●●' : '●●●'}
+                    </div>
+                    
+                    {/* Icône principale */}
+                    <div style={{ 
+                      fontSize: 24, 
+                      marginBottom: 6,
+                      filter: isCompleted ? 'grayscale(0.3)' : 'none'
+                    }}>
+                      {mission.icon}
+                    </div>
+                    
+                    {/* Titre */}
+                    <div style={{ 
+                      fontWeight: 700, 
+                      fontSize: '0.8rem', 
+                      color: isCompleted ? '#16a34a' : '#374151',
+                      marginBottom: 6,
+                      lineHeight: 1.2,
+                      height: '2rem',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden'
+                    }}>
+                      {mission.title}
+                    </div>
+                    
+                    {/* Description */}
+                    <div style={{
+                      fontSize: '0.7rem',
+                      color: '#6b7280',
+                      marginBottom: 8,
+                      lineHeight: 1.1,
+                      height: '1.4rem',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {mission.description}
+                    </div>
+                    
+                    {/* Barre de progression avancée */}
+                    <div style={{
+                      background: '#f1f5f9',
+                      borderRadius: 8,
+                      height: 8,
+                      marginBottom: 8,
+                      overflow: 'hidden',
+                      position: 'relative'
+                    }}>
+                      <div style={{
+                        width: `${percent}%`,
+                        height: '100%',
+                        background: isCompleted ? 
+                          'linear-gradient(90deg, #10b981, #16a34a)' :
+                          percent > 75 ? 'linear-gradient(90deg, #10b981, #16a34a)' :
+                          percent > 50 ? 'linear-gradient(90deg, #f59e0b, #ea580c)' :
+                          percent > 25 ? 'linear-gradient(90deg, #8b5cf6, #7c3aed)' :
+                          'linear-gradient(90deg, #64748b, #475569)',
+                        borderRadius: 8,
+                        transition: 'width 0.8s ease-out',
+                        position: 'relative'
+                      }}>
+                        {/* Effet de brillance */}
+                        <div style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          height: '50%',
+                          background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)',
+                          borderRadius: '8px 8px 0 0'
+                        }} />
+                      </div>
+                    </div>
+                    
+                    {/* Stats et récompenses */}
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}>
+                      <div style={{
+                        fontSize: '0.7rem',
+                        color: isCompleted ? '#16a34a' : '#6b7280',
+                        fontWeight: 700
+                      }}>
+                        {progress}/{mission.target}
+                        {percent === 100 && !isCompleted && (
+                          <span style={{ color: '#f59e0b', marginLeft: 4 }}>🎯</span>
+                        )}
+                      </div>
+                      
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4
+                      }}>
+                        <div style={{
+                          fontSize: '0.65rem',
+                          color: '#f59e0b',
+                          fontWeight: 700,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 2
+                        }}>
+                          <span>🪙{mission.reward.coins}</span>
+                        </div>
+                        {mission.reward.item && (
+                          <div style={{
+                            fontSize: '0.7rem',
+                            filter: 'drop-shadow(0 0 4px #f59e0b)'
+                          }}>👑</div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Résumé des missions */}
+            <div style={{
+              background: 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)',
+              borderRadius: 12,
+              padding: '10px 12px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              fontSize: '0.8rem',
+              fontWeight: 600
+            }}>
+              <div style={{ color: '#475569' }}>
+                Missions en cours: {missions.filter(m => !completedMissions.includes(m.id)).length}
+              </div>
+              <div style={{ color: '#10b981' }}>
+                Terminées: {completedMissions.length}
+              </div>
+            </div>
+          </div>
+
           {/* Quiz du jour - Version mobile */}
           <div style={{ marginBottom: 20 }}>
             <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: 8, color: '#10b981' }}>
@@ -2429,6 +2882,12 @@ export default function Progression({ user }) {
             transform: scale(1.08);
             box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
           }
+        }
+        
+        @keyframes completionBounce {
+          0% { transform: scale(0) rotate(0deg); opacity: 0; }
+          50% { transform: scale(1.3) rotate(180deg); opacity: 1; }
+          100% { transform: scale(1) rotate(360deg); opacity: 1; }
         }
         
         /* Responsive spécifique */
