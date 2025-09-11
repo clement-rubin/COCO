@@ -338,88 +338,295 @@ export default function Progression({ user }) {
     }
   });
 
-  // --- Fonctions helper pour missions ---
-  const getCurrentProgress = (mission) => {
-    if (!stats) return 0;
-    switch (mission.type) {
-      case 'recipe':
-        return stats.recipesCount || 0;
-      case 'like':
-        return stats.likesReceived || 0;
-      case 'friend':
-        return stats.friendsCount || 0;
-      case 'streak':
-        return stats.streak || 0;
-      case 'quiz_streak':
-        try {
-          const quizHistory = JSON.parse(localStorage.getItem('coco_quiz_history') || '[]');
-          // Calculer la série de quiz réussis consécutifs
-          let currentStreak = 0;
-          for (let i = quizHistory.length - 1; i >= 0; i--) {
-            if (quizHistory[i].success) {
-              currentStreak++;
-            } else {
-              break;
-            }
+  // --- États pour le tracking des missions ---
+  const [missionProgresses, setMissionProgresses] = useState({});
+  const [missionsLoading, setMissionsLoading] = useState(false);
+
+  // --- Fonctions helper pour missions avec vraies données ---
+  const getCurrentProgress = async (mission) => {
+    if (!stats || !user) return 0;
+    
+    try {
+      switch (mission.type) {
+        // === MISSIONS RECETTES ===
+        case 'recipe_count':
+          return stats.recipesCount || 0;
+          
+        case 'recipe_categories':
+          const { data: recipes } = await supabase
+            .from('recipes')
+            .select('category')
+            .eq('user_id', user.id);
+          const uniqueCategories = [...new Set(recipes?.map(r => r.category) || [])];
+          return uniqueCategories.length;
+          
+        case 'weekend_recipes':
+          const { data: weekendRecipes } = await supabase
+            .from('recipes')
+            .select('created_at')
+            .eq('user_id', user.id);
+          const weekendCount = weekendRecipes?.filter(r => {
+            const day = new Date(r.created_at).getDay();
+            return day === 0 || day === 6;
+          }).length || 0;
+          return weekendCount;
+          
+        case 'night_recipe':
+          const { data: nightRecipes } = await supabase
+            .from('recipes')
+            .select('created_at')
+            .eq('user_id', user.id);
+          const nightCount = nightRecipes?.filter(r => {
+            const hour = new Date(r.created_at).getHours();
+            return hour >= 22 || hour <= 6;
+          }).length || 0;
+          return nightCount > 0 ? 1 : 0;
+          
+        case 'daily_recipes':
+          const today = new Date().toISOString().split('T')[0];
+          const { data: todayRecipes } = await supabase
+            .from('recipes')
+            .select('id')
+            .eq('user_id', user.id)
+            .gte('created_at', today + 'T00:00:00')
+            .lt('created_at', today + 'T23:59:59');
+          return todayRecipes?.length || 0;
+        
+        // === MISSIONS SOCIALES ===
+        case 'likes_received':
+          return stats.likesReceived || 0;
+          
+        case 'friends_count':
+          return stats.friendsCount || 0;
+          
+        // === MISSIONS QUIZ ===
+        case 'quiz_success_count':
+          try {
+            const quizHistory = JSON.parse(localStorage.getItem('coco_quiz_history') || '[]');
+            return quizHistory.filter(q => q.success).length;
+          } catch {
+            return 0;
           }
-          return currentStreak;
-        } catch {
+          
+        case 'quiz_streak':
+          try {
+            const quizHistory = JSON.parse(localStorage.getItem('coco_quiz_history') || '[]');
+            let currentStreak = 0;
+            for (let i = quizHistory.length - 1; i >= 0; i--) {
+              if (quizHistory[i].success) {
+                currentStreak++;
+              } else {
+                break;
+              }
+            }
+            return currentStreak;
+          } catch {
+            return 0;
+          }
+        
+        // === MISSIONS ASSIDUITÉ ===
+        case 'login_streak':
+          return stats.streak || 0;
+          
+        // === MISSIONS INTERACTION ===
+        case 'comments_given':
+          const { data: comments } = await supabase
+            .from('comments')
+            .select('id')
+            .eq('user_id', user.id);
+          return comments?.length || 0;
+          
+        // === MISSIONS PROFIL & CUSTOMISATION ===
+        case 'profile_complete':
+          const hasDisplayName = user?.user_metadata?.display_name;
+          const hasAvatar = user?.user_metadata?.avatar_url;
+          return (hasDisplayName && hasAvatar) ? 1 : 0;
+          
+        case 'equipped_items':
+          const equippedCount = Object.values(equipped).filter(item => item !== null).length;
+          return equippedCount;
+          
+        case 'owned_items':
+          return ownedItems.length;
+          
+        case 'purchased_items':
+          return purchaseHistory.length;
+          
+        // === MISSIONS SPÉCIALES ===
+        case 'special_early':
+          const joinDate = new Date(user?.created_at || Date.now());
+          const cutoffDate = new Date('2025-01-01');
+          return joinDate < cutoffDate ? 1 : 0;
+          
+        default:
           return 0;
-        }
-      case 'photo':
-        // Simulé pour l'exemple - à adapter selon votre système
-        return 0;
-      case 'profile':
-        // Vérifie si le profil est complet
-        return (user?.user_metadata?.display_name && user?.user_metadata?.avatar_url) ? 1 : 0;
-      default:
-        return 0;
+      }
+    } catch (error) {
+      console.error(`Erreur calcul progrès mission ${mission.id}:`, error);
+      return 0;
     }
   };
 
-  const checkMissionCompletion = async (mission) => {
-    const progress = getCurrentProgress(mission);
-    if (progress >= mission.target && !completedMissions.includes(mission.id)) {
-      // Mission complétée !
-      const newCompletedMissions = [...completedMissions, mission.id];
-      setCompletedMissions(newCompletedMissions);
-      localStorage.setItem('coco_completed_missions', JSON.stringify(newCompletedMissions));
+  // --- Fonction pour synchroniser toutes les missions ---
+  const syncAllMissions = async () => {
+    if (!user || missionsLoading) return;
+    
+    setMissionsLoading(true);
+    
+    try {
+      const progressMap = {};
       
-      // Récompenses
-      if (mission.reward.coins) {
-        setCoins(prev => prev + mission.reward.coins);
+      // Calculer le progrès pour chaque mission active
+      for (const mission of missions) {
+        const progress = await getCurrentProgress(mission);
+        progressMap[mission.id] = {
+          current: progress,
+          target: mission.target,
+          percent: Math.min(100, (progress / mission.target) * 100),
+          isCompleted: progress >= mission.target && !completedMissions.includes(mission.id)
+        };
       }
-      if (mission.reward.xp) {
-        setXP(prev => prev + mission.reward.xp);
+      
+      setMissionProgresses(progressMap);
+      
+      // Vérifier les missions complétées
+      const newlyCompleted = [];
+      for (const mission of missions) {
+        if (progressMap[mission.id]?.isCompleted) {
+          newlyCompleted.push(mission);
+        }
       }
+      
+      // Traiter les missions complétées
+      if (newlyCompleted.length > 0) {
+        await processMissionCompletions(newlyCompleted);
+      }
+      
+    } catch (error) {
+      console.error('Erreur lors de la synchronisation des missions:', error);
+    }
+    
+    setMissionsLoading(false);
+  };
+  
+  // --- Fonction pour traiter les missions complétées ---
+  const processMissionCompletions = async (newlyCompleted) => {
+    const newCompletedIds = newlyCompleted.map(m => m.id);
+    const allCompleted = [...completedMissions, ...newCompletedIds];
+    
+    // Calculer les récompenses totales
+    let totalCoins = 0;
+    let totalXP = 0;
+    const newItems = [];
+    
+    for (const mission of newlyCompleted) {
+      totalCoins += mission.reward.coins || 0;
+      totalXP += mission.reward.xp || 0;
+      
       if (mission.reward.item && !ownedItems.includes(mission.reward.item)) {
-        setOwnedItems(prev => [...prev, mission.reward.item]);
+        newItems.push(mission.reward.item);
       }
-      
-      // Feedback visuel
+    }
+    
+    // Mettre à jour les états
+    setCompletedMissions(allCompleted);
+    localStorage.setItem('coco_completed_missions', JSON.stringify(allCompleted));
+    
+    if (totalCoins > 0) {
+      setCoins(prev => prev + totalCoins);
+      // Mettre à jour en base
+      await supabase
+        .from('user_pass')
+        .update({ coins: coins + totalCoins })
+        .eq('user_id', user.id);
+    }
+    
+    if (totalXP > 0) {
+      setXP(prev => prev + totalXP);
+    }
+    
+    if (newItems.length > 0) {
+      const updatedItems = [...ownedItems, ...newItems];
+      setOwnedItems(updatedItems);
+      // Mettre à jour en base
+      await supabase
+        .from('user_pass')
+        .update({ owned_items: updatedItems })
+        .eq('user_id', user.id);
+    }
+    
+    // Feedback visuel
+    if (newlyCompleted.length === 1) {
+      const mission = newlyCompleted[0];
       setShopFeedback({ 
         type: 'success', 
         msg: `🎉 Mission "${mission.title}" terminée ! +${mission.reward.coins || 0} CocoCoins` 
       });
-      setTimeout(() => setShopFeedback(null), 3000);
+    } else {
+      setShopFeedback({ 
+        type: 'success', 
+        msg: `🎉 ${newlyCompleted.length} missions terminées ! +${totalCoins} CocoCoins` 
+      });
+    }
+    
+    setTimeout(() => setShopFeedback(null), 4000);
+    
+    // Animation coins
+    setCoinAnim(true);
+    setTimeout(() => setCoinAnim(false), 900);
+    
+    // Remplacer les missions complétées par de nouvelles
+    setTimeout(async () => {
+      await assignNewMissions(newCompletedIds);
+    }, 2000);
+  };
+  
+  // --- Fonction pour assigner de nouvelles missions ---
+  const assignNewMissions = async (completedIds) => {
+    const allCompleted = getCompletedMissions();
+    const currentMissionIds = missions.map(m => m.id);
+    
+    // Missions disponibles (non complétées et non actives)
+    const availableMissions = MISSIONS.filter(m => 
+      !allCompleted.includes(m.id) && 
+      !currentMissionIds.includes(m.id)
+    );
+    
+    // Remplacer les missions complétées
+    let updatedMissions = missions.filter(m => !completedIds.includes(m.id));
+    
+    // Ajouter de nouvelles missions jusqu'à avoir 6 missions actives
+    while (updatedMissions.length < 6 && availableMissions.length > 0) {
+      // Prioriser selon la difficulté et catégorie
+      const easyMissions = availableMissions.filter(m => m.difficulty === 'facile');
+      const mediumMissions = availableMissions.filter(m => m.difficulty === 'moyen');
       
-      // Animation coins
-      setCoinAnim(true);
-      setTimeout(() => setCoinAnim(false), 900);
+      let selectedMission;
+      if (easyMissions.length > 0 && Math.random() > 0.3) {
+        selectedMission = easyMissions[Math.floor(Math.random() * easyMissions.length)];
+      } else if (mediumMissions.length > 0 && Math.random() > 0.5) {
+        selectedMission = mediumMissions[Math.floor(Math.random() * mediumMissions.length)];
+      } else {
+        selectedMission = availableMissions[Math.floor(Math.random() * availableMissions.length)];
+      }
       
-      // Assigner une nouvelle mission aléatoirement
-      setTimeout(() => {
-        const remainingMissions = MISSIONS.filter(m => 
-          !newCompletedMissions.includes(m.id) && 
-          !missions.find(active => active.id === m.id)
-        );
-        if (remainingMissions.length > 0) {
-          const newMission = remainingMissions[Math.floor(Math.random() * remainingMissions.length)];
-          const updatedMissions = missions.map(m => m.id === mission.id ? newMission : m);
-          setMissions(updatedMissions);
-          localStorage.setItem('coco_missions', JSON.stringify(updatedMissions));
-        }
-      }, 2000);
+      updatedMissions.push(selectedMission);
+      availableMissions.splice(availableMissions.indexOf(selectedMission), 1);
+    }
+    
+    setMissions(updatedMissions);
+    localStorage.setItem('coco_missions', JSON.stringify(updatedMissions));
+    
+    // Recalculer les progrès pour les nouvelles missions
+    await syncAllMissions();
+  };
+  
+  // --- Helper pour obtenir les missions complétées ---
+  const getCompletedMissions = () => {
+    try {
+      return JSON.parse(localStorage.getItem('coco_completed_missions') || '[]');
+    } catch {
+      return [];
     }
   };
   
@@ -468,11 +675,9 @@ export default function Progression({ user }) {
         setLevelInfo(getLevel(xpCalc))
         setLoading(false)
         
-        // Vérifier les missions après le chargement des stats
-        if (missions.length > 0) {
-          missions.forEach(mission => {
-            checkMissionCompletion(mission);
-          });
+        // Synchroniser les missions après le chargement des stats
+        if (user?.id) {
+          await syncAllMissions();
         }
       }
     }
@@ -480,14 +685,25 @@ export default function Progression({ user }) {
     return () => { isMounted = false }
   }, [user, quizState])
 
-  // Effet pour vérifier les missions quand les stats changent
+  // Effet pour synchroniser les missions quand les stats changent
   useEffect(() => {
-    if (!loading && missions.length > 0) {
-      missions.forEach(mission => {
-        checkMissionCompletion(mission);
-      });
+    if (!loading && user?.id && missions.length > 0) {
+      syncAllMissions();
     }
-  }, [stats, missions, loading])
+  }, [stats, ownedItems, equipped, purchaseHistory])
+
+  // Effet pour synchroniser périodiquement (toutes les 30 secondes)
+  useEffect(() => {
+    if (!user?.id) return;
+    
+    const interval = setInterval(async () => {
+      if (!missionsLoading) {
+        await syncAllMissions();
+      }
+    }, 30000); // 30 secondes
+    
+    return () => clearInterval(interval);
+  }, [user, missionsLoading])
 
   useEffect(() => {
     setLevelInfo(getLevel(xp))
@@ -529,14 +745,26 @@ export default function Progression({ user }) {
     const newOwned = [...ownedItems, item.id];
     setCoins(newCoins);
     setOwnedItems(newOwned);
-    setPurchaseHistory(prev => [
-      { date: new Date(), item },
-      ...prev
-    ])
+    
+    // Sauvegarder l'historique d'achats
+    const newPurchaseHistory = [
+      { date: new Date(), item, price: item.price },
+      ...purchaseHistory
+    ];
+    setPurchaseHistory(newPurchaseHistory);
+    
+    // Sauvegarder dans localStorage pour les missions
+    try {
+      localStorage.setItem('coco_purchase_history', JSON.stringify(newPurchaseHistory));
+    } catch (error) {
+      console.error('Erreur sauvegarde historique achats:', error);
+    }
+    
     setShopFeedback({ type: 'success', msg: `✅ ${item.name} acheté !` })
     setTimeout(() => setShopFeedback(null), 2000)
     setCoinAnim(true)
     setTimeout(() => setCoinAnim(false), 900)
+    
     // --- À chaque achat ou modification ---
     async function updateUserPass(newFields) {
       await supabase
@@ -544,7 +772,16 @@ export default function Progression({ user }) {
         .update(newFields)
         .eq('user_id', user.id);
     }
-    await updateUserPass({ coins: newCoins, owned_items: newOwned });
+    await updateUserPass({ 
+      coins: newCoins, 
+      owned_items: newOwned,
+      purchase_history: newPurchaseHistory 
+    });
+    
+    // Synchroniser les missions après achat
+    setTimeout(async () => {
+      await syncAllMissions();
+    }, 500);
   }
 
   // --- Gestion équipement objet avec feedback ---
@@ -2148,8 +2385,9 @@ export default function Progression({ user }) {
               marginBottom: 16
             }}>
               {missions.map(mission => {
-                const progress = getCurrentProgress(mission);
-                const percent = Math.min(100, (progress / mission.target) * 100);
+                const progressData = missionProgresses[mission.id] || { current: 0, target: mission.target, percent: 0 };
+                const progress = progressData.current;
+                const percent = progressData.percent;
                 const isCompleted = completedMissions.includes(mission.id);
                 
                 return (
