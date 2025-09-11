@@ -432,7 +432,278 @@ const SHOP_ITEMS = [
   }
 ]
 
-// === PACKS SPÉCIAUX ===
+// === SYSTÈME DE CARTES À COLLECTIONNER ===
+const CARD_COLLECTIONS = [
+  {
+    id: 'ingredients',
+    name: 'Ingrédients du Monde',
+    icon: '🌶️',
+    description: 'Découvrez les ingrédients les plus exotiques',
+    color: '#10b981'
+  },
+  {
+    id: 'chefs',
+    name: 'Grands Chefs',
+    icon: '👨‍🍳',
+    description: 'Les légendes de la gastronomie mondiale',
+    color: '#f59e0b'
+  },
+  {
+    id: 'dishes',
+    name: 'Plats Mythiques',
+    icon: '🍽️',
+    description: 'Les créations culinaires les plus célèbres',
+    color: '#8b5cf6'
+  },
+  {
+    id: 'techniques',
+    name: 'Techniques Secrètes',
+    icon: '⚡',
+    description: 'Les secrets des maîtres cuisiniers',
+    color: '#ef4444'
+  },
+  {
+    id: 'regions',
+    name: 'Cuisines du Monde',
+    icon: '🌍',
+    description: 'Un voyage culinaire à travers les continents',
+    color: '#06b6d4'
+  }
+];
+
+const TRADING_CARDS = [
+  // === COLLECTION INGRÉDIENTS ===
+  {
+    id: 'card_saffron',
+    name: 'Safran de Cachemire',
+    collection: 'ingredients',
+    rarity: 'legendary',
+    icon: '🌸',
+    description: 'L\'épice la plus précieuse au monde, récoltée à la main dans les montagnes du Cachemire.',
+    stats: { saveur: 95, rareté: 98, prix: 92 },
+    lore: 'Il faut 150 fleurs pour obtenir 1 gramme de safran.',
+    artist: 'Chef Amara',
+    number: '001/100',
+    releaseDate: '2024-01-15'
+  },
+  {
+    id: 'card_truffle',
+    name: 'Truffe Noire du Périgord',
+    collection: 'ingredients',
+    rarity: 'epic',
+    icon: '🍄',
+    description: 'Le diamant noir de la cuisine française, symbole de luxe et de raffinement.',
+    stats: { saveur: 88, rareté: 85, prix: 89 },
+    lore: 'Les cochons et chiens sont dressés spécialement pour les dénicher.',
+    artist: 'Marie Dubois',
+    number: '012/100',
+    releaseDate: '2024-01-20'
+  },
+  {
+    id: 'card_vanilla',
+    name: 'Vanille de Madagascar',
+    collection: 'ingredients',
+    rarity: 'rare',
+    icon: '🌿',
+    description: 'L\'or noir de l\'océan Indien, aux arômes incomparables.',
+    stats: { saveur: 82, rareté: 70, prix: 75 },
+    lore: 'Chaque gousse nécessite 9 mois de maturation.',
+    artist: 'Pierre Lemoine',
+    number: '028/100',
+    releaseDate: '2024-01-25'
+  },
+  {
+    id: 'card_wasabi',
+    name: 'Wasabi Sauvage',
+    collection: 'ingredients',
+    rarity: 'uncommon',
+    icon: '🟢',
+    description: 'Le véritable wasabi japonais, cultivé dans les rivières de montagne.',
+    stats: { saveur: 75, rareté: 65, prix: 68 },
+    lore: 'Seuls quelques maîtres savent le cultiver correctement.',
+    artist: 'Hiroshi Tanaka',
+    number: '045/100',
+    releaseDate: '2024-02-01'
+  },
+
+  // === COLLECTION GRANDS CHEFS ===
+  {
+    id: 'card_escoffier',
+    name: 'Auguste Escoffier',
+    collection: 'chefs',
+    rarity: 'legendary',
+    icon: '👑',
+    description: 'Le roi des cuisiniers et cuisinier des rois. Révolutionnaire de la cuisine moderne.',
+    stats: { technique: 98, innovation: 95, influence: 100 },
+    lore: 'Créateur de la brigade de cuisine et de milliers de recettes.',
+    artist: 'Classical Arts',
+    number: '001/080',
+    releaseDate: '2024-01-10'
+  },
+  {
+    id: 'card_robuchon',
+    name: 'Joël Robuchon',
+    collection: 'chefs',
+    rarity: 'epic',
+    icon: '⭐',
+    description: 'Le chef aux 32 étoiles Michelin, maître de la perfection culinaire.',
+    stats: { technique: 96, innovation: 88, influence: 94 },
+    lore: 'Détenteur du record mondial d\'étoiles Michelin.',
+    artist: 'Modern Masters',
+    number: '008/080',
+    releaseDate: '2024-01-12'
+  },
+  {
+    id: 'card_bocuse',
+    name: 'Paul Bocuse',
+    collection: 'chefs',
+    rarity: 'epic',
+    icon: '🏆',
+    description: 'L\'empereur de la cuisine lyonnaise, ambassadeur de la gastronomie française.',
+    stats: { technique: 92, innovation: 85, influence: 96 },
+    lore: 'Premier chef à faire de la cuisine un art médiatique.',
+    artist: 'Lyon Heritage',
+    number: '015/080',
+    releaseDate: '2024-01-18'
+  },
+
+  // === COLLECTION PLATS MYTHIQUES ===
+  {
+    id: 'card_bouillabaisse',
+    name: 'Bouillabaisse Marseillaise',
+    collection: 'dishes',
+    rarity: 'rare',
+    icon: '🦐',
+    description: 'La soupe de poissons emblématique de Marseille, gardienne de traditions séculaires.',
+    stats: { complexité: 85, tradition: 95, goût: 88 },
+    lore: 'Protégée par une charte stricte depuis 1980.',
+    artist: 'Mediterranean Soul',
+    number: '023/120',
+    releaseDate: '2024-01-22'
+  },
+  {
+    id: 'card_ramen',
+    name: 'Ramen Authentique',
+    collection: 'dishes',
+    rarity: 'uncommon',
+    icon: '🍜',
+    description: 'Le plat réconfort du Japon, fruit d\'années de perfectionnement.',
+    stats: { complexité: 78, tradition: 85, goût: 82 },
+    lore: 'Chaque région du Japon a sa propre version.',
+    artist: 'Tokyo Dreams',
+    number: '067/120',
+    releaseDate: '2024-02-05'
+  },
+
+  // === COLLECTION TECHNIQUES ===
+  {
+    id: 'card_flambage',
+    name: 'Technique du Flambage',
+    collection: 'techniques',
+    rarity: 'epic',
+    icon: '🔥',
+    description: 'L\'art spectaculaire d\'enflammer l\'alcool pour sublimer les saveurs.',
+    stats: { difficulté: 90, spectacle: 95, maîtrise: 88 },
+    lore: 'Inventée au 19ème siècle par Henri Charpentier.',
+    artist: 'Fire & Flavor',
+    number: '005/060',
+    releaseDate: '2024-01-30'
+  },
+  {
+    id: 'card_sousvide',
+    name: 'Cuisson Sous Vide',
+    collection: 'techniques',
+    rarity: 'rare',
+    icon: '🌡️',
+    description: 'La précision ultime en cuisson, pour des textures parfaites.',
+    stats: { difficulté: 75, précision: 98, innovation: 85 },
+    lore: 'Développée dans les années 70 pour la haute gastronomie.',
+    artist: 'Modern Tech',
+    number: '018/060',
+    releaseDate: '2024-02-08'
+  },
+
+  // === COLLECTION CUISINES DU MONDE ===
+  {
+    id: 'card_french',
+    name: 'Cuisine Française',
+    collection: 'regions',
+    rarity: 'epic',
+    icon: '🇫🇷',
+    description: 'L\'art culinaire à la française, référence mondiale de la gastronomie.',
+    stats: { technique: 95, raffinement: 98, influence: 100 },
+    lore: 'Inscrite au patrimoine immatériel de l\'UNESCO.',
+    artist: 'Hexagon Pride',
+    number: '001/050',
+    releaseDate: '2024-01-05'
+  },
+  {
+    id: 'card_italian',
+    name: 'Cuisine Italienne',
+    collection: 'regions',
+    rarity: 'rare',
+    icon: '🇮🇹',
+    description: 'La simplicité sublimée, où chaque ingrédient révèle sa vraie nature.',
+    stats: { simplicité: 92, authenticité: 95, popularité: 98 },
+    lore: 'Basée sur la qualité des produits locaux depuis l\'Antiquité.',
+    artist: 'Bella Italia',
+    number: '007/050',
+    releaseDate: '2024-01-14'
+  }
+];
+
+// === PACKS DE CARTES ===
+const CARD_PACKS = [
+  {
+    id: 'pack_basic',
+    name: 'Booster Découverte',
+    price: 50,
+    icon: '📦',
+    cards: 3,
+    description: '3 cartes aléatoires pour débuter votre collection',
+    rarityDistribution: {
+      common: 0.6,
+      uncommon: 0.3,
+      rare: 0.08,
+      epic: 0.015,
+      legendary: 0.005
+    }
+  },
+  {
+    id: 'pack_premium',
+    name: 'Booster Premium',
+    price: 120,
+    icon: '🎁',
+    cards: 5,
+    description: '5 cartes avec au moins 1 rare garantie',
+    rarityDistribution: {
+      common: 0.4,
+      uncommon: 0.35,
+      rare: 0.2,
+      epic: 0.04,
+      legendary: 0.01
+    },
+    guaranteedRare: true
+  },
+  {
+    id: 'pack_legendary',
+    name: 'Booster Légendaire',
+    price: 300,
+    icon: '👑',
+    cards: 7,
+    description: '7 cartes avec garantie épique ou légendaire',
+    rarityDistribution: {
+      common: 0.2,
+      uncommon: 0.3,
+      rare: 0.35,
+      epic: 0.12,
+      legendary: 0.03
+    },
+    guaranteedEpic: true
+  }
+];
+
+// === PACKS SPÉCIAUX OBJETS ===
 const SHOP_PACKS = [
   {
     id: 'pack_starter',
@@ -741,7 +1012,7 @@ export default function Progression({ user }) {
   const [activeTab, setActiveTab] = useState('progression') // 'progression' | 'boutique' | 'classement'
   const [favoriteItems, setFavoriteItems] = useState([])
   const [shopFilter, setShopFilter] = useState('all')
-  const [shopTab, setShopTab] = useState('items') // 'items', 'packs', 'deals'
+  const [shopTab, setShopTab] = useState('items') // 'items', 'packs', 'deals', 'cards'
   const [dressingOpen, setDressingOpen] = useState(false)
   const [dressingTab, setDressingTab] = useState('hat') // caté active dans le dressing
   const [itemPreviewOpen, setItemPreviewOpen] = useState(null)
@@ -752,6 +1023,30 @@ export default function Progression({ user }) {
       return [];
     }
   })
+  
+  // === ÉTATS SYSTÈME DE CARTES ===
+  const [ownedCards, setOwnedCards] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('coco_owned_cards') || '[]');
+    } catch {
+      return [];
+    }
+  })
+  const [cardCollection, setCardCollection] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('coco_card_collection') || '{}');
+    } catch {
+      return {};
+    }
+  })
+  const [cardPreviewOpen, setCardPreviewOpen] = useState(null)
+  const [packOpeningAnimation, setPackOpeningAnimation] = useState(null)
+  const [tradingModalOpen, setTradingModalOpen] = useState(false)
+  const [cardFilter, setCardFilter] = useState('all') // 'all', 'ingredients', 'chefs', etc.
+  const [cardSortBy, setCardSortBy] = useState('rarity') // 'rarity', 'name', 'collection'
+  const [marketplaceOpen, setMarketplaceOpen] = useState(false)
+  const [tradeOffers, setTradeOffers] = useState([])
+  const [myTradeOffers, setMyTradeOffers] = useState([])
   const [completedChallenges, setCompletedChallenges] = useState(() => {
     // Stockage local pour empêcher la validation infinie des quêtes
     try {
@@ -2302,14 +2597,16 @@ export default function Progression({ user }) {
         {/* Onglets boutique */}
         <div style={{
           display: 'flex',
-          gap: 8,
+          gap: 6,
           marginBottom: 16,
-          justifyContent: 'center'
+          justifyContent: 'center',
+          flexWrap: 'wrap'
         }}>
           {[
             { id: 'items', label: 'Objets', icon: '🛍️' },
             { id: 'packs', label: 'Packs', icon: '📦' },
-            { id: 'deals', label: 'Promos', icon: '💥' }
+            { id: 'deals', label: 'Promos', icon: '💥' },
+            { id: 'cards', label: 'Cartes', icon: '🃏' }
           ].map(tab => (
             <button
               key={tab.id}
@@ -2319,9 +2616,9 @@ export default function Progression({ user }) {
                 color: shopTab === tab.id ? 'white' : '#10b981',
                 border: shopTab === tab.id ? 'none' : '1px solid #10b981',
                 borderRadius: 10,
-                padding: '8px 14px',
+                padding: '6px 12px',
                 fontWeight: 700,
-                fontSize: '0.9rem',
+                fontSize: '0.8rem',
                 cursor: 'pointer',
                 transition: 'all 0.2s',
                 boxShadow: shopTab === tab.id ? '0 2px 8px rgba(16, 185, 129, 0.3)' : 'none'
@@ -2336,6 +2633,7 @@ export default function Progression({ user }) {
         {shopTab === 'items' && renderItemsShop()}
         {shopTab === 'packs' && renderPacksShop()}
         {shopTab === 'deals' && renderDealsShop(dailyDeals)}
+        {shopTab === 'cards' && renderCardsShop()}
       </div>
     );
   };
@@ -2749,6 +3047,871 @@ export default function Progression({ user }) {
       </div>
     </div>
   );
+
+  // === SYSTÈME DE CARTES À COLLECTIONNER ===
+  
+  // --- Ouverture de pack avec animation ---
+  const openCardPack = async (packType) => {
+    const pack = CARD_PACKS.find(p => p.id === packType);
+    if (!pack || coins < pack.price) return;
+
+    // Déduire le prix
+    setCoins(prev => prev - pack.price);
+    
+    // Animation d'ouverture
+    setPackOpeningAnimation(pack);
+    
+    // Générer les cartes aléatoirement
+    const newCards = [];
+    for (let i = 0; i < pack.cards; i++) {
+      const card = generateRandomCard(pack.rarityDistribution, pack.guaranteedRare && i === 0, pack.guaranteedEpic && i === 0);
+      newCards.push(card);
+    }
+    
+    // Ajouter les cartes à la collection
+    const updatedCards = [...ownedCards, ...newCards];
+    setOwnedCards(updatedCards);
+    localStorage.setItem('coco_owned_cards', JSON.stringify(updatedCards));
+    
+    // Mettre à jour les statistiques de collection
+    updateCardCollectionStats(updatedCards);
+    
+    // Feedback avec animation
+    setTimeout(() => {
+      setPackOpeningAnimation({ ...pack, revealedCards: newCards });
+    }, 1000);
+    
+    setTimeout(() => {
+      setPackOpeningAnimation(null);
+      setShopFeedback({
+        type: 'success',
+        msg: `🎁 Pack ouvert ! ${newCards.filter(c => c.rarity === 'legendary' || c.rarity === 'epic').length > 0 ? '⭐ Cartes rares trouvées !' : ''}`
+      });
+      setTimeout(() => setShopFeedback(null), 3000);
+    }, 3000);
+
+    // Mettre à jour en base
+    await supabase
+      .from('user_pass')
+      .update({ coins: coins - pack.price })
+      .eq('user_id', user.id);
+  };
+
+  // --- Génération aléatoire de carte ---
+  const generateRandomCard = (distribution, guaranteedRare = false, guaranteedEpic = false) => {
+    let rarity = 'common';
+    
+    if (guaranteedEpic) {
+      rarity = Math.random() < 0.7 ? 'epic' : 'legendary';
+    } else if (guaranteedRare) {
+      rarity = Math.random() < 0.6 ? 'rare' : (Math.random() < 0.8 ? 'epic' : 'legendary');
+    } else {
+      const rand = Math.random();
+      let cumulative = 0;
+      for (const [r, prob] of Object.entries(distribution)) {
+        cumulative += prob;
+        if (rand <= cumulative) {
+          rarity = r;
+          break;
+        }
+      }
+    }
+    
+    // Sélectionner une carte aléatoire de cette rareté
+    const availableCards = TRADING_CARDS.filter(c => c.rarity === rarity);
+    const selectedCard = availableCards[Math.floor(Math.random() * availableCards.length)];
+    
+    return {
+      ...selectedCard,
+      id: selectedCard.id + '_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9), // ID unique
+      obtainedAt: new Date().toISOString()
+    };
+  };
+
+  // --- Mise à jour statistiques collection ---
+  const updateCardCollectionStats = (cards) => {
+    const stats = {};
+    
+    CARD_COLLECTIONS.forEach(collection => {
+      const collectionCards = cards.filter(c => c.collection === collection.id);
+      const uniqueCards = [...new Set(collectionCards.map(c => c.id.split('_')[0]))];
+      const totalInCollection = TRADING_CARDS.filter(c => c.collection === collection.id).length;
+      
+      stats[collection.id] = {
+        owned: uniqueCards.length,
+        total: totalInCollection,
+        percentage: Math.round((uniqueCards.length / totalInCollection) * 100),
+        duplicates: collectionCards.length - uniqueCards.length
+      };
+    });
+    
+    setCardCollection(stats);
+    localStorage.setItem('coco_card_collection', JSON.stringify(stats));
+  };
+
+  // --- Onglet cartes à collectionner ---
+  const renderCardsShop = () => (
+    <div>
+      {/* En-tête avec statistiques */}
+      <div style={{
+        background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
+        borderRadius: 12,
+        padding: 12,
+        marginBottom: 16,
+        textAlign: 'center'
+      }}>
+        <div style={{ fontWeight: 700, color: '#0284c7', fontSize: '1rem', marginBottom: 6 }}>
+          🃏 Collection de Cartes Culinaires
+        </div>
+        <div style={{ fontSize: '0.8rem', color: '#0369a1' }}>
+          {ownedCards.length} cartes possédées • {Object.keys(cardCollection).length} collections
+        </div>
+      </div>
+
+      {/* Onglets cartes */}
+      <div style={{
+        display: 'flex',
+        gap: 6,
+        marginBottom: 16,
+        justifyContent: 'center',
+        flexWrap: 'wrap'
+      }}>
+        {[
+          { id: 'shop', label: 'Boutique', icon: '🛒' },
+          { id: 'collection', label: 'Collection', icon: '📚' },
+          { id: 'marketplace', label: 'Échanges', icon: '🤝' }
+        ].map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setCardFilter(tab.id)}
+            style={{
+              background: cardFilter === tab.id ? 'linear-gradient(135deg, #0284c7, #0369a1)' : '#fff',
+              color: cardFilter === tab.id ? 'white' : '#0284c7',
+              border: cardFilter === tab.id ? 'none' : '1px solid #0284c7',
+              borderRadius: 8,
+              padding: '6px 12px',
+              fontWeight: 700,
+              fontSize: '0.8rem',
+              cursor: 'pointer'
+            }}
+          >
+            <span style={{ marginRight: 4 }}>{tab.icon}</span>
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {cardFilter === 'shop' && renderCardPackShop()}
+      {cardFilter === 'collection' && renderCardCollection()}
+      {cardFilter === 'marketplace' && renderCardMarketplace()}
+    </div>
+  );
+
+  // --- Boutique de packs ---
+  const renderCardPackShop = () => (
+    <div>
+      <div style={{
+        textAlign: 'center',
+        marginBottom: 16,
+        color: '#0369a1',
+        fontSize: '0.9rem'
+      }}>
+        🎲 Ouvrez des boosters pour obtenir des cartes aléatoires !
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12 }}>
+        {CARD_PACKS.map(pack => (
+          <div key={pack.id} style={{
+            background: '#fff',
+            border: '1px solid #e0f2fe',
+            borderRadius: 12,
+            padding: 16,
+            position: 'relative'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+              <div style={{ fontSize: 32 }}>{pack.icon}</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 700, fontSize: '1rem', color: '#1f2937' }}>
+                  {pack.name}
+                </div>
+                <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>
+                  {pack.description}
+                </div>
+              </div>
+            </div>
+
+            {/* Détails du pack */}
+            <div style={{
+              background: '#f8fafc',
+              borderRadius: 8,
+              padding: 10,
+              marginBottom: 12,
+              fontSize: '0.8rem'
+            }}>
+              <div style={{ marginBottom: 4 }}>
+                <strong>Contenu:</strong> {pack.cards} cartes
+              </div>
+              <div style={{ marginBottom: 4 }}>
+                <strong>Chances:</strong>
+                <ul style={{ margin: '4px 0', paddingLeft: 16 }}>
+                  <li>Commune: {(pack.rarityDistribution.common * 100).toFixed(0)}%</li>
+                  <li>Peu commune: {(pack.rarityDistribution.uncommon * 100).toFixed(0)}%</li>
+                  <li>Rare: {(pack.rarityDistribution.rare * 100).toFixed(1)}%</li>
+                  <li>Épique: {(pack.rarityDistribution.epic * 100).toFixed(1)}%</li>
+                  <li>Légendaire: {(pack.rarityDistribution.legendary * 100).toFixed(1)}%</li>
+                </ul>
+              </div>
+              {pack.guaranteedRare && (
+                <div style={{ color: '#f59e0b', fontWeight: 600 }}>
+                  ⭐ Au moins 1 rare garantie
+                </div>
+              )}
+              {pack.guaranteedEpic && (
+                <div style={{ color: '#8b5cf6', fontWeight: 600 }}>
+                  💎 Épique ou légendaire garantie
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{
+                color: '#0284c7',
+                fontWeight: 700,
+                fontSize: '1.2rem'
+              }}>
+                {pack.price} 🪙
+              </div>
+
+              <button
+                onClick={() => openCardPack(pack.id)}
+                disabled={coins < pack.price}
+                style={{
+                  background: coins >= pack.price 
+                    ? 'linear-gradient(135deg, #0284c7, #0369a1)' 
+                    : '#e5e7eb',
+                  color: coins >= pack.price ? 'white' : '#9ca3af',
+                  border: 'none',
+                  borderRadius: 8,
+                  padding: '8px 16px',
+                  fontWeight: 700,
+                  fontSize: '0.9rem',
+                  cursor: coins >= pack.price ? 'pointer' : 'not-allowed'
+                }}
+              >
+                Ouvrir le pack
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  // --- Collection de cartes ---
+  const renderCardCollection = () => {
+    const groupedCards = {};
+    
+    // Grouper les cartes par collection
+    CARD_COLLECTIONS.forEach(collection => {
+      groupedCards[collection.id] = {
+        info: collection,
+        cards: TRADING_CARDS.filter(c => c.collection === collection.id),
+        owned: ownedCards.filter(c => c.collection === collection.id)
+      };
+    });
+
+    return (
+      <div>
+        {/* Statistiques globales */}
+        <div style={{
+          background: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)',
+          borderRadius: 12,
+          padding: 12,
+          marginBottom: 16
+        }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontWeight: 700, fontSize: '1.2rem', color: '#374151' }}>
+                {ownedCards.length}
+              </div>
+              <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>Cartes totales</div>
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontWeight: 700, fontSize: '1.2rem', color: '#374151' }}>
+                {[...new Set(ownedCards.map(c => c.id.split('_')[0]))].length}/{TRADING_CARDS.length}
+              </div>
+              <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>Cartes uniques</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Collections */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12 }}>
+          {Object.entries(groupedCards).map(([collectionId, data]) => {
+            const stats = cardCollection[collectionId] || { owned: 0, total: 0, percentage: 0 };
+            
+            return (
+              <div key={collectionId} style={{
+                background: '#fff',
+                border: '1px solid #e5e7eb',
+                borderRadius: 12,
+                padding: 12,
+                cursor: 'pointer'
+              }}
+                onClick={() => setCardPreviewOpen(collectionId)}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                  <div style={{ 
+                    fontSize: 24,
+                    background: data.info.color + '20',
+                    borderRadius: 8,
+                    padding: 6
+                  }}>
+                    {data.info.icon}
+                  </div>
+                  
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 700, color: '#1f2937' }}>
+                      {data.info.name}
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>
+                      {data.info.description}
+                    </div>
+                  </div>
+                  
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontWeight: 700, color: data.info.color }}>
+                      {stats.owned}/{stats.total}
+                    </div>
+                    <div style={{ fontSize: '0.7rem', color: '#6b7280' }}>
+                      {stats.percentage}%
+                    </div>
+                  </div>
+                </div>
+
+                {/* Barre de progression */}
+                <div style={{
+                  background: '#f1f5f9',
+                  borderRadius: 8,
+                  height: 6,
+                  overflow: 'hidden'
+                }}>
+                  <div style={{
+                    width: `${stats.percentage}%`,
+                    height: '100%',
+                    background: `linear-gradient(90deg, ${data.info.color}, ${data.info.color}cc)`,
+                    borderRadius: 8,
+                    transition: 'width 0.5s ease'
+                  }} />
+                </div>
+
+                {/* Aperçu des cartes récentes */}
+                <div style={{ display: 'flex', gap: 4, marginTop: 8, justifyContent: 'center' }}>
+                  {data.owned.slice(-3).map((card, idx) => (
+                    <div key={idx} style={{
+                      fontSize: 16,
+                      background: '#f8fafc',
+                      borderRadius: 4,
+                      padding: 4,
+                      border: '1px solid #e5e7eb'
+                    }}>
+                      {card.icon}
+                    </div>
+                  ))}
+                  {data.owned.length > 3 && (
+                    <div style={{
+                      fontSize: '0.7rem',
+                      background: '#f3f4f6',
+                      borderRadius: 4,
+                      padding: '4px 6px',
+                      color: '#6b7280',
+                      alignSelf: 'center'
+                    }}>
+                      +{data.owned.length - 3}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  // --- Marketplace d'échanges ---
+  const renderCardMarketplace = () => (
+    <div>
+      <div style={{
+        textAlign: 'center',
+        marginBottom: 16,
+        background: 'linear-gradient(135deg, #fef3c7, #fed7aa)',
+        borderRadius: 12,
+        padding: 12
+      }}>
+        <div style={{ fontWeight: 700, color: '#f59e0b', fontSize: '1rem' }}>
+          🤝 Marketplace d'Échanges
+        </div>
+        <div style={{ fontSize: '0.8rem', color: '#92400e' }}>
+          Échangez vos cartes avec d'autres joueurs !
+        </div>
+      </div>
+
+      {/* Onglets marketplace */}
+      <div style={{
+        display: 'flex',
+        gap: 6,
+        marginBottom: 16,
+        justifyContent: 'center'
+      }}>
+        {[
+          { id: 'offers', label: 'Offres', icon: '📋' },
+          { id: 'my_trades', label: 'Mes échanges', icon: '👤' },
+          { id: 'create', label: 'Créer offre', icon: '➕' }
+        ].map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setMarketplaceOpen(tab.id)}
+            style={{
+              background: marketplaceOpen === tab.id 
+                ? 'linear-gradient(135deg, #f59e0b, #fbbf24)' 
+                : '#fff',
+              color: marketplaceOpen === tab.id ? 'white' : '#f59e0b',
+              border: marketplaceOpen === tab.id ? 'none' : '1px solid #f59e0b',
+              borderRadius: 8,
+              padding: '6px 12px',
+              fontWeight: 700,
+              fontSize: '0.8rem',
+              cursor: 'pointer'
+            }}
+          >
+            <span style={{ marginRight: 4 }}>{tab.icon}</span>
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Contenu selon l'onglet sélectionné */}
+      {marketplaceOpen === 'offers' && renderTradeOffers()}
+      {marketplaceOpen === 'my_trades' && renderMyTrades()}
+      {marketplaceOpen === 'create' && renderCreateTrade()}
+    </div>
+  );
+
+  // --- Offres d'échanges disponibles ---
+  const renderTradeOffers = () => (
+    <div>
+      <div style={{ fontSize: '0.9rem', color: '#6b7280', textAlign: 'center', marginBottom: 12 }}>
+        Offres d'échanges disponibles
+      </div>
+      
+      {tradeOffers.length === 0 ? (
+        <div style={{
+          background: '#f9fafb',
+          borderRadius: 8,
+          padding: 16,
+          textAlign: 'center',
+          color: '#6b7280'
+        }}>
+          Aucune offre d'échange disponible pour le moment
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gap: 8 }}>
+          {tradeOffers.map(offer => (
+            <div key={offer.id} style={{
+              background: '#fff',
+              border: '1px solid #e5e7eb',
+              borderRadius: 8,
+              padding: 12
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>
+                    {offer.traderName}
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>
+                    Propose: {offer.offering.name} • Cherche: {offer.wanting.name}
+                  </div>
+                </div>
+                <button style={{
+                  background: 'linear-gradient(135deg, #10b981, #34d399)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 6,
+                  padding: '6px 12px',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}>
+                  Échanger
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  // --- Mes échanges ---
+  const renderMyTrades = () => (
+    <div>
+      <div style={{ fontSize: '0.9rem', color: '#6b7280', textAlign: 'center', marginBottom: 12 }}>
+        Vos offres d'échanges actives
+      </div>
+      
+      {myTradeOffers.length === 0 ? (
+        <div style={{
+          background: '#f9fafb',
+          borderRadius: 8,
+          padding: 16,
+          textAlign: 'center',
+          color: '#6b7280'
+        }}>
+          Vous n'avez aucune offre d'échange active
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gap: 8 }}>
+          {myTradeOffers.map(offer => (
+            <div key={offer.id} style={{
+              background: '#fff',
+              border: '1px solid #e5e7eb',
+              borderRadius: 8,
+              padding: 12
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>
+                    Vous proposez: {offer.offering.name}
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>
+                    Vous cherchez: {offer.wanting.name}
+                  </div>
+                </div>
+                <button style={{
+                  background: '#ef4444',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 6,
+                  padding: '6px 12px',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}>
+                  Annuler
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  // --- Créer une offre d'échange ---
+  const renderCreateTrade = () => (
+    <div>
+      <div style={{
+        background: '#f0f9ff',
+        borderRadius: 8,
+        padding: 12,
+        marginBottom: 16,
+        textAlign: 'center'
+      }}>
+        <div style={{ fontWeight: 600, color: '#0284c7', marginBottom: 4 }}>
+          Créer une offre d'échange
+        </div>
+        <div style={{ fontSize: '0.8rem', color: '#0369a1' }}>
+          Proposez une carte en échange d'une autre
+        </div>
+      </div>
+
+      <div style={{ fontSize: '0.9rem', color: '#6b7280', textAlign: 'center' }}>
+        Fonctionnalité en cours de développement...
+      </div>
+    </div>
+  );
+
+  // --- Modal d'aperçu de carte ---
+  const renderCardPreview = (cardId) => {
+    const collection = CARD_COLLECTIONS.find(c => c.id === cardId);
+    if (!collection) return null;
+
+    const collectionCards = TRADING_CARDS.filter(c => c.collection === cardId);
+    const ownedInCollection = ownedCards.filter(c => c.collection === cardId);
+
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0, left: 0, right: 0, bottom: 0,
+        background: 'rgba(0,0,0,0.7)',
+        zIndex: 9999,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 20
+      }}
+        onClick={() => setCardPreviewOpen(null)}
+      >
+        <div
+          style={{
+            background: '#fff',
+            borderRadius: 16,
+            maxWidth: 400,
+            width: '95%',
+            maxHeight: '80vh',
+            overflowY: 'auto',
+            padding: 20,
+            boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
+          }}
+          onClick={e => e.stopPropagation()}
+        >
+          <button
+            onClick={() => setCardPreviewOpen(null)}
+            style={{
+              position: 'absolute',
+              top: 12, right: 16,
+              background: 'none',
+              border: 'none',
+              fontSize: 20,
+              color: '#6b7280',
+              cursor: 'pointer',
+              fontWeight: 700
+            }}
+          >✕</button>
+
+          <div style={{ textAlign: 'center', marginBottom: 16 }}>
+            <div style={{
+              fontSize: 48,
+              marginBottom: 8,
+              background: collection.color + '20',
+              borderRadius: 16,
+              padding: 16,
+              display: 'inline-block'
+            }}>
+              {collection.icon}
+            </div>
+            
+            <div style={{
+              fontWeight: 700,
+              fontSize: '1.3rem',
+              color: '#1f2937',
+              marginBottom: 4
+            }}>
+              {collection.name}
+            </div>
+            
+            <div style={{
+              fontSize: '0.9rem',
+              color: '#6b7280',
+              marginBottom: 12
+            }}>
+              {collection.description}
+            </div>
+
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-around',
+              background: '#f8fafc',
+              borderRadius: 8,
+              padding: 8
+            }}>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontWeight: 700, color: collection.color }}>
+                  {ownedInCollection.length}
+                </div>
+                <div style={{ fontSize: '0.7rem', color: '#6b7280' }}>Possédées</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontWeight: 700, color: collection.color }}>
+                  {[...new Set(ownedInCollection.map(c => c.id.split('_')[0]))].length}/{collectionCards.length}
+                </div>
+                <div style={{ fontSize: '0.7rem', color: '#6b7280' }}>Uniques</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontWeight: 700, color: collection.color }}>
+                  {Math.round(([...new Set(ownedInCollection.map(c => c.id.split('_')[0]))].length / collectionCards.length) * 100)}%
+                </div>
+                <div style={{ fontSize: '0.7rem', color: '#6b7280' }}>Complété</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Grille des cartes */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: 8
+          }}>
+            {collectionCards.map(card => {
+              const isOwned = ownedInCollection.some(c => c.id.startsWith(card.id));
+              
+              return (
+                <div key={card.id} style={{
+                  background: isOwned ? '#f0fdf4' : '#f9fafb',
+                  border: isOwned ? '2px solid #10b981' : '1px solid #e5e7eb',
+                  borderRadius: 8,
+                  padding: 8,
+                  textAlign: 'center',
+                  opacity: isOwned ? 1 : 0.6
+                }}>
+                  <div style={{ fontSize: 24, marginBottom: 4 }}>
+                    {isOwned ? card.icon : '❓'}
+                  </div>
+                  <div style={{
+                    fontSize: '0.7rem',
+                    fontWeight: 600,
+                    color: isOwned ? '#16a34a' : '#6b7280'
+                  }}>
+                    {isOwned ? card.name : '???'}
+                  </div>
+                  <div style={{
+                    fontSize: '0.6rem',
+                    color: isOwned ? card.rarity === 'legendary' ? '#f59e0b' : 
+                                   card.rarity === 'epic' ? '#8b5cf6' : '#6b7280' : '#9ca3af'
+                  }}>
+                    {isOwned ? card.rarity : 'Inconnue'}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // --- Animation d'ouverture de pack ---
+  const renderPackOpening = () => {
+    if (!packOpeningAnimation) return null;
+
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0, left: 0, right: 0, bottom: 0,
+        background: 'rgba(0,0,0,0.8)',
+        zIndex: 10000,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexDirection: 'column'
+      }}>
+        <div style={{
+          background: '#fff',
+          borderRadius: 20,
+          padding: 30,
+          textAlign: 'center',
+          maxWidth: 350,
+          width: '90%'
+        }}>
+          {!packOpeningAnimation.revealedCards ? (
+            // Phase d'ouverture
+            <div>
+              <div style={{
+                fontSize: 64,
+                marginBottom: 16,
+                animation: 'packSpin 1s linear infinite'
+              }}>
+                {packOpeningAnimation.icon}
+              </div>
+              <div style={{
+                fontWeight: 700,
+                fontSize: '1.2rem',
+                color: '#1f2937',
+                marginBottom: 8
+              }}>
+                Ouverture du {packOpeningAnimation.name}...
+              </div>
+              <div style={{
+                fontSize: '0.9rem',
+                color: '#6b7280'
+              }}>
+                Génération des cartes aléatoires...
+              </div>
+            </div>
+          ) : (
+            // Phase de révélation
+            <div>
+              <div style={{
+                fontWeight: 700,
+                fontSize: '1.2rem',
+                color: '#10b981',
+                marginBottom: 16
+              }}>
+                🎉 Cartes obtenues !
+              </div>
+              
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, 1fr)',
+                gap: 8,
+                marginBottom: 16
+              }}>
+                {packOpeningAnimation.revealedCards.map((card, idx) => (
+                  <div key={idx} style={{
+                    background: card.rarity === 'legendary' ? '#fef3c7' :
+                               card.rarity === 'epic' ? '#f3e8ff' :
+                               card.rarity === 'rare' ? '#dbeafe' : '#f3f4f6',
+                    border: `2px solid ${
+                      card.rarity === 'legendary' ? '#f59e0b' :
+                      card.rarity === 'epic' ? '#8b5cf6' :
+                      card.rarity === 'rare' ? '#3b82f6' : '#9ca3af'
+                    }`,
+                    borderRadius: 8,
+                    padding: 8,
+                    textAlign: 'center',
+                    animation: `cardReveal 0.5s ease-out ${idx * 0.2}s both`
+                  }}>
+                    <div style={{ fontSize: 24, marginBottom: 4 }}>
+                      {card.icon}
+                    </div>
+                    <div style={{
+                      fontSize: '0.7rem',
+                      fontWeight: 600,
+                      color: '#1f2937'
+                    }}>
+                      {card.name}
+                    </div>
+                    <div style={{
+                      fontSize: '0.6rem',
+                      fontWeight: 600,
+                      color: card.rarity === 'legendary' ? '#f59e0b' :
+                             card.rarity === 'epic' ? '#8b5cf6' :
+                             card.rarity === 'rare' ? '#3b82f6' : '#9ca3af'
+                    }}>
+                      {card.rarity}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              <button
+                onClick={() => setPackOpeningAnimation(null)}
+                style={{
+                  background: 'linear-gradient(135deg, #10b981, #34d399)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 8,
+                  padding: '8px 16px',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                Continuer
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // Initialiser les statistiques de collection au chargement
+  useEffect(() => {
+    if (ownedCards.length > 0) {
+      updateCardCollectionStats(ownedCards);
+    }
+  }, [ownedCards]);
 
   // --- Onglet promotions quotidiennes ---
   const renderDealsShop = (dailyDeals) => (
@@ -4039,6 +5202,12 @@ export default function Progression({ user }) {
       {/* Modal d'aperçu d'objet */}
       {itemPreviewOpen && renderItemPreview(itemPreviewOpen)}
 
+      {/* Modal d'aperçu de collection de cartes */}
+      {cardPreviewOpen && renderCardPreview(cardPreviewOpen)}
+
+      {/* Animation d'ouverture de pack */}
+      {renderPackOpening()}
+
       {/* CSS Animations */}
       <style jsx>{`
         @keyframes shopFeedbackAnim {
@@ -4102,6 +5271,16 @@ export default function Progression({ user }) {
         @keyframes itemPreviewPop {
           0% { opacity: 0; transform: scale(0.9) translateY(20px); }
           100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        
+        @keyframes packSpin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        
+        @keyframes cardReveal {
+          0% { opacity: 0; transform: scale(0.8) rotateY(90deg); }
+          100% { opacity: 1; transform: scale(1) rotateY(0deg); }
         }
         
         /* Responsive spécifique */
