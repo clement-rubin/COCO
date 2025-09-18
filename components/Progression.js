@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getUserTrophies } from '../utils/trophyUtils'
 import { getUserStatsComplete } from '../utils/profileUtils'
-import { supabase } from '../lib/supabase'
+import { getSupabaseClient, getUserCardCollection, saveUserCardCollection } from '../lib/supabaseClient'
 import styles from '../styles/Trophy.module.css'
 import React from 'react'
 
@@ -1307,6 +1307,18 @@ export default function Progression({ user }) {
     </div>
   );
   
+  // --- Wrapper sécurisé pour les appels Supabase ---
+  const safeSupabaseCall = async (operation, fallbackValue = null) => {
+    try {
+      const supabase = getSupabaseClient();
+      const result = await operation(supabase);
+      return result;
+    } catch (error) {
+      console.error('Erreur Supabase:', error);
+      return fallbackValue;
+    }
+  };
+
   // --- Système de missions ---
   const [missions, setMissions] = useState(() => {
     try {
@@ -1339,6 +1351,7 @@ export default function Progression({ user }) {
           return stats.recipesCount || 0;
           
         case 'recipe_categories':
+          const supabase = getSupabaseClient();
           const { data: recipes } = await supabase
             .from('recipes')
             .select('category')
@@ -1521,6 +1534,7 @@ export default function Progression({ user }) {
     if (totalCoins > 0) {
       setCoins(prev => prev + totalCoins);
       // Mettre à jour en base
+      const supabase = getSupabaseClient();
       await supabase
         .from('user_pass')
         .update({ coins: coins + totalCoins })
@@ -1698,27 +1712,37 @@ export default function Progression({ user }) {
   // --- Au chargement ---
   useEffect(() => {
     async function loadUserPass() {
-      const { data, error } = await supabase
-        .from('user_pass')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-      if (data) {
-        setCoins(data.coins);
-        setOwnedItems(data.owned_items);
-        setEquipped(data.equipped);
-        // ...etc
-      } else {
-        // Si pas de ligne, on la crée
-        await supabase.from('user_pass').insert({
-          user_id: user.id,
-          coins: 200,
-          owned_items: ['hat_chef'],
-          equipped: { ...DEFAULT_CHEF, hat: 'hat_chef' }
-        });
-        setCoins(200);
-        setOwnedItems(['hat_chef']);
-        setEquipped({ ...DEFAULT_CHEF, hat: 'hat_chef' });
+      try {
+        const supabase = getSupabaseClient();
+        const { data, error } = await supabase
+          .from('user_pass')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (data) {
+          setCoins(data.coins);
+          setOwnedItems(data.owned_items);
+          setEquipped(data.equipped);
+        } else {
+          // Si pas de ligne, on la crée
+          await supabase.from('user_pass').insert({
+            user_id: user.id,
+            coins: 200,
+            owned_items: ['hat_chef'],
+            equipped: { ...DEFAULT_CHEF, hat: 'hat_chef' }
+          });
+          setCoins(200);
+          setOwnedItems(['hat_chef']);
+          setEquipped({ ...DEFAULT_CHEF, hat: 'hat_chef' });
+        }
+
+        // Charger également les cartes
+        const cardData = await getUserCardCollection(user.id);
+        setOwnedCards(cardData.owned_cards);
+        setCardCollection(cardData.collection_stats);
+      } catch (error) {
+        console.error('Erreur lors du chargement des données utilisateur:', error);
       }
     }
     if (user?.id) loadUserPass();
@@ -1784,6 +1808,7 @@ export default function Progression({ user }) {
     
     // --- À chaque achat ou modification ---
     async function updateUserPass(newFields) {
+      const supabase = getSupabaseClient();
       await supabase
         .from('user_pass')
         .update(newFields)
@@ -1836,6 +1861,7 @@ export default function Progression({ user }) {
     setTimeout(() => setCoinAnim(false), 900);
     
     // Mettre à jour la base
+    const supabase = getSupabaseClient();
     await supabase
       .from('user_pass')
       .update({ 
@@ -3053,48 +3079,89 @@ export default function Progression({ user }) {
   // --- Ouverture de pack avec animation ---
   const openCardPack = async (packType) => {
     const pack = CARD_PACKS.find(p => p.id === packType);
-    if (!pack || coins < pack.price) return;
-
-    // Déduire le prix
-    setCoins(prev => prev - pack.price);
-    
-    // Animation d'ouverture
-    setPackOpeningAnimation(pack);
-    
-    // Générer les cartes aléatoirement
-    const newCards = [];
-    for (let i = 0; i < pack.cards; i++) {
-      const card = generateRandomCard(pack.rarityDistribution, pack.guaranteedRare && i === 0, pack.guaranteedEpic && i === 0);
-      newCards.push(card);
+    if (!pack || coins < pack.price) {
+      setShopFeedback({
+        type: 'error',
+        msg: pack ? 'Pas assez de CocoCoins !' : 'Pack introuvable !'
+      });
+      setTimeout(() => setShopFeedback(null), 2000);
+      return;
     }
-    
-    // Ajouter les cartes à la collection
-    const updatedCards = [...ownedCards, ...newCards];
-    setOwnedCards(updatedCards);
-    localStorage.setItem('coco_owned_cards', JSON.stringify(updatedCards));
-    
-    // Mettre à jour les statistiques de collection
-    updateCardCollectionStats(updatedCards);
-    
-    // Feedback avec animation
-    setTimeout(() => {
-      setPackOpeningAnimation({ ...pack, revealedCards: newCards });
-    }, 1000);
-    
-    setTimeout(() => {
+
+    try {
+      // Déduire le prix
+      const newCoinsAmount = coins - pack.price;
+      setCoins(newCoinsAmount);
+      
+      // Animation d'ouverture
+      setPackOpeningAnimation(pack);
+      
+      // Générer les cartes aléatoirement
+      const newCards = [];
+      for (let i = 0; i < pack.cards; i++) {
+        const card = generateRandomCard(pack.rarityDistribution, pack.guaranteedRare && i === 0, pack.guaranteedEpic && i === 0);
+        if (card) {
+          newCards.push(card);
+        }
+      }
+      
+      if (newCards.length === 0) {
+        setPackOpeningAnimation(null);
+        setShopFeedback({
+          type: 'error',
+          msg: 'Erreur lors de la génération des cartes'
+        });
+        setTimeout(() => setShopFeedback(null), 2000);
+        // Rembourser l'utilisateur
+        setCoins(coins);
+        return;
+      }
+      
+      // Ajouter les cartes à la collection
+      const updatedCards = [...ownedCards, ...newCards];
+      setOwnedCards(updatedCards);
+      localStorage.setItem('coco_owned_cards', JSON.stringify(updatedCards));
+      
+      // Mettre à jour les statistiques de collection
+      updateCardCollectionStats(updatedCards);
+      
+      // Feedback avec animation
+      setTimeout(() => {
+        setPackOpeningAnimation({ ...pack, revealedCards: newCards });
+      }, 1000);
+      
+      setTimeout(() => {
+        setPackOpeningAnimation(null);
+        const rareCards = newCards.filter(c => c && (c.rarity === 'legendary' || c.rarity === 'epic'));
+        setShopFeedback({
+          type: 'success',
+          msg: `🎁 Pack ouvert ! ${rareCards.length > 0 ? '⭐ Cartes rares trouvées !' : `${newCards.length} nouvelles cartes !`}`
+        });
+        setTimeout(() => setShopFeedback(null), 3000);
+      }, 3000);
+
+      // Mettre à jour en base
+      if (user?.id) {
+        const supabase = getSupabaseClient();
+        await supabase
+          .from('user_pass')
+          .update({ coins: newCoinsAmount })
+          .eq('user_id', user.id);
+        
+        // Sauvegarder les cartes en base
+        await saveUserCardCollection(user.id, updatedCards, cardCollection);
+      }
+    } catch (error) {
+      console.error('Erreur lors de l\'ouverture du pack:', error);
       setPackOpeningAnimation(null);
       setShopFeedback({
-        type: 'success',
-        msg: `🎁 Pack ouvert ! ${newCards.filter(c => c.rarity === 'legendary' || c.rarity === 'epic').length > 0 ? '⭐ Cartes rares trouvées !' : ''}`
+        type: 'error',
+        msg: 'Erreur lors de l\'ouverture du pack'
       });
-      setTimeout(() => setShopFeedback(null), 3000);
-    }, 3000);
-
-    // Mettre à jour en base
-    await supabase
-      .from('user_pass')
-      .update({ coins: coins - pack.price })
-      .eq('user_id', user.id);
+      setTimeout(() => setShopFeedback(null), 2000);
+      // Rembourser l'utilisateur en cas d'erreur
+      setCoins(coins);
+    }
   };
 
   // --- Génération aléatoire de carte ---
@@ -3118,12 +3185,34 @@ export default function Progression({ user }) {
     }
     
     // Sélectionner une carte aléatoire de cette rareté
-    const availableCards = TRADING_CARDS.filter(c => c.rarity === rarity);
+    const availableCards = TRADING_CARDS.filter(c => c && c.rarity === rarity);
+    if (availableCards.length === 0) {
+      // Fallback si aucune carte de cette rareté n'existe
+      const fallbackCards = TRADING_CARDS.filter(c => c && c.rarity === 'common');
+      if (fallbackCards.length === 0) {
+        console.error('Aucune carte disponible dans TRADING_CARDS');
+        return null;
+      }
+      const selectedCard = fallbackCards[Math.floor(Math.random() * fallbackCards.length)];
+      return {
+        ...selectedCard,
+        uniqueId: selectedCard.id + '_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+        originalId: selectedCard.id,
+        obtainedAt: new Date().toISOString()
+      };
+    }
+    
     const selectedCard = availableCards[Math.floor(Math.random() * availableCards.length)];
+    
+    if (!selectedCard || !selectedCard.id) {
+      console.error('Carte sélectionnée invalide:', selectedCard);
+      return null;
+    }
     
     return {
       ...selectedCard,
-      id: selectedCard.id + '_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9), // ID unique
+      uniqueId: selectedCard.id + '_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+      originalId: selectedCard.id,
       obtainedAt: new Date().toISOString()
     };
   };
@@ -3133,15 +3222,15 @@ export default function Progression({ user }) {
     const stats = {};
     
     CARD_COLLECTIONS.forEach(collection => {
-      const collectionCards = cards.filter(c => c.collection === collection.id);
-      const uniqueCards = [...new Set(collectionCards.map(c => c.id.split('_')[0]))];
-      const totalInCollection = TRADING_CARDS.filter(c => c.collection === collection.id).length;
+      const collectionCards = cards.filter(c => c && c.collection === collection.id);
+      const uniqueCards = [...new Set(collectionCards.map(c => c.originalId || c.id?.split('_')[0] || c.id))];
+      const totalInCollection = TRADING_CARDS.filter(c => c && c.collection === collection.id).length;
       
       stats[collection.id] = {
-        owned: uniqueCards.length,
+        owned: uniqueCards.filter(id => id).length,
         total: totalInCollection,
-        percentage: Math.round((uniqueCards.length / totalInCollection) * 100),
-        duplicates: collectionCards.length - uniqueCards.length
+        percentage: totalInCollection > 0 ? Math.round((uniqueCards.filter(id => id).length / totalInCollection) * 100) : 0,
+        duplicates: Math.max(0, collectionCards.length - uniqueCards.filter(id => id).length)
       };
     });
     
@@ -3338,7 +3427,7 @@ export default function Progression({ user }) {
             </div>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontWeight: 700, fontSize: '1.2rem', color: '#374151' }}>
-                {[...new Set(ownedCards.map(c => c.id.split('_')[0]))].length}/{TRADING_CARDS.length}
+                {[...new Set(ownedCards.map(c => c?.originalId || c?.id?.split('_')[0] || c?.id))].filter(id => id).length}/{TRADING_CARDS.length}
               </div>
               <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>Cartes uniques</div>
             </div>
@@ -3744,7 +3833,11 @@ export default function Progression({ user }) {
             gap: 8
           }}>
             {collectionCards.map(card => {
-              const isOwned = ownedInCollection.some(c => c.id.startsWith(card.id));
+              if (!card || !card.id) return null;
+              
+              const isOwned = ownedInCollection.some(c => 
+                c && (c.originalId === card.id || c.id?.startsWith(card.id) || c.uniqueId?.startsWith(card.id))
+              );
               
               return (
                 <div key={card.id} style={{
@@ -3756,25 +3849,28 @@ export default function Progression({ user }) {
                   opacity: isOwned ? 1 : 0.6
                 }}>
                   <div style={{ fontSize: 24, marginBottom: 4 }}>
-                    {isOwned ? card.icon : '❓'}
+                    {isOwned ? (card.icon || '🎴') : '❓'}
                   </div>
                   <div style={{
                     fontSize: '0.7rem',
                     fontWeight: 600,
                     color: isOwned ? '#16a34a' : '#6b7280'
                   }}>
-                    {isOwned ? card.name : '???'}
+                    {isOwned ? (card.name || 'Carte inconnue') : '???'}
                   </div>
                   <div style={{
                     fontSize: '0.6rem',
-                    color: isOwned ? card.rarity === 'legendary' ? '#f59e0b' : 
-                                   card.rarity === 'epic' ? '#8b5cf6' : '#6b7280' : '#9ca3af'
+                    color: isOwned ? 
+                      card.rarity === 'legendary' ? '#f59e0b' : 
+                      card.rarity === 'epic' ? '#8b5cf6' : 
+                      card.rarity === 'rare' ? '#3b82f6' : '#6b7280' 
+                      : '#9ca3af'
                   }}>
-                    {isOwned ? card.rarity : 'Inconnue'}
+                    {isOwned ? (card.rarity || 'commune') : 'Inconnue'}
                   </div>
                 </div>
               );
-            })}
+            }).filter(item => item !== null)}
           </div>
         </div>
       </div>
@@ -3847,7 +3943,9 @@ export default function Progression({ user }) {
                 gap: 8,
                 marginBottom: 16
               }}>
-                {packOpeningAnimation.revealedCards.map((card, idx) => (
+                {packOpeningAnimation.revealedCards
+                  .filter(card => card && card.name) // Filtrer les cartes invalides
+                  .map((card, idx) => (
                   <div key={idx} style={{
                     background: card.rarity === 'legendary' ? '#fef3c7' :
                                card.rarity === 'epic' ? '#f3e8ff' :
@@ -3863,14 +3961,14 @@ export default function Progression({ user }) {
                     animation: `cardReveal 0.5s ease-out ${idx * 0.2}s both`
                   }}>
                     <div style={{ fontSize: 24, marginBottom: 4 }}>
-                      {card.icon}
+                      {card.icon || '🎴'}
                     </div>
                     <div style={{
                       fontSize: '0.7rem',
                       fontWeight: 600,
                       color: '#1f2937'
                     }}>
-                      {card.name}
+                      {card.name || 'Carte mystérieuse'}
                     </div>
                     <div style={{
                       fontSize: '0.6rem',
@@ -3879,7 +3977,7 @@ export default function Progression({ user }) {
                              card.rarity === 'epic' ? '#8b5cf6' :
                              card.rarity === 'rare' ? '#3b82f6' : '#9ca3af'
                     }}>
-                      {card.rarity}
+                      {card.rarity || 'commune'}
                     </div>
                   </div>
                 ))}
@@ -3912,6 +4010,26 @@ export default function Progression({ user }) {
       updateCardCollectionStats(ownedCards);
     }
   }, [ownedCards]);
+
+  // Vérification de sécurité des données de cartes
+  useEffect(() => {
+    // Vérifier que les données des cartes sont valides
+    const invalidCards = TRADING_CARDS.filter(card => !card || !card.id || !card.name);
+    if (invalidCards.length > 0) {
+      console.warn('Cartes invalides détectées:', invalidCards);
+    }
+    
+    // Nettoyer les cartes possédées invalides
+    const validOwnedCards = ownedCards.filter(card => 
+      card && (card.id || card.uniqueId) && card.name
+    );
+    
+    if (validOwnedCards.length !== ownedCards.length) {
+      console.log('Nettoyage des cartes invalides:', ownedCards.length - validOwnedCards.length, 'cartes supprimées');
+      setOwnedCards(validOwnedCards);
+      localStorage.setItem('coco_owned_cards', JSON.stringify(validOwnedCards));
+    }
+  }, []);
 
   // --- Onglet promotions quotidiennes ---
   const renderDealsShop = (dailyDeals) => (
@@ -4087,6 +4205,8 @@ export default function Progression({ user }) {
   const fetchLeaderboard = async () => {
     setLeaderboardLoading(true)
     try {
+      const supabase = getSupabaseClient();
+      
       // 1. Récupérer tous les profils utilisateurs
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
@@ -4438,6 +4558,7 @@ export default function Progression({ user }) {
                 
                 try {
                   // SÉCURITÉ: Vérifier les données actuelles en base de données
+                  const supabase = getSupabaseClient();
                   const { data: currentData, error: checkError } = await supabase
                     .from('user_pass')
                     .select('last_claimed, streak, coins')
