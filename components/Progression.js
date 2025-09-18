@@ -4958,6 +4958,443 @@ export default function Progression({ user }) {
             </div>
           </div>
 
+          {/* Collection de cartes - Mise en avant majeure */}
+          <div style={{ marginBottom: 22 }}>
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between',
+              marginBottom: 14 
+            }}>
+              <div style={{ 
+                fontWeight: 800, 
+                fontSize: '1.15rem', 
+                color: '#0284c7',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8
+              }}>
+                <span style={{ fontSize: '1.3rem' }}>🃏</span>
+                Collection de Cartes
+              </div>
+              <button
+                onClick={() => {
+                  setActiveTab('boutique');
+                  setShopTab('cards');
+                }}
+                style={{
+                  background: 'linear-gradient(135deg, #0284c7, #0369a1)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 10,
+                  padding: '6px 12px',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  boxShadow: '0 3px 8px rgba(2, 132, 199, 0.3)',
+                  animation: 'cardShine 3s ease-in-out infinite'
+                }}
+              >
+                ✨ Boutique
+              </button>
+            </div>
+            
+            <div style={{
+              background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #dbeafe 100%)',
+              borderRadius: 16,
+              padding: '16px',
+              marginBottom: 14,
+              boxShadow: '0 6px 20px rgba(2, 132, 199, 0.2)',
+              border: '2px solid rgba(2, 132, 199, 0.1)',
+              position: 'relative',
+              overflow: 'hidden'
+            }}>
+              {/* Effet de brillance en arrière-plan */}
+              <div style={{
+                position: 'absolute',
+                top: -50,
+                right: -50,
+                width: 100,
+                height: 100,
+                background: 'radial-gradient(circle, rgba(2, 132, 199, 0.1) 0%, transparent 70%)',
+                borderRadius: '50%',
+                animation: 'floatingGlow 4s ease-in-out infinite'
+              }} />
+
+              {/* Stats globales améliorées */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: 12,
+                marginBottom: 16,
+                position: 'relative',
+                zIndex: 1
+              }}>
+                <div style={{ 
+                  textAlign: 'center',
+                  background: 'rgba(255, 255, 255, 0.8)',
+                  borderRadius: 12,
+                  padding: '10px 8px',
+                  boxShadow: '0 2px 8px rgba(2, 132, 199, 0.1)'
+                }}>
+                  <div style={{ 
+                    fontWeight: 900, 
+                    fontSize: '1.3rem', 
+                    color: '#0284c7',
+                    textShadow: '0 1px 2px rgba(2, 132, 199, 0.2)'
+                  }}>
+                    {ownedCards.length}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#0369a1', fontWeight: 600 }}>
+                    Cartes totales
+                  </div>
+                </div>
+                <div style={{ 
+                  textAlign: 'center',
+                  background: 'rgba(255, 255, 255, 0.8)',
+                  borderRadius: 12,
+                  padding: '10px 8px',
+                  boxShadow: '0 2px 8px rgba(2, 132, 199, 0.1)'
+                }}>
+                  <div style={{ 
+                    fontWeight: 900, 
+                    fontSize: '1.3rem', 
+                    color: '#0284c7',
+                    textShadow: '0 1px 2px rgba(2, 132, 199, 0.2)'
+                  }}>
+                    {[...new Set(ownedCards.map(c => c?.originalId || c?.id?.split('_')[0] || c?.id))].filter(id => id).length}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#0369a1', fontWeight: 600 }}>
+                    Cartes uniques
+                  </div>
+                </div>
+                <div style={{ 
+                  textAlign: 'center',
+                  background: 'rgba(255, 255, 255, 0.8)',
+                  borderRadius: 12,
+                  padding: '10px 8px',
+                  boxShadow: '0 2px 8px rgba(2, 132, 199, 0.1)'
+                }}>
+                  <div style={{ 
+                    fontWeight: 900, 
+                    fontSize: '1.3rem', 
+                    color: '#0284c7',
+                    textShadow: '0 1px 2px rgba(2, 132, 199, 0.2)'
+                  }}>
+                    {Object.keys(cardCollection).length}/5
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#0369a1', fontWeight: 600 }}>
+                    Collections
+                  </div>
+                </div>
+              </div>
+
+              {/* Message d'encouragement dynamique */}
+              <div style={{
+                textAlign: 'center',
+                marginBottom: 16,
+                padding: '8px 12px',
+                background: ownedCards.length === 0 ? 
+                  'linear-gradient(135deg, #fef3c7, #fed7aa)' :
+                  ownedCards.length < 10 ?
+                  'linear-gradient(135deg, #e0f2fe, #bae6fd)' :
+                  'linear-gradient(135deg, #dcfce7, #bbf7d0)',
+                borderRadius: 10,
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                color: ownedCards.length === 0 ? '#92400e' : 
+                       ownedCards.length < 10 ? '#0369a1' : '#166534'
+              }}>
+                {ownedCards.length === 0 ? 
+                  "🎯 Commencez votre collection ! Ouvrez votre premier pack !" :
+                  ownedCards.length < 10 ?
+                  `🌟 Excellente progression ! ${10 - ownedCards.length} cartes pour atteindre 10 !` :
+                  "🏆 Collection impressionnante ! Continuez à explorer !"}
+              </div>
+
+              {/* Collections avec aperçu amélioré */}
+              <div style={{
+                marginBottom: 16
+              }}>
+                <div style={{
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  color: '#0369a1',
+                  marginBottom: 8,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6
+                }}>
+                  <span>📚</span>
+                  Collections disponibles:
+                </div>
+                <div style={{
+                  display: 'flex',
+                  gap: 8,
+                  overflowX: 'auto',
+                  paddingBottom: 6
+                }}>
+                  {CARD_COLLECTIONS.map(collection => {
+                    const stats = cardCollection[collection.id] || { owned: 0, total: 0, percentage: 0 };
+                    
+                    return (
+                      <div key={collection.id} style={{
+                        background: 'rgba(255, 255, 255, 0.9)',
+                        borderRadius: 10,
+                        padding: '10px 12px',
+                        minWidth: 95,
+                        textAlign: 'center',
+                        border: '2px solid rgba(2, 132, 199, 0.1)',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease',
+                        boxShadow: '0 3px 10px rgba(2, 132, 199, 0.1)',
+                        ':hover': {
+                          transform: 'translateY(-2px)',
+                          boxShadow: '0 5px 15px rgba(2, 132, 199, 0.2)'
+                        }
+                      }}
+                        onClick={() => {
+                          setActiveTab('boutique');
+                          setShopTab('cards');
+                          setCardFilter('collection');
+                          setCardPreviewOpen(collection.id);
+                        }}
+                      >
+                        <div style={{
+                          fontSize: 22,
+                          marginBottom: 6,
+                          background: collection.color + '25',
+                          borderRadius: 8,
+                          padding: 6,
+                          display: 'inline-block',
+                          boxShadow: `0 2px 6px ${collection.color}22`
+                        }}>
+                          {collection.icon}
+                        </div>
+                        <div style={{
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          color: '#1f2937',
+                          marginBottom: 4,
+                          lineHeight: 1.1
+                        }}>
+                          {collection.name.split(' ')[0]}
+                        </div>
+                        <div style={{
+                          fontSize: '0.7rem',
+                          color: collection.color,
+                          fontWeight: 700,
+                          marginBottom: 6
+                        }}>
+                          {stats.owned}/{stats.total} ({stats.percentage}%)
+                        </div>
+                        {/* Barre de progression améliorée */}
+                        <div style={{
+                          background: '#f1f5f9',
+                          borderRadius: 6,
+                          height: 4,
+                          overflow: 'hidden',
+                          position: 'relative'
+                        }}>
+                          <div style={{
+                            width: `${stats.percentage}%`,
+                            height: '100%',
+                            background: `linear-gradient(90deg, ${collection.color}, ${collection.color}cc)`,
+                            borderRadius: 6,
+                            transition: 'width 0.8s ease',
+                            position: 'relative'
+                          }}>
+                            {/* Effet de brillance sur la barre */}
+                            <div style={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              height: '50%',
+                              background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)',
+                              borderRadius: '6px 6px 0 0'
+                            }} />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Cartes récentes avec animation */}
+              {ownedCards.length > 0 && (
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{
+                    fontSize: '0.85rem',
+                    fontWeight: 700,
+                    color: '#0369a1',
+                    marginBottom: 8,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6
+                  }}>
+                    <span>🆕</span>
+                    Dernières cartes obtenues:
+                  </div>
+                  <div style={{
+                    display: 'flex',
+                    gap: 6,
+                    overflowX: 'auto',
+                    paddingBottom: 4
+                  }}>
+                    {ownedCards
+                      .slice(-6)
+                      .reverse()
+                      .map((card, idx) => (
+                      <div key={idx} style={{
+                        background: card.rarity === 'legendary' ? 
+                          'linear-gradient(135deg, #fef3c7, #fcd34d)' :
+                          card.rarity === 'epic' ? 
+                          'linear-gradient(135deg, #f3e8ff, #c084fc)' :
+                          card.rarity === 'rare' ? 
+                          'linear-gradient(135deg, #dbeafe, #60a5fa)' : 
+                          'linear-gradient(135deg, #f8fafc, #e2e8f0)',
+                        border: `2px solid ${
+                          card.rarity === 'legendary' ? '#f59e0b' :
+                          card.rarity === 'epic' ? '#8b5cf6' :
+                          card.rarity === 'rare' ? '#3b82f6' : '#64748b'
+                        }`,
+                        borderRadius: 8,
+                        padding: '8px 10px',
+                        textAlign: 'center',
+                        minWidth: 65,
+                        animation: `cardFloat 3s ease-in-out infinite ${idx * 0.3}s`,
+                        boxShadow: card.rarity === 'legendary' ? 
+                          '0 4px 12px rgba(245, 158, 11, 0.3)' :
+                          '0 2px 6px rgba(0, 0, 0, 0.1)',
+                        position: 'relative',
+                        cursor: 'pointer'
+                      }}>
+                        <div style={{ fontSize: 18, marginBottom: 4 }}>
+                          {card.icon || '🎴'}
+                        </div>
+                        <div style={{
+                          fontSize: '0.65rem',
+                          fontWeight: 700,
+                          color: '#1f2937',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          marginBottom: 2
+                        }}>
+                          {card.name ? (card.name.length > 8 ? card.name.substring(0, 8) + '...' : card.name) : 'Carte'}
+                        </div>
+                        <div style={{
+                          fontSize: '0.55rem',
+                          fontWeight: 600,
+                          color: card.rarity === 'legendary' ? '#92400e' :
+                                 card.rarity === 'epic' ? '#6b21a8' :
+                                 card.rarity === 'rare' ? '#1e40af' : '#475569'
+                        }}>
+                          {card.rarity || 'common'}
+                        </div>
+                        {/* Badge "NEW" pour les nouvelles cartes */}
+                        {idx < 2 && (
+                          <div style={{
+                            position: 'absolute',
+                            top: -4,
+                            right: -4,
+                            background: '#ef4444',
+                            color: 'white',
+                            fontSize: '0.5rem',
+                            fontWeight: 700,
+                            borderRadius: 6,
+                            padding: '2px 4px',
+                            animation: 'newBadgePulse 2s ease-in-out infinite'
+                          }}>
+                            NEW
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Packs disponibles - Section attractive */}
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.6)',
+                borderRadius: 12,
+                padding: '12px',
+                border: '1px dashed rgba(2, 132, 199, 0.3)'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: 8
+                }}>
+                  <div style={{
+                    fontSize: '0.85rem',
+                    fontWeight: 700,
+                    color: '#0369a1',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6
+                  }}>
+                    <span>🎁</span>
+                    Packs disponibles:
+                  </div>
+                  <div style={{
+                    fontSize: '0.75rem',
+                    color: '#6b7280',
+                    fontWeight: 600
+                  }}>
+                    Ouvrez pour découvrir !
+                  </div>
+                </div>
+                <div style={{
+                  display: 'flex',
+                  gap: 8,
+                  marginTop: 8
+                }}>
+                  {CARD_PACKS.map((pack, idx) => (
+                    <div key={pack.id} style={{
+                      background: 'linear-gradient(135deg, #fff, #f8fafc)',
+                      border: '2px solid rgba(2, 132, 199, 0.2)',
+                      borderRadius: 8,
+                      padding: '6px 8px',
+                      textAlign: 'center',
+                      fontSize: '0.75rem',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease',
+                      flex: 1,
+                      animation: `packGlow 4s ease-in-out infinite ${idx * 0.5}s`,
+                      boxShadow: '0 2px 8px rgba(2, 132, 199, 0.1)'
+                    }}
+                      onClick={() => {
+                        setActiveTab('boutique');
+                        setShopTab('cards');
+                      }}
+                    >
+                      <div style={{ fontSize: 16, marginBottom: 2 }}>{pack.icon}</div>
+                      <div style={{ 
+                        fontWeight: 700, 
+                        color: '#1f2937',
+                        marginBottom: 2
+                      }}>
+                        {pack.name.replace('Booster ', '')}
+                      </div>
+                      <div style={{ 
+                        color: '#0284c7', 
+                        fontWeight: 800,
+                        fontSize: '0.8rem'
+                      }}>
+                        {pack.price}🪙
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Quiz du jour - Version mobile */}
           <div style={{ marginBottom: 20 }}>
             <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: 8, color: '#10b981' }}>
@@ -5402,6 +5839,37 @@ export default function Progression({ user }) {
         @keyframes cardReveal {
           0% { opacity: 0; transform: scale(0.8) rotateY(90deg); }
           100% { opacity: 1; transform: scale(1) rotateY(0deg); }
+        }
+        
+        @keyframes cardPulse {
+          0% { transform: scale(1); }
+          50% { transform: scale(1.05); }
+          100% { transform: scale(1); }
+        }
+        
+        @keyframes cardFloat {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-3px); }
+        }
+        
+        @keyframes cardShine {
+          0%, 100% { box-shadow: 0 3px 8px rgba(2, 132, 199, 0.3); }
+          50% { box-shadow: 0 5px 15px rgba(2, 132, 199, 0.5); }
+        }
+        
+        @keyframes floatingGlow {
+          0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.6; }
+          50% { transform: translate(10px, -5px) scale(1.1); opacity: 0.8; }
+        }
+        
+        @keyframes packGlow {
+          0%, 100% { box-shadow: 0 2px 8px rgba(2, 132, 199, 0.1); }
+          50% { box-shadow: 0 4px 12px rgba(2, 132, 199, 0.2); }
+        }
+        
+        @keyframes newBadgePulse {
+          0%, 100% { transform: scale(1); opacity: 1; }
+          50% { transform: scale(1.1); opacity: 0.8; }
         }
         
         /* Responsive spécifique */
