@@ -520,18 +520,18 @@ export default function AddictiveFeed() {
         return
       }
 
-      // 2. Récupérer toutes les recettes du dernier mois
-      const oneMonthAgo = new Date()
-      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
+      // 2. Récupérer toutes les recettes du MOIS ACTUEL (changement important)
+      const now = new Date()
+      const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1)
       const { data: recipesData, error: recipesError } = await supabase
         .from('recipes')
         .select('user_id,created_at')
-        .gte('created_at', oneMonthAgo.toISOString())
+        .gte('created_at', startOfCurrentMonth.toISOString())
       if (recipesError) {
         console.error("[Classement] Erreur recipes:", recipesError)
       }
 
-      // 3. Compter les recettes par utilisateur sur le dernier mois
+      // 3. Compter les recettes par utilisateur sur le mois actuel
       const recipesCountMap = {}
       ;(recipesData || []).forEach(r => {
         recipesCountMap[r.user_id] = (recipesCountMap[r.user_id] || 0) + 1

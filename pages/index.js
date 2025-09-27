@@ -24,6 +24,8 @@ export default function Home() {
   })
   const [leaderboard, setLeaderboard] = useState([])
   const [leaderboardLoading, setLeaderboardLoading] = useState(false)
+  const [monthlyResetNotification, setMonthlyResetNotification] = useState(null)
+  const [currentSeason, setCurrentSeason] = useState(null)
   const heroRef = useRef(null)
 
   // Détection du scroll
@@ -122,7 +124,127 @@ export default function Home() {
     }
   }, [user])
 
-  // Fonction pour charger le classement
+  // Vérifier la réinitialisation mensuelle au chargement
+  useEffect(() => {
+    if (user?.id) {
+      checkMonthlyReset()
+    }
+  }, [user])
+
+  // Fonction pour vérifier et gérer la réinitialisation mensuelle
+  const checkMonthlyReset = async () => {
+    try {
+      const currentMonth = new Date().toISOString().slice(0, 7) // Format: YYYY-MM
+      const lastCheckKey = `last_leaderboard_check_${user.id}`
+      const lastCheck = localStorage.getItem(lastCheckKey)
+      
+      // Si c'est un nouveau mois
+      if (lastCheck && lastCheck !== currentMonth) {
+        // Sauvegarder le classement du mois précédent
+        await saveMonthlyLeaderboard(lastCheck)
+        
+        // Afficher la notification de réinitialisation
+        showMonthlyResetNotification(lastCheck, currentMonth)
+        
+        // Marquer le nouveau mois comme vérifié
+        localStorage.setItem(lastCheckKey, currentMonth)
+      } else if (!lastCheck) {
+        // Premier accès de l'utilisateur
+        localStorage.setItem(lastCheckKey, currentMonth)
+      }
+      
+      // Définir la saison actuelle
+      setCurrentSeason({
+        month: currentMonth,
+        label: getSeasonLabel(currentMonth)
+      })
+      
+    } catch (error) {
+      console.error('Erreur lors de la vérification de la réinitialisation mensuelle:', error)
+    }
+  }
+
+  // Fonction pour sauvegarder le classement mensuel
+  const saveMonthlyLeaderboard = async (previousMonth) => {
+    try {
+      // Récupérer le classement du mois précédent
+      const previousMonthDate = new Date(previousMonth + '-01')
+      const startOfMonth = new Date(previousMonthDate.getFullYear(), previousMonthDate.getMonth(), 1)
+      const endOfMonth = new Date(previousMonthDate.getFullYear(), previousMonthDate.getMonth() + 1, 0)
+      
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('user_id,display_name,avatar_url')
+      
+      const { data: recipesData } = await supabase
+        .from('recipes')
+        .select('user_id,created_at')
+        .gte('created_at', startOfMonth.toISOString())
+        .lte('created_at', endOfMonth.toISOString())
+      
+      // Calculer le classement final
+      const recipesCountMap = {}
+      ;(recipesData || []).forEach(r => {
+        recipesCountMap[r.user_id] = (recipesCountMap[r.user_id] || 0) + 1
+      })
+      
+      const finalLeaderboard = (profilesData || [])
+        .map(profile => ({
+          user_id: profile.user_id,
+          display_name: profile.display_name || 'Utilisateur',
+          avatar_url: profile.avatar_url || null,
+          recipesCount: recipesCountMap[profile.user_id] || 0
+        }))
+        .filter(user => user.recipesCount > 0)
+        .sort((a, b) => b.recipesCount - a.recipesCount)
+        .slice(0, 10)
+      
+      // Sauvegarder dans Supabase
+      if (finalLeaderboard.length > 0) {
+        await supabase
+          .from('monthly_leaderboards')
+          .insert({
+            month: previousMonth,
+            leaderboard_data: finalLeaderboard,
+            created_at: new Date().toISOString()
+          })
+      }
+      
+      console.log(`Classement du mois ${previousMonth} sauvegardé avec ${finalLeaderboard.length} participants`)
+      
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde du classement mensuel:', error)
+    }
+  }
+
+  // Fonction pour afficher la notification de réinitialisation
+  const showMonthlyResetNotification = (previousMonth, currentMonth) => {
+    const previousMonthLabel = getSeasonLabel(previousMonth)
+    const currentMonthLabel = getSeasonLabel(currentMonth)
+    
+    setMonthlyResetNotification({
+      previousMonth: previousMonthLabel,
+      currentMonth: currentMonthLabel,
+      message: `🎊 Nouveau mois, nouveau défi ! Le classement de ${previousMonthLabel} a été archivé. Place à ${currentMonthLabel} !`
+    })
+    
+    // Auto-masquer après 8 secondes
+    setTimeout(() => {
+      setMonthlyResetNotification(null)
+    }, 8000)
+  }
+
+  // Fonction pour générer le label de saison
+  const getSeasonLabel = (monthStr) => {
+    const [year, month] = monthStr.split('-')
+    const monthNames = [
+      'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+      'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
+    ]
+    return `${monthNames[parseInt(month) - 1]} ${year}`
+  }
+
+  // Fonction pour charger le classement (mise à jour)
   const fetchLeaderboard = async () => {
     setLeaderboardLoading(true)
     try {
@@ -137,18 +259,18 @@ export default function Home() {
         return
       }
 
-      // 2. Récupérer toutes les recettes du dernier mois
-      const oneMonthAgo = new Date()
-      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
+      // 2. Récupérer toutes les recettes du mois ACTUEL (modification importante)
+      const now = new Date()
+      const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1)
       const { data: recipesData, error: recipesError } = await supabase
         .from('recipes')
         .select('user_id,created_at')
-        .gte('created_at', oneMonthAgo.toISOString())
+        .gte('created_at', startOfCurrentMonth.toISOString())
       if (recipesError) {
         console.error("[Classement] Erreur recipes:", recipesError)
       }
 
-      // 3. Compter les recettes par utilisateur sur le dernier mois
+      // 3. Compter les recettes par utilisateur sur le mois actuel
       const recipesCountMap = {}
       ;(recipesData || []).forEach(r => {
         recipesCountMap[r.user_id] = (recipesCountMap[r.user_id] || 0) + 1
@@ -173,6 +295,11 @@ export default function Home() {
       setLeaderboard([])
     }
     setLeaderboardLoading(false)
+  }
+
+  // Fonction pour voir l'historique des classements
+  const viewLeaderboardHistory = () => {
+    router.push('/leaderboard-history')
   }
 
   // Accès discret aux logs (seulement pour les développeurs/admins)
@@ -1123,7 +1250,7 @@ export default function Home() {
             <h1 style={{
               fontSize: '2.4rem', // Réduction
               fontWeight: '900',
-              margin: '0 0 10px 0', // Réduction des marges
+              margin: '0 0 10px 0', // Réduction
               background: 'linear-gradient(135deg, #ff6b35 0%, #f7931e 50%, #ff8a50 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
@@ -1344,66 +1471,92 @@ export default function Home() {
                       WebkitBackgroundClip: 'text',
                       WebkitTextFillColor: 'transparent'
                     }}>
-                      Top Chefs du Mois
+                      Top Chefs - {currentSeason?.label || 'Ce Mois'}
                     </div>
                     <div style={{ 
                       fontSize: '0.75rem', 
                       color: '#64748b',
                       fontWeight: 500
                     }}>
-                      Recettes publiées sur 30 jours
+                      Classement mensuel • Se remet à zéro chaque mois
                     </div>
                   </div>
                 </div>
 
-                {/* Bouton d'actualisation compact */}
-                <button
-                  onClick={fetchLeaderboard}
-                  disabled={leaderboardLoading}
-                  style={{
-                    background: leaderboardLoading 
-                      ? 'linear-gradient(135deg, #e2e8f0, #cbd5e1)' 
-                      : 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
-                    color: leaderboardLoading ? '#64748b' : 'white',
-                    border: 'none',
-                    padding: '6px 12px',
-                    borderRadius: 10,
-                    fontSize: '0.75rem',
-                    fontWeight: 600,
-                    cursor: leaderboardLoading ? 'not-allowed' : 'pointer',
-                    transition: 'all 0.3s ease',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    boxShadow: leaderboardLoading 
-                      ? '0 2px 4px rgba(0,0,0,0.1)' 
-                      : '0 3px 8px rgba(59, 130, 246, 0.25)',
-                    position: 'relative',
-                    overflow: 'hidden'
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!leaderboardLoading) {
+                {/* Boutons d'action */}
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button
+                    onClick={viewLeaderboardHistory}
+                    style={{
+                      background: 'linear-gradient(135deg, #8b5cf6, #a78bfa)',
+                      color: 'white',
+                      border: 'none',
+                      padding: '6px 10px',
+                      borderRadius: 8,
+                      fontSize: '0.7rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease',
+                      boxShadow: '0 2px 6px rgba(139, 92, 246, 0.3)'
+                    }}
+                    onMouseEnter={(e) => {
                       e.target.style.transform = 'translateY(-1px)'
-                      e.target.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.35)'
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!leaderboardLoading) {
+                      e.target.style.boxShadow = '0 4px 10px rgba(139, 92, 246, 0.4)'
+                    }}
+                    onMouseLeave={(e) => {
                       e.target.style.transform = 'translateY(0)'
-                      e.target.style.boxShadow = '0 3px 8px rgba(59, 130, 246, 0.25)'
-                    }
-                  }}
-                >
-                  <div style={{
-                    fontSize: '0.8rem',
-                    animation: leaderboardLoading ? 'spin 1s linear infinite' : 'none'
-                  }}>
-                    {leaderboardLoading ? '⟳' : '🔄'}
-                  </div>
-                  <span style={{ fontSize: '0.7rem' }}>
-                    {leaderboardLoading ? 'Actualisation...' : 'Actualiser'}
-                  </span>
-                </button>
+                      e.target.style.boxShadow = '0 2px 6px rgba(139, 92, 246, 0.3)'
+                    }}
+                  >
+                    📚 Historique
+                  </button>
+                  
+                  <button
+                    onClick={fetchLeaderboard}
+                    disabled={leaderboardLoading}
+                    style={{
+                      background: leaderboardLoading 
+                        ? 'linear-gradient(135deg, #e2e8f0, #cbd5e1)' 
+                        : 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+                      color: leaderboardLoading ? '#64748b' : 'white',
+                      border: 'none',
+                      padding: '6px 12px',
+                      borderRadius: 10,
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      cursor: leaderboardLoading ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.3s ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      boxShadow: leaderboardLoading 
+                        ? '0 2px 4px rgba(0,0,0,0.1)' 
+                        : '0 3px 8px rgba(59, 130, 246, 0.25)'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!leaderboardLoading) {
+                        e.target.style.transform = 'translateY(-1px)'
+                        e.target.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.35)'
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!leaderboardLoading) {
+                        e.target.style.transform = 'translateY(0)'
+                        e.target.style.boxShadow = '0 3px 8px rgba(59, 130, 246, 0.25)'
+                      }
+                    }}
+                  >
+                    <div style={{
+                      fontSize: '0.8rem',
+                      animation: leaderboardLoading ? 'spin 1s linear infinite' : 'none'
+                    }}>
+                      {leaderboardLoading ? '⟳' : '🔄'}
+                    </div>
+                    <span style={{ fontSize: '0.7rem' }}>
+                      {leaderboardLoading ? 'Actualisation...' : 'Actualiser'}
+                    </span>
+                  </button>
+                </div>
               </div>
 
               {/* Contenu du podium */}
@@ -1927,7 +2080,7 @@ export default function Home() {
           0%, 100% { 
             transform: scale(1);
             box-shadow: 0 0 20px rgba(255, 107, 53, 0.4);
-                   }
+          }
           50% { 
             transform: scale(1.1);
             box-shadow: 0 0 30px rgba(255, 107, 53, 0.6), 0 0 40px rgba(255, 107, 53, 0.3);
