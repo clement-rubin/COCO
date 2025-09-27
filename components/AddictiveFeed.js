@@ -34,7 +34,8 @@ export default function AddictiveFeed() {
   const [showWelcome, setShowWelcome] = useState(true)
   const [leaderboard, setLeaderboard] = useState([])
   const [leaderboardLoading, setLeaderboardLoading] = useState(true)
-  
+  const [cardNotifications, setCardNotifications] = useState([])
+
   const containerRef = useRef(null)
 
   // Chargement initial
@@ -556,6 +557,38 @@ export default function AddictiveFeed() {
       setLeaderboard([])
     }
     setLeaderboardLoading(false)
+  }
+
+  // Fonction pour afficher des notifications de cartes
+  const showCardNotification = (message, type = 'info') => {
+    const notification = {
+      id: Date.now(),
+      message,
+      type,
+      timestamp: new Date()
+    }
+    
+    setCardNotifications(prev => [notification, ...prev.slice(0, 2)])
+    
+    // Auto-supprimer après 5 secondes
+    setTimeout(() => {
+      setCardNotifications(prev => prev.filter(n => n.id !== notification.id))
+    }, 5000)
+  }
+
+  // Simuler des gains de cartes lors d'interactions
+  const handleLike = async (recipeId) => {
+    // ...existing like logic...
+    
+    // Chance de gagner une carte lors d'un like (5% de chance)
+    if (Math.random() < 0.05) {
+      showCardNotification('🎉 Vous avez trouvé une carte mystère !', 'success')
+      
+      // Rediriger vers les cartes après 2 secondes
+      setTimeout(() => {
+        router.push('/progression?tab=cartes')
+      }, 2000)
+    }
   }
 
   // Affichage du message d'accueil pendant le chargement initial
@@ -1424,6 +1457,79 @@ export default function AddictiveFeed() {
         </div>
       )}
 
+      {/* Notifications de cartes flottantes */}
+      {cardNotifications.length > 0 && (
+        <div style={{
+          position: 'fixed',
+          top: '100px',
+          right: '20px',
+          zIndex: 1000,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px'
+        }}>
+          {cardNotifications.map(notification => (
+            <div
+              key={notification.id}
+              style={{
+                background: notification.type === 'success' 
+                  ? 'linear-gradient(135deg, #10b981, #34d399)'
+                  : 'linear-gradient(135deg, #3b82f6, #60a5fa)',
+                color: 'white',
+                padding: '12px 16px',
+                borderRadius: '12px',
+                fontSize: '0.9rem',
+                fontWeight: '600',
+                boxShadow: '0 8px 25px rgba(0, 0, 0, 0.2)',
+                animation: 'cardNotificationSlide 0.5s ease-out',
+                cursor: 'pointer',
+                maxWidth: '250px'
+              }}
+              onClick={() => router.push('/progression?tab=cartes')}
+            >
+              {notification.message}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Bannière promotionnelle cartes dans le feed */}
+      {recipes.length > 0 && Math.floor(Math.random() * 10) === 0 && (
+        <div style={{
+          background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+          borderRadius: 16,
+          padding: '16px',
+          margin: '16px 0',
+          color: 'white',
+          textAlign: 'center',
+          position: 'relative',
+          overflow: 'hidden',
+          cursor: 'pointer'
+        }}
+          onClick={() => router.push('/progression?tab=cartes')}
+        >
+          <div style={{
+            position: 'absolute',
+            top: '-50%',
+            left: '-50%',
+            width: '200%',
+            height: '200%',
+            background: 'linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.1) 50%, transparent 60%)',
+            animation: 'promotionShine 3s ease-in-out infinite'
+          }} />
+
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <div style={{ fontSize: '2rem', marginBottom: '8px' }}>🎴</div>
+            <div style={{ fontWeight: '800', fontSize: '1.1rem', marginBottom: '4px' }}>
+              Nouvelle Collection Disponible !
+            </div>
+            <div style={{ fontSize: '0.9rem', opacity: 0.9 }}>
+              Découvrez les cartes "Techniques Secrètes" 🔥
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Animations CSS intégrées */}
       <style jsx>{`
         @keyframes pulse {
@@ -1490,6 +1596,26 @@ export default function AddictiveFeed() {
           }
           100% { 
             box-shadow: 0 16px 40px rgba(245, 158, 11, 0.7), inset 0 2px 4px rgba(255,255,255,0.4);
+          }
+        }
+
+        @keyframes cardNotificationSlide {
+          from {
+            opacity: 0;
+            transform: translateX(100px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+
+        @keyframes promotionShine {
+          0%, 100% { 
+            transform: translateX(-200%) translateY(-200%) rotate(45deg);
+          }
+          50% { 
+            transform: translateX(200%) translateY(200%) rotate(45deg);
           }
         }
 

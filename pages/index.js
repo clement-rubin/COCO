@@ -26,6 +26,12 @@ export default function Home() {
   const [leaderboardLoading, setLeaderboardLoading] = useState(false)
   const [monthlyResetNotification, setMonthlyResetNotification] = useState(null)
   const [currentSeason, setCurrentSeason] = useState(null)
+  const [cardStats, setCardStats] = useState({
+    totalCards: 0,
+    ownedCards: 0,
+    completionPercentage: 0,
+    recentCards: []
+  })
   const heroRef = useRef(null)
 
   // Détection du scroll
@@ -1304,13 +1310,313 @@ export default function Home() {
               </p>
             </div>
 
-            {/* Actions rapides - VERSION COMPACTE */}
+            {/* Section Cartes à Collectionner - NOUVELLE */}
+            {user && (
+              <div style={{
+                background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #dbeafe 100%)',
+                borderRadius: 20,
+                padding: '16px 18px',
+                marginBottom: '16px',
+                border: '2px solid rgba(59, 130, 246, 0.2)',
+                boxShadow: '0 8px 25px rgba(59, 130, 246, 0.15)',
+                position: 'relative',
+                overflow: 'hidden'
+              }}>
+                {/* Particules flottantes pour effet magique */}
+                <div style={{
+                  position: 'absolute',
+                  top: '10%',
+                  right: '15%',
+                  width: '6px',
+                  height: '6px',
+                  background: '#3b82f6',
+                  borderRadius: '50%',
+                  animation: 'floatingCard 3s ease-in-out infinite',
+                  opacity: 0.6
+                }} />
+                <div style={{
+                  position: 'absolute',
+                  bottom: '20%',
+                  left: '10%',
+                  width: '4px',
+                  height: '4px',
+                  background: '#8b5cf6',
+                  borderRadius: '50%',
+                  animation: 'floatingCard 4s ease-in-out infinite 1s',
+                  opacity: 0.4
+                }} />
+
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  marginBottom: '12px'
+                }}>
+                  <div style={{
+                    background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '0.9rem',
+                    boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
+                    animation: 'cardGlow 2s ease-in-out infinite alternate'
+                  }}>
+                    🃏
+                  </div>
+                  <div>
+                    <div style={{
+                      fontWeight: '800',
+                      fontSize: '1rem',
+                      color: '#1e40af',
+                      marginBottom: '2px'
+                    }}>
+                      Collection de Cartes
+                    </div>
+                    <div style={{
+                      fontSize: '0.7rem',
+                      color: '#3730a3',
+                      fontWeight: '600'
+                    }}>
+                      Système de collection culinaire
+                    </div>
+                  </div>
+                </div>
+
+                {/* Statistiques de collection */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(3, 1fr)',
+                  gap: '8px',
+                  marginBottom: '12px'
+                }}>
+                  <div style={{
+                    background: 'rgba(255, 255, 255, 0.7)',
+                    borderRadius: '10px',
+                    padding: '8px 6px',
+                    textAlign: 'center',
+                    border: '1px solid rgba(59, 130, 246, 0.2)'
+                  }}>
+                    <div style={{
+                      fontWeight: '800',
+                      fontSize: '1.1rem',
+                      color: '#1d4ed8',
+                      marginBottom: '2px'
+                    }}>
+                      {cardStats.ownedCards}
+                    </div>
+                    <div style={{
+                      fontSize: '0.6rem',
+                      color: '#3730a3',
+                      fontWeight: '600'
+                    }}>
+                      Cartes
+                    </div>
+                  </div>
+
+                  <div style={{
+                    background: 'rgba(255, 255, 255, 0.7)',
+                    borderRadius: '10px',
+                    padding: '8px 6px',
+                    textAlign: 'center',
+                    border: '1px solid rgba(139, 92, 246, 0.2)'
+                  }}>
+                    <div style={{
+                      fontWeight: '800',
+                      fontSize: '1.1rem',
+                      color: '#7c3aed',
+                      marginBottom: '2px'
+                    }}>
+                      {cardStats.completionPercentage}%
+                    </div>
+                    <div style={{
+                      fontSize: '0.6rem',
+                      color: '#6b21a8',
+                      fontWeight: '600'
+                    }}>
+                      Complété
+                    </div>
+                  </div>
+
+                  <div style={{
+                    background: 'rgba(255, 255, 255, 0.7)',
+                    borderRadius: '10px',
+                    padding: '8px 6px',
+                    textAlign: 'center',
+                    border: '1px solid rgba(245, 158, 11, 0.2)'
+                  }}>
+                    <div style={{
+                      fontWeight: '800',
+                      fontSize: '1.1rem',
+                      color: '#d97706',
+                      marginBottom: '2px'
+                    }}>
+                      {cardStats.totalCards}
+                    </div>
+                    <div style={{
+                      fontSize: '0.6rem',
+                      color: '#92400e',
+                      fontWeight: '600'
+                    }}>
+                      Total
+                    </div>
+                  </div>
+                </div>
+
+                {/* Cartes récentes */}
+                {cardStats.recentCards.length > 0 && (
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    gap: '4px',
+                    marginBottom: '12px'
+                  }}>
+                    {cardStats.recentCards.map((card, idx) => (
+                      <div key={idx} style={{
+                        width: '24px',
+                        height: '32px',
+                        background: card.rarity === 'legendary' ? 'linear-gradient(135deg, #fbbf24, #f59e0b)' :
+                                   card.rarity === 'epic' ? 'linear-gradient(135deg, #a855f7, #8b5cf6)' :
+                                   card.rarity === 'rare' ? 'linear-gradient(135deg, #3b82f6, #1d4ed8)' :
+                                   'linear-gradient(135deg, #6b7280, #4b5563)',
+                        borderRadius: '4px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.6rem',
+                        border: '1px solid rgba(255, 255, 255, 0.3)',
+                        boxShadow: '0 2px 6px rgba(0, 0, 0, 0.1)',
+                        animation: `cardReveal 0.5s ease-out ${idx * 0.2}s both`,
+                        cursor: 'pointer',
+                        transition: 'transform 0.2s ease'
+                      }}
+                        onMouseEnter={(e) => e.target.style.transform = 'scale(1.1) rotate(5deg)'}
+                        onMouseLeave={(e) => e.target.style.transform = 'scale(1) rotate(0deg)'}
+                        title={card.name || 'Carte mystérieuse'}
+                      >
+                        {card.icon || '🎴'}
+                      </div>
+                    ))}
+                    {cardStats.recentCards.length < 3 && (
+                      <div style={{
+                        width: '24px',
+                        height: '32px',
+                        background: 'rgba(107, 114, 128, 0.3)',
+                        borderRadius: '4px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.6rem',
+                        border: '1px dashed rgba(107, 114, 128, 0.5)',
+                        color: '#6b7280'
+                      }}>
+                        ?
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Actions */}
+                <div style={{
+                  display: 'flex',
+                  gap: '6px',
+                  justifyContent: 'center'
+                }}>
+                  <button
+                    onClick={() => router.push('/progression')}
+                    style={{
+                      background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+                      color: 'white',
+                      border: 'none',
+                      padding: '8px 14px',
+                      borderRadius: '10px',
+                      fontSize: '0.8rem',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease',
+                      boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.transform = 'translateY(-2px)'
+                      e.target.style.boxShadow = '0 6px 16px rgba(59, 130, 246, 0.4)'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.transform = 'translateY(0)'
+                      e.target.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)'
+                    }}
+                  >
+                    🛒 Boutique
+                  </button>
+
+                  <button
+                    onClick={() => router.push('/progression')}
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.8)',
+                      color: '#3b82f6',
+                      border: '1px solid #3b82f6',
+                      padding: '8px 14px',
+                      borderRadius: '10px',
+                      fontSize: '0.8rem',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease',
+                      backdropFilter: 'blur(5px)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.background = '#3b82f6'
+                      e.target.style.color = 'white'
+                      e.target.style.transform = 'translateY(-2px)'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.background = 'rgba(255, 255, 255, 0.8)'
+                      e.target.style.color = '#3b82f6'
+                      e.target.style.transform = 'translateY(0)'
+                    }}
+                  >
+                    📚 Collection
+                  </button>
+                </div>
+
+                {/* Message d'encouragement */}
+                <div style={{
+                  fontSize: '0.7rem',
+                  color: '#1e40af',
+                  fontWeight: '600',
+                  marginTop: '8px',
+                  background: 'rgba(255, 255, 255, 0.5)',
+                  borderRadius: '8px',
+                  padding: '4px 8px',
+                  border: '1px solid rgba(59, 130, 246, 0.2)'
+                }}>
+                  ✨ {cardStats.ownedCards === 0 
+                    ? 'Ouvrez votre premier pack !' 
+                    : cardStats.completionPercentage < 20 
+                      ? 'Continuez votre collection !'
+                      : cardStats.completionPercentage < 50
+                        ? 'Belle progression ! Continuez !'
+                        : cardStats.completionPercentage < 80
+                          ? 'Vous êtes un collectionneur expérimenté !'
+                          : 'Maître collectionneur ! Presque complet !'}
+                </div>
+              </div>
+            )}
+
+            {/* Actions rapides intégrant les cartes */}
             <div style={{
               display: 'flex',
-              gap: '10px', // Réduction
+              gap: '10px',
               justifyContent: 'center',
               flexWrap: 'wrap',
-              marginBottom: '20px' // Réduction
+              marginBottom: '20px'
             }}>
               <button
                 onClick={() => router.push('/share-photo')}
@@ -1318,16 +1624,16 @@ export default function Home() {
                   background: 'linear-gradient(135deg, #ff6b35, #f7931e)',
                   color: 'white',
                   border: 'none',
-                  padding: '10px 20px', // Réduction
-                  borderRadius: '14px', // Réduction
+                  padding: '10px 20px',
+                  borderRadius: '14px',
                   fontWeight: '700',
-                  fontSize: '0.9rem', // Réduction
+                  fontSize: '0.9rem',
                   cursor: 'pointer',
                   transition: 'all 0.3s ease',
-                  boxShadow: '0 4px 15px rgba(255, 107, 53, 0.25)', // Réduction
+                  boxShadow: '0 4px 15px rgba(255, 107, 53, 0.25)',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px', // Réduction
+                  gap: '6px',
                   position: 'relative',
                   overflow: 'hidden'
                 }}
@@ -1340,70 +1646,67 @@ export default function Home() {
                   e.target.style.boxShadow = '0 4px 15px rgba(255, 107, 53, 0.25)'
                 }}
               >
-                {/* Icône caméra réduite */}
+                📸 Partager
+                {/* Badge "Gagne des cartes" */}
                 <div style={{
-                  width: '14px', // Réduction
-                  height: '14px',
-                  background: 'white',
-                  borderRadius: '3px',
-                  position: 'relative',
-                  animation: 'cameraShutter 2s ease-in-out infinite'
+                  position: 'absolute',
+                  top: '-6px',
+                  right: '-6px',
+                  background: '#10b981',
+                  color: 'white',
+                  fontSize: '0.6rem',
+                  fontWeight: '700',
+                  padding: '2px 4px',
+                  borderRadius: '4px',
+                  animation: 'pulse 2s infinite'
                 }}>
-                  <div style={{
-                    width: '6px', // Réduction
-                    height: '6px',
-                    background: '#ff6b35',
-                    borderRadius: '50%',
-                    position: 'absolute',
-                    top: '50%',
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    animation: 'lensFocus 2s ease-in-out infinite'
-                  }} />
+                  +🃏
                 </div>
-                Partager
               </button>
+
               <button
                 onClick={() => router.push('/progression')}
                 style={{
                   background: 'rgba(255, 255, 255, 0.95)',
-                  color: '#ff6b35',
-                  border: '2px solid #ff6b35',
-                  padding: '10px 20px', // Réduction
-                  borderRadius: '14px', // Réduction
+                  color: '#3b82f6',
+                  border: '2px solid #3b82f6',
+                  padding: '10px 20px',
+                  borderRadius: '14px',
                   fontWeight: '700',
-                  fontSize: '0.9rem', // Réduction
+                  fontSize: '0.9rem',
                   cursor: 'pointer',
                   transition: 'all 0.3s ease',
                   backdropFilter: 'blur(10px)',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px' // Réduction
+                  gap: '6px',
+                  position: 'relative'
                 }}
                 onMouseEnter={(e) => {
-                  e.target.style.background = '#ff6b35'
+                  e.target.style.background = '#3b82f6'
                   e.target.style.color = 'white'
                   e.target.style.transform = 'translateY(-2px)'
                 }}
                 onMouseLeave={(e) => {
                   e.target.style.background = 'rgba(255, 255, 255, 0.95)'
-                  e.target.style.color = '#ff6b35'
+                  e.target.style.color = '#3b82f6'
                   e.target.style.transform = 'translateY(0)'
                 }}
               >
-                {/* Icône trophée */}
-                <div style={{
-                  width: '14px',
-                  height: '14px',
-                  borderRadius: '3px',
-                  position: 'relative',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  🏆
-                </div>
-                Progression
+                🃏 Cartes
+                {/* Indicateur de nouvelles cartes disponibles */}
+                {user && cardStats.completionPercentage < 100 && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '-4px',
+                    right: '-4px',
+                    width: '8px',
+                    height: '8px',
+                    background: '#ef4444',
+                    borderRadius: '50%',
+                    animation: 'pulse 2s infinite'
+                  }} />
+                )}
               </button>
             </div>
 
