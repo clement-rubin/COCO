@@ -38,6 +38,11 @@ export default function Home() {
       icon: '🤝',
       title: 'Communauté Active',
       description: 'Partagez et inspirez-vous mutuellement avec des milliers de chefs'
+    },
+    {
+      icon: '🃏',
+      title: 'Cartes Culinaires',
+      description: 'Collectionnez des cartes rares d\'ingrédients, chefs et techniques'
     }
   ];
 

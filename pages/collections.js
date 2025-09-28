@@ -156,42 +156,42 @@ export default function Collections() {
     },
     {
       id: 8,
-      name: "Express & Savoureux",
-      description: "Solutions rapides pour cuisiner délicieux",
-      illustration: "⚡",
-      color: "#eff6ff",
-      accent: "#3b82f6",
+      name: 'Express & Savoureux',
+      description: 'Solutions rapides pour cuisiner délicieux',
+      illustration: '⚡',
+      color: '#eff6ff',
+      accent: '#3b82f6',
       recipeCount: 34,
-      difficulty: "Facile",
-      category: "quick",
+      difficulty: 'Facile',
+      category: 'quick',
       trending: true,
       recipes: [
-        { name: "Pâtes carbonara express", difficulty: "Facile" },
-        { name: "Salade Caesar", difficulty: "Facile" },
-        { name: "Omelette aux herbes", difficulty: "Facile" },
-        { name: "Wrap méditerranéen", difficulty: "Facile" }
+        { name: 'Pâtes carbonara express', difficulty: 'Facile' },
+        { name: 'Salade Caesar', difficulty: 'Facile' },
+        { name: 'Omelette aux herbes', difficulty: 'Facile' },
+        { name: 'Wrap méditerranéen', difficulty: 'Facile' }
       ],
-      tags: ["Rapide", "Pratique", "Efficace"]
+      tags: ['Rapide', 'Pratique', 'Efficace']
     },
     {
       id: 9,
-      name: "Gastronomie de Fête",
-      description: "Recettes d'exception pour marquer les grandes occasions avec élégance",
-      illustration: "🎉",
-      color: "#fffbeb",
-      accent: "#f59e0b",
-      recipeCount: 18,
-      difficulty: "Expert",
-      category: "gourmet",
+      name: 'Cartes à Collectionner',
+      description: 'Découvrez les secrets culinaires à travers notre collection de cartes',
+      illustration: '🃏',
+      color: '#f0f9ff',
+      accent: '#0284c7',
+      recipeCount: 53,
+      difficulty: 'Découverte',
+      category: 'cards',
       featured: true,
-      estimatedTime: "60-180 min",
+      isCardCollection: true,
       recipes: [
-        { name: "Foie gras mi-cuit maison", time: "2h", difficulty: "Expert" },
-        { name: "Bûche de Noël chocolat", time: "3h", difficulty: "Difficile" },
-        { name: "Saumon en croûte feuilletée", time: "1h30", difficulty: "Difficile" },
-        { name: "Cocktails champagne", time: "15 min", difficulty: "Moyen" }
+        { name: 'Safran de Cachemire', difficulty: 'Légendaire' },
+        { name: 'Auguste Escoffier', difficulty: 'Légendaire' },
+        { name: 'Technique du Flambage', difficulty: 'Épique' },
+        { name: 'Cuisine Française', difficulty: 'Épique' }
       ],
-      tags: ["Gastronomie", "Fêtes", "Prestige"]
+      tags: ['Collection', 'Découverte', 'Rareté']
     }
   ]
 

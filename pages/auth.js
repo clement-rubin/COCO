@@ -50,6 +50,20 @@ export default function AuthPage() {
             <div className="card-icon">✨</div>
             <h2>Créer un compte</h2>
             <p>Rejoignez notre communauté et commencez à partager vos recettes préférées</p>
+            
+            {/* Mention des cartes */}
+            <div style={{
+              background: 'linear-gradient(135deg, #f0f9ff, #e0f2fe)',
+              borderRadius: '8px',
+              padding: '8px 12px',
+              marginBottom: '16px',
+              fontSize: '0.85rem',
+              color: '#0284c7',
+              textAlign: 'center'
+            }}>
+              🃏 <strong>Nouveau :</strong> Collectionnez des cartes culinaires rares !
+            </div>
+            
             <div className="card-buttons">
               <Link href="/signup" className="button primary">
                 Inscription classique

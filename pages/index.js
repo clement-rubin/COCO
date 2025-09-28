@@ -1123,7 +1123,7 @@ export default function Home() {
             <h1 style={{
               fontSize: '2.4rem', // Réduction
               fontWeight: '900',
-              margin: '0 0 10px 0', // Réduction des marges
+              margin: '0 0 10px 0', // Réduction
               background: 'linear-gradient(135deg, #ff6b35 0%, #f7931e 50%, #ff8a50 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
@@ -1691,7 +1691,7 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Message d'encouragement - VERSION COMPACTE */}
+          {/* Message d'encouragement - VERSION COMPACTE avec mention cartes */}
           {user && (
             <div style={{
               textAlign: 'center',
@@ -1718,30 +1718,93 @@ export default function Home() {
               }}>
                 Plus vous avez d'amis, plus vous découvrirez de recettes
               </p>
-              <button
-                onClick={() => router.push('/amis')}
-                style={{
-                  background: '#f59e0b',
-                  color: 'white',
-                  border: 'none',
-                  padding: '6px 14px', // Réduction
-                  borderRadius: '8px',
-                  fontSize: '0.75rem', // Réduction
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease'
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.background = '#d97706'
-                  e.target.style.transform = 'translateY(-1px)'
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.background = '#f59e0b'
-                  e.target.style.transform = 'translateY(0)'
-                }}
-              >
-                👥 Gérer mes amis
-              </button>
+
+              {/* Mention discrète des cartes */}
+              <div style={{
+                background: 'rgba(2, 132, 199, 0.1)',
+                borderRadius: '8px',
+                padding: '8px',
+                marginBottom: '12px',
+                border: '1px solid rgba(2, 132, 199, 0.2)'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  marginBottom: '4px'
+                }}>
+                  <span style={{ fontSize: '0.9rem' }}>🃏</span>
+                  <span style={{
+                    fontSize: '0.8rem',
+                    fontWeight: '600',
+                    color: '#0284c7'
+                  }}>
+                    Nouveau : Collection de Cartes !
+                  </span>
+                </div>
+                <p style={{
+                  fontSize: '0.7rem',
+                  color: '#0369a1',
+                  margin: 0
+                }}>
+                  Découvrez les secrets culinaires cachés
+                </p>
+              </div>
+
+              <div style={{
+                display: 'flex',
+                gap: '8px',
+                justifyContent: 'center'
+              }}>
+                <button
+                  onClick={() => router.push('/amis')}
+                  style={{
+                    background: '#f59e0b',
+                    color: 'white',
+                    border: 'none',
+                    padding: '6px 14px', // Réduction
+                    borderRadius: '8px',
+                    fontSize: '0.75rem', // Réduction
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.background = '#d97706'
+                    e.target.style.transform = 'translateY(-1px)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = '#f59e0b'
+                    e.target.style.transform = 'translateY(0)'
+                  }}
+                >
+                  👥 Gérer mes amis
+                </button>
+                
+                <button
+                  onClick={() => router.push('/progression')}
+                  style={{
+                    background: 'linear-gradient(135deg, #0284c7, #0369a1)',
+                    color: 'white',
+                    border: 'none',
+                    padding: '6px 14px',
+                    borderRadius: '8px',
+                    fontSize: '0.75rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.transform = 'translateY(-1px)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.transform = 'translateY(0)'
+                  }}
+                >
+                  🃏 Cartes
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -1847,6 +1910,7 @@ export default function Home() {
         
         @keyframes fadeInUp {
           from {
+           
             opacity: 0;
             transform: translateY(20px);
           }
@@ -1927,7 +1991,7 @@ export default function Home() {
           0%, 100% { 
             transform: scale(1);
             box-shadow: 0 0 20px rgba(255, 107, 53, 0.4);
-                   }
+          }
           50% { 
             transform: scale(1.1);
             box-shadow: 0 0 30px rgba(255, 107, 53, 0.6), 0 0 40px rgba(255, 107, 53, 0.3);

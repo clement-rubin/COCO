@@ -206,6 +206,24 @@ const HomePage = () => {
                 Rejoignez notre communauté et soyez notifié des réactions !
               </p>
               
+              {/* Section cartes */}
+              <div style={{
+                background: 'rgba(2, 132, 199, 0.1)',
+                borderRadius: '12px',
+                padding: '12px',
+                marginBottom: '16px',
+                fontSize: '0.9rem',
+                color: '#0284c7',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <span style={{ fontSize: '1.2rem' }}>🃏</span>
+                <span>
+                  <strong>Nouveau :</strong> Collection de cartes culinaires disponible !
+                </span>
+              </div>
+              
               {/* Aperçu des notifications pour non-connectés */}
               {!user && (
                 <div style={{
