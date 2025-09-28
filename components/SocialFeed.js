@@ -42,7 +42,7 @@ export default function SocialFeed() {
       
       const recipes = await response.json()
       
-      // Formater les données pour le feed social avec mention cartes
+      // Formater les données pour le feed social
       const formattedPosts = recipes.map(recipe => ({
         id: recipe.id,
         user: { 
@@ -59,8 +59,7 @@ export default function SocialFeed() {
         },
         shares: Math.floor(Math.random() * 50) + 5,
         timeAgo: getTimeAgo(new Date(recipe.created_at)),
-        tags: generateTags(recipe.category, recipe.title),
-        hasCardBonus: Math.random() > 0.8 // 20% de chance d'avoir un bonus carte
+        tags: generateTags(recipe.category, recipe.title)
       }))
 
       setPosts(formattedPosts)

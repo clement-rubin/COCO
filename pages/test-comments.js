@@ -52,7 +52,6 @@ export default function TestCommentsPage() {
           <li>🎨 Thèmes personnalisables</li>
           <li>📱 Interface responsive</li>
           <li>✨ Animations et feedback visuels</li>
-          <li>🃏 Système de cartes à collectionner intégré</li>
         </ul>
       </div>
 

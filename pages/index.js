@@ -1597,6 +1597,206 @@ export default function Home() {
                 </div>
               )}
             </div>
+
+            {/* Section Cartes - Nouvelle addition discrète */}
+            <div style={{
+              maxWidth: '100%',
+              margin: '0 auto 20px',
+              background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #f8fafc 100%)',
+              borderRadius: 18,
+              boxShadow: '0 6px 20px rgba(2, 132, 199, 0.1), 0 2px 8px rgba(2, 132, 199, 0.05)',
+              padding: '16px 14px',
+              textAlign: 'center',
+              border: '1px solid rgba(2, 132, 199, 0.1)',
+              position: 'relative',
+              overflow: 'hidden'
+            }}>
+              {/* Effet de brillance de fond subtil */}
+              <div style={{
+                position: 'absolute',
+                top: '-30%',
+                left: '-30%',
+                width: '160%',
+                height: '160%',
+                background: 'conic-gradient(from 0deg at 50% 50%, transparent 0deg, rgba(2, 132, 199, 0.02) 90deg, transparent 180deg, rgba(59, 130, 246, 0.02) 270deg, transparent 360deg)',
+                animation: 'slowRotate 30s linear infinite',
+                zIndex: 0
+              }} />
+
+              {/* En-tête des cartes */}
+              <div style={{ 
+                marginBottom: 12,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                position: 'relative',
+                zIndex: 1
+              }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  flex: 1
+                }}>
+                  <div style={{
+                    background: 'linear-gradient(135deg, #0284c7, #0369a1)',
+                    width: 28,
+                    height: 28,
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '0.9rem',
+                    boxShadow: '0 3px 8px rgba(2, 132, 199, 0.3)',
+                    animation: 'cardFloat 3s ease-in-out infinite'
+                  }}>
+                    🃏
+                  </div>
+                  <div style={{ textAlign: 'left' }}>
+                    <div style={{ 
+                      fontWeight: 800, 
+                      fontSize: '0.9rem', 
+                      color: '#0284c7',
+                      marginBottom: 1,
+                      background: 'linear-gradient(135deg, #0284c7, #0369a1)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent'
+                    }}>
+                      Collection de Cartes
+                    </div>
+                    <div style={{ 
+                      fontSize: '0.7rem', 
+                      color: '#64748b',
+                      fontWeight: 500
+                    }}>
+                      Découvrez les secrets culinaires
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bouton discret pour accéder */}
+                <button
+                  onClick={() => router.push('/progression')}
+                  style={{
+                    background: 'linear-gradient(135deg, #0284c7, #0369a1)',
+                    color: 'white',
+                    border: 'none',
+                    padding: '4px 10px',
+                    borderRadius: 8,
+                    fontSize: '0.7rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 3,
+                    boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
+                    position: 'relative',
+                    overflow: 'hidden'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.transform = 'translateY(-1px)'
+                    e.target.style.boxShadow = '0 3px 8px rgba(2, 132, 199, 0.35)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.transform = 'translateY(0)'
+                    e.target.style.boxShadow = '0 2px 6px rgba(2, 132, 199, 0.25)'
+                  }}
+                >
+                  <span style={{ fontSize: '0.8rem' }}>✨</span>
+                  <span>Découvrir</span>
+                </button>
+              </div>
+
+              {/* Aperçu des cartes - Version très compacte */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                gap: 6,
+                marginBottom: 10,
+                position: 'relative',
+                zIndex: 1
+              }}>
+                {/* Cartes exemple */}
+                {[
+                  { icon: '🌸', name: 'Safran', rarity: 'legendary', color: '#f59e0b' },
+                  { icon: '🍄', name: 'Truffe', rarity: 'epic', color: '#8b5cf6' },
+                  { icon: '🌿', name: 'Vanille', rarity: 'rare', color: '#3b82f6' }
+                ].map((card, idx) => (
+                  <div key={idx} style={{
+                    background: `linear-gradient(135deg, ${card.color}15, ${card.color}08)`,
+                    border: `1px solid ${card.color}30`,
+                    borderRadius: 8,
+                    padding: '6px 8px',
+                    minWidth: 45,
+                    textAlign: 'center',
+                    animation: `cardFloat 3s ease-in-out infinite ${idx * 0.5}s`,
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                    position: 'relative'
+                  }}
+                    onClick={() => router.push('/progression')}
+                    onMouseEnter={(e) => {
+                      e.target.style.transform = 'scale(1.1) translateY(-2px)'
+                      e.target.style.boxShadow = `0 4px 12px ${card.color}30`
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.transform = 'scale(1) translateY(0)'
+                      e.target.style.boxShadow = 'none'
+                    }}
+                  >
+                    <div style={{ fontSize: 16, marginBottom: 2 }}>
+                      {card.icon}
+                    </div>
+                    <div style={{
+                      fontSize: '0.6rem',
+                      fontWeight: 700,
+                      color: card.color,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {card.name}
+                    </div>
+                    {/* Badge rareté */}
+                    <div style={{
+                      position: 'absolute',
+                      top: -2,
+                      right: -2,
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      background: card.color,
+                      animation: `rarityPulse 2s ease-in-out infinite ${idx * 0.3}s`
+                    }} />
+                  </div>
+                ))}
+              </div>
+
+              {/* Message d'encouragement compact */}
+              <div style={{
+                background: 'rgba(2, 132, 199, 0.05)',
+                border: '1px solid rgba(2, 132, 199, 0.1)',
+                borderRadius: 8,
+                padding: '6px 10px',
+                fontSize: '0.7rem',
+                color: '#0369a1',
+                fontWeight: 600,
+                lineHeight: '1.2',
+                position: 'relative',
+                zIndex: 1
+              }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 4
+                }}>
+                  <span style={{ fontSize: '0.8rem' }}>🎁</span>
+                  <span>Collectionnez les ingrédients légendaires</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -1667,6 +1867,7 @@ export default function Home() {
                   e.target.style.background = 'transparent'
                   e.target.style.color = '#6b7280'
                 }}
+
               >
                 ➕ Ajouter amis
               </button>
@@ -1691,7 +1892,7 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Message d'encouragement - VERSION COMPACTE avec mention cartes */}
+          {/* Message d'encouragement - VERSION COMPACTE */}
           {user && (
             <div style={{
               textAlign: 'center',
@@ -1718,93 +1919,30 @@ export default function Home() {
               }}>
                 Plus vous avez d'amis, plus vous découvrirez de recettes
               </p>
-
-              {/* Mention discrète des cartes */}
-              <div style={{
-                background: 'rgba(2, 132, 199, 0.1)',
-                borderRadius: '8px',
-                padding: '8px',
-                marginBottom: '12px',
-                border: '1px solid rgba(2, 132, 199, 0.2)'
-              }}>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                  marginBottom: '4px'
-                }}>
-                  <span style={{ fontSize: '0.9rem' }}>🃏</span>
-                  <span style={{
-                    fontSize: '0.8rem',
-                    fontWeight: '600',
-                    color: '#0284c7'
-                  }}>
-                    Nouveau : Collection de Cartes !
-                  </span>
-                </div>
-                <p style={{
-                  fontSize: '0.7rem',
-                  color: '#0369a1',
-                  margin: 0
-                }}>
-                  Découvrez les secrets culinaires cachés
-                </p>
-              </div>
-
-              <div style={{
-                display: 'flex',
-                gap: '8px',
-                justifyContent: 'center'
-              }}>
-                <button
-                  onClick={() => router.push('/amis')}
-                  style={{
-                    background: '#f59e0b',
-                    color: 'white',
-                    border: 'none',
-                    padding: '6px 14px', // Réduction
-                    borderRadius: '8px',
-                    fontSize: '0.75rem', // Réduction
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.background = '#d97706'
-                    e.target.style.transform = 'translateY(-1px)'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.background = '#f59e0b'
-                    e.target.style.transform = 'translateY(0)'
-                  }}
-                >
-                  👥 Gérer mes amis
-                </button>
-                
-                <button
-                  onClick={() => router.push('/progression')}
-                  style={{
-                    background: 'linear-gradient(135deg, #0284c7, #0369a1)',
-                    color: 'white',
-                    border: 'none',
-                    padding: '6px 14px',
-                    borderRadius: '8px',
-                    fontSize: '0.75rem',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.transform = 'translateY(-1px)'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.transform = 'translateY(0)'
-                  }}
-                >
-                  🃏 Cartes
-                </button>
-              </div>
+              <button
+                onClick={() => router.push('/amis')}
+                style={{
+                  background: '#f59e0b',
+                  color: 'white',
+                  border: 'none',
+                  padding: '6px 14px', // Réduction
+                  borderRadius: '8px',
+                  fontSize: '0.75rem', // Réduction
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = '#d97706'
+                  e.target.style.transform = 'translateY(-1px)'
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = '#f59e0b'
+                  e.target.style.transform = 'translateY(0)'
+                }}
+              >
+                👥 Gérer mes amis
+              </button>
             </div>
           )}
         </div>
@@ -1910,7 +2048,6 @@ export default function Home() {
         
         @keyframes fadeInUp {
           from {
-           
             opacity: 0;
             transform: translateY(20px);
           }

@@ -839,65 +839,6 @@ export default function Presentation() {
           }
         }
       `}</style>
-
-      {/* Quick Comment CTA - Version améliorée avec intégration notifications et cartes */}
-      <div style={{
-        background: 'rgba(255, 255, 255, 0.9)',
-        borderRadius: '20px',
-        padding: '24px',
-        margin: '32px auto',
-        maxWidth: '500px',
-        border: '2px solid rgba(251, 146, 60, 0.2)',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)'
-      }}>
-        <h3 style={{
-          color: '#1e293b',
-          marginBottom: '12px',
-          fontSize: '1.3rem',
-          fontWeight: '700'
-        }}>
-          💬 Envie de partager votre avis ?
-        </h3>
-        <p style={{
-          color: '#64748b',
-          marginBottom: '20px',
-          lineHeight: '1.6'
-        }}>
-          Rejoignez notre communauté et soyez notifié des réactions !
-        </p>
-
-        {/* Mention des cartes */}
-        <div style={{
-          background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
-          borderRadius: '12px',
-          padding: '12px',
-          marginBottom: '16px',
-          border: '1px solid rgba(2, 132, 199, 0.2)'
-        }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            marginBottom: '6px'
-          }}>
-            <span style={{ fontSize: '1.1rem' }}>🃏</span>
-            <span style={{
-              fontSize: '0.9rem',
-              fontWeight: '600',
-              color: '#0284c7'
-            }}>
-              Nouveau : Cartes à Collectionner !
-            </span>
-          </div>
-          <p style={{
-            fontSize: '0.8rem',
-            color: '#0369a1',
-            margin: 0
-          }}>
-            Découvrez les secrets des grands chefs et ingrédients rares
-          </p>
-        </div>
-      </div>
     </div>
   )
 }
