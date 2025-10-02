@@ -367,10 +367,10 @@ export default function About() {
             gap: '32px'
           }}>
             {[
-              { number: '10K+', label: 'Recettes partagées', icon: '📝' },
-              { number: '5K+', label: 'Cuisiniers actifs', icon: '👥' },
-              { number: '50K+', label: 'Photos de plats', icon: '📸' },
-              { number: '1K+', label: 'Défis relevés', icon: '🏆' }
+              { number: '15K+', label: 'Recettes partagées', icon: '📝' },
+              { number: '7K+', label: 'Cuisiniers actifs', icon: '👥' },
+              { number: '80K+', label: 'Photos de plats', icon: '📸' },
+              { number: '2K+', label: 'Défis relevés', icon: '🏆' }
             ].map((stat, index) => (
               <div key={index}>
                 <div style={{ fontSize: '2rem', marginBottom: '8px' }}>

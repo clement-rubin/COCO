@@ -6,6 +6,7 @@ import RecipeCard from '../components/RecipeCard'
 import DebugPanel from '../components/DebugPanel'
 import { logInfo, logError, logWarning } from '../utils/logger'
 import styles from '../styles/Recettes.module.css'
+import { supabase } from '../utils/supabaseClient'
 
 export default function Recettes() {
   const router = useRouter()
@@ -15,6 +16,8 @@ export default function Recettes() {
   const [error, setError] = useState(null)
   const [filter, setFilter] = useState('all')
   const [stats, setStats] = useState({ total: 0, quick: 0, complete: 0 })
+  const [leaderboard, setLeaderboard] = useState([])
+  const [leaderboardLoading, setLeaderboardLoading] = useState(true)
   
   // États pour le debugging
   const [debugLogs, setDebugLogs] = useState([])
@@ -62,6 +65,66 @@ export default function Recettes() {
     loadWeeklyContestData()
     loadParticipationData()
   }, [user, authLoading, router])
+
+  // Charger le classement mensuel (top 3)
+  useEffect(() => {
+    if (user?.id) {
+      fetchLeaderboard()
+    }
+  }, [user])
+
+  // Fonction pour charger le classement
+  const fetchLeaderboard = async () => {
+    setLeaderboardLoading(true)
+    try {
+      // 1. Récupérer tous les profils utilisateurs
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('user_id,display_name,avatar_url')
+      if (profilesError) {
+        console.error("[Classement] Erreur profiles:", profilesError)
+        setLeaderboard([])
+        setLeaderboardLoading(false)
+        return
+      }
+
+      // 2. Récupérer toutes les recettes depuis le DÉBUT DU MOIS ACTUEL
+      const now = new Date()
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+      const { data: recipesData, error: recipesError } = await supabase
+        .from('recipes')
+        .select('user_id,created_at')
+        .gte('created_at', startOfMonth.toISOString())
+      if (recipesError) {
+        console.error("[Classement] Erreur recipes:", recipesError)
+      }
+
+      // 3. Compter les recettes par utilisateur depuis le début du mois
+      const recipesCountMap = {}
+      ;(recipesData || []).forEach(r => {
+        recipesCountMap[r.user_id] = (recipesCountMap[r.user_id] || 0) + 1
+      })
+
+      // 4. Mapper les profils avec le nombre de recettes publiées
+      const leaderboardData = (profilesData || []).map(profile => {
+        const count = recipesCountMap[profile.user_id] || 0
+        return {
+          user_id: profile.user_id,
+          display_name: profile.display_name || 'Utilisateur',
+          avatar_url: profile.avatar_url || null,
+          recipesCount: count,
+          isYou: user?.id === profile.user_id
+        }
+      })
+
+      leaderboardData.sort((a, b) => b.recipesCount - a.recipesCount)
+      setLeaderboard(leaderboardData.slice(0, 10))
+    } catch (e) {
+      console.error("[Classement] Exception générale:", e)
+      setLeaderboard([])
+    }
+    setLeaderboardLoading(false)
+  }
 
   const loadUserRecipes = async () => {
     if (!user?.id) {

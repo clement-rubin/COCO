@@ -137,18 +137,18 @@ export default function Home() {
         return
       }
 
-      // 2. Récupérer toutes les recettes du dernier mois
-      const oneMonthAgo = new Date()
-      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
+      // 2. Récupérer toutes les recettes depuis le DÉBUT DU MOIS ACTUEL
+      const now = new Date()
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
       const { data: recipesData, error: recipesError } = await supabase
         .from('recipes')
         .select('user_id,created_at')
-        .gte('created_at', oneMonthAgo.toISOString())
+        .gte('created_at', startOfMonth.toISOString())
       if (recipesError) {
         console.error("[Classement] Erreur recipes:", recipesError)
       }
 
-      // 3. Compter les recettes par utilisateur sur le dernier mois
+      // 3. Compter les recettes par utilisateur depuis le début du mois
       const recipesCountMap = {}
       ;(recipesData || []).forEach(r => {
         recipesCountMap[r.user_id] = (recipesCountMap[r.user_id] || 0) + 1
@@ -1863,7 +1863,7 @@ export default function Home() {
                   e.target.style.background = '#f3f4f6'
                   e.target.style.color = '#374151'
                 }}
-                onMouseLeave={(e) => {
+                               onMouseLeave={(e) => {
                   e.target.style.background = 'transparent'
                   e.target.style.color = '#6b7280'
                 }}

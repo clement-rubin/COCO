@@ -460,7 +460,7 @@ export const MISSIONS = [
     active_months: [12] // Décembre uniquement
   },
   
-  // === MISSIONS DÉFI COMMUNAUTÉ ===
+  // === MISSIONS COMMUNAUTAIRES ===
   {
     id: 'community_challenge_100',
     title: 'Défi communauté',
@@ -495,7 +495,7 @@ export const MISSIONS = [
     category: 'community'
   },
   
-  // === MISSIONS EXPLORATION ===
+  // === MISSIONS D'EXPLORATION ===
   {
     id: 'world_explorer',
     title: 'Explorateur culinaire',
@@ -530,7 +530,7 @@ export const MISSIONS = [
     category: 'exploration'
   },
   
-  // === MISSIONS CRÉATIVITÉ ===
+  // === MISSIONS CRÉATIVES ===
   {
     id: 'fusion_chef',
     title: 'Chef fusion',
@@ -736,7 +736,7 @@ export const getCurrentProgress = async (mission, stats, user, supabase) => {
           .contains('tags', ['valentine', 'romantic', 'love']);
         return valentineRecipes?.length || 0;
         
-      // === MISSIONS COMMUNAUTÉ ===
+      // === MISSIONS COMMUNAUTAIRES ===
       case 'community_recipes_goal':
         // Mission spéciale - toujours à 1 si l'utilisateur a participé
         return 1;
@@ -774,7 +774,7 @@ export const getCurrentProgress = async (mission, stats, user, supabase) => {
         
         return constructiveComments.length;
         
-      // === MISSIONS EXPLORATION ===
+      // === MISSIONS D'EXPLORATION ===
       case 'world_cuisines':
         if (!supabase) return 0;
         const { data: cuisineRecipes } = await supabase
@@ -808,7 +808,7 @@ export const getCurrentProgress = async (mission, stats, user, supabase) => {
         });
         return allIngredients.size;
         
-      // === MISSIONS CRÉATIVITÉ ===
+      // === MISSIONS CRÉATIVES ===
       case 'fusion_recipes':
         if (!supabase) return 0;
         const { data: fusionRecipes } = await supabase
@@ -1028,4 +1028,21 @@ try {
   getUserStatsComplete = require('../utils/profileUtils').getUserStatsComplete;
 } catch {
   getUserStatsComplete = async () => ({ recipesCount: 0, friendsCount: 0, likesReceived: 0, streak: 0 });
+}
+
+// === FONCTION UTILITAIRE POUR LE CLASSEMENT MENSUEL ===
+export function getCurrentMonthStartDate() {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), 1);
+}
+
+export function getCurrentMonthDateRange() {
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+  
+  return {
+    start: startOfMonth.toISOString(),
+    end: endOfMonth.toISOString()
+  };
 }

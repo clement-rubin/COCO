@@ -132,10 +132,10 @@ export default function Presentation() {
   ]
 
   const stats = [
-    { number: '10K+', label: 'Recettes partagées', icon: '📝' },
-    { number: '5K+', label: 'Cuisiniers actifs', icon: '👥' },
-    { number: '50K+', label: 'Photos de plats', icon: '📸' },
-    { number: '1K+', label: 'Défis relevés', icon: '🏆' }
+    { number: '15K+', label: 'Recettes partagées', icon: '📝' },
+    { number: '7K+', label: 'Cuisiniers actifs', icon: '👥' },
+    { number: '80K+', label: 'Photos de plats', icon: '📸' },
+    { number: '2K+', label: 'Défis relevés', icon: '🏆' }
   ]
 
   return (
@@ -806,7 +806,7 @@ export default function Presentation() {
           100% { transform: rotate(360deg); }
         }
         
-        @keyframes gentleBounce {
+        @key
           0%, 100% { transform: translateY(0px); }
           50% { transform: translateY(-10px); }
         }
