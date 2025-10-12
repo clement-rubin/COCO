@@ -1012,7 +1012,7 @@ export default function Progression({ user }) {
   const [activeTab, setActiveTab] = useState('progression') // 'progression' | 'boutique' | 'classement'
   const [favoriteItems, setFavoriteItems] = useState([])
   const [shopFilter, setShopFilter] = useState('all')
-  const [shopTab, setShopTab] = useState('items') // 'items', 'packs', 'deals', 'cards'
+  const [shopTab, setShopTab] = useState('items') // 'items', 'packs', 'deals'
   const [dressingOpen, setDressingOpen] = useState(false)
   const [dressingTab, setDressingTab] = useState('hat') // caté active dans le dressing
   const [itemPreviewOpen, setItemPreviewOpen] = useState(null)
@@ -2617,49 +2617,68 @@ export default function Progression({ user }) {
   // --- Boutique avec onglets avancés ---
   const renderShopTab = () => {
     const dailyDeals = getDailyDeals();
-    
+
     return (
       <div>
-        {/* Onglets boutique */}
-        <div style={{
-          display: 'flex',
-          gap: 6,
-          marginBottom: 16,
-          justifyContent: 'center',
-          flexWrap: 'wrap'
-        }}>
-          {[
-            { id: 'items', label: 'Objets', icon: '🛍️' },
-            { id: 'packs', label: 'Packs', icon: '📦' },
-            { id: 'deals', label: 'Promos', icon: '💥' },
-            { id: 'cards', label: 'Cartes', icon: '🃏' }
-          ].map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setShopTab(tab.id)}
-              style={{
-                background: shopTab === tab.id ? 'linear-gradient(135deg, #10b981, #34d399)' : '#fff',
-                color: shopTab === tab.id ? 'white' : '#10b981',
-                border: shopTab === tab.id ? 'none' : '1px solid #10b981',
-                borderRadius: 10,
-                padding: '6px 12px',
-                fontWeight: 700,
-                fontSize: '0.8rem',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                boxShadow: shopTab === tab.id ? '0 2px 8px rgba(16, 185, 129, 0.3)' : 'none'
-              }}
-            >
-              <span style={{ marginRight: 4 }}>{tab.icon}</span>
-              {tab.label}
-            </button>
-          ))}
-        </div>
+        {renderCardsShop()}
 
-        {shopTab === 'items' && renderItemsShop()}
-        {shopTab === 'packs' && renderPacksShop()}
-        {shopTab === 'deals' && renderDealsShop(dailyDeals)}
-        {shopTab === 'cards' && renderCardsShop()}
+        <div style={{ marginTop: 24 }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
+            borderRadius: 12,
+            padding: '16px 18px',
+            textAlign: 'center',
+            marginBottom: 16
+          }}>
+            <div style={{ fontWeight: 700, color: '#047857', fontSize: '1rem', marginBottom: 4 }}>
+              🛍️ Boutique classique
+            </div>
+            <div style={{ fontSize: '0.85rem', color: '#047857cc' }}>
+              Objets cosmétiques, packs de ressources et promotions quotidiennes
+            </div>
+          </div>
+
+          {/* Onglets boutique */}
+          <div style={{
+            display: 'flex',
+            gap: 6,
+            marginBottom: 16,
+            justifyContent: 'center',
+            flexWrap: 'wrap'
+          }}>
+            {[
+              { id: 'items', label: 'Objets', icon: '🛍️' },
+              { id: 'packs', label: 'Packs', icon: '📦' },
+              { id: 'deals', label: 'Promos', icon: '💥' }
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setShopTab(tab.id)}
+                style={{
+                  background: shopTab === tab.id ? 'linear-gradient(135deg, #10b981, #34d399)' : '#fff',
+                  color: shopTab === tab.id ? 'white' : '#10b981',
+                  border: shopTab === tab.id ? 'none' : '1px solid #10b981',
+                  borderRadius: 10,
+                  padding: '6px 14px',
+                  fontWeight: 700,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  boxShadow: shopTab === tab.id ? '0 2px 8px rgba(16, 185, 129, 0.25)' : 'none'
+                }}
+              >
+                <span style={{ marginRight: 6 }}>{tab.icon}</span>
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          <div>
+            {shopTab === 'items' && renderItemsShop()}
+            {shopTab === 'packs' && renderPacksShop()}
+            {shopTab === 'deals' && renderDealsShop(dailyDeals)}
+          </div>
+        </div>
       </div>
     );
   };
@@ -3239,62 +3258,199 @@ export default function Progression({ user }) {
   };
 
   // --- Onglet cartes à collectionner ---
-  const renderCardsShop = () => (
-    <div>
-      {/* En-tête avec statistiques */}
-      <div style={{
-        background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
-        borderRadius: 12,
-        padding: 12,
-        marginBottom: 16,
-        textAlign: 'center'
-      }}>
-        <div style={{ fontWeight: 700, color: '#0284c7', fontSize: '1rem', marginBottom: 6 }}>
-          🃏 Collection de Cartes Culinaires
-        </div>
-        <div style={{ fontSize: '0.8rem', color: '#0369a1' }}>
-          {ownedCards.length} cartes possédées • {Object.keys(cardCollection).length} collections
-        </div>
-      </div>
+  const renderCardsShop = () => {
+    const allCardIds = TRADING_CARDS.filter(card => card && card.id).map(card => card.id);
+    const totalUniqueCards = new Set(allCardIds).size;
+    const ownedBaseIds = ownedCards
+      .map(card => card?.originalId || card?.id?.split('_')[0] || card?.id)
+      .filter(Boolean);
+    const ownedUniqueCards = new Set(ownedBaseIds).size;
+    const legendaryCount = ownedCards.filter(card => card && card.rarity === 'legendary').length;
+    const epicCount = ownedCards.filter(card => card && card.rarity === 'epic').length;
+    const duplicateCount = Math.max(0, ownedCards.filter(Boolean).length - ownedUniqueCards);
+    const completedCollections = Object.values(cardCollection).filter(stats => stats && stats.owned === stats.total && stats.total > 0).length;
+    const totalCollections = CARD_COLLECTIONS.length;
 
-      {/* Onglets cartes */}
-      <div style={{
-        display: 'flex',
-        gap: 6,
-        marginBottom: 16,
-        justifyContent: 'center',
-        flexWrap: 'wrap'
-      }}>
-        {[
-          { id: 'shop', label: 'Boutique', icon: '🛒' },
-          { id: 'collection', label: 'Collection', icon: '📚' },
-          { id: 'marketplace', label: 'Échanges', icon: '🤝' }
-        ].map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setCardFilter(tab.id)}
-            style={{
-              background: cardFilter === tab.id ? 'linear-gradient(135deg, #0284c7, #0369a1)' : '#fff',
-              color: cardFilter === tab.id ? 'white' : '#0284c7',
-              border: cardFilter === tab.id ? 'none' : '1px solid #0284c7',
-              borderRadius: 8,
-              padding: '6px 12px',
-              fontWeight: 700,
-              fontSize: '0.8rem',
-              cursor: 'pointer'
-            }}
-          >
-            <span style={{ marginRight: 4 }}>{tab.icon}</span>
-            {tab.label}
-          </button>
-        ))}
-      </div>
+    return (
+      <div style={{ marginBottom: 32 }}>
+        <div style={{
+          background: 'linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)',
+          borderRadius: 16,
+          padding: '20px 22px',
+          color: '#fff',
+          marginBottom: 16,
+          boxShadow: '0 10px 30px rgba(37, 99, 235, 0.18)'
+        }}>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 10
+          }}>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: '1.15rem', letterSpacing: '-0.01em' }}>
+                Centre des cartes culinaires
+              </div>
+              <div style={{ fontSize: '0.9rem', opacity: 0.85 }}>
+                Collectionnez, échangez et débloquez des récompenses exclusives grâce aux boosters de cartes.
+              </div>
+            </div>
 
-      {cardFilter === 'shop' && renderCardPackShop()}
-      {cardFilter === 'collection' && renderCardCollection()}
-      {cardFilter === 'marketplace' && renderCardMarketplace()}
-    </div>
-  );
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              {[{
+                id: 'shop',
+                label: '🎁 Ouvrir un pack',
+                accent: 'rgba(255,255,255,0.25)'
+              }, {
+                id: 'collection',
+                label: '📚 Voir ma collection',
+                accent: 'rgba(255,255,255,0.18)'
+              }, {
+                id: 'marketplace',
+                label: '🤝 Organiser un échange',
+                accent: 'rgba(255,255,255,0.18)'
+              }].map(action => (
+                <button
+                  key={action.id}
+                  onClick={() => setCardFilter(action.id)}
+                  style={{
+                    background: cardFilter === action.id ? action.accent : '#ffffff',
+                    color: cardFilter === action.id ? '#ffffff' : '#1e3a8a',
+                    border: cardFilter === action.id ? '2px solid rgba(255,255,255,0.6)' : 'none',
+                    borderRadius: 999,
+                    padding: '8px 18px',
+                    fontWeight: 700,
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    boxShadow: cardFilter === action.id ? '0 6px 18px rgba(255,255,255,0.25)' : '0 4px 12px rgba(15, 23, 42, 0.12)'
+                  }}
+                >
+                  {action.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+          gap: 12,
+          marginBottom: 20
+        }}>
+          <div style={{
+            background: '#fff',
+            borderRadius: 12,
+            padding: '12px 14px',
+            border: '1px solid #e0f2fe',
+            boxShadow: '0 4px 12px rgba(14, 165, 233, 0.08)'
+          }}>
+            <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#0ea5e9', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              Cartes uniques
+            </div>
+            <div style={{ fontWeight: 800, fontSize: '1.25rem', color: '#0f172a' }}>
+              {ownedUniqueCards}/{totalUniqueCards}
+            </div>
+            <div style={{ fontSize: '0.75rem', color: '#475569' }}>
+              {ownedCards.filter(Boolean).length} cartes obtenues au total
+            </div>
+          </div>
+
+          <div style={{
+            background: '#fff',
+            borderRadius: 12,
+            padding: '12px 14px',
+            border: '1px solid #e0f2fe',
+            boxShadow: '0 4px 12px rgba(14, 165, 233, 0.08)'
+          }}>
+            <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#1d4ed8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              Raretés élevées
+            </div>
+            <div style={{ fontWeight: 800, fontSize: '1.25rem', color: '#0f172a' }}>
+              {legendaryCount + epicCount}
+            </div>
+            <div style={{ fontSize: '0.75rem', color: '#475569' }}>
+              {legendaryCount} légendaires • {epicCount} épiques
+            </div>
+          </div>
+
+          <div style={{
+            background: '#fff',
+            borderRadius: 12,
+            padding: '12px 14px',
+            border: '1px solid #e0f2fe',
+            boxShadow: '0 4px 12px rgba(14, 165, 233, 0.08)'
+          }}>
+            <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#0369a1', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              Collections complètes
+            </div>
+            <div style={{ fontWeight: 800, fontSize: '1.25rem', color: '#0f172a' }}>
+              {completedCollections}/{totalCollections}
+            </div>
+            <div style={{ fontSize: '0.75rem', color: '#475569' }}>
+              {Object.keys(cardCollection).length} collections suivies
+            </div>
+          </div>
+
+          <div style={{
+            background: '#fff',
+            borderRadius: 12,
+            padding: '12px 14px',
+            border: '1px solid #e0f2fe',
+            boxShadow: '0 4px 12px rgba(14, 165, 233, 0.08)'
+          }}>
+            <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#0284c7', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              Doublons à échanger
+            </div>
+            <div style={{ fontWeight: 800, fontSize: '1.25rem', color: '#0f172a' }}>
+              {duplicateCount}
+            </div>
+            <div style={{ fontSize: '0.75rem', color: '#475569' }}>
+              Parfait pour alimenter la marketplace
+            </div>
+          </div>
+        </div>
+
+        {/* Onglets cartes */}
+        <div style={{
+          display: 'flex',
+          gap: 8,
+          marginBottom: 18,
+          justifyContent: 'center',
+          flexWrap: 'wrap'
+        }}>
+          {[
+            { id: 'shop', label: 'Boutique', icon: '🛒' },
+            { id: 'collection', label: 'Collection', icon: '📚' },
+            { id: 'marketplace', label: 'Échanges', icon: '🤝' }
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setCardFilter(tab.id)}
+              style={{
+                background: cardFilter === tab.id ? 'linear-gradient(135deg, #0284c7, #0369a1)' : '#fff',
+                color: cardFilter === tab.id ? 'white' : '#0284c7',
+                border: cardFilter === tab.id ? 'none' : '1px solid #0284c7',
+                borderRadius: 10,
+                padding: '7px 16px',
+                fontWeight: 700,
+                fontSize: '0.85rem',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+            >
+              <span style={{ marginRight: 6 }}>{tab.icon}</span>
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {cardFilter === 'shop' && renderCardPackShop()}
+        {cardFilter === 'collection' && renderCardCollection()}
+        {cardFilter === 'marketplace' && renderCardMarketplace()}
+      </div>
+    );
+  };
 
   // --- Boutique de packs ---
   const renderCardPackShop = () => (
