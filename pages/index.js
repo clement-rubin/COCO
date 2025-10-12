@@ -137,13 +137,15 @@ export default function Home() {
         return
       }
 
-      // 2. Récupérer toutes les recettes du dernier mois
-      const oneMonthAgo = new Date()
-      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
+      // 2. Récupérer toutes les recettes du mois courant uniquement
+      const now = new Date()
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+      const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1)
       const { data: recipesData, error: recipesError } = await supabase
         .from('recipes')
         .select('user_id,created_at')
-        .gte('created_at', oneMonthAgo.toISOString())
+        .gte('created_at', startOfMonth.toISOString())
+        .lt('created_at', startOfNextMonth.toISOString())
       if (recipesError) {
         console.error("[Classement] Erreur recipes:", recipesError)
       }
