@@ -623,16 +623,10 @@ export async function getRecipeCommentsStats(recipeId) {
 /**
  * Obtenir les statistiques d'engagement pour plusieurs recettes
  */
-export async function getMultipleRecipesEngagementStats(recipeIds) {
-  if (!recipeIds || recipeIds.length === 0) {
-    return { success: true, data: {} }
-  }
-
+async function legacyMultipleRecipesEngagementStats(recipeIds) {
   try {
-    // Charger les likes
     const likesResult = await getMultipleRecipesLikesStats(recipeIds)
-    
-    // Charger les commentaires pour chaque recette
+
     const commentsPromises = recipeIds.map(async (recipeId) => {
       const commentsResult = await getRecipeCommentsStats(recipeId)
       return {
@@ -640,15 +634,14 @@ export async function getMultipleRecipesEngagementStats(recipeIds) {
         comments_count: commentsResult.success ? commentsResult.comments_count : 0
       }
     })
-    
+
     const commentsResults = await Promise.all(commentsPromises)
-    
-    // Combiner les données
+
     const combinedData = {}
     recipeIds.forEach(recipeId => {
       const likesData = likesResult.data[recipeId] || { likes_count: 0, user_has_liked: false }
       const commentsData = commentsResults.find(c => c.recipeId === recipeId) || { comments_count: 0 }
-      
+
       combinedData[recipeId] = {
         likes_count: likesData.likes_count,
         user_has_liked: likesData.user_has_liked,
@@ -656,22 +649,63 @@ export async function getMultipleRecipesEngagementStats(recipeIds) {
         engagement_score: likesData.likes_count + (commentsData.comments_count * 2)
       }
     })
-    
+
     return {
       success: true,
       data: combinedData
     }
   } catch (error) {
-    logError('Error getting multiple recipes engagement stats', error, {
+    logError('Error getting multiple recipes engagement stats (legacy)', error, {
       recipeIds: recipeIds.slice(0, 5),
       recipeIdsCount: recipeIds.length
     })
-    
+
     return {
       success: false,
       error: error.message,
       data: {}
     }
+  }
+}
+
+export async function getMultipleRecipesEngagementStats(recipeIds) {
+  if (!recipeIds || recipeIds.length === 0) {
+    return { success: true, data: {} }
+  }
+
+  const params = new URLSearchParams({ recipe_ids: recipeIds.join(',') })
+
+  try {
+    const response = await fetch(`/api/recipes/engagement?${params.toString()}`)
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+    }
+
+    const aggregatedData = await response.json()
+
+    const normalized = {}
+    recipeIds.forEach(recipeId => {
+      const entry = aggregatedData?.[recipeId] || {}
+      normalized[recipeId] = {
+        likes_count: entry.likes_count ?? 0,
+        comments_count: entry.comments_count ?? 0,
+        user_has_liked: entry.user_has_liked ?? false,
+        engagement_score: (entry.likes_count ?? 0) + ((entry.comments_count ?? 0) * 2)
+      }
+    })
+
+    return {
+      success: true,
+      data: normalized
+    }
+  } catch (error) {
+    logError('Error getting aggregated engagement stats, falling back to legacy mode', error, {
+      recipeIds: recipeIds.slice(0, 5),
+      recipeIdsCount: recipeIds.length
+    })
+
+    return legacyMultipleRecipesEngagementStats(recipeIds)
   }
 }
 
