@@ -989,6 +989,7 @@ function getItemGlow(itemId) {
 }
 
 export default function Progression({ user }) {
+  const router = useRouter()
   const [xp, setXP] = useState(0)
   const [levelInfo, setLevelInfo] = useState(getLevel(0))
   const [trophies, setTrophies] = useState({ unlocked: [], locked: [], totalPoints: 0, unlockedCount: 0, totalCount: 0 })
@@ -997,7 +998,14 @@ export default function Progression({ user }) {
     friendsCount: 0,
     likesReceived: 0,
     daysActive: 0,
-    streak: 0
+    streak: 0,
+    postingStreak: {
+      current: 0,
+      hasPostedToday: false,
+      lastPostedDate: null,
+      startDate: null,
+      preview: []
+    }
   })
   const [loading, setLoading] = useState(true)
   const [leaderboard, setLeaderboard] = useState([])
@@ -1676,7 +1684,20 @@ export default function Progression({ user }) {
     let isMounted = true
     async function fetchData() {
       setLoading(true)
-      let userStats = { recipesCount: 0, friendsCount: 0, likesReceived: 0, daysActive: 0, streak: 0 }
+      let userStats = {
+        recipesCount: 0,
+        friendsCount: 0,
+        likesReceived: 0,
+        daysActive: 0,
+        streak: 0,
+        postingStreak: {
+          current: 0,
+          hasPostedToday: false,
+          lastPostedDate: null,
+          startDate: null,
+          preview: []
+        }
+      }
       let trophyData = { unlocked: [], locked: [], totalPoints: 0, unlockedCount: 0, totalCount: 0 }
       let xpCalc = 0
 
@@ -1696,7 +1717,15 @@ export default function Progression({ user }) {
         } catch (e) {}
       }
       if (isMounted) {
-        setStats(userStats)
+        setStats(prev => ({
+          ...prev,
+          ...userStats,
+          streak: userStats.streak ?? userStats.postingStreak?.current ?? prev.streak,
+          postingStreak: {
+            ...prev.postingStreak,
+            ...(userStats.postingStreak || {})
+          }
+        }))
         setTrophies(trophyData)
         setXP(xpCalc)
         setLevelInfo(getLevel(xpCalc))
@@ -4480,6 +4509,108 @@ export default function Progression({ user }) {
     ? new Date(stats.lastClaimed).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
     : null
 
+  const toDateKey = (date) => {
+    const safeDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+    const year = safeDate.getFullYear()
+    const month = String(safeDate.getMonth() + 1).padStart(2, '0')
+    const day = String(safeDate.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
+  const parseDateKey = (key) => {
+    if (!key || typeof key !== 'string') return null
+    const [year, month, day] = key.split('-').map(Number)
+    if (!year || !month || !day) return null
+    return new Date(year, month - 1, day)
+  }
+
+  const buildPreviewSkeleton = () => {
+    return Array.from({ length: 7 }).map((_, idx) => {
+      const offset = 6 - idx
+      const dayDate = new Date()
+      dayDate.setHours(0, 0, 0, 0)
+      dayDate.setDate(dayDate.getDate() - offset)
+      const key = toDateKey(dayDate)
+      return {
+        date: key,
+        posted: false,
+        partOfCurrentRun: false,
+        isToday: offset === 0
+      }
+    })
+  }
+
+  const todayKey = toDateKey(new Date())
+  const rawPostingStreak = stats.postingStreak || {}
+  const previewSource = rawPostingStreak.preview && rawPostingStreak.preview.length ? rawPostingStreak.preview : buildPreviewSkeleton()
+  const previewDays = previewSource.map(day => {
+    const key = day.date || day.dateKey || todayKey
+    const parsedDate = parseDateKey(key)
+    const weekdayLabel = parsedDate
+      ? parsedDate.toLocaleDateString('fr-FR', { weekday: 'short' }).replace('.', '')
+      : ''
+    const fullLabel = parsedDate
+      ? parsedDate.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
+      : ''
+    return {
+      date: key,
+      posted: !!day.posted,
+      partOfCurrentRun: !!day.partOfCurrentRun,
+      isToday: key === todayKey,
+      weekdayLabel,
+      fullLabel
+    }
+  })
+
+  const currentStreak = rawPostingStreak.current ?? stats.streak ?? 0
+  const hasPostedToday = rawPostingStreak.hasPostedToday ?? previewDays.some(day => day.date === todayKey && day.posted)
+  const streakCycleSteps = STREAK_REWARDS.length
+  const cyclePosition = currentStreak % streakCycleSteps
+  const filledStreakSteps = currentStreak === 0 ? 0 : (cyclePosition === 0 ? streakCycleSteps : cyclePosition)
+  const nextStep = currentStreak === 0 ? 1 : (filledStreakSteps === streakCycleSteps ? 1 : filledStreakSteps + 1)
+  const nextStreakReward = STREAK_REWARDS[Math.min(nextStep - 1, STREAK_REWARDS.length - 1)]
+  const cycleDisplayDay = filledStreakSteps === 0 ? 1 : filledStreakSteps
+
+  const formatRangeLabel = (startKey, endKey) => {
+    const startDate = parseDateKey(startKey)
+    const endDate = parseDateKey(endKey)
+    if (!startDate && !endDate) return null
+    if (!startDate && endDate) {
+      return `Dernière publication le ${endDate.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`
+    }
+    if (startDate && endDate) {
+      if (startKey === endKey) {
+        return `Dernière publication le ${endDate.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`
+      }
+      return `Du ${startDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })} au ${endDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`
+    }
+    return null
+  }
+
+  const lastPostLabel = rawPostingStreak.lastPostedDate
+    ? parseDateKey(rawPostingStreak.lastPostedDate)?.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+    : null
+  const streakRangeLabel = currentStreak > 0 ? formatRangeLabel(rawPostingStreak.startDate, rawPostingStreak.lastPostedDate) : null
+
+  const postingSummaryText = currentStreak > 0
+    ? hasPostedToday
+      ? 'Bravo ! Tu maintiens ta série culinaire.'
+      : `Tu es à ${currentStreak} jour${currentStreak > 1 ? 's' : ''} consécutif${currentStreak > 1 ? 's' : ''} de publications.`
+    : 'Commence ta série en partageant une recette aujourd\'hui.'
+
+  const ctaHelperText = hasPostedToday
+    ? 'Ta recette du jour est déjà comptabilisée. Reviens demain pour continuer la série.'
+    : `Publie une recette avant minuit pour prolonger la série et débloquer +${nextStreakReward} CocoCoins demain.`
+
+  const paddedQuizAttempts = [
+    ...Array(Math.max(0, 7 - quizHistoryStats.attempts.length)).fill(null),
+    ...quizHistoryStats.attempts
+  ]
+  const lastQuizAttempt = quizHistoryStats.attempts[quizHistoryStats.attempts.length - 1]
+  const quizStatus = quizDoneToday ? (quizState.success ? 'success' : 'failed') : 'pending'
+  const lastQuizAttemptLabel = lastQuizAttempt?.date
+    ? new Date(lastQuizAttempt.date).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
+    : null
   return (
     <div className={styles.trophyContainer} style={{ 
       maxWidth: 450, // Réduction pour mobile
