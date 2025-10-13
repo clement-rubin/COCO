@@ -4484,6 +4484,103 @@ export default function Progression({ user }) {
   // Ajout : Affichage de la ligue dans la progression
   const level = 1 + Math.floor((stats.recipesCount || 0) / 5);
   const league = getLeague(level);
+  const today = new Date().toISOString().slice(0, 10)
+  const hasClaimedToday = stats.lastClaimed === today
+  const currentStreak = stats.streak || 0
+  const streakCycleSteps = STREAK_REWARDS.length
+  const filledStreakSteps = currentStreak === 0 ? 0 : (currentStreak % streakCycleSteps === 0 ? streakCycleSteps : currentStreak % streakCycleSteps)
+  const nextStreakValue = !stats.lastClaimed ? 1 : isYesterdayDate(stats.lastClaimed) ? currentStreak + 1 : 1
+  const nextStreakReward = STREAK_REWARDS[Math.min(nextStreakValue, STREAK_REWARDS.length) - 1]
+  const paddedQuizAttempts = [
+    ...Array(Math.max(0, 7 - quizHistoryStats.attempts.length)).fill(null),
+    ...quizHistoryStats.attempts
+  ]
+  const lastQuizAttempt = quizHistoryStats.attempts[quizHistoryStats.attempts.length - 1]
+  const quizStatus = quizDoneToday ? (quizState.success ? 'success' : 'failed') : 'pending'
+  const lastQuizAttemptLabel = lastQuizAttempt?.date
+    ? new Date(lastQuizAttempt.date).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
+    : null
+  const lastClaimLabel = stats.lastClaimed
+    ? new Date(stats.lastClaimed).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
+    : null
+
+  const toDateKey = (date) => {
+    const safeDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+    const year = safeDate.getFullYear()
+    const month = String(safeDate.getMonth() + 1).padStart(2, '0')
+    const day = String(safeDate.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
+  const parseDateKey = (key) => {
+    if (!key || typeof key !== 'string') return null
+    const [year, month, day] = key.split('-').map(Number)
+    if (!year || !month || !day) return null
+    return new Date(year, month - 1, day)
+  }
+
+  const buildPreviewSkeleton = () => {
+    return Array.from({ length: 7 }).map((_, idx) => {
+      const offset = 6 - idx
+      const dayDate = new Date()
+      dayDate.setHours(0, 0, 0, 0)
+      dayDate.setDate(dayDate.getDate() - offset)
+      const key = toDateKey(dayDate)
+      return {
+        date: key,
+        posted: false,
+        partOfCurrentRun: false,
+        isToday: offset === 0
+      }
+    })
+  }
+
+  const todayKey = toDateKey(new Date())
+  const rawPostingStreak = stats.postingStreak || {}
+  const previewSource = rawPostingStreak.preview && rawPostingStreak.preview.length ? rawPostingStreak.preview : buildPreviewSkeleton()
+  const previewDays = previewSource.map(day => {
+    const key = day.date || day.dateKey || todayKey
+    const parsedDate = parseDateKey(key)
+    const weekdayLabel = parsedDate
+      ? parsedDate.toLocaleDateString('fr-FR', { weekday: 'short' }).replace('.', '')
+      : ''
+    const fullLabel = parsedDate
+      ? parsedDate.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
+      : ''
+    return {
+      date: key,
+      posted: !!day.posted,
+      partOfCurrentRun: !!day.partOfCurrentRun,
+      isToday: key === todayKey,
+      weekdayLabel,
+      fullLabel
+    }
+  })
+
+  const currentStreak = rawPostingStreak.current ?? stats.streak ?? 0
+  const hasPostedToday = rawPostingStreak.hasPostedToday ?? previewDays.some(day => day.date === todayKey && day.posted)
+  const streakCycleSteps = STREAK_REWARDS.length
+  const cyclePosition = currentStreak % streakCycleSteps
+  const filledStreakSteps = currentStreak === 0 ? 0 : (cyclePosition === 0 ? streakCycleSteps : cyclePosition)
+  const nextStep = currentStreak === 0 ? 1 : (filledStreakSteps === streakCycleSteps ? 1 : filledStreakSteps + 1)
+  const nextStreakReward = STREAK_REWARDS[Math.min(nextStep - 1, STREAK_REWARDS.length - 1)]
+  const cycleDisplayDay = filledStreakSteps === 0 ? 1 : filledStreakSteps
+
+  const formatRangeLabel = (startKey, endKey) => {
+    const startDate = parseDateKey(startKey)
+    const endDate = parseDateKey(endKey)
+    if (!startDate && !endDate) return null
+    if (!startDate && endDate) {
+      return `Dernière publication le ${endDate.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`
+    }
+    if (startDate && endDate) {
+      if (startKey === endKey) {
+        return `Dernière publication le ${endDate.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`
+      }
+      return `Du ${startDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })} au ${endDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`
+    }
+    return null
+  }
 
   const toDateKey = (date) => {
     const safeDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
