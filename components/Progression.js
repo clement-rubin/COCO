@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/router'
 import { getUserTrophies } from '../utils/trophyUtils'
 import { getUserStatsComplete } from '../utils/profileUtils'
 import { getSupabaseClient, getUserCardCollection, saveUserCardCollection } from '../lib/supabaseClient'
@@ -4361,12 +4362,6 @@ export default function Progression({ user }) {
   const todayStr = new Date().toISOString().slice(0, 10)
   const quizDoneToday = quizState?.date === todayStr
   const quizReward = 40
-  const isYesterdayDate = (dateStr) => {
-    if (!dateStr) return false
-    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
-    return dateStr === yesterday
-  }
-
   // Ouvre le quiz modal avec une question aléatoire
   const openQuizModal = () => {
     if (quizDoneToday) return
@@ -4587,20 +4582,104 @@ export default function Progression({ user }) {
     return null
   }
 
+  const toDateKey = (date) => {
+    const safeDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+    const year = safeDate.getFullYear()
+    const month = String(safeDate.getMonth() + 1).padStart(2, '0')
+    const day = String(safeDate.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
+  const parseDateKey = (key) => {
+    if (!key || typeof key !== 'string') return null
+    const [year, month, day] = key.split('-').map(Number)
+    if (!year || !month || !day) return null
+    return new Date(year, month - 1, day)
+  }
+
+  const buildPreviewSkeleton = () => {
+    return Array.from({ length: 7 }).map((_, idx) => {
+      const offset = 6 - idx
+      const dayDate = new Date()
+      dayDate.setHours(0, 0, 0, 0)
+      dayDate.setDate(dayDate.getDate() - offset)
+      const key = toDateKey(dayDate)
+      return {
+        date: key,
+        posted: false,
+        partOfCurrentRun: false,
+        isToday: offset === 0
+      }
+    })
+  }
+
+  const todayKey = toDateKey(new Date())
+  const rawPostingStreak = stats.postingStreak || {}
+  const previewSource = rawPostingStreak.preview && rawPostingStreak.preview.length ? rawPostingStreak.preview : buildPreviewSkeleton()
+  const previewDays = previewSource.map(day => {
+    const key = day.date || day.dateKey || todayKey
+    const parsedDate = parseDateKey(key)
+    const weekdayLabel = parsedDate
+      ? parsedDate.toLocaleDateString('fr-FR', { weekday: 'short' }).replace('.', '')
+      : ''
+    const fullLabel = parsedDate
+      ? parsedDate.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
+      : ''
+    return {
+      date: key,
+      posted: !!day.posted,
+      partOfCurrentRun: !!day.partOfCurrentRun,
+      isToday: key === todayKey,
+      weekdayLabel,
+      fullLabel
+    }
+  })
+
+  const postingStreakLength = rawPostingStreak.current ?? stats.streak ?? 0
+  const hasPostedToday = rawPostingStreak.hasPostedToday ?? previewDays.some(day => day.date === todayKey && day.posted)
+  const postingCycleSteps = STREAK_REWARDS.length
+  const postingCyclePosition = postingStreakLength % postingCycleSteps
+  const postingFilledSteps = postingStreakLength === 0
+    ? 0
+    : (postingCyclePosition === 0 ? postingCycleSteps : postingCyclePosition)
+  const nextPostingStep = postingStreakLength === 0
+    ? 1
+    : (postingFilledSteps === postingCycleSteps ? 1 : postingFilledSteps + 1)
+  const nextPostingReward = STREAK_REWARDS[Math.min(nextPostingStep - 1, STREAK_REWARDS.length - 1)]
+  const postingCycleDisplayDay = postingFilledSteps === 0 ? 1 : postingFilledSteps
+
+  const formatRangeLabel = (startKey, endKey) => {
+    const startDate = parseDateKey(startKey)
+    const endDate = parseDateKey(endKey)
+    if (!startDate && !endDate) return null
+    if (!startDate && endDate) {
+      return `Dernière publication le ${endDate.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`
+    }
+    if (startDate && endDate) {
+      if (startKey === endKey) {
+        return `Dernière publication le ${endDate.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`
+      }
+      return `Du ${startDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })} au ${endDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`
+    }
+    return null
+  }
+
   const lastPostLabel = rawPostingStreak.lastPostedDate
     ? parseDateKey(rawPostingStreak.lastPostedDate)?.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
     : null
-  const streakRangeLabel = currentStreak > 0 ? formatRangeLabel(rawPostingStreak.startDate, rawPostingStreak.lastPostedDate) : null
+  const streakRangeLabel = postingStreakLength > 0
+    ? formatRangeLabel(rawPostingStreak.startDate, rawPostingStreak.lastPostedDate)
+    : null
 
-  const postingSummaryText = currentStreak > 0
+  const postingSummaryText = postingStreakLength > 0
     ? hasPostedToday
       ? 'Bravo ! Tu maintiens ta série culinaire.'
-      : `Tu es à ${currentStreak} jour${currentStreak > 1 ? 's' : ''} consécutif${currentStreak > 1 ? 's' : ''} de publications.`
+      : `Tu es à ${postingStreakLength} jour${postingStreakLength > 1 ? 's' : ''} consécutif${postingStreakLength > 1 ? 's' : ''} de publications.`
     : 'Commence ta série en partageant une recette aujourd\'hui.'
 
   const ctaHelperText = hasPostedToday
     ? 'Ta recette du jour est déjà comptabilisée. Reviens demain pour continuer la série.'
-    : `Publie une recette avant minuit pour prolonger la série et débloquer +${nextStreakReward} CocoCoins demain.`
+    : `Publie une recette avant minuit pour prolonger la série et débloquer +${nextPostingReward} CocoCoins demain.`
 
   const paddedQuizAttempts = [
     ...Array(Math.max(0, 7 - quizHistoryStats.attempts.length)).fill(null),
@@ -4904,7 +4983,7 @@ export default function Progression({ user }) {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div style={{
-                background: 'linear-gradient(135deg, #fffbe6 0%, #fde68a 100%)',
+                background: 'linear-gradient(135deg, #fff7ed 0%, #fffbeb 100%)',
                 borderRadius: 16,
                 padding: '16px',
                 boxShadow: '0 6px 18px rgba(245, 158, 11, 0.18)'
@@ -4919,37 +4998,12 @@ export default function Progression({ user }) {
                     display: 'flex',
                     alignItems: 'center',
                     gap: 8,
-                    color: '#92400e',
+                    color: '#b45309',
                     fontWeight: 800,
                     fontSize: '1.05rem'
                   }}>
                     <span style={{ fontSize: '1.6rem' }}>🔥</span>
-                    Série quotidienne
-                  </div>
-                  <div style={{
-                    fontSize: '0.75rem',
-                    color: '#b45309',
-                    fontWeight: 600,
-                    background: 'rgba(255,255,255,0.5)',
-                    padding: '4px 8px',
-                    borderRadius: 999
-                  }}>
-                    Cycle de 7 jours
-                  </div>
-                </div>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  marginBottom: 12
-                }}>
-                  <div>
-                    <div style={{ fontSize: '2rem', fontWeight: 900, color: '#b45309', lineHeight: 1 }}>
-                      {currentStreak}
-                    </div>
-                    <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#b45309' }}>
-                      jour{currentStreak > 1 ? 's' : ''} d'affilée
-                    </div>
+                    Série de publication
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#92400e', marginBottom: 4 }}>
@@ -4965,144 +5019,125 @@ export default function Progression({ user }) {
                       gap: 4
                     }}>
                       <span>🪙</span>
-                      +{nextStreakReward}
+                      +{nextPostingReward}
                     </div>
                     <div style={{ fontSize: '0.7rem', color: '#b45309', fontWeight: 600 }}>
-                      Jour {Math.min(nextStreakValue, streakCycleSteps)} / {streakCycleSteps}
+                      Jour {Math.min(postingCycleDisplayDay, postingCycleSteps)} / {postingCycleSteps}
                     </div>
                   </div>
                 </div>
                 <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: `repeat(${streakCycleSteps}, 1fr)`,
-                  gap: 6,
-                  marginBottom: 12
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  justifyContent: 'space-between',
+                  gap: 16,
+                  marginBottom: 16
                 }}>
-                  {Array.from({ length: streakCycleSteps }).map((_, idx) => {
-                    const filled = idx < filledStreakSteps
-                    const isNextStep = idx === filledStreakSteps && !hasClaimedToday && filledStreakSteps < streakCycleSteps
-                    return (
-                      <div
-                        key={idx}
-                        style={{
-                          height: 34,
-                          borderRadius: 12,
-                          background: filled ? 'linear-gradient(135deg, #f59e0b, #f97316)' : 'rgba(255, 255, 255, 0.75)',
-                          border: isNextStep ? '2px dashed rgba(245, 158, 11, 0.8)' : '1px solid rgba(250, 204, 21, 0.4)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: filled ? 'white' : '#b45309',
-                          fontWeight: 700,
-                          fontSize: '0.75rem',
-                          position: 'relative',
-                          boxShadow: filled ? '0 4px 12px rgba(245, 158, 11, 0.25)' : 'none'
-                        }}
-                      >
-                        J{idx + 1}
-                        {isNextStep && (
-                          <span style={{
-                            position: 'absolute',
-                            top: -12,
-                            fontSize: '0.6rem',
-                            color: '#92400e',
-                            fontWeight: 700
-                          }}>
-                            Aujourd'hui
-                          </span>
-                        )}
+                  <div style={{
+                    flex: '0 0 auto',
+                    textAlign: 'center',
+                    background: 'rgba(255,255,255,0.6)',
+                    borderRadius: 14,
+                    padding: '12px 16px',
+                    minWidth: 110,
+                    boxShadow: 'inset 0 0 0 1px rgba(245, 158, 11, 0.25)'
+                  }}>
+                    <div style={{ fontSize: '0.75rem', color: '#b45309', fontWeight: 700, marginBottom: 8 }}>
+                      Série actuelle
+                    </div>
+                    <div style={{ fontSize: '2rem', fontWeight: 800, color: '#f59e0b', lineHeight: 1 }}>
+                      {postingStreakLength}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#b45309' }}>
+                      jour{postingStreakLength > 1 ? 's' : ''} d'affilée
+                    </div>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '0.85rem', color: '#92400e', fontWeight: 600, marginBottom: 8 }}>
+                      {postingSummaryText}
+                    </div>
+                    {streakRangeLabel && (
+                      <div style={{ fontSize: '0.75rem', color: '#b45309', fontWeight: 600, marginBottom: 12 }}>
+                        {streakRangeLabel}
                       </div>
-                    )
-                  })}
-                </div>
-                <div style={{
-                  fontSize: '0.8rem',
-                  color: '#92400e',
-                  fontWeight: 600,
-                  marginBottom: 12
-                }}>
-                  {hasClaimedToday
-                    ? '✅ Récompense déjà collectée. Revenez demain pour prolonger la série.'
-                    : `🎁 Touchez votre récompense du jour pour maintenir la série et gagner ${nextStreakReward} CocoCoins.`}
-                </div>
-                <button
-                  onClick={async () => {
-                    try {
-                      const supabase = getSupabaseClient()
-                      const { data: currentData, error: checkError } = await supabase
-                        .from('user_pass')
-                        .select('last_claimed, streak, coins')
-                        .eq('user_id', user.id)
-                        .single()
-                      if (checkError) throw checkError
-                      if (currentData?.last_claimed === today) {
-                        setShopFeedback({ type: 'info', msg: 'Récompense déjà récupérée aujourd\'hui' })
-                        setTimeout(() => setShopFeedback(null), 2000)
-                        return
-                      }
-                      const currentStreakFromDB = currentData?.streak || 0
-                      const lastClaimedFromDB = currentData?.last_claimed
-                      const currentCoins = currentData?.coins || 0
-                      const newStreak = !lastClaimedFromDB
-                        ? 1
-                        : isYesterdayDate(lastClaimedFromDB)
-                          ? currentStreakFromDB + 1
-                          : 1
-                      const rewardIndex = Math.min(newStreak - 1, STREAK_REWARDS.length - 1)
-                      const reward = STREAK_REWARDS[rewardIndex]
-                      const newCoins = currentCoins + reward
-                      const { error } = await supabase
-                        .from('user_pass')
-                        .update({
-                          last_claimed: today,
-                          streak: newStreak,
-                          coins: newCoins,
-                          updated_at: new Date().toISOString()
-                        })
-                        .eq('user_id', user.id)
-                        .eq('last_claimed', lastClaimedFromDB)
-                      if (error) throw error
-                      setCoins(newCoins)
-                      setStats(prev => ({
-                        ...prev,
-                        streak: newStreak,
-                        lastClaimed: today
-                      }))
-                      setShopFeedback({
-                        type: 'success',
-                        msg: `+${reward} CocoCoins ! Série : ${newStreak} jour${newStreak > 1 ? 's' : ''}`
-                      })
-                      setTimeout(() => setShopFeedback(null), 3000)
-                    } catch (error) {
-                      console.error('Erreur lors de la récupération de la récompense:', error)
-                      setShopFeedback({ type: 'error', msg: 'Erreur lors de la récupération' })
-                      setTimeout(() => setShopFeedback(null), 2000)
-                    }
-                  }}
-                  disabled={hasClaimedToday}
-                  style={{
-                    background: hasClaimedToday ? 'rgba(255, 255, 255, 0.65)' : 'linear-gradient(135deg,#f59e0b,#fbbf24)',
-                    color: hasClaimedToday ? '#b45309' : 'white',
-                    border: 'none',
-                    borderRadius: 12,
-                    padding: '10px 18px',
-                    fontWeight: 800,
-                    fontSize: '0.95rem',
-                    cursor: hasClaimedToday ? 'not-allowed' : 'pointer',
-                    width: '100%',
-                    boxShadow: hasClaimedToday ? 'none' : '0 6px 18px rgba(245, 158, 11, 0.35)',
-                    transition: 'transform 0.2s ease'
-                  }}
-                >
-                  {hasClaimedToday ? '✅ Récompense récupérée' : `Réclamer +${nextStreakReward} CocoCoins`}
-                </button>
-                <div style={{
-                  fontSize: '0.75rem',
-                  color: '#b45309',
-                  fontWeight: 600,
-                  marginTop: 8
-                }}>
-                  Dernière récupération : {hasClaimedToday ? 'Aujourd\'hui' : (lastClaimLabel || 'Jamais')}
+                    )}
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: `repeat(${previewDays.length}, 1fr)`,
+                      gap: 6,
+                      marginBottom: 12
+                    }}>
+                      {previewDays.map(day => (
+                        <div key={day.date} style={{ textAlign: 'center' }}>
+                          <div style={{
+                            fontSize: '0.65rem',
+                            fontWeight: 700,
+                            textTransform: 'uppercase',
+                            color: day.isToday ? '#b45309' : '#92400e',
+                            marginBottom: 4
+                          }}>
+                            {day.weekdayLabel}
+                          </div>
+                          <div
+                            style={{
+                              height: 36,
+                              borderRadius: 12,
+                              background: day.posted ? 'linear-gradient(135deg, #f59e0b, #f97316)' : 'rgba(255, 255, 255, 0.75)',
+                              color: day.posted ? 'white' : '#b45309',
+                              fontWeight: 700,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              border: day.isToday ? '2px solid rgba(245, 158, 11, 0.55)' : '1px solid rgba(250, 204, 21, 0.35)',
+                              boxShadow: day.partOfCurrentRun ? '0 4px 12px rgba(245, 158, 11, 0.25)' : 'none',
+                              position: 'relative'
+                            }}
+                            title={day.fullLabel}
+                          >
+                            {day.posted ? '✔︎' : '—'}
+                            {day.isToday && (
+                              <span style={{
+                                position: 'absolute',
+                                bottom: -14,
+                                left: '50%',
+                                transform: 'translateX(-50%)',
+                                fontSize: '0.6rem',
+                                fontWeight: 700,
+                                color: '#b45309'
+                              }}>
+                                Aujourd'hui
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: '#b45309', fontWeight: 600, marginBottom: 12 }}>
+                      {ctaHelperText}
+                    </div>
+                    <button
+                      onClick={() => router.push(hasPostedToday ? '/mes-recettes' : '/submit-recipe')}
+                      style={{
+                        background: hasPostedToday ? 'linear-gradient(135deg,#fb923c,#f97316)' : 'linear-gradient(135deg,#f59e0b,#fbbf24)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: 12,
+                        padding: '10px 18px',
+                        fontWeight: 800,
+                        fontSize: '0.95rem',
+                        cursor: 'pointer',
+                        width: '100%',
+                        boxShadow: '0 6px 18px rgba(245, 158, 11, 0.35)'
+                      }}
+                    >
+                      {hasPostedToday ? 'Voir mes recettes' : 'Publier une recette'}
+                    </button>
+                    {lastPostLabel && !streakRangeLabel && (
+                      <div style={{ fontSize: '0.7rem', color: '#b45309', fontWeight: 600, marginTop: 8 }}>
+                        Dernière publication : {lastPostLabel}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
               <div style={{
