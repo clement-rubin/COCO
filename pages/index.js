@@ -10,7 +10,7 @@ import DailyStreakReward from '../components/DailyStreakReward'
 import styles from '../styles/Layout.module.css'
 import { supabase } from '../lib/supabaseClient' // Correction du chemin d'import
 
-export default function Home() {
+export default function Home({ initialRecipes = [], initialEngagement = {} }) {
   const { user, loading } = useAuth()
   const router = useRouter()
   const [isScrolled, setIsScrolled] = useState(false)
@@ -1889,7 +1889,11 @@ export default function Home() {
                 '--max-image-height': '220px', // Réduction
                 '--max-image-width': '100%'
               }}>
-                <AddictiveFeed />
+                <AddictiveFeed
+                  initialRecipes={initialRecipes}
+                  initialEngagement={initialEngagement}
+                  initialPage={initialRecipes.length > 0 ? 1 : 0}
+                />
               </div>
             </div>
           </div>
@@ -2327,4 +2331,48 @@ export default function Home() {
       `}</style>
     </div>
   )
+}
+
+export async function getServerSideProps(context) {
+  const protocol = context.req.headers['x-forwarded-proto'] || 'http'
+  const host = context.req.headers.host
+  const baseUrl = `${protocol}://${host}`
+
+  let initialRecipes = []
+  let initialEngagement = {}
+
+  try {
+    const recipesResponse = await fetch(`${baseUrl}/api/recipes?limit=12`)
+
+    if (recipesResponse.ok) {
+      const recipesData = await recipesResponse.json()
+
+      if (Array.isArray(recipesData)) {
+        initialRecipes = recipesData
+
+        const recipeIds = recipesData.map(recipe => recipe?.id).filter(Boolean)
+
+        if (recipeIds.length > 0) {
+          const params = new URLSearchParams({ recipe_ids: recipeIds.join(',') })
+          const engagementResponse = await fetch(`${baseUrl}/api/recipes/engagement?${params.toString()}`)
+
+          if (engagementResponse.ok) {
+            const engagementData = await engagementResponse.json()
+            if (engagementData && typeof engagementData === 'object') {
+              initialEngagement = engagementData
+            }
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Erreur lors du préchargement des recettes', error)
+  }
+
+  return {
+    props: {
+      initialRecipes,
+      initialEngagement
+    }
+  }
 }
