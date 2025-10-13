@@ -486,7 +486,8 @@ export async function getUserStatsComplete(userId) {
       profileCompleteness: 0,
       trophyPoints: 0,
       trophiesUnlocked: 0,
-      latestTrophy: null
+      latestTrophy: null,
+      streak: 0
     }
 
     // CORRECTION: Utiliser safeCountQuery au lieu de count avec head
@@ -541,13 +542,106 @@ export async function getUserStatsComplete(userId) {
       profileCompleteness = Math.round((completedFields.length / fields.length) * 100)
     }
 
+    let postingStreak = {
+      current: 0,
+      hasPostedToday: false,
+      lastPostedDate: null,
+      startDate: null,
+      preview: []
+    }
+
+    try {
+      const toDateKey = (date) => {
+        const safeDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+        const year = safeDate.getFullYear()
+        const month = String(safeDate.getMonth() + 1).padStart(2, '0')
+        const day = String(safeDate.getDate()).padStart(2, '0')
+        return `${year}-${month}-${day}`
+      }
+
+      const parseDateKey = (key) => {
+        if (!key || typeof key !== 'string') return null
+        const [year, month, day] = key.split('-').map(Number)
+        if (!year || !month || !day) return null
+        return new Date(year, month - 1, day)
+      }
+
+      const { data: recipeDates, error: recipeDatesError } = await supabase
+        .from('recipes')
+        .select('created_at')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(365)
+
+      if (recipeDatesError) {
+        logWarning('Could not fetch recipe dates for streak', recipeDatesError)
+      } else if (recipeDates?.length) {
+        const postingDays = new Set()
+        for (const row of recipeDates) {
+          if (!row?.created_at) continue
+          const createdAt = new Date(row.created_at)
+          if (Number.isNaN(createdAt.getTime())) continue
+          createdAt.setHours(0, 0, 0, 0)
+          postingDays.add(toDateKey(createdAt))
+        }
+
+        if (postingDays.size > 0) {
+          const orderedDays = Array.from(postingDays).sort((a, b) => (a < b ? 1 : -1))
+          const lastPostedDay = orderedDays[0]
+          const currentRunDays = []
+          let streakCount = 0
+
+          if (lastPostedDay) {
+            let cursor = parseDateKey(lastPostedDay)
+            while (cursor) {
+              const key = toDateKey(cursor)
+              if (!postingDays.has(key)) break
+              currentRunDays.push(key)
+              streakCount += 1
+              cursor.setDate(cursor.getDate() - 1)
+            }
+          }
+
+          const currentRunSet = new Set(currentRunDays)
+          const todayKey = toDateKey(new Date())
+          const preview = []
+
+          for (let offset = 6; offset >= 0; offset--) {
+            const dayDate = new Date()
+            dayDate.setHours(0, 0, 0, 0)
+            dayDate.setDate(dayDate.getDate() - offset)
+            const key = toDateKey(dayDate)
+            preview.push({
+              date: key,
+              posted: postingDays.has(key),
+              partOfCurrentRun: currentRunSet.has(key)
+            })
+          }
+
+          postingStreak = {
+            current: streakCount,
+            hasPostedToday: postingDays.has(todayKey),
+            lastPostedDate: lastPostedDay,
+            startDate: currentRunDays.length ? currentRunDays[currentRunDays.length - 1] : null,
+            preview
+          }
+
+          stats.streak = streakCount
+        }
+      }
+    } catch (streakError) {
+      logWarning('Could not compute posting streak', streakError)
+    }
+
     return {
       recipesCount: stats.recipesCount,
       friendsCount: stats.friendsCount,
       profileCompleteness,
       likesReceived: 0, // À implémenter plus tard
       trophyPoints: 0,
-      trophiesUnlocked: 0
+      trophiesUnlocked: 0,
+      streak: stats.streak,
+      postingStreak
     }
   } catch (error) {
     logError('Error in getUserStatsComplete', error)
@@ -558,7 +652,15 @@ export async function getUserStatsComplete(userId) {
       profileCompleteness: 0,
       trophyPoints: 0,
       trophiesUnlocked: 0,
-      latestTrophy: null
+      latestTrophy: null,
+      streak: 0,
+      postingStreak: {
+        current: 0,
+        hasPostedToday: false,
+        lastPostedDate: null,
+        startDate: null,
+        preview: []
+      }
     }
   }
 }

@@ -17,11 +17,11 @@ const WELCOME_MESSAGES = [
   "Un instant, on prépare vos découvertes ! ✨"
 ]
 
-export default function AddictiveFeed() {
+export default function AddictiveFeed({ initialRecipes = [], initialEngagement = {}, initialPage = 1 } = {}) {
   const router = useRouter()
   const { user } = useAuth()
   const [recipes, setRecipes] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(initialRecipes.length === 0)
   const [error, setError] = useState(null)
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(true)
@@ -31,30 +31,49 @@ export default function AddictiveFeed() {
     saves: new Set()
   })
   const [welcomeStep, setWelcomeStep] = useState(0)
-  const [showWelcome, setShowWelcome] = useState(true)
+  const [showWelcome, setShowWelcome] = useState(initialRecipes.length === 0)
   const [leaderboard, setLeaderboard] = useState([])
   const [leaderboardLoading, setLeaderboardLoading] = useState(true)
-  
+
   const containerRef = useRef(null)
+  const hasHydratedInitialData = useRef(false)
 
   // Chargement initial
   useEffect(() => {
-    let welcomeInterval
-    setShowWelcome(true)
-    setWelcomeStep(0)
-    // Animation de messages cycliques pendant le chargement initial
-    welcomeInterval = setInterval(() => {
-      setWelcomeStep(prev => (prev + 1) % WELCOME_MESSAGES.length)
-    }, 1200)
-    loadRecipes().finally(() => {
-      setTimeout(() => setShowWelcome(false), 600) // Laisse le message s'effacer en douceur
-      clearInterval(welcomeInterval)
-    })
-    return () => clearInterval(welcomeInterval)
-  }, [user])
+    if (initialRecipes.length > 0 && !hasHydratedInitialData.current && recipes.length === 0) {
+      return
+    }
 
-  const loadRecipes = async () => {
-    setLoading(true)
+    let welcomeInterval
+    if (recipes.length === 0) {
+      setShowWelcome(true)
+      setWelcomeStep(0)
+      welcomeInterval = setInterval(() => {
+        setWelcomeStep(prev => (prev + 1) % WELCOME_MESSAGES.length)
+      }, 1200)
+    }
+
+    loadRecipes({ skipLoader: recipes.length > 0 }).finally(() => {
+      if (welcomeInterval) {
+        setTimeout(() => setShowWelcome(false), 600)
+        clearInterval(welcomeInterval)
+      } else {
+        setShowWelcome(false)
+      }
+    })
+
+    return () => {
+      if (welcomeInterval) {
+        clearInterval(welcomeInterval)
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, recipes.length, initialRecipes.length])
+
+  const loadRecipes = async ({ skipLoader = false } = {}) => {
+    if (!skipLoader) {
+      setLoading(true)
+    }
     try {
       if (user && user.id) {
         logInfo('Loading recipes for authenticated user', {
@@ -218,7 +237,7 @@ export default function AddictiveFeed() {
   }
 
   // Helper to format recipe data from API to feed format - VERSION AVEC VRAIES DONNÉES
-  const formatRecipeData = (apiRecipe, engagementStats = null) => {
+  function formatRecipeData(apiRecipe, engagementStats = null) {
     let imageUrl = '/placeholder-recipe.jpg'
     
     if (apiRecipe.image) {
@@ -292,9 +311,9 @@ export default function AddictiveFeed() {
       isQuickShare: apiRecipe.form_mode === 'quick' || apiRecipe.category === 'Photo partagée'
     }
   }
-  
+
   // Helper functions for formatting recipe data
-  const getAuthorEmoji = (category) => {
+  function getAuthorEmoji(category) {
     const emojiMap = {
       'Dessert': '🍰',
       'Entrée': '🥗',
@@ -309,8 +328,8 @@ export default function AddictiveFeed() {
     }
     return emojiMap[category] || '👨‍🍳'
   }
-  
-  const getTimeAgo = (date) => {
+
+  function getTimeAgo(date) {
     const now = new Date()
     const diffMs = now - date
     const diffSec = Math.floor(diffMs / 1000)
@@ -323,6 +342,26 @@ export default function AddictiveFeed() {
     if (diffMin > 0) return `${diffMin}min`
     return 'à l\'instant'
   }
+
+  useEffect(() => {
+    if (hasHydratedInitialData.current) {
+      return
+    }
+
+    if (!initialRecipes || initialRecipes.length === 0) {
+      return
+    }
+
+    const formatted = initialRecipes.map(recipe =>
+      formatRecipeData(recipe, initialEngagement?.[recipe.id])
+    )
+
+    setRecipes(formatted)
+    setPage(initialPage)
+    setLoading(false)
+    setShowWelcome(false)
+    hasHydratedInitialData.current = true
+  }, [initialRecipes, initialEngagement, initialPage, formatRecipeData])
 
   // Actions utilisateur - CORRECTION POUR ÉVITER DOUBLE AJOUT
   const toggleLike = useCallback(async (recipeId) => {
