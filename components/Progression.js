@@ -4551,6 +4551,25 @@ export default function Progression({ user }) {
   // Ajout : Affichage de la ligue dans la progression
   const level = 1 + Math.floor((stats.recipesCount || 0) / 5);
   const league = getLeague(level);
+  const today = new Date().toISOString().slice(0, 10)
+  const hasClaimedToday = stats.lastClaimed === today
+  const currentStreak = stats.streak || 0
+  const streakCycleSteps = STREAK_REWARDS.length
+  const filledStreakSteps = currentStreak === 0 ? 0 : (currentStreak % streakCycleSteps === 0 ? streakCycleSteps : currentStreak % streakCycleSteps)
+  const nextStreakValue = !stats.lastClaimed ? 1 : isYesterdayDate(stats.lastClaimed) ? currentStreak + 1 : 1
+  const nextStreakReward = STREAK_REWARDS[Math.min(nextStreakValue, STREAK_REWARDS.length) - 1]
+  const paddedQuizAttempts = [
+    ...Array(Math.max(0, 7 - quizHistoryStats.attempts.length)).fill(null),
+    ...quizHistoryStats.attempts
+  ]
+  const lastQuizAttempt = quizHistoryStats.attempts[quizHistoryStats.attempts.length - 1]
+  const quizStatus = quizDoneToday ? (quizState.success ? 'success' : 'failed') : 'pending'
+  const lastQuizAttemptLabel = lastQuizAttempt?.date
+    ? new Date(lastQuizAttempt.date).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
+    : null
+  const lastClaimLabel = stats.lastClaimed
+    ? new Date(stats.lastClaimed).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
+    : null
 
   const isDateYesterday = (dateStr) => {
     if (!dateStr) return false
