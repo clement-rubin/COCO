@@ -1,5 +1,5 @@
 import Head from 'next/head'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/router'
 import { useAuth } from '../components/AuthContext'
 import Layout from '../components/Layout'
@@ -41,6 +41,81 @@ export default function Profil() {
   const [showTrophyNotification, setShowTrophyNotification] = useState(false)
   const [validationErrors, setValidationErrors] = useState({})
   const [saveSuccess, setSaveSuccess] = useState(false)
+
+  const profileChecklist = useMemo(() => {
+    if (!profile) {
+      return []
+    }
+
+    const tasks = []
+
+    if (!profile.avatar_url) {
+      tasks.push({
+        key: 'avatar',
+        label: 'Ajouter une photo de profil',
+        helper: 'Personnalisez votre page avec une image qui vous ressemble'
+      })
+    }
+
+    if (!profile.bio) {
+      tasks.push({
+        key: 'bio',
+        label: 'Raconter votre histoire culinaire',
+        helper: 'Une bio engageante aide vos amis à mieux vous connaître'
+      })
+    }
+
+    if (!profile.location) {
+      tasks.push({
+        key: 'location',
+        label: 'Indiquer votre ville',
+        helper: 'Partagez votre localisation pour rencontrer des gourmets proches'
+      })
+    }
+
+    if (!profile.website) {
+      tasks.push({
+        key: 'website',
+        label: 'Ajouter un lien',
+        helper: 'Redirigez vos amis vers votre blog ou vos réseaux culinaires'
+      })
+    }
+
+    return tasks
+  }, [profile])
+
+  const nextChecklistItem = profileChecklist[0] || null
+
+  const latestRecipe = useMemo(() => {
+    if (!Array.isArray(userRecipes) || userRecipes.length === 0) {
+      return null
+    }
+
+    return [...userRecipes]
+      .sort((a, b) => {
+        const dateA = a.created_at ? new Date(a.created_at).getTime() : 0
+        const dateB = b.created_at ? new Date(b.created_at).getTime() : 0
+        return dateB - dateA
+      })[0]
+  }, [userRecipes])
+
+  const recipeCategories = useMemo(() => {
+    if (!Array.isArray(userRecipes) || userRecipes.length === 0) {
+      return []
+    }
+
+    const counter = userRecipes.reduce((acc, recipe) => {
+      if (recipe?.category) {
+        acc[recipe.category] = (acc[recipe.category] || 0) + 1
+      }
+      return acc
+    }, {})
+
+    return Object.entries(counter)
+      .sort(([, countA], [, countB]) => countB - countA)
+      .slice(0, 3)
+      .map(([category, count]) => ({ category, count }))
+  }, [userRecipes])
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -716,6 +791,79 @@ export default function Profil() {
                 }} />
               </div>
             </div>
+
+            {(nextChecklistItem || latestRecipe) && (
+              <div className={styles.heroInsights}>
+                {nextChecklistItem && (
+                  <div className={`${styles.heroInsightCard} ${styles.checklistInsight}`}>
+                    <div className={styles.insightIcon}>🧭</div>
+                    <h3>Prochain objectif</h3>
+                    <p className={styles.insightLead}>{nextChecklistItem.label}</p>
+                    <p className={styles.insightHelperText}>{nextChecklistItem.helper}</p>
+                    {profileChecklist.length > 1 && (
+                      <ul className={styles.insightList}>
+                        {profileChecklist.slice(1, 3).map(task => (
+                          <li key={task.key}>{task.label}</li>
+                        ))}
+                      </ul>
+                    )}
+                    <button
+                      type="button"
+                      className={styles.insightButton}
+                      onClick={() => setIsEditing(true)}
+                    >
+                      Compléter mon profil
+                    </button>
+                  </div>
+                )}
+
+                {latestRecipe ? (
+                  <div className={`${styles.heroInsightCard} ${styles.recipeInsight}`}>
+                    <div className={styles.insightIcon}>🍽️</div>
+                    <h3>Dernière recette partagée</h3>
+                    <p className={styles.insightLead}>{latestRecipe.title || 'Recette sans titre'}</p>
+                    <p className={styles.insightHelperText}>
+                      Publiée le {latestRecipe.created_at ? new Date(latestRecipe.created_at).toLocaleDateString('fr-FR', {
+                        day: 'numeric',
+                        month: 'long'
+                      }) : 'date inconnue'}
+                    </p>
+                    {recipeCategories.length > 0 && (
+                      <div className={styles.insightChips}>
+                        {recipeCategories.map(item => (
+                          <span key={item.category} className={styles.insightChip}>
+                            {item.category} · {item.count}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      className={styles.insightButtonSecondary}
+                      onClick={() => router.push('/submit-recipe')}
+                    >
+                      Ajouter une nouvelle recette
+                    </button>
+                  </div>
+                ) : (
+                  <div className={`${styles.heroInsightCard} ${styles.recipeInsight}`}>
+                    <div className={styles.insightIcon}>✨</div>
+                    <h3>Partagez votre première recette</h3>
+                    <p className={styles.insightLead}>La communauté attend vos créations !</p>
+                    <p className={styles.insightHelperText}>
+                      Lancez-vous avec une recette simple pour débloquer vos premiers trophées.
+                    </p>
+                    <button
+                      type="button"
+                      className={styles.insightButtonSecondary}
+                      onClick={() => router.push('/submit-recipe')}
+                    >
+                      Publier une recette
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </section>
 

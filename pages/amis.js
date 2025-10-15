@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { logError, logInfo } from '../utils/logger';
 import styles from '../styles/Amis.module.css';
@@ -33,6 +33,239 @@ export default function Amis() {
   const [mutualFriendsData, setMutualFriendsData] = useState({});
   const [userStats, setUserStats] = useState({ recipesCount: 0, friendsCount: 0, profileCompleteness: 0 });
   const router = useRouter();
+
+  const normalizedFriends = useMemo(() => {
+    if (!Array.isArray(friends) || friends.length === 0) {
+      return [];
+    }
+
+    return friends
+      .filter(friend => friend)
+      .map(friend => {
+        const friendId = friend.friend_id || friend.user_id;
+        const profile = friend?.profiles || {};
+
+        return {
+          ...friend,
+          friend_id: friendId,
+          profiles: {
+            user_id: friendId,
+            display_name: profile.display_name || 'Utilisateur inconnu',
+            bio: profile.bio || '',
+            avatar_url: profile.avatar_url || null
+          }
+        };
+      });
+  }, [friends]);
+
+  const friendActivity = useMemo(() => {
+    const activity = {};
+
+    Object.entries(friendsRecipes || {}).forEach(([friendId, recipes]) => {
+      if (!Array.isArray(recipes) || recipes.length === 0) {
+        return;
+      }
+
+      const sorted = [...recipes].sort((a, b) => {
+        const dateA = a?.created_at ? new Date(a.created_at).getTime() : 0;
+        const dateB = b?.created_at ? new Date(b.created_at).getTime() : 0;
+        return dateB - dateA;
+      });
+
+      const latestRecipe = sorted[0];
+      const latestDate = latestRecipe?.created_at ? new Date(latestRecipe.created_at) : null;
+      const fourteenDaysAgo = new Date();
+      fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+
+      const categories = new Set();
+      sorted.forEach(recipe => {
+        if (recipe?.category) {
+          categories.add(recipe.category);
+        }
+      });
+
+      activity[friendId] = {
+        totalRecipes: recipes.length,
+        latestRecipeAt: latestDate,
+        hasRecentRecipe: latestDate ? latestDate >= fourteenDaysAgo : false,
+        categories: Array.from(categories)
+      };
+    });
+
+    return activity;
+  }, [friendsRecipes]);
+
+  const filteredFriends = useMemo(() => {
+    if (normalizedFriends.length === 0) {
+      return [];
+    }
+
+    const fourteenDaysAgo = new Date();
+    fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+
+    let result = [...normalizedFriends];
+
+    if (friendFilter === 'recent') {
+      const recentFriends = result.filter(friend => {
+        const meta = friendActivity[friend.friend_id];
+        return meta?.latestRecipeAt ? meta.latestRecipeAt >= fourteenDaysAgo : false;
+      });
+      if (recentFriends.length > 0) {
+        result = recentFriends;
+      }
+    } else if (friendFilter === 'active') {
+      const activeFriends = result.filter(friend => {
+        const meta = friendActivity[friend.friend_id];
+        return (meta?.totalRecipes || 0) > 0;
+      });
+      if (activeFriends.length > 0) {
+        result = activeFriends;
+      }
+    }
+
+    result.sort((a, b) => {
+      if (friendSort === 'name') {
+        const nameA = (a.profiles?.display_name || '').toLowerCase();
+        const nameB = (b.profiles?.display_name || '').toLowerCase();
+        return nameA.localeCompare(nameB);
+      }
+
+      if (friendSort === 'recent') {
+        const metaA = friendActivity[a.friend_id];
+        const metaB = friendActivity[b.friend_id];
+        const dateA = metaA?.latestRecipeAt ? metaA.latestRecipeAt.getTime() : new Date(a.updated_at || a.created_at || 0).getTime();
+        const dateB = metaB?.latestRecipeAt ? metaB.latestRecipeAt.getTime() : new Date(b.updated_at || b.created_at || 0).getTime();
+        return dateB - dateA;
+      }
+
+      if (friendSort === 'active') {
+        const recipesA = friendActivity[a.friend_id]?.totalRecipes || 0;
+        const recipesB = friendActivity[b.friend_id]?.totalRecipes || 0;
+        if (recipesB !== recipesA) {
+          return recipesB - recipesA;
+        }
+        return (a.profiles?.display_name || '').localeCompare(b.profiles?.display_name || '');
+      }
+
+      return 0;
+    });
+
+    return result;
+  }, [normalizedFriends, friendFilter, friendSort, friendActivity]);
+
+  const activeFriendsCount = useMemo(() => {
+    return normalizedFriends.filter(friend => friendActivity[friend.friend_id]?.hasRecentRecipe).length;
+  }, [normalizedFriends, friendActivity]);
+
+  const totalFriendRecipes = useMemo(() => {
+    return Object.values(friendActivity).reduce((total, meta) => total + (meta.totalRecipes || 0), 0);
+  }, [friendActivity]);
+
+  const quietFriends = useMemo(() => {
+    if (normalizedFriends.length === 0) {
+      return [];
+    }
+
+    const fourteenDaysAgo = new Date();
+    fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+
+    return normalizedFriends
+      .map(friend => {
+        const meta = friendActivity[friend.friend_id] || {};
+        const latestRecipeAt = meta.latestRecipeAt || (friend.updated_at ? new Date(friend.updated_at) : null);
+
+        return {
+          ...friend,
+          activity: meta,
+          latestRecipeAt,
+          isRecent: latestRecipeAt ? latestRecipeAt >= fourteenDaysAgo : false
+        };
+      })
+      .filter(friend => !friend.isRecent)
+      .sort((a, b) => {
+        const recipesA = a.activity?.totalRecipes || 0;
+        const recipesB = b.activity?.totalRecipes || 0;
+        if (recipesA !== recipesB) {
+          return recipesA - recipesB;
+        }
+        const dateA = a.latestRecipeAt ? a.latestRecipeAt.getTime() : 0;
+        const dateB = b.latestRecipeAt ? b.latestRecipeAt.getTime() : 0;
+        return dateA - dateB;
+      })
+      .slice(0, 4);
+  }, [normalizedFriends, friendActivity]);
+
+  const friendInsights = useMemo(() => {
+    const totalFriends = normalizedFriends.length;
+    const pendingRequests = friendshipStats.pending || 0;
+    const quietCount = quietFriends.length;
+
+    return [
+      {
+        key: 'friends',
+        label: 'Amis connectés',
+        value: totalFriends,
+        accent: '#ff6b35',
+        helper: totalFriends > 0 ? 'Communauté prête à cuisiner avec vous' : 'Invitez vos proches à rejoindre COCO'
+      },
+      {
+        key: 'active',
+        label: 'Actifs (14 j)',
+        value: activeFriendsCount,
+        accent: '#10b981',
+        helper: activeFriendsCount > 0 ? 'Beaucoup de nouvelles recettes partagées' : 'Encouragez vos amis à publier une recette'
+      },
+      {
+        key: 'recipes',
+        label: 'Recettes partagées',
+        value: totalFriendRecipes,
+        accent: '#f97316',
+        helper: totalFriendRecipes > 0 ? 'Inspirez-vous des créations de vos amis' : 'Soyez le premier à inspirer la communauté'
+      },
+      {
+        key: 'quiet',
+        label: 'À encourager',
+        value: quietCount,
+        accent: '#6366f1',
+        helper: quietCount > 0 ? 'Un petit mot pour relancer la motivation' : 'Tout le monde est en pleine forme'
+      },
+      {
+        key: 'pending',
+        label: 'Demandes en attente',
+        value: pendingRequests,
+        accent: '#f59e0b',
+        helper: pendingRequests > 0 ? 'Répondez aux invitations pour élargir votre cercle' : 'Aucune demande en attente pour le moment'
+      }
+    ].filter(Boolean);
+  }, [normalizedFriends.length, activeFriendsCount, totalFriendRecipes, quietFriends.length, friendshipStats.pending]);
+
+  const highlightFriends = useMemo(() => {
+    return normalizedFriends
+      .map(friend => ({
+        ...friend,
+        activity: friendActivity[friend.friend_id] || { totalRecipes: 0, hasRecentRecipe: false }
+      }))
+      .filter(friend => friend.activity.totalRecipes > 0)
+      .sort((a, b) => {
+        if (a.activity.totalRecipes === b.activity.totalRecipes) {
+          const dateA = a.activity.latestRecipeAt ? a.activity.latestRecipeAt.getTime() : 0;
+          const dateB = b.activity.latestRecipeAt ? b.activity.latestRecipeAt.getTime() : 0;
+          return dateB - dateA;
+        }
+        return b.activity.totalRecipes - a.activity.totalRecipes;
+      })
+      .slice(0, 3);
+  }, [normalizedFriends, friendActivity]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    highlightFriends.forEach(friend => {
+      if (mutualFriendsData[friend.friend_id] === undefined) {
+        loadMutualFriends(friend.friend_id);
+      }
+    });
+  }, [user, highlightFriends]);
 
   useEffect(() => {
     checkUser();
@@ -555,134 +788,6 @@ export default function Amis() {
     }
   };
 
-  // Fonction corrigée pour filtrer les amis avec protection mobile renforcée
-  const getFilteredFriends = () => {
-    try {
-      // Protection renforcée pour mobile - vérification complète
-      if (!friends || !Array.isArray(friends)) {
-        logInfo('Friends is not a valid array', { 
-          friendsType: typeof friends, 
-          friendsIsArray: Array.isArray(friends),
-          userId: user?.id 
-        });
-        return [];
-      }
-      
-      if (friends.length === 0) {
-        logInfo('No friends found for filtering', { userId: user?.id });
-        return [];
-      }
-      
-      // Créer une copie sûre des données avec validation complète
-      let filteredFriends = friends
-        .filter(friend => {
-          // Validation stricte de la structure des données
-          if (!friend || typeof friend !== 'object') {
-            logError('Invalid friend object structure', null, { friend });
-            return false;
-          }
-          
-          // Vérifier que l'ami a un ID valide
-          const friendId = friend.friend_id || friend.user_id;
-          if (!friendId) {
-            logError('Friend missing ID', null, { friend });
-            return false;
-          }
-          
-          return true;
-        })
-        .map(friend => {
-          // Normaliser la structure des données
-          return {
-            ...friend,
-            friend_id: friend.friend_id || friend.user_id, // Assurer la compatibilité
-            profiles: friend?.profiles && typeof friend.profiles === 'object' ? friend.profiles : {
-              user_id: friend.friend_id || friend.user_id,
-              display_name: friend.profiles?.display_name || 'Utilisateur inconnu',
-              bio: friend.profiles?.bio || '',
-              avatar_url: friend.profiles?.avatar_url || null
-            }
-          };
-        });
-      
-      // Appliquer le filtre avec vérifications sécurisées
-      try {
-        switch (friendFilter) {
-          case 'recent':
-            filteredFriends = filteredFriends.slice(0, Math.min(5, filteredFriends.length));
-            break;
-          case 'active':
-            // Version déterministe pour éviter les bugs mobiles
-            filteredFriends = filteredFriends.filter((_, index) => index % 2 === 0);
-            break;
-          case 'all':
-          default:
-            // Tous les amis - pas de filtrage supplémentaire
-            break;
-        }
-      } catch (filterError) {
-        logError('Error applying friend filter:', filterError);
-        // En cas d'erreur de filtrage, retourner tous les amis
-      }
-      
-      // Appliquer le tri avec protection d'erreur
-      try {
-        switch (friendSort) {
-          case 'name':
-            filteredFriends.sort((a, b) => {
-              try {
-                const nameA = String(a?.profiles?.display_name || '').toLowerCase();
-                const nameB = String(b?.profiles?.display_name || '').toLowerCase();
-                return nameA.localeCompare(nameB);
-              } catch (sortError) {
-                logError('Error sorting friends by name:', sortError);
-                return 0;
-              }
-            });
-            break;
-          case 'recent':
-            // Tri par ordre inverse (plus récents en premier)
-            filteredFriends.reverse();
-            break;
-          case 'active':
-            // Tri stable par ID pour mobile
-            filteredFriends.sort((a, b) => {
-              const idA = parseInt(a?.id || 0);
-              const idB = parseInt(b?.id || 0);
-              return idA - idB;
-            });
-            break;
-          default:
-            // Pas de tri spécial
-            break;
-        }
-      } catch (sortError) {
-        logError('Error sorting friends:', sortError);
-        // En cas d'erreur de tri, garder l'ordre original
-      }
-      
-      logInfo('Friends filtered successfully', {
-        originalCount: friends.length,
-        filteredCount: filteredFriends.length,
-        filter: friendFilter,
-        sort: friendSort,
-        userId: user?.id,
-        sampleFriendIds: filteredFriends.slice(0, 3).map(f => f.friend_id)
-      });
-      
-      return filteredFriends;
-    } catch (error) {
-      logError('Critical error in getFilteredFriends (mobile-safe):', error, {
-        friendsType: typeof friends,
-        friendsLength: friends?.length,
-        userId: user?.id
-      });
-      
-      // Retour de secours ultra-sûr
-      return Array.isArray(friends) ? friends.slice(0, 10) : [];
-    }
-  };
-
   // Fonction pour charger toutes les recettes des amis à la fois - VERSION MUTUELLE
   const loadAllFriendsRecipes = async () => {
     if (!friends || friends.length === 0) return;
@@ -1152,20 +1257,35 @@ export default function Amis() {
             flexWrap: 'wrap'
           }}>
             {[{
-              number: userStats.friendsCount, label: 'Amis', icon: '👥', color: '#ff6b35'
+              number: normalizedFriends.length,
+              label: 'Amis',
+              icon: '👥',
+              color: '#ff6b35'
             },
-            { 
-              number: friendshipStats.pending, 
-              label: 'En attente', 
-              icon: '⏳', 
+            friendshipStats.pending > 0 ? {
+              number: friendshipStats.pending,
+              label: 'Demandes',
+              icon: '⏳',
               color: '#f59e0b',
-              clickable: friendshipStats.pending > 0,
-              onClick: friendshipStats.pending > 0 ? handlePendingClick : undefined
+              clickable: true,
+              onClick: handlePendingClick
+            } : null,
+            {
+              number: activeFriendsCount,
+              label: 'Actifs (14 j)',
+              icon: '🔥',
+              color: '#10b981'
             },
-            { number: userStats.recipesCount, label: 'Recettes', icon: '🍽️', color: '#10b981' }
-          ].map((stat, index) => (
-              <div 
-                key={index} 
+            {
+              number: totalFriendRecipes,
+              label: 'Recettes partagées',
+              icon: '🍽️',
+              color: '#f97316'
+            }]
+              .filter(Boolean)
+              .map((stat, index) => (
+              <div
+                key={index}
                 style={{
                   background: 'rgba(255, 255, 255, 0.9)',
                   backdropFilter: 'blur(15px)',
@@ -1235,7 +1355,7 @@ export default function Amis() {
                   </div>
                 )}
               </div>
-            ))
+              ))
             }
           </div>
 
@@ -1327,6 +1447,42 @@ export default function Amis() {
               </button>
             )}
           </div>
+
+          {friendInsights.length > 0 && (
+            <div className={styles.insightsGrid}>
+              {friendInsights.map((insight, index) => (
+                <div
+                  key={insight.key}
+                  className={styles.insightCard}
+                  style={{ animationDelay: `${index * 0.08}s` }}
+                >
+                  <div className={styles.insightValue} style={{ color: insight.accent }}>
+                    {insight.value}
+                  </div>
+                  <div className={styles.insightLabel}>{insight.label}</div>
+                  <p className={styles.insightHelper}>{insight.helper}</p>
+                  {insight.key === 'quiet' && insight.value > 0 && (
+                    <button
+                      type="button"
+                      className={styles.insightAction}
+                      onClick={() => setActiveTab('friends')}
+                    >
+                      Encourager
+                    </button>
+                  )}
+                  {insight.key === 'pending' && insight.value > 0 && (
+                    <button
+                      type="button"
+                      className={styles.insightAction}
+                      onClick={handlePendingClick}
+                    >
+                      Gérer les demandes
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -1495,7 +1651,7 @@ export default function Amis() {
             }}
           >
             <span className={styles.tabIcon}>👥</span>
-            <span className={styles.tabText}>Amis ({friends.length})</span>
+            <span className={styles.tabText}>Amis ({normalizedFriends.length})</span>
           </button>
           <button
             className={activeTab === 'requests' ? styles.activeTab : ''}
@@ -1579,26 +1735,26 @@ export default function Amis() {
                   <h2 className={styles.sectionTitle}>
                     <span className={styles.sectionIcon}>👥</span>
                     Mes amis
-                    <span className={styles.friendsCount}>({friends.length})</span>
+                    <span className={styles.friendsCount}>({normalizedFriends.length})</span>
                   </h2>
                   
                   {/* Badge de niveau simplifié */}
-                  {friends.length >= 10 && (
+                  {normalizedFriends.length >= 10 && (
                     <div className={styles.achievementBadge}>
                       <span className={styles.badgeIcon}>
-                        {friends.length >= 50 ? '🌟' : 
-                         friends.length >= 25 ? '⭐' : '✨'}
+                        {normalizedFriends.length >= 50 ? '🌟' :
+                         normalizedFriends.length >= 25 ? '⭐' : '✨'}
                       </span>
                       <span className={styles.badgeText}>
-                        {friends.length >= 50 ? 'Super Social' : 
-                         friends.length >= 25 ? 'Très Social' : 'Social'}
+                        {normalizedFriends.length >= 50 ? 'Super Social' :
+                         normalizedFriends.length >= 25 ? 'Très Social' : 'Social'}
                       </span>
                     </div>
                   )}
                 </div>
-                
+
                 {/* Barre d'outils simplifiée */}
-                {friends.length > 0 && (
+                {normalizedFriends.length > 0 && (
                   <div className={styles.friendsToolbar}>
                     <div className={styles.filterControls}>
                       <select 
@@ -1635,35 +1791,135 @@ export default function Amis() {
                 )}
               </div>
               
-              {friends.length > 0 ? (
+              {normalizedFriends.length > 0 ? (
                 <>
                   {/* Statistiques simplifiées */}
                   <div className={styles.friendsOverview}>
                     <div className={styles.overviewStat}>
-                      <span className={styles.statValue}>{friends.length}</span>
+                      <span className={styles.statValue}>{normalizedFriends.length}</span>
                       <span className={styles.statLabel}>Amis</span>
                     </div>
                     <div className={styles.overviewStat}>
-                      <span className={styles.statValue}>
-                        {getFilteredFriends().filter(() => Math.random() > 0.7).length}
-                      </span>
-                      <span className={styles.statLabel}>En ligne</span>
+                      <span className={styles.statValue}>{activeFriendsCount}</span>
+                      <span className={styles.statLabel}>Actifs cette quinzaine</span>
                     </div>
                     <div className={styles.overviewStat}>
-                      <span className={styles.statValue}>
-                        {Object.keys(friendsRecipes).reduce((acc, key) => 
-                          acc + (friendsRecipes[key]?.length || 0), 0)}
-                      </span>
+                      <span className={styles.statValue}>{totalFriendRecipes}</span>
                       <span className={styles.statLabel}>Recettes</span>
                     </div>
                   </div>
 
+                  {quietFriends.length > 0 && (
+                    <div className={styles.quietFriendsPanel}>
+                      <div className={styles.quietHeader}>
+                        <div>
+                          <h3>Besoin d'encouragement ✨</h3>
+                          <p>Un rappel amical peut aider ces amis à revenir partager leurs recettes.</p>
+                        </div>
+                        <button
+                          type="button"
+                          className={styles.quietAction}
+                          onClick={() => setFriendFilter('recent')}
+                        >
+                          Mettre en avant les actifs
+                        </button>
+                      </div>
+                      <div className={styles.quietGrid}>
+                        {quietFriends.map(friend => {
+                          const meta = friend.activity || {};
+                          const lastDate = friend.latestRecipeAt
+                            ? friend.latestRecipeAt.toLocaleDateString('fr-FR', {
+                                day: 'numeric',
+                                month: 'short',
+                                year: 'numeric'
+                              })
+                            : 'Jamais';
+                          const categories = Array.isArray(meta.categories) && meta.categories.length > 0
+                            ? meta.categories.slice(0, 2).join(', ')
+                            : 'Catégories à explorer';
+
+                          return (
+                            <div key={friend.friend_id} className={styles.quietCard}>
+                              <div className={styles.quietAvatar}>
+                                {friend.profiles?.avatar_url ? (
+                                  <img src={friend.profiles.avatar_url} alt={friend.profiles.display_name} />
+                                ) : (
+                                  <span>{friend.profiles?.display_name?.charAt(0)?.toUpperCase() || '👤'}</span>
+                                )}
+                              </div>
+                              <div className={styles.quietBody}>
+                                <h4>{friend.profiles?.display_name || 'Ami COCO'}</h4>
+                                <span className={styles.quietMeta}>Dernière recette : {lastDate}</span>
+                                <span className={styles.quietMeta}>Recettes publiées : {meta.totalRecipes || 0}</span>
+                                <span className={styles.quietMeta}>{categories}</span>
+                              </div>
+                              <button
+                                type="button"
+                                className={styles.quietNudge}
+                                onClick={() => router.push('/social')}
+                              >
+                                Envoyer un mot
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {highlightFriends.length > 0 && (
+                    <div className={styles.highlightStrip}>
+                      <h3 className={styles.highlightTitle}>Amis à suivre</h3>
+                      <div className={styles.highlightList}>
+                        {highlightFriends.map(friend => {
+                          const meta = friend.activity;
+                          const latestLabel = meta.latestRecipeAt
+                            ? new Date(meta.latestRecipeAt).toLocaleDateString('fr-FR', {
+                                day: 'numeric',
+                                month: 'short'
+                              })
+                            : null;
+
+                          return (
+                            <button
+                              key={friend.friend_id}
+                              className={styles.highlightCard}
+                              type="button"
+                              onClick={() => {
+                                fetchFriendRecipes(friend.friend_id);
+                                setActiveTab('friendsRecipes');
+                              }}
+                            >
+                              <div className={styles.highlightAvatar}>
+                                {friend.profiles?.avatar_url ? (
+                                  <img src={friend.profiles.avatar_url} alt={friend.profiles.display_name} />
+                                ) : (
+                                  <span>{friend.profiles?.display_name?.charAt(0)?.toUpperCase() || '?'}</span>
+                                )}
+                              </div>
+                              <div className={styles.highlightMeta}>
+                                <span className={styles.highlightName}>{friend.profiles?.display_name}</span>
+                                <span className={styles.highlightRecipes}>
+                                  {meta.totalRecipes} recette{meta.totalRecipes > 1 ? 's' : ''}
+                                </span>
+                              </div>
+                              <div className={styles.highlightInfo}>
+                                {latestLabel ? `Dernière ${latestLabel}` : 'Toujours partant·e'}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Grille d'amis redessinée */}
                   <div className={styles.friendsGrid}>
-                    {getFilteredFriends().map((friendship, idx) => {
-                      const isOnline = Math.random() > 0.7;
-                      const recipesCount = friendsRecipes[friendship.friend_id]?.length || 0;
-                      
+                    {filteredFriends.map((friendship, idx) => {
+                      const activityMeta = friendActivity[friendship.friend_id] || {};
+                      const recipesCount = activityMeta.totalRecipes || 0;
+                      const isActive = activityMeta.hasRecentRecipe;
+
                       return (
                         <div
                           key={friendship.id}
@@ -1691,7 +1947,7 @@ export default function Amis() {
                                 )}
                                 
                                 {/* Indicateur de statut simplifié */}
-                                {isOnline && (
+                                {isActive && (
                                   <div className={styles.onlineIndicator}></div>
                                 )}
                               </div>
@@ -2058,7 +2314,7 @@ export default function Amis() {
               marginBottom: 32
             }}>
               <h2>Recettes de mes amis</h2>
-              {friends.length === 0 ? (
+              {normalizedFriends.length === 0 ? (
                 <div className={styles.emptyState}>
                   <p>Ajoutez des amis pour découvrir leurs recettes !</p>
                 </div>
