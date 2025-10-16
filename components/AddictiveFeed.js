@@ -364,6 +364,37 @@ export default function AddictiveFeed({ initialRecipes = [], initialEngagement =
   }, [initialRecipes, initialEngagement, initialPage, formatRecipeData])
 
   // Actions utilisateur - CORRECTION POUR ÉVITER DOUBLE AJOUT
+  const openAuthorProfile = useCallback(
+    (authorId) => {
+      if (!authorId || authorId.startsWith('author_')) {
+        return
+      }
+
+      if (user?.id && authorId === user.id) {
+        router.push('/profil')
+        return
+      }
+
+      logUserInteraction('open_public_profile', {
+        authorId,
+        source: 'addictive_feed'
+      })
+
+      router.push(`/profile/${authorId}`)
+    },
+    [router, user]
+  )
+
+  const handleProfileKeyDown = useCallback(
+    (event, authorId) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault()
+        openAuthorProfile(authorId)
+      }
+    },
+    [openAuthorProfile]
+  )
+
   const toggleLike = useCallback(async (recipeId) => {
     if (!user) {
       const wantsToLogin = window.confirm('Connectez-vous pour aimer cette recette. Aller à la page de connexion?')
@@ -1356,7 +1387,26 @@ export default function AddictiveFeed({ initialRecipes = [], initialEngagement =
             {/* Contenu avec design amélioré */}
             <div className={styles.recipeContent}>
               {/* Info utilisateur redessinée */}
-              <div className={styles.userInfo}>
+              <div
+                className={styles.userInfo}
+                role={post.user?.id && !post.user.id.startsWith('author_') ? 'button' : undefined}
+                tabIndex={post.user?.id && !post.user.id.startsWith('author_') ? 0 : undefined}
+                onClick={
+                  post.user?.id && !post.user.id.startsWith('author_')
+                    ? () => openAuthorProfile(post.user.id)
+                    : undefined
+                }
+                onKeyDown={
+                  post.user?.id && !post.user.id.startsWith('author_')
+                    ? (event) => handleProfileKeyDown(event, post.user.id)
+                    : undefined
+                }
+                aria-label={
+                  post.user?.id && !post.user.id.startsWith('author_')
+                    ? `Voir le profil de ${post.user.name}`
+                    : undefined
+                }
+              >
                 {/* Avatar utilisateur */}
                 <span className={styles.userAvatar}>
                   {post.user.avatar_url ? (
