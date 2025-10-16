@@ -1,14 +1,31 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
-const REWARDS = [20, 25, 30, 40, 50, 60, 100] // Récompenses croissantes
+const BASE_REWARD = 20
+const LOOKBACK_DAYS = 30
+
+const toISODate = (date) => date.toISOString().slice(0, 10)
+
+const computePublicationStreak = (publicationDates, referenceDate = new Date()) => {
+  const cursor = new Date(referenceDate)
+  let streak = 0
+
+  while (publicationDates.has(toISODate(cursor))) {
+    streak += 1
+    cursor.setDate(cursor.getDate() - 1)
+  }
+
+  return streak
+}
+
+const calculateReward = (streak) => (streak >= 2 ? (streak - 1) * BASE_REWARD : 0)
 
 export default function DailyStreakReward({ user, onCoinsChange }) {
   const [loading, setLoading] = useState(true)
   const [streak, setStreak] = useState(0)
   const [lastClaimed, setLastClaimed] = useState(null)
   const [canClaim, setCanClaim] = useState(false)
-  const [coins, setCoins] = useState(0)
+  const [, setCoins] = useState(0)
   const [feedback, setFeedback] = useState(null)
 
   useEffect(() => {
@@ -16,8 +33,50 @@ export default function DailyStreakReward({ user, onCoinsChange }) {
     loadUserData()
   }, [user])
 
-  const loadUserData = async () => {
-    setLoading(true)
+  const fetchPublicationStreak = async () => {
+    if (!user?.id) return 0
+
+    try {
+      const today = new Date()
+      const startWindow = new Date(today)
+      startWindow.setDate(startWindow.getDate() - LOOKBACK_DAYS)
+
+      const { data: recipeRows, error: recipesError } = await supabase
+        .from('recipes')
+        .select('created_at')
+        .eq('user_id', user.id)
+        .gte('created_at', startWindow.toISOString())
+
+      if (recipesError) {
+        throw recipesError
+      }
+
+      const publicationDates = new Set(
+        (recipeRows || [])
+          .map((row) => {
+            try {
+              return toISODate(new Date(row.created_at))
+            } catch (err) {
+              console.error('Erreur de parsing de date de publication:', err)
+              return null
+            }
+          })
+          .filter(Boolean)
+      )
+
+      return computePublicationStreak(publicationDates, today)
+    } catch (error) {
+      console.error('Erreur lors du calcul de la série de publications:', error)
+      return 0
+    }
+  }
+
+  const loadUserData = async ({ skipSpinner = false } = {}) => {
+    if (!user?.id) return
+    if (!skipSpinner) {
+      setLoading(true)
+    }
+
     try {
       const { data, error } = await supabase
         .from('user_pass')
@@ -25,31 +84,39 @@ export default function DailyStreakReward({ user, onCoinsChange }) {
         .eq('user_id', user.id)
         .single()
 
-      if (data) {
-        const currentStreak = data.streak || 0
-        const lastClaimedDate = data.last_claimed
-        const currentCoins = data.coins || 0
-        
-        setStreak(currentStreak)
-        setLastClaimed(lastClaimedDate)
-        setCoins(currentCoins)
-        
-        // CORRECTION: Vérifier avec les vraies données de la DB
-        const today = new Date().toISOString().slice(0, 10)
-        const canClaimToday = !lastClaimedDate || lastClaimedDate !== today
-        setCanClaim(canClaimToday)
-      } else {
-        // Première connexion - créer l'entrée
-        await createInitialUserData()
+      let userPassData = data
+
+      if (error && error.code !== 'PGRST116') {
+        throw error
       }
+
+      if (!userPassData) {
+        userPassData = await createInitialUserData()
+      }
+
+      const publicationStreak = await fetchPublicationStreak()
+      const lastClaimedDate = userPassData?.last_claimed || null
+      const currentCoins = userPassData?.coins ?? 250
+
+      setStreak(publicationStreak)
+      setLastClaimed(lastClaimedDate)
+      setCoins(currentCoins)
+
+      const eligibleToday = publicationStreak >= 2 && calculateCanClaim(lastClaimedDate)
+      setCanClaim(eligibleToday)
     } catch (error) {
       console.error('Erreur lors du chargement des données:', error)
+      setCanClaim(false)
     } finally {
-      setLoading(false)
+      if (!skipSpinner) {
+        setLoading(false)
+      }
     }
   }
 
   const createInitialUserData = async () => {
+    if (!user?.id) return { streak: 0, last_claimed: null, coins: 250 }
+
     try {
       const { error } = await supabase
         .from('user_pass')
@@ -60,115 +127,76 @@ export default function DailyStreakReward({ user, onCoinsChange }) {
           coins: 250
         })
 
-      if (!error) {
-        setStreak(0)
-        setLastClaimed(null)
-        setCoins(250)
-        setCanClaim(true)
+      if (error && error.code !== '23505') {
+        throw error
       }
+
+      return { streak: 0, last_claimed: null, coins: 250 }
     } catch (error) {
       console.error('Erreur lors de la création des données utilisateur:', error)
+      return { streak: 0, last_claimed: null, coins: 250 }
     }
   }
 
   const calculateCanClaim = (lastClaimedDate) => {
     if (!lastClaimedDate) return true
-    const today = new Date().toISOString().slice(0, 10)
+    const today = toISODate(new Date())
     return lastClaimedDate !== today
   }
 
-  const isYesterday = (dateStr) => {
-    if (!dateStr) return false
-    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
-    return dateStr === yesterday
-  }
-
-  const calculateNewStreak = (currentStreak, lastClaimedDate) => {
-    if (!lastClaimedDate) return 1 // Première fois
-    if (isYesterday(lastClaimedDate)) return currentStreak + 1 // Continuité
-    return 1 // Rupture de série, on recommence
-  }
-
-  const calculateReward = (newStreak) => {
-    const rewardIndex = Math.min(newStreak - 1, REWARDS.length - 1)
-    return REWARDS[rewardIndex]
-  }
-
   const claimReward = async () => {
-    if (!user?.id || !canClaim || loading) return
+    if (!user?.id || loading || !canClaim) return
 
     setLoading(true)
     try {
-      const today = new Date().toISOString().slice(0, 10)
-      
-      // SÉCURITÉ: Vérifier une dernière fois en base avant de continuer
-      const { data: currentData, error: checkError } = await supabase
-        .from('user_pass')
-        .select('last_claimed, streak, coins')
-        .eq('user_id', user.id)
-        .single()
+      const response = await fetch('/api/user-streak', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ user_id: user.id })
+      })
 
-      if (checkError) throw checkError
+      const data = await response.json()
 
-      // Si l'utilisateur a déjà récupéré aujourd'hui, bloquer
-      if (currentData?.last_claimed === today) {
-        setCanClaim(false)
-        setLastClaimed(today)
-        setFeedback('Récompense déjà récupérée aujourd\'hui')
-        setTimeout(() => setFeedback(null), 3000)
-        setLoading(false)
+      if (!response.ok) {
+        const message = data.message || data.error || 'Impossible de récupérer la récompense'
+        setFeedback(message)
+        setTimeout(() => setFeedback(null), 4000)
+        await loadUserData({ skipSpinner: true })
         return
       }
 
-      const currentStreak = currentData?.streak || 0
-      const currentCoins = currentData?.coins || 0
-      const lastClaimedFromDB = currentData?.last_claimed
+      setFeedback(`+${data.reward} CocoCoins ! Série publication : ${data.streak} jour${data.streak > 1 ? 's' : ''}`)
+      setTimeout(() => setFeedback(null), 4000)
 
-      const newStreak = calculateNewStreak(currentStreak, lastClaimedFromDB)
-      const reward = calculateReward(newStreak)
-      const newCoins = currentCoins + reward
-
-      // Mise à jour en base avec vérification de concurrence
-      const { error } = await supabase
-        .from('user_pass')
-        .update({
-          last_claimed: today,
-          streak: newStreak,
-          coins: newCoins,
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', user.id)
-        .eq('last_claimed', lastClaimedFromDB) // Vérification de concurrence
-
-      if (error) throw error
-
-      // Mise à jour de l'état local SEULEMENT après succès DB
-      setStreak(newStreak)
-      setLastClaimed(today)
-      setCoins(newCoins)
-      setCanClaim(false)
-      
-      // Feedback utilisateur
-      setFeedback(`+${reward} CocoCoins ! Série : ${newStreak} jour${newStreak > 1 ? 's' : ''}`)
-      setTimeout(() => setFeedback(null), 3000)
-
-      // Notifier le parent si une fonction de callback est fournie
-      if (onCoinsChange) {
-        onCoinsChange(newCoins)
+      if (typeof data.coins === 'number') {
+        setCoins(data.coins)
+        if (onCoinsChange) {
+          onCoinsChange(data.coins)
+        }
       }
 
+      setLastClaimed(data.lastClaimed)
+
+      await loadUserData({ skipSpinner: true })
     } catch (error) {
       console.error('Erreur lors de la récupération de la récompense:', error)
-      
-      // En cas d'erreur, recharger les données pour avoir l'état correct
-      await loadUserData()
-      
       setFeedback('Erreur lors de la récupération')
-      setTimeout(() => setFeedback(null), 3000)
+      setTimeout(() => setFeedback(null), 4000)
+      await loadUserData({ skipSpinner: true })
     } finally {
       setLoading(false)
     }
   }
+
+  const rewardForToday = calculateReward(streak)
+  const needsAnotherDay = streak < 2
+  const helperText = needsAnotherDay
+    ? (streak === 0
+        ? "Publie aujourd'hui et demain pour débloquer ta récompense quotidienne."
+        : 'Encore une publication consécutive pour activer la récompense de 20 CocoCoins.')
+    : `Chaque journée publiée ajoute +20 CocoCoins. Série actuelle : ${streak} jour${streak > 1 ? 's' : ''}.`
 
   if (!user?.id) return null
 
@@ -183,14 +211,46 @@ export default function DailyStreakReward({ user, onCoinsChange }) {
       textAlign: 'center',
       position: 'relative'
     }}>
-      <div style={{ fontWeight: 700, fontSize: '1.1rem', color: '#f59e0b', marginBottom: 4 }}>
-        🔥 Streak quotidien : <b>{streak}</b> jour{streak > 1 ? 's' : ''}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        marginBottom: 6
+      }}>
+        <span style={{
+          background: '#fef3c7',
+          color: '#b45309',
+          borderRadius: 999,
+          fontSize: '0.7rem',
+          fontWeight: 700,
+          padding: '2px 8px',
+          textTransform: 'uppercase',
+          letterSpacing: '0.04em'
+        }}>
+          Nouveauté
+        </span>
+        <span style={{ fontWeight: 700, fontSize: '1.05rem', color: '#f59e0b' }}>
+          🔥 Série de publication
+        </span>
       </div>
-      <div style={{ fontSize: '1rem', color: '#92400e', marginBottom: 8 }}>
-        {canClaim
-          ? <>Réclamez votre récompense du jour !</>
-          : <>Déjà récupéré aujourd'hui</>
-        }
+      <div style={{ fontSize: '0.95rem', color: '#92400e', marginBottom: 10 }}>
+        Publie deux jours consécutifs pour débloquer {BASE_REWARD} CocoCoins, puis +{BASE_REWARD} chaque jour supplémentaire.
+      </div>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        gap: 12,
+        marginBottom: 8,
+        fontWeight: 600,
+        color: '#b45309'
+      }}>
+        <span>
+          Série actuelle : <b>{streak}</b> jour{streak > 1 ? 's' : ''}
+        </span>
+        <span>
+          Gain du jour : <b>+{rewardForToday}</b> 🪙
+        </span>
       </div>
       <button
         onClick={claimReward}
@@ -209,16 +269,16 @@ export default function DailyStreakReward({ user, onCoinsChange }) {
           transition: 'all 0.2s'
         }}
       >
-        {loading ? (
-          'Traitement...'
-        ) : canClaim ? (
-          `Récupérer +${calculateReward(calculateNewStreak(streak, lastClaimed))} 🪙`
-        ) : (
-          'Récompense du jour prise'
-        )}
+        {loading
+          ? 'Traitement...'
+          : canClaim
+            ? `Récupérer +${rewardForToday} CocoCoins`
+            : needsAnotherDay
+              ? 'Publie encore demain pour débloquer 20 CocoCoins'
+              : 'Récompense du jour récupérée'}
       </button>
       <div style={{ fontSize: '0.95rem', color: '#6b7280' }}>
-        Connectez-vous chaque jour pour augmenter votre série et gagner plus de CocoCoins !
+        {helperText}
       </div>
       {feedback && (
         <div style={{

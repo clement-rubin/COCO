@@ -1802,6 +1802,56 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
           </div>
         </div>
 
+        {user && (
+          <section
+            style={{
+              maxWidth: '400px',
+              margin: '-32px auto 24px',
+              padding: '0 16px',
+              position: 'relative',
+              zIndex: 3
+            }}
+          >
+            <div
+              style={{
+                background: 'linear-gradient(135deg, rgba(254, 243, 199, 0.9), rgba(255, 237, 213, 0.95))',
+                borderRadius: '18px',
+                padding: '16px 18px',
+                border: '1px solid rgba(245, 158, 11, 0.25)',
+                boxShadow: '0 12px 25px rgba(245, 158, 11, 0.12)',
+                backdropFilter: 'blur(4px)',
+                marginBottom: '12px'
+              }}
+            >
+              <div style={{
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                color: '#b45309',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                marginBottom: 6
+              }}>
+                <span style={{ fontSize: '1rem' }}>🥥</span>
+                Nouveau : streak de publications récompensé
+              </div>
+              <p style={{
+                margin: 0,
+                color: '#92400e',
+                fontSize: '0.9rem',
+                lineHeight: 1.45,
+                fontWeight: 500
+              }}>
+                Publie deux jours consécutifs pour débloquer 20 CocoCoins, puis +20 chaque jour supplémentaire.
+                Réclame ta récompense quotidienne juste en dessous !
+              </p>
+            </div>
+            <DailyStreakReward user={user} />
+          </section>
+        )}
+
         {/* Section AddictiveFeed directement sans header communautaire */}
         <div style={{
           maxWidth: '400px',
