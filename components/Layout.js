@@ -66,10 +66,10 @@ export default function Layout({ children, title = 'COCO - Communauté Culinaire
                   🏠 Accueil
                 </button>
                 <button
-                  onClick={() => router.push('/collections')}
-                  className={`${styles.navBtn} ${router.pathname === '/collections' ? styles.active : ''}`}
+                  onClick={() => router.push('/progression')}
+                  className={`${styles.navBtn} ${router.pathname === '/progression' ? styles.active : ''}`}
                 >
-                  📚 Collections
+                  📈 Progression
                 </button>
                 <button
                   onClick={() => router.push('/amis')}
