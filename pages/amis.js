@@ -36,14 +36,21 @@ export default function Amis() {
 
   const ensureProfileExists = useCallback(async (userId) => {
     try {
-      const { data: existingProfile } = await supabase
+      const {
+        data: existingProfile,
+        error: profileError
+      } = await supabase
         .from('profiles')
         .select('id')
         .eq('user_id', userId)
-        .single()
+        .maybeSingle()
+
+      if (profileError && profileError.code !== 'PGRST116') {
+        throw profileError
+      }
 
       if (!existingProfile) {
-        const { error } = await supabase.from('profiles').insert({
+        const { error: insertError } = await supabase.from('profiles').insert({
           user_id: userId,
           display_name: 'Utilisateur',
           bio: '',
@@ -52,14 +59,12 @@ export default function Amis() {
           updated_at: new Date().toISOString()
         })
 
-        if (error) {
-          logError('Failed to create fallback profile', error)
+        if (insertError) {
+          throw insertError
         }
       }
     } catch (error) {
-      if (error?.code !== 'PGRST116' && error?.code !== 'PGRST301') {
-        logError('Error ensuring profile exists', error)
-      }
+      logError('Error ensuring profile exists', error)
     }
   }, [])
 
