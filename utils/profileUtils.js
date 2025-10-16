@@ -952,6 +952,76 @@ export async function createProfile(user_id, display_name = null) {
  * @param {string} userId2 - L'ID du second utilisateur
  * @returns {Promise<number>} Le nombre d'amis communs
  */
+export async function getFriendshipStats(userId) {
+  if (!userId) {
+    logWarning('getFriendshipStats called without userId');
+    return { friends: 0, pending: 0, sent: 0, blocked: 0 };
+  }
+
+  try {
+    // Compter les amitiés acceptées en évitant les doublons
+    const { data: acceptedFriendships, error: acceptedError } = await supabase
+      .from('friendships')
+      .select('user_id, friend_id, status')
+      .or(`user_id.eq.${userId},friend_id.eq.${userId}`)
+      .eq('status', 'accepted');
+
+    if (acceptedError) {
+      throw acceptedError;
+    }
+
+    const uniquePairs = new Set();
+    (acceptedFriendships || []).forEach(row => {
+      if (!row?.user_id || !row?.friend_id) return;
+      const pairKey = [row.user_id, row.friend_id].sort().join(':');
+      uniquePairs.add(pairKey);
+    });
+
+    // Demandes entrantes
+    const { data: pendingIncoming, error: pendingIncomingError } = await supabase
+      .from('friendships')
+      .select('id')
+      .eq('friend_id', userId)
+      .eq('status', 'pending');
+
+    if (pendingIncomingError) {
+      throw pendingIncomingError;
+    }
+
+    // Demandes envoyées
+    const { data: pendingOutgoing, error: pendingOutgoingError } = await supabase
+      .from('friendships')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('status', 'pending');
+
+    if (pendingOutgoingError) {
+      throw pendingOutgoingError;
+    }
+
+    // Utilisateurs bloqués
+    const { data: blockedFriendships, error: blockedError } = await supabase
+      .from('friendships')
+      .select('id')
+      .or(`user_id.eq.${userId},friend_id.eq.${userId}`)
+      .eq('status', 'blocked');
+
+    if (blockedError) {
+      throw blockedError;
+    }
+
+    return {
+      friends: uniquePairs.size,
+      pending: pendingIncoming?.length || 0,
+      sent: pendingOutgoing?.length || 0,
+      blocked: blockedFriendships?.length || 0
+    };
+  } catch (error) {
+    logError('Error fetching friendship stats', error, { userId });
+    return { friends: 0, pending: 0, sent: 0, blocked: 0 };
+  }
+}
+
 export async function getMutualFriendsCount(userId1, userId2) {
   try {
     if (!userId1 || !userId2 || userId1 === userId2) {

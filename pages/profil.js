@@ -5,7 +5,7 @@ import { useAuth } from '../components/AuthContext'
 import Layout from '../components/Layout'
 import TrophySection from '../components/TrophySection'
 import { logUserInteraction, logError, logInfo } from '../utils/logger'
-import { getUserStatsComplete, updateProfileWithTrophySync } from '../utils/profileUtils'
+import { getUserStatsComplete, updateProfileWithTrophySync, getFriendshipStats } from '../utils/profileUtils'
 import { checkTrophiesAfterProfileUpdate } from '../utils/trophyUtils'
 import styles from '../styles/Profile.module.css'
 
@@ -42,6 +42,10 @@ export default function Profil() {
   const [showTrophyNotification, setShowTrophyNotification] = useState(false)
   const [validationErrors, setValidationErrors] = useState({})
   const [saveSuccess, setSaveSuccess] = useState(false)
+  const [friendshipStats, setFriendshipStats] = useState({ friends: 0, pending: 0, sent: 0, blocked: 0 })
+  const [friendPreview, setFriendPreview] = useState([])
+  const [friendsLoading, setFriendsLoading] = useState(false)
+  const [friendsError, setFriendsError] = useState(null)
 
   const infoItems = [
     { label: 'Email', key: 'email', icon: '✉️', isLink: false },
@@ -107,6 +111,7 @@ export default function Profil() {
 
     if (user) {
       loadUserProfile()
+      loadSocialInsights()
     }
   }, [user, authLoading, router])
 
@@ -134,6 +139,50 @@ export default function Profil() {
       logError('Failed to reload user stats', error, {
         userId: user.id
       })
+    }
+  }
+
+  const loadSocialInsights = async () => {
+    if (!user) return
+
+    try {
+      const stats = await getFriendshipStats(user.id)
+      setFriendshipStats({
+        friends: stats?.friends || 0,
+        pending: stats?.pending || 0,
+        sent: stats?.sent || 0,
+        blocked: stats?.blocked || 0
+      })
+    } catch (error) {
+      logError('Failed to load friendship stats', error, {
+        userId: user?.id
+      })
+    }
+
+    try {
+      setFriendsLoading(true)
+      setFriendsError(null)
+      const response = await fetch(`/api/friends?user_id=${user.id}`)
+
+      if (response.ok) {
+        const data = await response.json()
+        const preview = Array.isArray(data?.friends) ? data.friends.slice(0, 3) : []
+        setFriendPreview(preview)
+
+        logInfo('Friend preview loaded for profile page', {
+          userId: user.id,
+          previewCount: preview.length
+        })
+      } else {
+        setFriendPreview([])
+        setFriendsError('Impossible de récupérer vos amis pour le moment.')
+      }
+    } catch (error) {
+      logError('Failed to load friend preview', error, { userId: user?.id })
+      setFriendPreview([])
+      setFriendsError('Impossible de récupérer vos amis pour le moment.')
+    } finally {
+      setFriendsLoading(false)
     }
   }
 
@@ -1150,6 +1199,87 @@ export default function Profil() {
                           </button>
                         </div>
                       )}
+
+                      <div className={styles.socialSummary}>
+                        <div className={styles.socialHeader}>
+                          <div>
+                            <h3 className={styles.socialTitle}>Votre réseau culinaire</h3>
+                            <p className={styles.socialSubtitle}>Suivez vos connexions pour ne rien manquer des nouvelles recettes.</p>
+                          </div>
+                          <button
+                            type="button"
+                            className={styles.manageFriendsButton}
+                            onClick={() => router.push('/amis')}
+                          >
+                            <span>👥</span>
+                            <span>Gérer mes amis</span>
+                          </button>
+                        </div>
+
+                        <div className={styles.socialStats}>
+                          {[{
+                            label: 'Amis confirmés',
+                            value: friendshipStats.friends
+                          }, {
+                            label: 'Demandes reçues',
+                            value: friendshipStats.pending
+                          }, {
+                            label: 'Demandes envoyées',
+                            value: friendshipStats.sent
+                          }, {
+                            label: 'Utilisateurs bloqués',
+                            value: friendshipStats.blocked
+                          }].map(stat => (
+                            <div key={stat.label} className={styles.socialStatCard}>
+                              <span className={styles.socialStatValue}>{stat.value}</span>
+                              <span className={styles.socialStatLabel}>{stat.label}</span>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className={styles.socialPreview}>
+                          {friendsLoading ? (
+                            <div className={styles.socialEmpty}>Chargement de vos amis...</div>
+                          ) : friendPreview.length > 0 ? (
+                            friendPreview.map((friend, index) => {
+                              const friendId = friend?.friend_id || friend?.profiles?.user_id || friend?.user_id
+                              const displayName = friend?.profiles?.display_name || 'Utilisateur'
+                              const bio = friend?.profiles?.bio || 'Passionné de cuisine sur COCO'
+
+                              return (
+                                <div key={friendId || `friend-${index}`} className={styles.friendPreviewCard}>
+                                  <div className={styles.friendAvatar}>
+                                    {friend?.profiles?.avatar_url ? (
+                                      <img src={friend.profiles.avatar_url} alt={displayName} />
+                                    ) : (
+                                      <span className={styles.friendFallbackAvatar}>
+                                        {displayName.charAt(0).toUpperCase()}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className={styles.friendPreviewInfo}>
+                                    <span className={styles.friendName}>{displayName}</span>
+                                    <span className={styles.friendMeta}>
+                                      {bio.length > 60 ? `${bio.slice(0, 60)}…` : bio}
+                                    </span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    className={styles.friendPreviewAction}
+                                    onClick={() => router.push(`/profile/${friendId}`)}
+                                  >
+                                    Voir
+                                  </button>
+                                </div>
+                              )
+                            })
+                          ) : (
+                            <div className={styles.socialEmpty}>
+                              {friendsError || 'Ajoutez des amis pour débloquer plus de recommandations.'}
+                            </div>
+                          )}
+                        </div>
+                      </div>
 
                       <div className={styles.infoGrid}>
                         {infoItems.map((item, index) => {
