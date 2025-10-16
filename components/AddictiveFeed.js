@@ -34,9 +34,43 @@ export default function AddictiveFeed({ initialRecipes = [], initialEngagement =
   const [showWelcome, setShowWelcome] = useState(initialRecipes.length === 0)
   const [leaderboard, setLeaderboard] = useState([])
   const [leaderboardLoading, setLeaderboardLoading] = useState(true)
+  const [userStreaks, setUserStreaks] = useState({})
 
   const containerRef = useRef(null)
   const hasHydratedInitialData = useRef(false)
+
+  const fetchUserStreaks = useCallback(async (userIds = []) => {
+    const uniqueIds = Array.from(new Set((userIds || []).filter(Boolean)))
+
+    if (uniqueIds.length === 0) {
+      return {}
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('user_pass')
+        .select('user_id, streak')
+        .in('user_id', uniqueIds)
+
+      if (error) {
+        throw error
+      }
+
+      return (data || []).reduce((acc, entry) => {
+        if (typeof entry.streak === 'number') {
+          acc[entry.user_id] = entry.streak
+        }
+        return acc
+      }, {})
+    } catch (err) {
+      logError('Failed to fetch user streaks', err, {
+        component: 'AddictiveFeed',
+        userIds: uniqueIds
+      })
+
+      return {}
+    }
+  }, [])
 
   // Chargement initial
   useEffect(() => {
@@ -91,20 +125,28 @@ export default function AddictiveFeed({ initialRecipes = [], initialEngagement =
         }
         
         const recipesData = await response.json()
-        
+
         if (recipesData && recipesData.length > 0) {
           // Charger les vraies statistiques d'engagement
           const recipeIds = recipesData.map(r => r.id)
           const engagementStats = await getMultipleRecipesEngagementStats(recipeIds)
-          
+
+          // Récupérer les streaks de publication pour les auteurs concernés
+          const streakMap = await fetchUserStreaks(recipesData.map(r => r.user_id))
+          if (Object.keys(streakMap).length > 0) {
+            setUserStreaks(prev => ({ ...prev, ...streakMap }))
+          }
+
           logInfo('Public recipes loaded successfully', {
             userId: user.id,
             recipesCount: recipesData.length,
             hasEngagementStats: engagementStats.success,
             component: 'AddictiveFeed'
           })
-          
-          const formattedRecipes = recipesData.map(recipe => formatRecipeData(recipe, engagementStats.data[recipe.id]))
+
+          const formattedRecipes = recipesData.map(recipe =>
+            formatRecipeData(recipe, engagementStats.data[recipe.id], streakMap)
+          )
           setRecipes(formattedRecipes)
           setPage(1)
           setError(null)
@@ -134,13 +176,18 @@ export default function AddictiveFeed({ initialRecipes = [], initialEngagement =
         }
         
         const recipesData = await response.json()
-        
+
         // Charger les statistiques même pour les utilisateurs non connectés
         const recipeIds = recipesData.map(r => r.id)
         const engagementStats = await getMultipleRecipesEngagementStats(recipeIds)
-        
+
+        const streakMap = await fetchUserStreaks(recipesData.map(r => r.user_id))
+        if (Object.keys(streakMap).length > 0) {
+          setUserStreaks(prev => ({ ...prev, ...streakMap }))
+        }
+
         const formattedRecipes = recipesData.map(recipe => {
-          const formatted = formatRecipeData(recipe, engagementStats.data[recipe.id])
+          const formatted = formatRecipeData(recipe, engagementStats.data[recipe.id], streakMap)
           formatted.isPreview = true
           return formatted
         })
@@ -221,7 +268,14 @@ export default function AddictiveFeed({ initialRecipes = [], initialEngagement =
       const newRecipeIds = recipesData.map(r => r.id)
       const engagementStats = await getMultipleRecipesEngagementStats(newRecipeIds)
       
-      const formattedRecipes = recipesData.map(recipe => formatRecipeData(recipe, engagementStats.data[recipe.id]))
+      const streakMap = await fetchUserStreaks(recipesData.map(r => r.user_id))
+      if (Object.keys(streakMap).length > 0) {
+        setUserStreaks(prev => ({ ...prev, ...streakMap }))
+      }
+
+      const formattedRecipes = recipesData.map(recipe =>
+        formatRecipeData(recipe, engagementStats.data[recipe.id], streakMap)
+      )
       setRecipes(prev => [...prev, ...formattedRecipes])
       setPage(prev => prev + 1)
     } catch (err) {
@@ -237,9 +291,9 @@ export default function AddictiveFeed({ initialRecipes = [], initialEngagement =
   }
 
   // Helper to format recipe data from API to feed format - VERSION AVEC VRAIES DONNÉES
-  function formatRecipeData(apiRecipe, engagementStats = null) {
+  const formatRecipeData = useCallback((apiRecipe, engagementStats = null, streakMapOverride) => {
     let imageUrl = '/placeholder-recipe.jpg'
-    
+
     if (apiRecipe.image) {
       try {
         const { processImageData } = require('../utils/imageUtils')
@@ -287,6 +341,16 @@ export default function AddictiveFeed({ initialRecipes = [], initialEngagement =
       userHasLiked: engagementStats?.user_has_liked || false
     })
     
+    const effectiveStreakMap = streakMapOverride || userStreaks
+    const knownStreak = effectiveStreakMap?.[apiRecipe.user_id]
+    const recipeStreak = typeof knownStreak === 'number'
+      ? knownStreak
+      : typeof apiRecipe.streak === 'number'
+        ? apiRecipe.streak
+        : typeof apiRecipe.user_streak === 'number'
+          ? apiRecipe.user_streak
+          : null
+
     return {
       id: apiRecipe.id,
       user: {
@@ -294,7 +358,8 @@ export default function AddictiveFeed({ initialRecipes = [], initialEngagement =
         name: authorName,
         avatar_url, // <-- avatar_url réel ou null
         emoji: authorEmoji,
-        verified: Math.random() > 0.7 // Simplification du système de vérification
+        verified: Math.random() > 0.7, // Simplification du système de vérification
+        streak: recipeStreak
       },
       recipe: {
         id: apiRecipe.id,
@@ -310,7 +375,7 @@ export default function AddictiveFeed({ initialRecipes = [], initialEngagement =
       timeAgo,
       isQuickShare: apiRecipe.form_mode === 'quick' || apiRecipe.category === 'Photo partagée'
     }
-  }
+  }, [userStreaks])
 
   // Helper functions for formatting recipe data
   function getAuthorEmoji(category) {
@@ -352,16 +417,40 @@ export default function AddictiveFeed({ initialRecipes = [], initialEngagement =
       return
     }
 
-    const formatted = initialRecipes.map(recipe =>
-      formatRecipeData(recipe, initialEngagement?.[recipe.id])
-    )
+    let isCancelled = false
 
-    setRecipes(formatted)
-    setPage(initialPage)
-    setLoading(false)
-    setShowWelcome(false)
-    hasHydratedInitialData.current = true
-  }, [initialRecipes, initialEngagement, initialPage, formatRecipeData])
+    const hydrateInitialData = async () => {
+      const streakMap = await fetchUserStreaks(initialRecipes.map(recipe => recipe.user_id))
+
+      if (!isCancelled && Object.keys(streakMap).length > 0) {
+        setUserStreaks(prev => ({ ...prev, ...streakMap }))
+      }
+
+      if (isCancelled) {
+        return
+      }
+
+      const formatted = initialRecipes.map(recipe =>
+        formatRecipeData(recipe, initialEngagement?.[recipe.id], streakMap)
+      )
+
+      if (isCancelled) {
+        return
+      }
+
+      setRecipes(formatted)
+      setPage(initialPage)
+      setLoading(false)
+      setShowWelcome(false)
+      hasHydratedInitialData.current = true
+    }
+
+    hydrateInitialData()
+
+    return () => {
+      isCancelled = true
+    }
+  }, [initialRecipes, initialEngagement, initialPage, formatRecipeData, fetchUserStreaks])
 
   // Actions utilisateur - CORRECTION POUR ÉVITER DOUBLE AJOUT
   const toggleLike = useCallback(async (recipeId) => {
@@ -1403,6 +1492,14 @@ export default function AddictiveFeed({ initialRecipes = [], initialEngagement =
                 {post.isQuickShare && (
                   <span className={styles.metaItem}>
                     📸 Partage express
+                  </span>
+                )}
+                {post.user?.streak >= 2 && (
+                  <span
+                    className={`${styles.metaItem} ${styles.streakMeta}`}
+                    title={`Streak de ${post.user.streak} jours consécutifs`}
+                  >
+                    🔥 {post.user.streak}
                   </span>
                 )}
                 <span className={styles.metaItem}>

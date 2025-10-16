@@ -1,7 +1,7 @@
 import { supabase } from '../lib/supabase'
 import { logError, logInfo } from './logger'
 
-const REWARDS = [20, 25, 30, 40, 50, 60, 100]
+const BASE_REWARD = 20
 
 /**
  * Vérifie si l'utilisateur peut récupérer sa récompense quotidienne
@@ -48,7 +48,7 @@ export async function getUserStreakData(userId) {
         lastClaimed: null,
         coins: 250,
         canClaim: true,
-        nextReward: REWARDS[0]
+        nextReward: calculateReward(2)
       }
     }
 
@@ -63,11 +63,10 @@ export async function getUserStreakData(userId) {
     }
 
     const currentStreak = data.streak || 0
-    const nextStreak = !data.last_claimed ? 1 : 
+    const nextStreak = !data.last_claimed ? Math.max(currentStreak, 1) :
                       isYesterday(data.last_claimed) ? currentStreak + 1 : 1
-    
-    const rewardIndex = Math.min(nextStreak - 1, REWARDS.length - 1)
-    const nextReward = REWARDS[rewardIndex]
+
+    const nextReward = calculateReward(nextStreak)
 
     return {
       streak: currentStreak,
@@ -83,7 +82,7 @@ export async function getUserStreakData(userId) {
       lastClaimed: null,
       coins: 0,
       canClaim: false,
-      nextReward: REWARDS[0]
+      nextReward: calculateReward(2)
     }
   }
 }
@@ -130,7 +129,7 @@ export async function claimDailyReward(userId) {
  * Calcule le nouveau streak basé sur la date de dernière réclamation
  */
 export function calculateNewStreak(currentStreak, lastClaimedDate) {
-  if (!lastClaimedDate) return 1
+  if (!lastClaimedDate) return Math.max(currentStreak, 1)
 
   const isYesterday = (dateStr) => {
     const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
@@ -144,6 +143,9 @@ export function calculateNewStreak(currentStreak, lastClaimedDate) {
  * Calcule la récompense basée sur le streak
  */
 export function calculateReward(streak) {
-  const rewardIndex = Math.min(streak - 1, REWARDS.length - 1)
-  return REWARDS[rewardIndex]
+  if (streak < 2) {
+    return 0
+  }
+
+  return (streak - 1) * BASE_REWARD
 }

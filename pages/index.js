@@ -13,6 +13,8 @@ import { supabase } from '../lib/supabaseClient' // Correction du chemin d'impor
 export default function Home({ initialRecipes = [], initialEngagement = {} }) {
   const { user, loading } = useAuth()
   const router = useRouter()
+  // Carte streak legacy désactivée pour respecter la nouvelle présentation (mais conservée pour compatibilité)
+  const showLegacyDailyStreakCard = false
   const [isScrolled, setIsScrolled] = useState(false)
   const [showWelcome, setShowWelcome] = useState(false)
   const [feedType, setFeedType] = useState('all')
@@ -982,8 +984,12 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
           <NotificationCenter />
         </div>
       )}
-      
+
       <main className={styles.main}>
+        {/* Bloc legacy désactivé pour la carte streak (permet d'éviter les références manquantes) */}
+        {showLegacyDailyStreakCard && user && (
+          <DailyStreakReward user={user} />
+        )}
         {/* Message de bienvenue */}
         {user && showWelcome && (
           <div style={{
