@@ -37,6 +37,7 @@ export default function Profil() {
     is_private: false
   })
   const [activeTab, setActiveTab] = useState('info')
+  const availableTabs = ['info', 'recipes', 'trophies', 'settings']
   const [newTrophies, setNewTrophies] = useState([])
   const [showTrophyNotification, setShowTrophyNotification] = useState(false)
   const [validationErrors, setValidationErrors] = useState({})
@@ -72,6 +73,26 @@ export default function Profil() {
     }
     return false
   })
+
+  useEffect(() => {
+    if (!router.isReady) return
+    const queryTab = router.query.tab
+    const nextTab = Array.isArray(queryTab) ? queryTab[0] : queryTab
+    if (nextTab && availableTabs.includes(nextTab) && nextTab !== activeTab) {
+      setActiveTab(nextTab)
+    }
+  }, [router.isReady, router.query.tab, activeTab])
+
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId)
+    const nextQuery = { ...router.query }
+    if (tabId === 'info') {
+      delete nextQuery.tab
+    } else {
+      nextQuery.tab = tabId
+    }
+    router.replace({ pathname: router.pathname, query: nextQuery }, undefined, { shallow: true })
+  }
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -802,7 +823,7 @@ export default function Profil() {
             ].map(tab => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => handleTabChange(tab.id)}
                 style={{
                   position: 'relative',
                   padding: '12px 20px 16px',
