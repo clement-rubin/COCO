@@ -669,6 +669,82 @@ input:checked + .slider:before {
   animation: fadeInUp 0.5s ease-out;
 }
 
+.profileBoostCard {
+  background: linear-gradient(135deg, rgba(255, 107, 53, 0.08), rgba(255, 243, 226, 0.7));
+  border: 1px solid rgba(255, 107, 53, 0.2);
+  border-radius: 20px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 8px 24px rgba(255, 107, 53, 0.15);
+}
+
+.profileBoostHeader {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.profileBoostIcon {
+  font-size: 1.8rem;
+}
+
+.profileBoostTitleGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.profileBoostTitleGroup h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.profileBoostTitleGroup p {
+  margin: 4px 0 0 0;
+  color: #6b7280;
+  font-size: 0.95rem;
+}
+
+.profileBoostList {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 16px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.profileBoostItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+  color: #374151;
+}
+
+.profileBoostItem span:first-child {
+  font-size: 1rem;
+}
+
+.profileBoostButton {
+  border: none;
+  background: linear-gradient(135deg, #ff6b35, #f7931e);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.profileBoostButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(255, 107, 53, 0.3);
+}
+
 .infoGrid {
   display: grid;
   gap: 16px;
@@ -710,6 +786,33 @@ input:checked + .slider:before {
   color: #1f2937;
   font-size: 1rem;
   line-height: 1.4;
+}
+
+.floatingAction {
+  display: flex;
+  justify-content: center;
+  margin-top: 24px;
+}
+
+.addRecipeButton {
+  background: linear-gradient(135deg, #10b981, #06b755);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 16px;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
+}
+
+.addRecipeButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 35px rgba(16, 185, 129, 0.4);
 }
 
 .linkValue {

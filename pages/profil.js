@@ -42,6 +42,37 @@ export default function Profil() {
   const [validationErrors, setValidationErrors] = useState({})
   const [saveSuccess, setSaveSuccess] = useState(false)
 
+  const infoItems = [
+    { label: 'Email', key: 'email', icon: '✉️', isLink: false },
+    { label: 'Nom', key: 'display_name', icon: '👤', fallback: 'Non défini' },
+    { label: 'Biographie', key: 'bio', icon: '📝', fallback: 'Aucune biographie' },
+    { label: 'Localisation', key: 'location', icon: '📍', fallback: 'Non définie' },
+    { label: 'Site web', key: 'website', icon: '🌐', isLink: true },
+    { label: 'Date de naissance', key: 'date_of_birth', icon: '🎂', formatter: value => new Date(value).toLocaleDateString('fr-FR'), fallback: 'Non définie' },
+    { label: 'Téléphone', key: 'phone', icon: '📞', fallback: 'Non défini' },
+    { label: 'Confidentialité', key: 'is_private', icon: '⚙️', formatter: value => value ? 'Profil privé 🔒' : 'Profil public 🌍' },
+    { label: 'Membre depuis', key: 'created_at', icon: '📅', formatter: value => new Date(value).toLocaleDateString('fr-FR'), source: 'user', fallback: 'N/A' }
+  ]
+
+  const profileTips = [
+    { key: 'display_name', message: "Ajoutez un nom d'affichage personnalisé" },
+    { key: 'bio', message: 'Racontez votre histoire culinaire' },
+    { key: 'location', message: 'Indiquez votre localisation pour rencontrer d\'autres gourmets' },
+    { key: 'website', message: 'Partagez votre site ou réseau social préféré' },
+    { key: 'phone', message: 'Ajoutez un moyen de contact' }
+  ]
+
+  const missingFields = profileTips.filter(field => {
+    const value = profile?.[field.key]
+    if (!value) {
+      return true
+    }
+    if (typeof value === 'string') {
+      return value.trim().length === 0
+    }
+    return false
+  })
+
   // Redirect if not authenticated
   useEffect(() => {
     if (!authLoading && !user) {
@@ -1072,110 +1103,76 @@ export default function Profil() {
                     </div>
                   ) : (
                     <div className={styles.profileDisplay}>
-                      <div className={styles.infoGrid}>
-                        {[{
-                          label: 'Email',
-                          value: user?.email,
-                          icon: '✉️'
-                        },
-                        {
-                          label: 'Nom',
-                          value: profile?.display_name || 'Non défini',
-                          icon: '👤'
-                        },
-                        {
-                          label: 'Biographie',
-                          value: profile?.bio || 'Aucune biographie',
-                          icon: '📝'
-                        },
-                        {
-                          label: 'Localisation',
-                          value: profile?.location || 'Non définie',
-                          icon: '📍'
-                        },
-                        {
-                          label: 'Site web',
-                          value: profile?.website,
-                          icon: '🌐',
-                          isLink: true
-                        },
-                        {
-                          label: 'Date de naissance',
-                          value: profile?.date_of_birth ? new Date(profile.date_of_birth).toLocaleDateString('fr-FR') : 'Non définie',
-                          icon: '🎂'
-                        },
-                        {
-                          label: 'Téléphone',
-                          value: profile?.phone || 'Non défini',
-                          icon: '📞'
-                        },
-                        {
-                          label: 'Confidentialité',
-                          value: profile?.is_private ? 'Profil privé 🔒' : 'Profil public 🌍',
-                          icon: '⚙️'
-                        },
-                        {
-                          label: 'Membre depuis',
-                          value: user?.created_at ? new Date(user.created_at).toLocaleDateString('fr-FR') : 'N/A',
-                          icon: '📅'
-                        }].map((item, index) => (
-                          <div key={index} className={styles.infoCard}>
-                            <div className={styles.infoCardHeader}>
-                              <span className={styles.infoCardIcon}>{item.icon}</span>
-                              <span className={styles.infoCardLabel}>{item.label}</span>
-                            </div>
-                            <div className={styles.infoCardValue}>
-                              {item.isLink && item.value ? (
-                                <a 
-                                  href={item.value} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer" 
-                                  className={styles.linkValue}
-                                >
-                                  {item.value} 🔗
-                                </a>
-                              ) : (
-                                item.value
-                              )}
+                      {missingFields.length > 0 && (
+                        <div className={styles.profileBoostCard}>
+                          <div className={styles.profileBoostHeader}>
+                            <span className={styles.profileBoostIcon}>✨</span>
+                            <div className={styles.profileBoostTitleGroup}>
+                              <h3>Boostez votre profil</h3>
+                              <p>Il reste {missingFields.length} élément{missingFields.length > 1 ? 's' : ''} à compléter pour un profil inspirant.</p>
                             </div>
                           </div>
-                        ))}
-
-                        {/* Bouton d'action flottant pour ajouter une recette */}
-                        <div className={styles.floatingAction}>
+                          <ul className={styles.profileBoostList}>
+                            {missingFields.slice(0, 3).map(field => (
+                              <li key={field.key} className={styles.profileBoostItem}>
+                                <span>✅</span>
+                                <span>{field.message}</span>
+                              </li>
+                            ))}
+                          </ul>
                           <button
-                            onClick={() => router.push('/share-photo')}
-                            className={styles.addRecipeButton}
-                            style={{
-                              background: 'linear-gradient(135deg, #10b981, #06b755)',
-                              color: 'white',
-                              border: 'none',
-                              padding: '12px 24px',
-                              borderRadius: '16px',
-                              fontWeight: '700',
-                              fontSize: '1rem',
-                              cursor: 'pointer',
-                              transition: 'all 0.3s ease',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '8px',
-                              boxShadow: '0 8px 25px rgba(16, 185, 129, 0.3)',
-                              position: 'relative',
-                              overflow: 'hidden'
-                            }}
-                            onMouseEnter={(e) => {
-                              e.target.style.transform = 'translateY(-2px)'
-                              e.target.style.boxShadow = '0 12px 35px rgba(16, 185, 129, 0.4)'
-                            }}
-                            onMouseLeave={(e) => {
-                              e.target.style.transform = 'translateY(0)'
-                              e.target.style.boxShadow = 'none'
-                            }}
+                            type="button"
+                            className={styles.profileBoostButton}
+                            onClick={() => setIsEditing(true)}
                           >
-                            <span className={styles.buttonIcon}>📸</span>
-                            <span>Créer une recette</span>
+                            Compléter mon profil
                           </button>
                         </div>
+                      )}
+
+                      <div className={styles.infoGrid}>
+                        {infoItems.map((item, index) => {
+                          const source = item.source === 'user' ? user : profile
+                          const rawValue = item.key === 'email' ? user?.email : source?.[item.key]
+                          const hasValue = rawValue !== undefined && rawValue !== null && (
+                            typeof rawValue !== 'string' || rawValue.trim().length > 0
+                          )
+                          const formattedValue = hasValue ? (item.formatter ? item.formatter(rawValue) : rawValue) : item.fallback || 'Non défini'
+
+                          return (
+                            <div key={`${item.key}-${index}`} className={styles.infoCard}>
+                              <div className={styles.infoCardHeader}>
+                                <span className={styles.infoCardIcon}>{item.icon}</span>
+                                <span className={styles.infoCardLabel}>{item.label}</span>
+                              </div>
+                              <div className={styles.infoCardValue}>
+                                {item.isLink && hasValue ? (
+                                  <a
+                                    href={formattedValue}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className={styles.linkValue}
+                                  >
+                                    {formattedValue} 🔗
+                                  </a>
+                                ) : (
+                                  formattedValue
+                                )}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+
+                      <div className={styles.floatingAction}>
+                        <button
+                          type="button"
+                          onClick={() => router.push('/share-photo')}
+                          className={styles.addRecipeButton}
+                        >
+                          <span className={styles.buttonIcon}>📸</span>
+                          <span>Créer une recette</span>
+                        </button>
                       </div>
                     </div>
                   )}
