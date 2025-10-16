@@ -265,18 +265,15 @@ export default function Amis() {
     }
   }, [])
 
-  const computeExcludedIds = useCallback(
-    (friendsList, requestsList) => {
-      const excluded = new Set()
-      if (user?.id) {
-        excluded.add(user.id)
-      }
-      friendsList?.forEach((friend) => excluded.add(friend.userId))
-      requestsList?.forEach((request) => excluded.add(request.userId))
-      return excluded
-    },
-    [user]
-  )
+  const computeExcludedIds = useCallback((currentUserId, friendsList, requestsList) => {
+    const excluded = new Set()
+    if (currentUserId) {
+      excluded.add(currentUserId)
+    }
+    friendsList?.forEach((friend) => excluded.add(friend.userId))
+    requestsList?.forEach((request) => excluded.add(request.userId))
+    return excluded
+  }, [])
 
   const checkUser = useCallback(async () => {
     setLoading(true)
@@ -287,6 +284,7 @@ export default function Amis() {
 
       if (!currentUser) {
         router.push('/login?redirect=' + encodeURIComponent('/amis'))
+        setLoading(false)
         return
       }
 
@@ -294,7 +292,7 @@ export default function Amis() {
 
       const { friendsList, requestsList } = await loadFriendsOverview(currentUser.id)
       await loadStats(currentUser.id)
-      const excluded = computeExcludedIds(friendsList, requestsList)
+      const excluded = computeExcludedIds(currentUser.id, friendsList, requestsList)
       await loadSuggestions(currentUser.id, excluded)
     } catch (error) {
       logError('Failed to initialise friends page', error)
@@ -314,7 +312,7 @@ export default function Amis() {
     }
     const { friendsList, requestsList } = await loadFriendsOverview(user.id)
     await loadStats(user.id)
-    const excluded = computeExcludedIds(friendsList, requestsList)
+    const excluded = computeExcludedIds(user.id, friendsList, requestsList)
     await loadSuggestions(user.id, excluded)
   }, [computeExcludedIds, loadFriendsOverview, loadStats, loadSuggestions, user])
 
