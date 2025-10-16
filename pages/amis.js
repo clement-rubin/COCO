@@ -36,14 +36,21 @@ export default function Amis() {
 
   const ensureProfileExists = useCallback(async (userId) => {
     try {
-      const { data: existingProfile } = await supabase
+      const {
+        data: existingProfile,
+        error: profileError
+      } = await supabase
         .from('profiles')
         .select('id')
         .eq('user_id', userId)
-        .single()
+        .maybeSingle()
+
+      if (profileError && profileError.code !== 'PGRST116') {
+        throw profileError
+      }
 
       if (!existingProfile) {
-        const { error } = await supabase.from('profiles').insert({
+        const { error: insertError } = await supabase.from('profiles').insert({
           user_id: userId,
           display_name: 'Utilisateur',
           bio: '',
@@ -52,14 +59,12 @@ export default function Amis() {
           updated_at: new Date().toISOString()
         })
 
-        if (error) {
-          logError('Failed to create fallback profile', error)
+        if (insertError) {
+          throw insertError
         }
       }
     } catch (error) {
-      if (error?.code !== 'PGRST116' && error?.code !== 'PGRST301') {
-        logError('Error ensuring profile exists', error)
-      }
+      logError('Error ensuring profile exists', error)
     }
   }, [])
 
@@ -163,18 +168,15 @@ export default function Amis() {
     }
   }, [])
 
-  const computeExcludedIds = useCallback(
-    (friendsList, requestsList) => {
-      const excluded = new Set()
-      if (user?.id) {
-        excluded.add(user.id)
-      }
-      friendsList?.forEach((friend) => excluded.add(friend.userId))
-      requestsList?.forEach((request) => excluded.add(request.userId))
-      return excluded
-    },
-    [user]
-  )
+  const computeExcludedIds = useCallback((currentUserId, friendsList, requestsList) => {
+    const excluded = new Set()
+    if (currentUserId) {
+      excluded.add(currentUserId)
+    }
+    friendsList?.forEach((friend) => excluded.add(friend.userId))
+    requestsList?.forEach((request) => excluded.add(request.userId))
+    return excluded
+  }, [])
 
   const checkUser = useCallback(async () => {
     setLoading(true)
@@ -185,6 +187,7 @@ export default function Amis() {
 
       if (!currentUser) {
         router.push('/login?redirect=' + encodeURIComponent('/amis'))
+        setLoading(false)
         return
       }
 
@@ -195,7 +198,7 @@ export default function Amis() {
         loadFriendRequests(currentUser.id)
       ])
       await loadStats(currentUser.id)
-      const excluded = computeExcludedIds(friendsList, requestsList)
+      const excluded = computeExcludedIds(currentUser.id, friendsList, requestsList)
       await loadSuggestions(currentUser.id, excluded)
     } catch (error) {
       logError('Failed to initialise friends page', error)
@@ -218,7 +221,7 @@ export default function Amis() {
       loadFriendRequests(user.id)
     ])
     await loadStats(user.id)
-    const excluded = computeExcludedIds(friendsList, requestsList)
+    const excluded = computeExcludedIds(user.id, friendsList, requestsList)
     await loadSuggestions(user.id, excluded)
   }, [computeExcludedIds, loadFriendRequests, loadFriends, loadStats, loadSuggestions, user])
 
