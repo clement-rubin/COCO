@@ -13,9 +13,10 @@ export default function Layout({ children, title = 'COCO - Communauté Culinaire
   const { user, logout } = useAuth()
 
   const isAuthPage = ['/login', '/signup', '/presentation'].includes(router.pathname)
-  
+
   // Masquer le header sur certaines pages
   const hideHeader = isAuthPage || router.pathname === '/social-logs'
+  const hideFooter = ['/amis', '/profil'].includes(router.pathname)
 
   // Effet pour les animations fluides lors du chargement des pages
   useEffect(() => {
@@ -154,7 +155,7 @@ export default function Layout({ children, title = 'COCO - Communauté Culinaire
           </button>
         )}
         <ScrollToTop />
-        <Footer />
+        {!hideFooter && <Footer />}
         <style jsx global>{`
           .scroll-top-arrow {
             position: fixed;
