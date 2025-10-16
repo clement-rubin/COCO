@@ -926,12 +926,23 @@ export default function Progression({ user }) {
   })
   const [cardPreviewOpen, setCardPreviewOpen] = useState(null)
   const [packOpeningAnimation, setPackOpeningAnimation] = useState(null)
-  const [tradingModalOpen, setTradingModalOpen] = useState(false)
-  const [cardFilter, setCardFilter] = useState('shop') // onglets: shop | collection | marketplace
-  const [cardSortBy, setCardSortBy] = useState('rarity') // 'rarity', 'name', 'collection'
-  const [marketplaceOpen, setMarketplaceOpen] = useState(false)
-  const [tradeOffers, setTradeOffers] = useState([])
-  const [myTradeOffers, setMyTradeOffers] = useState([])
+  const [cardFilter, setCardFilter] = useState('shop') // onglets: shop | collection
+  const [starterPackClaimed, setStarterPackClaimed] = useState(() => {
+    try {
+      return localStorage.getItem('coco_card_starter_claimed') === 'true'
+    } catch {
+      return false
+    }
+  })
+  const starterPackAvailable = !starterPackClaimed
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('coco_card_starter_claimed', starterPackClaimed ? 'true' : 'false')
+    } catch {
+      // Ignorer les erreurs de persistance locale
+    }
+  }, [starterPackClaimed])
   const [completedChallenges, setCompletedChallenges] = useState(() => {
     // Stockage local pour empêcher la validation infinie des quêtes
     try {
@@ -2695,80 +2706,111 @@ export default function Progression({ user }) {
   // === SYSTÈME DE CARTES À COLLECTIONNER ===
   
   // --- Ouverture de pack avec animation ---
-  const openCardPack = async (packType) => {
-    const pack = CARD_PACKS.find(p => p.id === packType);
-    if (!pack || coins < pack.price) {
+  const openCardPack = async (packType, options = {}) => {
+    const { free = false, successMessage } = options
+    const pack = CARD_PACKS.find(p => p.id === packType)
+
+    if (!pack) {
       setShopFeedback({
         type: 'error',
-        msg: pack ? 'Pas assez de CocoCoins !' : 'Pack introuvable !'
-      });
-      setTimeout(() => setShopFeedback(null), 2000);
-      return;
+        msg: 'Pack introuvable !'
+      })
+      setTimeout(() => setShopFeedback(null), 2000)
+      return false
+    }
+
+    if (!free && coins < pack.price) {
+      setShopFeedback({
+        type: 'error',
+        msg: 'Pas assez de CocoCoins !'
+      })
+      setTimeout(() => setShopFeedback(null), 2000)
+      return false
+    }
+
+    const coinsBeforePurchase = coins
+    const coinsAfterPurchase = free ? coinsBeforePurchase : coinsBeforePurchase - pack.price
+
+    if (!free) {
+      setCoins(coinsAfterPurchase)
     }
 
     try {
-      // Déduire le prix
-      const newCoinsAmount = coins - pack.price;
-      setCoins(newCoinsAmount);
-      
       // Animation d'ouverture
-      setPackOpeningAnimation(pack);
-      
+      setPackOpeningAnimation(pack)
+
       // Générer les cartes aléatoirement
-      const newCards = [];
+      const newCards = []
       for (let i = 0; i < pack.cards; i++) {
-        const card = generateRandomCard(pack.rarityDistribution, pack.guaranteedRare && i === 0, pack.guaranteedEpic && i === 0);
+        const card = generateRandomCard(
+          pack.rarityDistribution,
+          pack.guaranteedRare && i === 0,
+          pack.guaranteedEpic && i === 0
+        )
         if (card) {
-          newCards.push(card);
+          newCards.push(card)
         }
       }
-      
+
       if (newCards.length === 0) {
-        setPackOpeningAnimation(null);
+        setPackOpeningAnimation(null)
         setShopFeedback({
           type: 'error',
           msg: 'Erreur lors de la génération des cartes'
-        });
-        setTimeout(() => setShopFeedback(null), 2000);
-        // Rembourser l'utilisateur
-        setCoins(coins);
-        return;
+        })
+        setTimeout(() => setShopFeedback(null), 2000)
+        if (!free) {
+          setCoins(coinsBeforePurchase)
+        }
+        return false
       }
-      
+
       // Ajouter les cartes à la collection
-      const updatedCards = [...ownedCards, ...newCards];
-      setOwnedCards(updatedCards);
-      localStorage.setItem('coco_owned_cards', JSON.stringify(updatedCards));
-      
+      const updatedCards = [...ownedCards, ...newCards]
+      setOwnedCards(updatedCards)
+      localStorage.setItem('coco_owned_cards', JSON.stringify(updatedCards))
+
       // Mettre à jour les statistiques de collection
-      updateCardCollectionStats(updatedCards);
-      
+      updateCardCollectionStats(updatedCards)
+
       // Feedback avec animation
       setTimeout(() => {
-        setPackOpeningAnimation({ ...pack, revealedCards: newCards });
-      }, 1000);
-      
+        setPackOpeningAnimation({ ...pack, revealedCards: newCards })
+      }, 1000)
+
       setTimeout(() => {
-        setPackOpeningAnimation(null);
-        const rareCards = newCards.filter(c => c && (c.rarity === 'legendary' || c.rarity === 'epic'));
+        setPackOpeningAnimation(null)
+        const rareCards = newCards.filter(
+          (c) => c && (c.rarity === 'legendary' || c.rarity === 'epic')
+        )
+        const defaultMessage = `🎁 Pack ouvert ! ${
+          rareCards.length > 0
+            ? '⭐ Cartes rares trouvées !'
+            : `${newCards.length} nouvelles cartes !`
+        }`
+        const message =
+          typeof successMessage === 'function'
+            ? successMessage(newCards, rareCards)
+            : successMessage || defaultMessage
         setShopFeedback({
           type: 'success',
-          msg: `🎁 Pack ouvert ! ${rareCards.length > 0 ? '⭐ Cartes rares trouvées !' : `${newCards.length} nouvelles cartes !`}`
-        });
-        setTimeout(() => setShopFeedback(null), 3000);
-      }, 3000);
+          msg: message
+        })
+        setTimeout(() => setShopFeedback(null), 3000)
+      }, 3000)
 
       // Mettre à jour en base
       if (user?.id) {
         const supabase = getSupabaseClient();
         await supabase
           .from('user_pass')
-          .update({ coins: newCoinsAmount })
+          .update({ coins: coinsAfterPurchase })
           .eq('user_id', user.id);
-        
+
         // Sauvegarder les cartes en base
         await saveUserCardCollection(user.id, updatedCards, cardCollection);
       }
+      return true
     } catch (error) {
       console.error('Erreur lors de l\'ouverture du pack:', error);
       setPackOpeningAnimation(null);
@@ -2778,9 +2820,32 @@ export default function Progression({ user }) {
       });
       setTimeout(() => setShopFeedback(null), 2000);
       // Rembourser l'utilisateur en cas d'erreur
-      setCoins(coins);
+      if (!free) {
+        setCoins(coinsBeforePurchase);
+      }
+      return false
     }
   };
+
+  const handleClaimStarterPack = async () => {
+    if (!starterPackAvailable) {
+      return
+    }
+
+    const success = await openCardPack('pack_basic', {
+      free: true,
+      successMessage: (cards, rareCards) =>
+        `🎉 Pack découverte offert ! ${
+          rareCards.length > 0
+            ? '⭐ Vous avez déjà trouvé une carte rare !'
+            : `${cards.length} cartes pour lancer votre collection.`
+        }`
+    })
+
+    if (success) {
+      setStarterPackClaimed(true)
+    }
+  }
 
   // --- Génération aléatoire de carte ---
   const generateRandomCard = (distribution, guaranteedRare = false, guaranteedEpic = false) => {
@@ -2866,9 +2931,10 @@ export default function Progression({ user }) {
     const ownedUniqueCards = new Set(ownedBaseIds).size;
     const legendaryCount = ownedCards.filter(card => card && card.rarity === 'legendary').length;
     const epicCount = ownedCards.filter(card => card && card.rarity === 'epic').length;
-    const duplicateCount = Math.max(0, ownedCards.filter(Boolean).length - ownedUniqueCards);
     const completedCollections = Object.values(cardCollection).filter(stats => stats && stats.owned === stats.total && stats.total > 0).length;
     const totalCollections = CARD_COLLECTIONS.length;
+    const completionRate = totalCollections > 0 ? Math.round((completedCollections / totalCollections) * 100) : 0;
+    const totalCards = ownedCards.filter(Boolean).length;
 
     return (
       <div style={{ marginBottom: 32 }}>
@@ -2890,24 +2956,73 @@ export default function Progression({ user }) {
                 Centre des cartes culinaires
               </div>
               <div style={{ fontSize: '0.9rem', opacity: 0.85 }}>
-                Collectionnez, échangez et débloquez des récompenses exclusives grâce aux boosters de cartes.
+                Commencez votre collection gourmande en quelques minutes et débloquez des récompenses exclusives.
               </div>
             </div>
 
+            {starterPackAvailable ? (
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.16)',
+                borderRadius: 14,
+                padding: '14px 16px',
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 12,
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '1rem' }}>🎉 Pack découverte offert</div>
+                  <div style={{ fontSize: '0.85rem', opacity: 0.9 }}>
+                    Ouvrez votre premier booster gratuitement et débloquez vos premières cartes.
+                  </div>
+                </div>
+                <button
+                  onClick={handleClaimStarterPack}
+                  style={{
+                    background: '#22c55e',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 999,
+                    padding: '10px 18px',
+                    fontWeight: 700,
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                    boxShadow: '0 6px 18px rgba(34, 197, 94, 0.28)'
+                  }}
+                >
+                  Ouvrir gratuitement
+                </button>
+              </div>
+            ) : (
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.12)',
+                borderRadius: 14,
+                padding: '12px 14px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 6
+              }}>
+                <div style={{ fontWeight: 700 }}>👏 Merci d'utiliser les boosters COCO !</div>
+                <div style={{ fontSize: '0.85rem', opacity: 0.9 }}>
+                  Continuez à ouvrir des boosters pour compléter vos collections et débloquer davantage de récompenses.
+                </div>
+              </div>
+            )}
+
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              {[{
-                id: 'shop',
-                label: '🎁 Ouvrir un pack',
-                accent: 'rgba(255,255,255,0.25)'
-              }, {
-                id: 'collection',
-                label: '📚 Voir ma collection',
-                accent: 'rgba(255,255,255,0.18)'
-              }, {
-                id: 'marketplace',
-                label: '🤝 Organiser un échange',
-                accent: 'rgba(255,255,255,0.18)'
-              }].map(action => (
+              {[
+                {
+                  id: 'shop',
+                  label: '🎁 Ouvrir un booster',
+                  accent: 'rgba(255,255,255,0.25)'
+                },
+                {
+                  id: 'collection',
+                  label: '📚 Voir ma collection',
+                  accent: 'rgba(255,255,255,0.18)'
+                }
+              ].map(action => (
                 <button
                   key={action.id}
                   onClick={() => setCardFilter(action.id)}
@@ -2951,7 +3066,7 @@ export default function Progression({ user }) {
               {ownedUniqueCards}/{totalUniqueCards}
             </div>
             <div style={{ fontSize: '0.75rem', color: '#475569' }}>
-              {ownedCards.filter(Boolean).length} cartes obtenues au total
+              {totalCards} cartes obtenues au total
             </div>
           </div>
 
@@ -2981,31 +3096,13 @@ export default function Progression({ user }) {
             boxShadow: '0 4px 12px rgba(14, 165, 233, 0.08)'
           }}>
             <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#0369a1', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-              Collections complètes
+              Progression globale
             </div>
             <div style={{ fontWeight: 800, fontSize: '1.25rem', color: '#0f172a' }}>
-              {completedCollections}/{totalCollections}
+              {completionRate}%
             </div>
             <div style={{ fontSize: '0.75rem', color: '#475569' }}>
-              {Object.keys(cardCollection).length} collections suivies
-            </div>
-          </div>
-
-          <div style={{
-            background: '#fff',
-            borderRadius: 12,
-            padding: '12px 14px',
-            border: '1px solid #e0f2fe',
-            boxShadow: '0 4px 12px rgba(14, 165, 233, 0.08)'
-          }}>
-            <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#0284c7', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-              Doublons à échanger
-            </div>
-            <div style={{ fontWeight: 800, fontSize: '1.25rem', color: '#0f172a' }}>
-              {duplicateCount}
-            </div>
-            <div style={{ fontSize: '0.75rem', color: '#475569' }}>
-              Parfait pour alimenter la marketplace
+              {completedCollections} collection(s) complétée(s) • {Object.keys(cardCollection).length} suivies
             </div>
           </div>
         </div>
@@ -3020,8 +3117,7 @@ export default function Progression({ user }) {
         }}>
           {[
             { id: 'shop', label: 'Boutique', icon: '🛒' },
-            { id: 'collection', label: 'Collection', icon: '📚' },
-            { id: 'marketplace', label: 'Échanges', icon: '🤝' }
+            { id: 'collection', label: 'Collection', icon: '📚' }
           ].map(tab => (
             <button
               key={tab.id}
@@ -3046,7 +3142,6 @@ export default function Progression({ user }) {
 
         {cardFilter === 'shop' && renderCardPackShop()}
         {cardFilter === 'collection' && renderCardCollection()}
-        {cardFilter === 'marketplace' && renderCardMarketplace()}
       </div>
     );
   };
@@ -3058,14 +3153,22 @@ export default function Progression({ user }) {
         textAlign: 'center',
         marginBottom: 16,
         color: '#0369a1',
-        fontSize: '0.9rem'
+        fontSize: '0.9rem',
+        fontWeight: 600
       }}>
-        🎲 Ouvrez des boosters pour obtenir des cartes aléatoires !
+        {starterPackAvailable
+          ? '🎉 Votre premier booster est offert : ouvrez-le pour découvrir vos premières cartes !'
+          : '🎲 Ouvrez des boosters pour enrichir votre collection et débloquer de nouveaux chefs.'}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12 }}>
-        {CARD_PACKS.map(pack => (
-          <div key={pack.id} style={{
+        {CARD_PACKS.map(pack => {
+          const isStarterPack = pack.id === 'pack_basic'
+          const isFreeOffer = isStarterPack && starterPackAvailable
+          const canAfford = isFreeOffer || coins >= pack.price
+
+          return (
+            <div key={pack.id} style={{
             background: '#fff',
             border: '1px solid #e0f2fe',
             borderRadius: 12,
@@ -3118,35 +3221,53 @@ export default function Progression({ user }) {
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{
-                color: '#0284c7',
-                fontWeight: 700,
-                fontSize: '1.2rem'
-              }}>
-                {pack.price} 🪙
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{
+                  color: isFreeOffer ? '#16a34a' : '#0284c7',
+                  fontWeight: 700,
+                  fontSize: '1.2rem'
+                }}>
+                  {isFreeOffer ? 'Offert' : `${pack.price} 🪙`}
+                </div>
+                {isFreeOffer && (
+                  <span style={{
+                    background: '#dcfce7',
+                    color: '#166534',
+                    padding: '2px 8px',
+                    borderRadius: 999,
+                    fontSize: '0.75rem',
+                    fontWeight: 700
+                  }}>
+                    1er pack
+                  </span>
+                )}
               </div>
 
               <button
-                onClick={() => openCardPack(pack.id)}
-                disabled={coins < pack.price}
+                onClick={() => (isFreeOffer ? handleClaimStarterPack() : openCardPack(pack.id))}
+                disabled={!canAfford}
                 style={{
-                  background: coins >= pack.price 
-                    ? 'linear-gradient(135deg, #0284c7, #0369a1)' 
-                    : '#e5e7eb',
-                  color: coins >= pack.price ? 'white' : '#9ca3af',
+                  background: isFreeOffer
+                    ? 'linear-gradient(135deg, #22c55e, #16a34a)'
+                    : canAfford
+                      ? 'linear-gradient(135deg, #0284c7, #0369a1)'
+                      : '#e5e7eb',
+                  color: canAfford ? 'white' : '#9ca3af',
                   border: 'none',
                   borderRadius: 8,
                   padding: '8px 16px',
                   fontWeight: 700,
                   fontSize: '0.9rem',
-                  cursor: coins >= pack.price ? 'pointer' : 'not-allowed'
+                  cursor: canAfford ? 'pointer' : 'not-allowed',
+                  boxShadow: isFreeOffer ? '0 6px 18px rgba(34, 197, 94, 0.25)' : 'none'
                 }}
               >
-                Ouvrir le pack
+                {isFreeOffer ? 'Ouvrir gratuitement' : 'Ouvrir le pack'}
               </button>
             </div>
           </div>
-        ))}
+          )
+        })}
       </div>
     </div>
   );
@@ -3282,199 +3403,6 @@ export default function Progression({ user }) {
       </div>
     );
   };
-
-  // --- Marketplace d'échanges ---
-  const renderCardMarketplace = () => (
-    <div>
-      <div style={{
-        textAlign: 'center',
-        marginBottom: 16,
-        background: 'linear-gradient(135deg, #fef3c7, #fed7aa)',
-        borderRadius: 12,
-        padding: 12
-      }}>
-        <div style={{ fontWeight: 700, color: '#f59e0b', fontSize: '1rem' }}>
-          🤝 Marketplace d'Échanges
-        </div>
-        <div style={{ fontSize: '0.8rem', color: '#92400e' }}>
-          Échangez vos cartes avec d'autres joueurs !
-        </div>
-      </div>
-
-      {/* Onglets marketplace */}
-      <div style={{
-        display: 'flex',
-        gap: 6,
-        marginBottom: 16,
-        justifyContent: 'center'
-      }}>
-        {[
-          { id: 'offers', label: 'Offres', icon: '📋' },
-          { id: 'my_trades', label: 'Mes échanges', icon: '👤' },
-          { id: 'create', label: 'Créer offre', icon: '➕' }
-        ].map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setMarketplaceOpen(tab.id)}
-            style={{
-              background: marketplaceOpen === tab.id 
-                ? 'linear-gradient(135deg, #f59e0b, #fbbf24)' 
-                : '#fff',
-              color: marketplaceOpen === tab.id ? 'white' : '#f59e0b',
-              border: marketplaceOpen === tab.id ? 'none' : '1px solid #f59e0b',
-              borderRadius: 8,
-              padding: '6px 12px',
-              fontWeight: 700,
-              fontSize: '0.8rem',
-              cursor: 'pointer'
-            }}
-          >
-            <span style={{ marginRight: 4 }}>{tab.icon}</span>
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Contenu selon l'onglet sélectionné */}
-      {marketplaceOpen === 'offers' && renderTradeOffers()}
-      {marketplaceOpen === 'my_trades' && renderMyTrades()}
-      {marketplaceOpen === 'create' && renderCreateTrade()}
-    </div>
-  );
-
-  // --- Offres d'échanges disponibles ---
-  const renderTradeOffers = () => (
-    <div>
-      <div style={{ fontSize: '0.9rem', color: '#6b7280', textAlign: 'center', marginBottom: 12 }}>
-        Offres d'échanges disponibles
-      </div>
-      
-      {tradeOffers.length === 0 ? (
-        <div style={{
-          background: '#f9fafb',
-          borderRadius: 8,
-          padding: 16,
-          textAlign: 'center',
-          color: '#6b7280'
-        }}>
-          Aucune offre d'échange disponible pour le moment
-        </div>
-      ) : (
-        <div style={{ display: 'grid', gap: 8 }}>
-          {tradeOffers.map(offer => (
-            <div key={offer.id} style={{
-              background: '#fff',
-              border: '1px solid #e5e7eb',
-              borderRadius: 8,
-              padding: 12
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>
-                    {offer.traderName}
-                  </div>
-                  <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>
-                    Propose: {offer.offering.name} • Cherche: {offer.wanting.name}
-                  </div>
-                </div>
-                <button style={{
-                  background: 'linear-gradient(135deg, #10b981, #34d399)',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: 6,
-                  padding: '6px 12px',
-                  fontSize: '0.8rem',
-                  fontWeight: 600,
-                  cursor: 'pointer'
-                }}>
-                  Échanger
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-
-  // --- Mes échanges ---
-  const renderMyTrades = () => (
-    <div>
-      <div style={{ fontSize: '0.9rem', color: '#6b7280', textAlign: 'center', marginBottom: 12 }}>
-        Vos offres d'échanges actives
-      </div>
-      
-      {myTradeOffers.length === 0 ? (
-        <div style={{
-          background: '#f9fafb',
-          borderRadius: 8,
-          padding: 16,
-          textAlign: 'center',
-          color: '#6b7280'
-        }}>
-          Vous n'avez aucune offre d'échange active
-        </div>
-      ) : (
-        <div style={{ display: 'grid', gap: 8 }}>
-          {myTradeOffers.map(offer => (
-            <div key={offer.id} style={{
-              background: '#fff',
-              border: '1px solid #e5e7eb',
-              borderRadius: 8,
-              padding: 12
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>
-                    Vous proposez: {offer.offering.name}
-                  </div>
-                  <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>
-                    Vous cherchez: {offer.wanting.name}
-                  </div>
-                </div>
-                <button style={{
-                  background: '#ef4444',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: 6,
-                  padding: '6px 12px',
-                  fontSize: '0.8rem',
-                  fontWeight: 600,
-                  cursor: 'pointer'
-                }}>
-                  Annuler
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-
-  // --- Créer une offre d'échange ---
-  const renderCreateTrade = () => (
-    <div>
-      <div style={{
-        background: '#f0f9ff',
-        borderRadius: 8,
-        padding: 12,
-        marginBottom: 16,
-        textAlign: 'center'
-      }}>
-        <div style={{ fontWeight: 600, color: '#0284c7', marginBottom: 4 }}>
-          Créer une offre d'échange
-        </div>
-        <div style={{ fontSize: '0.8rem', color: '#0369a1' }}>
-          Proposez une carte en échange d'une autre
-        </div>
-      </div>
-
-      <div style={{ fontSize: '0.9rem', color: '#6b7280', textAlign: 'center' }}>
-        Fonctionnalité en cours de développement...
-      </div>
-    </div>
-  );
 
   // --- Modal d'aperçu de carte ---
   const renderCardPreview = (cardId) => {
