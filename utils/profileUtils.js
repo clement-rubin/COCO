@@ -313,6 +313,93 @@ export async function getFriendshipStatus(userId1, userId2) {
   }
 }
 
+export async function getFriendshipStats(userId) {
+  if (!userId) {
+    return { friends: 0, pending: 0, blocked: 0 }
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('friendships')
+      .select('status')
+      .or(`user_id.eq.${userId},friend_id.eq.${userId}`)
+
+    if (error) {
+      throw error
+    }
+
+    const stats = { friends: 0, pending: 0, blocked: 0 }
+    for (const entry of data || []) {
+      switch (entry.status) {
+        case 'accepted':
+          stats.friends += 1
+          break
+        case 'pending':
+          stats.pending += 1
+          break
+        case 'blocked':
+          stats.blocked += 1
+          break
+        default:
+          break
+      }
+    }
+
+    logInfo('Friendship stats computed', {
+      userId: userId.substring(0, 8) + '...',
+      ...stats
+    })
+
+    return stats
+  } catch (error) {
+    logError('Error computing friendship stats', error, {
+      userId: userId.substring(0, 8) + '...'
+    })
+    return { friends: 0, pending: 0, blocked: 0 }
+  }
+}
+
+/**
+ * Supprime une amitié entre deux utilisateurs (quel que soit le sens de la relation).
+ * @param {string} userId - Identifiant de l'utilisateur courant
+ * @param {string} targetUserId - Identifiant de l'utilisateur à retirer
+ * @returns {Promise<{success: boolean, error?: string}>}
+ */
+export async function removeFriend(userId, targetUserId) {
+  if (!userId || !targetUserId) {
+    return { success: false, error: 'userId and targetUserId are required' }
+  }
+
+  try {
+    const { error } = await supabase
+      .from('friendships')
+      .delete()
+      .or(
+        `and(user_id.eq.${userId},friend_id.eq.${targetUserId}),and(user_id.eq.${targetUserId},friend_id.eq.${userId})`
+      )
+
+    if (error) {
+      throw error
+    }
+
+    logInfo('Friend removed successfully', {
+      userId: userId.substring(0, 8) + '...',
+      targetUserId: targetUserId.substring(0, 8) + '...'
+    })
+
+    return { success: true }
+  } catch (error) {
+    logError('Error removing friend', error, {
+      userId: userId.substring(0, 8) + '...',
+      targetUserId: targetUserId.substring(0, 8) + '...'
+    })
+    return {
+      success: false,
+      error: error?.message || 'remove_friend_failed'
+    }
+  }
+}
+
 /**
  * Obtient l'ID du profil à partir de l'ID utilisateur
  * @param {string} userId - L'ID de l'utilisateur auth

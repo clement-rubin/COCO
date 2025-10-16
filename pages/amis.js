@@ -68,7 +68,7 @@ export default function Amis() {
     }
   }, [])
 
-  const loadFriends = useCallback(async (userId) => {
+  const loadFriendsFallback = useCallback(async (userId) => {
     try {
       const { data, error } = await supabase.rpc('get_user_friends_simple', {
         target_user_id: userId
@@ -96,7 +96,7 @@ export default function Amis() {
     }
   }, [])
 
-  const loadFriendRequests = useCallback(async (userId) => {
+  const loadFriendRequestsFallback = useCallback(async (userId) => {
     try {
       const { data, error } = await supabase.rpc('get_pending_friend_requests', {
         target_user_id: userId
@@ -123,6 +123,103 @@ export default function Amis() {
       return []
     }
   }, [])
+
+  const loadFriendsOverview = useCallback(
+    async (userId) => {
+      if (!userId) {
+        return { friendsList: [], requestsList: [] }
+      }
+
+      try {
+        const response = await fetch(`/api/friends?user_id=${encodeURIComponent(userId)}`)
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`)
+        }
+
+        const payload = await response.json()
+
+        const normalizeFriend = (friend) => ({
+          friendshipId:
+            friend.friendshipId ??
+            friend.id ??
+            friend.friendship_id ??
+            null,
+          userId:
+            friend.friend_id ??
+            friend.friend_user_id ??
+            friend.user_id ??
+            friend.friend_profile?.user_id ??
+            null,
+          name:
+            friend.friend_profile?.display_name ??
+            friend.friend_display_name ??
+            friend.name ??
+            'Utilisateur',
+          bio:
+            friend.friend_profile?.bio ??
+            friend.friend_bio ??
+            '',
+          avatar:
+            friend.friend_profile?.avatar_url ??
+            friend.friend_avatar_url ??
+            null
+        })
+
+        const normalizeRequest = (request) => ({
+          id: request.id ?? request.friendship_id ?? null,
+          userId:
+            request.user_id ??
+            request.requester_user_id ??
+            request.requester_profile?.user_id ??
+            request.profiles?.user_id ??
+            null,
+          name:
+            request.requester_profile?.display_name ??
+            request.requester_display_name ??
+            request.name ??
+            'Utilisateur',
+          bio:
+            request.requester_profile?.bio ??
+            request.requester_bio ??
+            '',
+          avatar:
+            request.requester_profile?.avatar_url ??
+            request.requester_avatar_url ??
+            null
+        })
+
+        const friendsList = (payload?.friends || [])
+          .map(normalizeFriend)
+          .filter((friend) => friend.userId)
+        const requestsList = (payload?.pendingRequests || [])
+          .map(normalizeRequest)
+          .filter((request) => request.userId)
+
+        setFriends(friendsList)
+        setFriendRequests(requestsList)
+
+        logInfo('Friends overview loaded', {
+          userId: userId.substring(0, 8) + '...',
+          friends: friendsList.length,
+          pending: requestsList.length
+        })
+
+        return { friendsList, requestsList }
+      } catch (error) {
+        logError('Failed to load friends overview', error, {
+          userId: userId.substring(0, 8) + '...'
+        })
+
+        const [friendsList, requestsList] = await Promise.all([
+          loadFriendsFallback(userId),
+          loadFriendRequestsFallback(userId)
+        ])
+
+        return { friendsList, requestsList }
+      }
+    },
+    [loadFriendRequestsFallback, loadFriendsFallback]
+  )
 
   const loadStats = useCallback(
     async (userId) => {
@@ -193,10 +290,7 @@ export default function Amis() {
 
       setUser(currentUser)
 
-      const [friendsList, requestsList] = await Promise.all([
-        loadFriends(currentUser.id),
-        loadFriendRequests(currentUser.id)
-      ])
+      const { friendsList, requestsList } = await loadFriendsOverview(currentUser.id)
       await loadStats(currentUser.id)
       const excluded = computeExcludedIds(currentUser.id, friendsList, requestsList)
       await loadSuggestions(currentUser.id, excluded)
@@ -206,7 +300,7 @@ export default function Amis() {
     } finally {
       setLoading(false)
     }
-  }, [computeExcludedIds, loadFriendRequests, loadFriends, loadStats, loadSuggestions, router, showFeedback])
+  }, [computeExcludedIds, loadFriendsOverview, loadStats, loadSuggestions, router, showFeedback])
 
   useEffect(() => {
     checkUser()
@@ -216,14 +310,11 @@ export default function Amis() {
     if (!user) {
       return
     }
-    const [friendsList, requestsList] = await Promise.all([
-      loadFriends(user.id),
-      loadFriendRequests(user.id)
-    ])
+    const { friendsList, requestsList } = await loadFriendsOverview(user.id)
     await loadStats(user.id)
     const excluded = computeExcludedIds(user.id, friendsList, requestsList)
     await loadSuggestions(user.id, excluded)
-  }, [computeExcludedIds, loadFriendRequests, loadFriends, loadStats, loadSuggestions, user])
+  }, [computeExcludedIds, loadFriendsOverview, loadStats, loadSuggestions, user])
 
   const handleSearch = async (event) => {
     event.preventDefault()
@@ -616,4 +707,3 @@ export default function Amis() {
     </Layout>
   )
 }
-
