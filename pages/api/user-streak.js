@@ -1,7 +1,24 @@
 import { supabase } from '../../lib/supabase'
 import { logError, logInfo } from '../../utils/logger'
 
-const REWARDS = [20, 25, 30, 40, 50, 60, 100] // Récompenses croissantes
+const BASE_REWARD = 20
+const LOOKBACK_DAYS = 30
+
+const toISODate = (date) => date.toISOString().slice(0, 10)
+
+const computePublicationStreak = (publicationDates, referenceDate = new Date()) => {
+  const cursor = new Date(referenceDate)
+  let streak = 0
+
+  while (publicationDates.has(toISODate(cursor))) {
+    streak += 1
+    cursor.setDate(cursor.getDate() - 1)
+  }
+
+  return streak
+}
+
+const calculateReward = (streak) => (streak >= 2 ? (streak - 1) * BASE_REWARD : 0)
 
 export default async function handler(req, res) {
   const requestId = `streak-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`
@@ -18,7 +35,8 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'user_id is required' })
     }
 
-    const today = new Date().toISOString().slice(0, 10)
+    const todayDate = new Date()
+    const today = toISODate(todayDate)
 
     // Récupérer les données actuelles de l'utilisateur
     const { data: currentData, error: fetchError } = await supabase
@@ -33,7 +51,9 @@ export default async function handler(req, res) {
     }
 
     // Si pas de données, créer l'entrée
-    if (!currentData) {
+    let userPassData = currentData
+
+    if (!userPassData) {
       const { error: createError } = await supabase
         .from('user_pass')
         .insert({
@@ -49,87 +69,116 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: 'Failed to create user data' })
       }
 
-      return res.status(200).json({
-        streak: 0,
-        lastClaimed: null,
-        coins: 250,
-        canClaim: true,
-        nextReward: REWARDS[0]
-      })
+      userPassData = { streak: 0, last_claimed: null, coins: 250 }
     }
 
     // Vérifier si l'utilisateur a déjà récupéré aujourd'hui
-    if (currentData.last_claimed === today) {
+    if (userPassData.last_claimed === today) {
       logInfo('User already claimed streak today', { requestId, user_id, today })
       return res.status(200).json({
-        streak: currentData.streak || 0,
-        lastClaimed: currentData.last_claimed,
-        coins: currentData.coins || 0,
+        streak: userPassData.streak || 0,
+        lastClaimed: userPassData.last_claimed,
+        coins: userPassData.coins || 0,
         canClaim: false,
         message: 'Already claimed today'
       })
     }
 
-    // Calculer le nouveau streak
-    const isYesterday = (dateStr) => {
-      if (!dateStr) return false
-      const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
-      return dateStr === yesterday
+    const lookbackStart = new Date(todayDate)
+    lookbackStart.setDate(lookbackStart.getDate() - LOOKBACK_DAYS)
+
+    const { data: recipesData, error: recipesError } = await supabase
+      .from('recipes')
+      .select('created_at')
+      .eq('user_id', user_id)
+      .gte('created_at', lookbackStart.toISOString())
+
+    if (recipesError) {
+      logError('Error fetching publications for streak', recipesError, { requestId, user_id })
+      return res.status(500).json({ error: 'Failed to compute publication streak' })
     }
 
-    const currentStreak = currentData.streak || 0
-    const lastClaimedFromDB = currentData.last_claimed
-    const currentCoins = currentData.coins || 0
+    const publicationDates = new Set(
+      (recipesData || [])
+        .map((row) => {
+          try {
+            return toISODate(new Date(row.created_at))
+          } catch (error) {
+            logError('Error parsing publication date', error, { requestId, user_id, created_at: row.created_at })
+            return null
+          }
+        })
+        .filter(Boolean)
+    )
 
-    const newStreak = !lastClaimedFromDB ? 1 : // Première fois
-                     isYesterday(lastClaimedFromDB) ? currentStreak + 1 : // Continuité
-                     1 // Rupture, on recommence
+    const publicationStreak = computePublicationStreak(publicationDates, todayDate)
 
-    // Calculer la récompense
-    const rewardIndex = Math.min(newStreak - 1, REWARDS.length - 1)
-    const reward = REWARDS[rewardIndex]
+    if (publicationStreak < 2) {
+      const message = publicationStreak === 0
+        ? "Publiez une recette aujourd'hui pour démarrer votre série."
+        : 'Publiez encore demain pour débloquer la récompense de 20 CocoCoins.'
+
+      return res.status(403).json({
+        error: 'Publication streak too low',
+        message,
+        streak: publicationStreak,
+        lastClaimed: userPassData.last_claimed,
+        coins: userPassData.coins || 0,
+        canClaim: false
+      })
+    }
+
+    const reward = calculateReward(publicationStreak)
+    const currentCoins = userPassData.coins || 0
     const newCoins = currentCoins + reward
 
     // Mise à jour avec vérification de concurrence
-    const { error: updateError } = await supabase
+    let updateQuery = supabase
       .from('user_pass')
       .update({
         last_claimed: today,
-        streak: newStreak,
+        streak: publicationStreak,
         coins: newCoins,
         updated_at: new Date().toISOString()
       })
       .eq('user_id', user_id)
-      .eq('last_claimed', lastClaimedFromDB) // Vérification de concurrence
+
+    if (userPassData.last_claimed) {
+      updateQuery = updateQuery.eq('last_claimed', userPassData.last_claimed)
+    } else {
+      updateQuery = updateQuery.is('last_claimed', null)
+    }
+
+    const { error: updateError } = await updateQuery
 
     if (updateError) {
       logError('Error updating user streak', updateError, { requestId, user_id })
-      
+
       // Si erreur de concurrence, informer le client
       if (updateError.code === '23505' || updateError.message?.includes('duplicate')) {
-        return res.status(409).json({ 
+        return res.status(409).json({
           error: 'Streak already claimed today',
-          streak: currentStreak,
-          lastClaimed: currentData.last_claimed,
+          streak: userPassData.streak || 0,
+          lastClaimed: userPassData.last_claimed,
           coins: currentCoins,
           canClaim: false
         })
       }
-      
+
       return res.status(500).json({ error: 'Failed to update streak' })
     }
 
     logInfo('Streak claimed successfully', {
       requestId,
       user_id,
-      oldStreak: currentStreak,
-      newStreak,
+      oldStreak: userPassData.streak || 0,
+      newStreak: publicationStreak,
       reward,
       newCoins
     })
 
     return res.status(200).json({
-      streak: newStreak,
+      streak: publicationStreak,
       lastClaimed: today,
       coins: newCoins,
       reward,
