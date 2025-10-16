@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/router'
 import Image from 'next/image'
 import { useAuth } from './AuthContext'
@@ -17,6 +17,29 @@ const WELCOME_MESSAGES = [
   "Un instant, on prépare vos découvertes ! ✨"
 ]
 
+const FEED_FILTERS = [
+  {
+    id: 'all',
+    label: 'Tout',
+    description: 'Dernières inspirations de la communauté'
+  },
+  {
+    id: 'trending',
+    label: 'Tendances',
+    description: 'Recettes les plus applaudies de la semaine'
+  },
+  {
+    id: 'quick',
+    label: 'Express',
+    description: 'Partages rapides et stories du quotidien'
+  },
+  {
+    id: 'veggie',
+    label: 'Végétal',
+    description: 'Sélections végétariennes et healthy'
+  }
+]
+
 export default function AddictiveFeed({ initialRecipes = [], initialEngagement = {}, initialPage = 1 } = {}) {
   const router = useRouter()
   const { user } = useAuth()
@@ -33,10 +56,173 @@ export default function AddictiveFeed({ initialRecipes = [], initialEngagement =
   const [welcomeStep, setWelcomeStep] = useState(0)
   const [showWelcome, setShowWelcome] = useState(initialRecipes.length === 0)
   const [leaderboard, setLeaderboard] = useState([])
-  const [leaderboardLoading, setLeaderboardLoading] = useState(true)
+  const [activeFilter, setActiveFilter] = useState('all')
 
   const containerRef = useRef(null)
   const hasHydratedInitialData = useRef(false)
+  const numberFormatter = useMemo(() => new Intl.NumberFormat('fr-FR'), [])
+  const formatCount = useCallback(
+    (value) => numberFormatter.format(value || 0),
+    [numberFormatter]
+  )
+
+  const communityInsights = useMemo(() => {
+    if (!recipes || recipes.length === 0) {
+      return {
+        totalRecipes: 0,
+        totalLikes: 0,
+        totalComments: 0,
+        totalInteractions: 0,
+        activeCooks: 0,
+        topCreators: [],
+        topCategories: []
+      }
+    }
+
+    const categoryCount = new Map()
+    const creatorMap = new Map()
+
+    let totalLikes = 0
+    let totalComments = 0
+
+    recipes.forEach(recipe => {
+      const likes = recipe?.recipe?.likes || 0
+      const comments = recipe?.recipe?.comments || 0
+      totalLikes += likes
+      totalComments += comments
+
+      const categoryLabel = recipe?.recipe?.category?.trim()
+      if (categoryLabel) {
+        const normalized = categoryLabel.toLowerCase()
+        categoryCount.set(normalized, {
+          label: categoryLabel,
+          count: (categoryCount.get(normalized)?.count || 0) + 1,
+          interactions: (categoryCount.get(normalized)?.interactions || 0) + likes + comments
+        })
+      }
+
+      const creatorId = recipe?.user?.id || `anon-${recipe.id}`
+      const existingCreator = creatorMap.get(creatorId)
+      if (existingCreator) {
+        existingCreator.recipesCount += 1
+        existingCreator.likes += likes
+        existingCreator.comments += comments
+      } else {
+        creatorMap.set(creatorId, {
+          id: creatorId,
+          name: recipe?.user?.name || 'Chef anonyme',
+          avatar: recipe?.user?.avatar_url || null,
+          emoji: recipe?.user?.emoji,
+          recipesCount: 1,
+          likes,
+          comments
+        })
+      }
+    })
+
+    const topCreators = Array.from(creatorMap.values())
+      .sort((a, b) => {
+        const diffLikes = b.likes - a.likes
+        if (diffLikes !== 0) return diffLikes
+        const diffRecipes = b.recipesCount - a.recipesCount
+        if (diffRecipes !== 0) return diffRecipes
+        return b.comments - a.comments
+      })
+      .slice(0, 3)
+
+    const topCategories = Array.from(categoryCount.values())
+      .sort((a, b) => {
+        if (b.interactions !== a.interactions) {
+          return b.interactions - a.interactions
+        }
+        return b.count - a.count
+      })
+      .slice(0, 3)
+
+    return {
+      totalRecipes: recipes.length,
+      totalLikes,
+      totalComments,
+      totalInteractions: totalLikes + totalComments,
+      activeCooks: creatorMap.size,
+      topCreators,
+      topCategories
+    }
+  }, [recipes])
+
+  const filteredRecipes = useMemo(() => {
+    if (!recipes || recipes.length === 0) {
+      return []
+    }
+
+    if (activeFilter === 'all') {
+      return recipes
+    }
+
+    if (activeFilter === 'trending') {
+      return [...recipes].sort((a, b) => {
+        const scoreA = (a?.recipe?.likes || 0) * 2 + (a?.recipe?.comments || 0)
+        const scoreB = (b?.recipe?.likes || 0) * 2 + (b?.recipe?.comments || 0)
+        if (scoreA === scoreB) {
+          return (new Date(b?.recipe?.createdAt || 0)).getTime() - (new Date(a?.recipe?.createdAt || 0)).getTime()
+        }
+        return scoreB - scoreA
+      })
+    }
+
+    if (activeFilter === 'quick') {
+      return recipes.filter(recipe => recipe.isQuickShare)
+    }
+
+    if (activeFilter === 'veggie') {
+      return recipes.filter(recipe => {
+        const category = recipe?.recipe?.category?.toLowerCase() || ''
+        return ['veg', 'healthy', 'salade', 'green'].some(keyword => category.includes(keyword))
+      })
+    }
+
+    return recipes
+  }, [recipes, activeFilter])
+
+  const activeFilterConfig = useMemo(
+    () => FEED_FILTERS.find(filter => filter.id === activeFilter),
+    [activeFilter]
+  )
+
+  const spotlightCreators = useMemo(() => {
+    if (communityInsights.topCreators.length > 0) {
+      if (communityInsights.topCreators.length >= 3 || leaderboard.length === 0) {
+        return communityInsights.topCreators
+      }
+
+      const existingIds = new Set(communityInsights.topCreators.map(creator => creator.id))
+      const leaderboardFallback = leaderboard
+        .filter(entry => !existingIds.has(entry.user_id))
+        .map(entry => ({
+          id: entry.user_id,
+          name: entry.display_name || 'Cuisinier COCO',
+          avatar: entry.avatar_url,
+          emoji: '👩‍🍳',
+          recipesCount: entry.recipesCount || 0,
+          likes: entry.recipesCount || 0
+        }))
+
+      return [...communityInsights.topCreators, ...leaderboardFallback].slice(0, 3)
+    }
+
+    if (leaderboard.length > 0) {
+      return leaderboard.slice(0, 3).map(entry => ({
+        id: entry.user_id,
+        name: entry.display_name || 'Cuisinier COCO',
+        avatar: entry.avatar_url,
+        emoji: '👨‍🍳',
+        recipesCount: entry.recipesCount || 0,
+        likes: entry.recipesCount || 0
+      }))
+    }
+
+    return []
+  }, [communityInsights.topCreators, leaderboard])
 
   // Chargement initial
   useEffect(() => {
@@ -302,6 +488,7 @@ export default function AddictiveFeed({ initialRecipes = [], initialEngagement =
         description: apiRecipe.description || "Une délicieuse recette à découvrir !",
         image: imageUrl,
         category: apiRecipe.category || 'Autre',
+        createdAt: apiRecipe.created_at || null,
         // VRAIES DONNÉES AU LIEU DE VALEURS ALÉATOIRES
         likes: realLikes,
         comments: realComments,
@@ -364,6 +551,37 @@ export default function AddictiveFeed({ initialRecipes = [], initialEngagement =
   }, [initialRecipes, initialEngagement, initialPage, formatRecipeData])
 
   // Actions utilisateur - CORRECTION POUR ÉVITER DOUBLE AJOUT
+  const openAuthorProfile = useCallback(
+    (authorId) => {
+      if (!authorId || authorId.startsWith('author_')) {
+        return
+      }
+
+      if (user?.id && authorId === user.id) {
+        router.push('/profil')
+        return
+      }
+
+      logUserInteraction('open_public_profile', {
+        authorId,
+        source: 'addictive_feed'
+      })
+
+      router.push(`/profile/${authorId}`)
+    },
+    [router, user]
+  )
+
+  const handleProfileKeyDown = useCallback(
+    (event, authorId) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault()
+        openAuthorProfile(authorId)
+      }
+    },
+    [openAuthorProfile]
+  )
+
   const toggleLike = useCallback(async (recipeId) => {
     if (!user) {
       const wantsToLogin = window.confirm('Connectez-vous pour aimer cette recette. Aller à la page de connexion?')
@@ -546,7 +764,6 @@ export default function AddictiveFeed({ initialRecipes = [], initialEngagement =
 
   // Fonction pour charger le classement (extracted for reuse)
   const fetchLeaderboard = async () => {
-    setLeaderboardLoading(true)
     try {
       // 1. Récupérer tous les profils utilisateurs
       const { data: profilesData, error: profilesError } = await supabase
@@ -555,7 +772,6 @@ export default function AddictiveFeed({ initialRecipes = [], initialEngagement =
       if (profilesError) {
         console.error("[Classement] Erreur profiles:", profilesError)
         setLeaderboard([])
-        setLeaderboardLoading(false)
         return
       }
 
@@ -594,7 +810,6 @@ export default function AddictiveFeed({ initialRecipes = [], initialEngagement =
       console.error("[Classement] Exception générale:", e)
       setLeaderboard([])
     }
-    setLeaderboardLoading(false)
   }
 
   // Affichage du message d'accueil pendant le chargement initial
@@ -1228,7 +1443,7 @@ export default function AddictiveFeed({ initialRecipes = [], initialEngagement =
         <div className={styles.errorIcon}>😓</div>
         <h3>Oups! Un petit souci en cuisine</h3>
         <p>{error}</p>
-        <button onClick={() => loadInitialRecipes()} className={styles.retryButton}>
+        <button onClick={() => loadRecipes()} className={styles.retryButton}>
           Réessayer
         </button>
       </div>
@@ -1293,12 +1508,137 @@ export default function AddictiveFeed({ initialRecipes = [], initialEngagement =
 
   return (
     <div className={styles.feedContainer} ref={containerRef}>
-      {/* Suppression du podium du classement mensuel - gardé seulement dans index.js */}
-      
+      <header className={styles.communityHeader}>
+        <div className={styles.headerIntro}>
+          <div className={styles.headerText}>
+            <p className={styles.communityEyebrow}>Le meilleur de la communauté</p>
+            <h2 className={styles.communityTitle}>Les recettes qui font vibrer COCO</h2>
+            <p className={styles.communitySubtitle}>
+              Explore les créations de la communauté et découvre de nouveaux talents culinaires.
+            </p>
+          </div>
+          <div className={styles.headerStats}>
+            <div className={styles.headerStat}>
+              <span className={styles.headerStatValue}>{formatCount(communityInsights.totalRecipes)}</span>
+              <span className={styles.headerStatLabel}>recettes partagées</span>
+            </div>
+            <div className={styles.headerStat}>
+              <span className={styles.headerStatValue}>{formatCount(communityInsights.activeCooks)}</span>
+              <span className={styles.headerStatLabel}>cuisiniers actifs</span>
+            </div>
+            <div className={styles.headerStat}>
+              <span className={styles.headerStatValue}>{formatCount(communityInsights.totalInteractions)}</span>
+              <span className={styles.headerStatLabel}>interactions</span>
+            </div>
+          </div>
+        </div>
+
+        {communityInsights.topCategories.length > 0 && (
+          <div className={styles.trendingCategories}>
+            <span className={styles.trendingLabel}>Tendances du moment</span>
+            <div className={styles.categoryChips}>
+              {communityInsights.topCategories.map(category => (
+                <span key={category.label} className={styles.categoryChip}>
+                  #{category.label}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+      </header>
+
+      <div className={styles.filterBar}>
+        {FEED_FILTERS.map(filter => {
+          const isActive = filter.id === activeFilter
+          return (
+            <button
+              key={filter.id}
+              type="button"
+              className={`${styles.filterButton} ${isActive ? styles.filterButtonActive : ''}`}
+              onClick={() => setActiveFilter(filter.id)}
+              aria-pressed={isActive}
+            >
+              <span className={styles.filterLabel}>{filter.label}</span>
+              <span className={styles.filterDescription}>{filter.description}</span>
+            </button>
+          )
+        })}
+      </div>
+
+      {activeFilterConfig?.id !== 'all' && (
+        <div className={styles.filterContext}>
+          {filteredRecipes.length > 0 ? (
+            <span>
+              {filteredRecipes.length === 1
+                ? 'Une seule pépite correspond à ce filtre.'
+                : `${formatCount(filteredRecipes.length)} recettes correspondent à ce filtre.`}
+            </span>
+          ) : (
+            <span>Aucune recette pour ce filtre pour le moment. Essaie une autre catégorie !</span>
+          )}
+        </div>
+      )}
+
+      {spotlightCreators.length > 0 && (
+        <section className={styles.communitySpotlight}>
+          <div className={styles.spotlightHeader}>
+            <span className={styles.spotlightTitle}>Chefs à suivre</span>
+            <p className={styles.spotlightSubtitle}>
+              Des cuisiniers qui font vibrer la communauté avec leurs partages.
+            </p>
+          </div>
+          <ul className={styles.spotlightList}>
+            {spotlightCreators.map((creator, index) => {
+              const canOpenProfile = creator.id && !creator.id.startsWith('anon-') && !creator.id.startsWith('author_')
+              const statsSegments = [
+                `${formatCount(creator.recipesCount)} recette${creator.recipesCount > 1 ? 's' : ''}`
+              ]
+              if (creator.likes !== undefined && creator.likes !== null) {
+                statsSegments.push(`${formatCount(creator.likes)} like${creator.likes > 1 ? 's' : ''}`)
+              }
+              return (
+                <li key={creator.id} className={styles.spotlightItem}>
+                  <button
+                    type="button"
+                    className={styles.spotlightButton}
+                    onClick={canOpenProfile ? () => openAuthorProfile(creator.id) : undefined}
+                    disabled={!canOpenProfile}
+                  >
+                    <span className={styles.spotlightRank}>#{index + 1}</span>
+                    <span className={styles.spotlightAvatar}>
+                      {creator.avatar ? (
+                        <img src={creator.avatar} alt={creator.name} />
+                      ) : (
+                        creator.emoji || creator.name.charAt(0)
+                      )}
+                    </span>
+                    <span className={styles.spotlightInfos}>
+                      <span className={styles.spotlightName}>{creator.name}</span>
+                      <span className={styles.spotlightStats}>{statsSegments.join(' · ')}</span>
+                    </span>
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        </section>
+      )}
+
       <div className={styles.recipesGrid}>
-        {recipes.map((post, index) => (
-          <div 
-            key={post.id} 
+        {filteredRecipes.length === 0 && recipes.length > 0 ? (
+          <div className={styles.emptyFilterContainer}>
+            <div className={styles.emptyFilterCard}>
+              <span role="img" aria-hidden="true">🍽️</span>
+              <p>Aucune recette ne correspond à ce filtre pour le moment.</p>
+              <button type="button" onClick={() => setActiveFilter('all')}>
+                Revenir au flux complet
+              </button>
+            </div>
+          </div>
+        ) : (
+          filteredRecipes.map((post, index) => (
+          <div
+            key={post.id}
             className={styles.recipeCard}
             style={{
               '--animation-delay': `${index * 0.1}s`
@@ -1356,7 +1696,26 @@ export default function AddictiveFeed({ initialRecipes = [], initialEngagement =
             {/* Contenu avec design amélioré */}
             <div className={styles.recipeContent}>
               {/* Info utilisateur redessinée */}
-              <div className={styles.userInfo}>
+              <div
+                className={styles.userInfo}
+                role={post.user?.id && !post.user.id.startsWith('author_') ? 'button' : undefined}
+                tabIndex={post.user?.id && !post.user.id.startsWith('author_') ? 0 : undefined}
+                onClick={
+                  post.user?.id && !post.user.id.startsWith('author_')
+                    ? () => openAuthorProfile(post.user.id)
+                    : undefined
+                }
+                onKeyDown={
+                  post.user?.id && !post.user.id.startsWith('author_')
+                    ? (event) => handleProfileKeyDown(event, post.user.id)
+                    : undefined
+                }
+                aria-label={
+                  post.user?.id && !post.user.id.startsWith('author_')
+                    ? `Voir le profil de ${post.user.name}`
+                    : undefined
+                }
+              >
                 {/* Avatar utilisateur */}
                 <span className={styles.userAvatar}>
                   {post.user.avatar_url ? (
@@ -1435,9 +1794,10 @@ export default function AddictiveFeed({ initialRecipes = [], initialEngagement =
               </div>
             </div>
           </div>
-        ))}
+          ))
+        )}
       </div>
-      
+
       {/* Loading more indicator */}
       {loadingMore && (
         <div className={styles.loadingMore}>
@@ -1447,7 +1807,7 @@ export default function AddictiveFeed({ initialRecipes = [], initialEngagement =
       )}
 
       {/* End of feed message */}
-      {!hasMore && recipes.length > 0 && (
+      {!hasMore && activeFilter === 'all' && recipes.length > 0 && (
         <div className={styles.endMessage}>
           <p>Vous avez vu toutes les recettes de vos amis ! 🎉</p>
           <div className={styles.endActions}>

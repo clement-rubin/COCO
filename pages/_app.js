@@ -423,31 +423,40 @@ function AppContent({ Component, pageProps }) {
         <HuggingFaceBot />
         
         {/* Bottom Navigation */}
-        <nav className="bottom-nav">
-          <Link href="/" className={getNavItemClass('/')}>
-            <span className="nav-icon">🏠</span>
-            <span className="nav-label">Accueil</span>
-          </Link>
-          <Link href="/collections" className={getNavItemClass('/collections')}>
-            <span className="nav-icon">🔍</span>
-            <span className="nav-label">Collections</span>
-          </Link>
-          <button onClick={handleShare} className="nav-item add-button">
-            <span className="nav-icon">📤</span>
-          </button>
-          <Link href="/amis" className={getNavItemClass('/amis')}>
-            <span className="nav-icon">👥</span>
-            <span className="nav-label">Amis</span>
-          </Link>
-          
-          {user ? (
-            <AuthenticatedNav user={user} signOut={signOut} />
-          ) : (
-            <Link href="/login" className={getNavItemClass('/login')}>
-              <span className="nav-icon">👤</span>
-              <span className="nav-label">Connexion</span>
+        <nav className="bottom-nav" role="navigation" aria-label="Navigation principale">
+          <div className="bottom-nav__backdrop" aria-hidden="true" />
+          <div className="bottom-nav__items">
+            <Link href="/" className={getNavItemClass('/')}> 
+              <span className="nav-icon">🏠</span>
+              <span className="nav-label">Accueil</span>
             </Link>
-          )}
+            <Link href="/progression" className={getNavItemClass('/progression')}>
+              <span className="nav-icon">📈</span>
+              <span className="nav-label">Progression</span>
+            </Link>
+            <button
+              type="button"
+              onClick={handleShare}
+              className="nav-item add-button"
+              aria-label="Partager une création"
+            >
+              <span className="nav-icon" aria-hidden="true">📤</span>
+              <span className="nav-label">Partager</span>
+            </button>
+            <Link href="/amis" className={getNavItemClass('/amis')}>
+              <span className="nav-icon">👥</span>
+              <span className="nav-label">Amis</span>
+            </Link>
+
+            {user ? (
+              <AuthenticatedNav user={user} signOut={signOut} />
+            ) : (
+              <Link href="/login" className={getNavItemClass('/login')}>
+                <span className="nav-icon">👤</span>
+                <span className="nav-label">Connexion</span>
+              </Link>
+            )}
+          </div>
         </nav>
 
         {/* Share Menu Overlay */}
