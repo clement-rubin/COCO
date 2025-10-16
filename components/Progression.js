@@ -826,123 +826,6 @@ const DAILY_QUIZ_QUESTIONS = [
   }
 ]
 
-// --- Système de missions dynamiques ---
-const MISSIONS = [
-  // Missions recettes
-  {
-    id: 'first_recipe',
-    title: 'Première recette',
-    description: 'Publiez votre première recette',
-    icon: '📝',
-    type: 'recipe',
-    target: 1,
-    reward: { coins: 50, xp: 25 },
-    difficulty: 'facile'
-  },
-  {
-    id: 'recipe_master_5',
-    title: 'Chef en herbe',
-    description: 'Publiez 5 recettes',
-    icon: '👨‍🍳',
-    type: 'recipe',
-    target: 5,
-    reward: { coins: 150, xp: 75 },
-    difficulty: 'moyen'
-  },
-  {
-    id: 'recipe_master_10',
-    title: 'Maître cuisinier',
-    description: 'Publiez 10 recettes',
-    icon: '🍳',
-    type: 'recipe',
-    target: 10,
-    reward: { coins: 300, xp: 150, item: 'hat_crown' },
-    difficulty: 'difficile'
-  },
-  
-  // Missions sociales
-  {
-    id: 'first_like',
-    title: 'Premier like',
-    description: 'Recevez votre premier like',
-    icon: '❤️',
-    type: 'like',
-    target: 1,
-    reward: { coins: 20, xp: 10 },
-    difficulty: 'facile'
-  },
-  {
-    id: 'popular_chef',
-    title: 'Chef populaire',
-    description: 'Recevez 50 likes au total',
-    icon: '🌟',
-    type: 'like',
-    target: 50,
-    reward: { coins: 250, xp: 125 },
-    difficulty: 'difficile'
-  },
-  {
-    id: 'social_butterfly',
-    title: 'Papillon social',
-    description: 'Ajoutez 5 amis',
-    icon: '🤝',
-    type: 'friend',
-    target: 5,
-    reward: { coins: 100, xp: 50 },
-    difficulty: 'moyen'
-  },
-  
-  // Missions engagement
-  {
-    id: 'daily_quiz_streak',
-    title: 'Expert quiz',
-    description: 'Réussissez 3 quiz consécutifs',
-    icon: '🧠',
-    type: 'quiz_streak',
-    target: 3,
-    reward: { coins: 200, xp: 100, item: 'glasses_star' },
-    difficulty: 'moyen'
-  },
-  {
-    id: 'login_streak_7',
-    title: 'Assidu',
-    description: 'Connectez-vous 7 jours consécutifs',
-    icon: '🔥',
-    type: 'streak',
-    target: 7,
-    reward: { coins: 300, xp: 150 },
-    difficulty: 'moyen'
-  },
-  
-  // Missions spéciales
-  {
-    id: 'photo_perfectionist',
-    title: 'Photographe culinaire',
-    description: 'Partagez une photo de plat',
-    icon: '📸',
-    type: 'photo',
-    target: 1,
-    reward: { coins: 30, xp: 15 },
-    difficulty: 'facile'
-  },
-  {
-    id: 'complete_profile',
-    title: 'Profil complet',
-    description: 'Complétez votre profil',
-    icon: '👤',
-    type: 'profile',
-    target: 1,
-    reward: { coins: 80, xp: 40 },
-    difficulty: 'facile'
-  }
-]
-
-const DAILY_CHALLENGES = [
-  { id: 'share_photo', label: "Partager une photo de plat", icon: "📸", reward: "+20 XP" },
-  { id: 'comment', label: "Commenter une recette", icon: "💬", reward: "+10 XP" },
-  { id: 'add_friend', label: "Ajouter un nouvel ami", icon: "🤝", reward: "+15 XP" }
-]
-
 const MOCK_LEADERBOARD = [
   { rank: 1, name: "Chef Paul", xp: 3200, you: false },
   { rank: 2, name: "Sophie", xp: 2900, you: false },
@@ -997,12 +880,12 @@ export default function Progression({ user }) {
     friendsCount: 0,
     likesReceived: 0,
     daysActive: 0,
-    streak: 0
+    streak: 0,
+    lastClaimed: null
   })
   const [loading, setLoading] = useState(true)
   const [leaderboard, setLeaderboard] = useState([])
   const [leaderboardLoading, setLeaderboardLoading] = useState(true)
-  const [dailyChallenges, setDailyChallenges] = useState(DAILY_CHALLENGES)
   const [coins, setCoins] = useState(250)
   const [ownedItems, setOwnedItems] = useState(['hat_chef'])
   const [equipped, setEquipped] = useState({ ...DEFAULT_CHEF, hat: 'hat_chef' })
@@ -1044,7 +927,7 @@ export default function Progression({ user }) {
   const [cardPreviewOpen, setCardPreviewOpen] = useState(null)
   const [packOpeningAnimation, setPackOpeningAnimation] = useState(null)
   const [tradingModalOpen, setTradingModalOpen] = useState(false)
-  const [cardFilter, setCardFilter] = useState('all') // 'all', 'ingredients', 'chefs', etc.
+  const [cardFilter, setCardFilter] = useState('shop') // onglets: shop | collection | marketplace
   const [cardSortBy, setCardSortBy] = useState('rarity') // 'rarity', 'name', 'collection'
   const [marketplaceOpen, setMarketplaceOpen] = useState(false)
   const [tradeOffers, setTradeOffers] = useState([])
@@ -1309,329 +1192,6 @@ export default function Progression({ user }) {
     </div>
   );
   
-  // --- Wrapper sécurisé pour les appels Supabase ---
-  const safeSupabaseCall = async (operation, fallbackValue = null) => {
-    try {
-      const supabase = getSupabaseClient();
-      const result = await operation(supabase);
-      return result;
-    } catch (error) {
-      console.error('Erreur Supabase:', error);
-      return fallbackValue;
-    }
-  };
-
-  // --- Système de missions ---
-  const [missions, setMissions] = useState(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem('coco_missions') || '[]');
-      return saved.length > 0 ? saved : MISSIONS.slice(0, 4); // 4 missions actives par défaut
-    } catch {
-      return MISSIONS.slice(0, 4);
-    }
-  });
-  const [completedMissions, setCompletedMissions] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem('coco_completed_missions') || '[]');
-    } catch {
-      return [];
-    }
-  });
-
-  // --- États pour le tracking des missions ---
-  const [missionProgresses, setMissionProgresses] = useState({});
-  const [missionsLoading, setMissionsLoading] = useState(false);
-
-  // --- Fonctions helper pour missions avec vraies données ---
-  const getCurrentProgress = async (mission) => {
-    if (!stats || !user) return 0;
-    
-    try {
-      switch (mission.type) {
-        // === MISSIONS RECETTES ===
-        case 'recipe_count':
-          return stats.recipesCount || 0;
-          
-        case 'recipe_categories':
-          const supabase = getSupabaseClient();
-          const { data: recipes } = await supabase
-            .from('recipes')
-            .select('category')
-            .eq('user_id', user.id);
-          const uniqueCategories = [...new Set(recipes?.map(r => r.category) || [])];
-          return uniqueCategories.length;
-          
-        case 'weekend_recipes':
-          const { data: weekendRecipes } = await supabase
-            .from('recipes')
-            .select('created_at')
-            .eq('user_id', user.id);
-          const weekendCount = weekendRecipes?.filter(r => {
-            const day = new Date(r.created_at).getDay();
-            return day === 0 || day === 6;
-          }).length || 0;
-          return weekendCount;
-          
-        case 'night_recipe':
-          const { data: nightRecipes } = await supabase
-            .from('recipes')
-            .select('created_at')
-            .eq('user_id', user.id);
-          const nightCount = nightRecipes?.filter(r => {
-            const hour = new Date(r.created_at).getHours();
-            return hour >= 22 || hour <= 6;
-          }).length || 0;
-          return nightCount > 0 ? 1 : 0;
-          
-        case 'daily_recipes':
-          const today = new Date().toISOString().split('T')[0];
-          const { data: todayRecipes } = await supabase
-            .from('recipes')
-            .select('id')
-            .eq('user_id', user.id)
-            .gte('created_at', today + 'T00:00:00')
-            .lt('created_at', today + 'T23:59:59');
-          return todayRecipes?.length || 0;
-        
-        // === MISSIONS SOCIALES ===
-        case 'likes_received':
-          return stats.likesReceived || 0;
-          
-        case 'friends_count':
-          return stats.friendsCount || 0;
-          
-        // === MISSIONS QUIZ ===
-        case 'quiz_success_count':
-          try {
-            const quizHistory = JSON.parse(localStorage.getItem('coco_quiz_history') || '[]');
-            return quizHistory.filter(q => q.success).length;
-          } catch {
-            return 0;
-          }
-          
-        case 'quiz_streak':
-          try {
-            const quizHistory = JSON.parse(localStorage.getItem('coco_quiz_history') || '[]');
-            let currentStreak = 0;
-            for (let i = quizHistory.length - 1; i >= 0; i--) {
-              if (quizHistory[i].success) {
-                currentStreak++;
-              } else {
-                break;
-              }
-            }
-            return currentStreak;
-          } catch {
-            return 0;
-          }
-        
-        // === MISSIONS ASSIDUITÉ ===
-        case 'login_streak':
-          return stats.streak || 0;
-          
-        // === MISSIONS INTERACTION ===
-        case 'comments_given':
-          const { data: comments } = await supabase
-            .from('comments')
-            .select('id')
-            .eq('user_id', user.id);
-          return comments?.length || 0;
-          
-        // === MISSIONS PROFIL & CUSTOMISATION ===
-        case 'profile_complete':
-          const hasDisplayName = user?.user_metadata?.display_name;
-          const hasAvatar = user?.user_metadata?.avatar_url;
-          return (hasDisplayName && hasAvatar) ? 1 : 0;
-          
-        case 'equipped_items':
-          const equippedCount = Object.values(equipped).filter(item => item !== null).length;
-          return equippedCount;
-          
-        case 'owned_items':
-          return ownedItems.length;
-          
-        case 'purchased_items':
-          return purchaseHistory.length;
-          
-        // === MISSIONS SPÉCIALES ===
-        case 'special_early':
-          const joinDate = new Date(user?.created_at || Date.now());
-          const cutoffDate = new Date('2025-01-01');
-          return joinDate < cutoffDate ? 1 : 0;
-          
-        default:
-          return 0;
-      }
-    } catch (error) {
-      console.error(`Erreur calcul progrès mission ${mission.id}:`, error);
-      return 0;
-    }
-  };
-
-  // --- Fonction pour synchroniser toutes les missions ---
-  const syncAllMissions = async () => {
-    if (!user || missionsLoading) return;
-    
-    setMissionsLoading(true);
-    
-    try {
-      const progressMap = {};
-      
-      // Calculer le progrès pour chaque mission active
-      for (const mission of missions) {
-        const progress = await getCurrentProgress(mission);
-        progressMap[mission.id] = {
-          current: progress,
-          target: mission.target,
-          percent: Math.min(100, (progress / mission.target) * 100),
-          isCompleted: progress >= mission.target && !completedMissions.includes(mission.id)
-        };
-      }
-      
-      setMissionProgresses(progressMap);
-      
-      // Vérifier les missions complétées
-      const newlyCompleted = [];
-      for (const mission of missions) {
-        if (progressMap[mission.id]?.isCompleted) {
-          newlyCompleted.push(mission);
-        }
-      }
-      
-      // Traiter les missions complétées
-      if (newlyCompleted.length > 0) {
-        await processMissionCompletions(newlyCompleted);
-      }
-      
-    } catch (error) {
-      console.error('Erreur lors de la synchronisation des missions:', error);
-    }
-    
-    setMissionsLoading(false);
-  };
-  
-  // --- Fonction pour traiter les missions complétées ---
-  const processMissionCompletions = async (newlyCompleted) => {
-    const newCompletedIds = newlyCompleted.map(m => m.id);
-    const allCompleted = [...completedMissions, ...newCompletedIds];
-    
-    // Calculer les récompenses totales
-    let totalCoins = 0;
-    let totalXP = 0;
-    const newItems = [];
-    
-    for (const mission of newlyCompleted) {
-      totalCoins += mission.reward.coins || 0;
-      totalXP += mission.reward.xp || 0;
-      
-      if (mission.reward.item && !ownedItems.includes(mission.reward.item)) {
-        newItems.push(mission.reward.item);
-      }
-    }
-    
-    // Mettre à jour les états
-    setCompletedMissions(allCompleted);
-    localStorage.setItem('coco_completed_missions', JSON.stringify(allCompleted));
-    
-    if (totalCoins > 0) {
-      setCoins(prev => prev + totalCoins);
-      // Mettre à jour en base
-      const supabase = getSupabaseClient();
-      await supabase
-        .from('user_pass')
-        .update({ coins: coins + totalCoins })
-        .eq('user_id', user.id);
-    }
-    
-    if (totalXP > 0) {
-      setXP(prev => prev + totalXP);
-    }
-    
-    if (newItems.length > 0) {
-      const updatedItems = [...ownedItems, ...newItems];
-      setOwnedItems(updatedItems);
-      // Mettre à jour en base
-      await supabase
-        .from('user_pass')
-        .update({ owned_items: updatedItems })
-        .eq('user_id', user.id);
-    }
-    
-    // Feedback visuel
-    if (newlyCompleted.length === 1) {
-      const mission = newlyCompleted[0];
-      setShopFeedback({ 
-        type: 'success', 
-        msg: `🎉 Mission "${mission.title}" terminée ! +${mission.reward.coins || 0} CocoCoins` 
-      });
-    } else {
-      setShopFeedback({ 
-        type: 'success', 
-        msg: `🎉 ${newlyCompleted.length} missions terminées ! +${totalCoins} CocoCoins` 
-      });
-    }
-    
-    setTimeout(() => setShopFeedback(null), 4000);
-    
-    // Animation coins
-    setCoinAnim(true);
-    setTimeout(() => setCoinAnim(false), 900);
-    
-    // Remplacer les missions complétées par de nouvelles
-    setTimeout(async () => {
-      await assignNewMissions(newCompletedIds);
-    }, 2000);
-  };
-  
-  // --- Fonction pour assigner de nouvelles missions ---
-  const assignNewMissions = async (completedIds) => {
-    const allCompleted = getCompletedMissions();
-    const currentMissionIds = missions.map(m => m.id);
-    
-    // Missions disponibles (non complétées et non actives)
-    const availableMissions = MISSIONS.filter(m => 
-      !allCompleted.includes(m.id) && 
-      !currentMissionIds.includes(m.id)
-    );
-    
-    // Remplacer les missions complétées
-    let updatedMissions = missions.filter(m => !completedIds.includes(m.id));
-    
-    // Ajouter de nouvelles missions jusqu'à avoir 6 missions actives
-    while (updatedMissions.length < 6 && availableMissions.length > 0) {
-      // Prioriser selon la difficulté et catégorie
-      const easyMissions = availableMissions.filter(m => m.difficulty === 'facile');
-      const mediumMissions = availableMissions.filter(m => m.difficulty === 'moyen');
-      
-      let selectedMission;
-      if (easyMissions.length > 0 && Math.random() > 0.3) {
-        selectedMission = easyMissions[Math.floor(Math.random() * easyMissions.length)];
-      } else if (mediumMissions.length > 0 && Math.random() > 0.5) {
-        selectedMission = mediumMissions[Math.floor(Math.random() * mediumMissions.length)];
-      } else {
-        selectedMission = availableMissions[Math.floor(Math.random() * availableMissions.length)];
-      }
-      
-      updatedMissions.push(selectedMission);
-      availableMissions.splice(availableMissions.indexOf(selectedMission), 1);
-    }
-    
-    setMissions(updatedMissions);
-    localStorage.setItem('coco_missions', JSON.stringify(updatedMissions));
-    
-    // Recalculer les progrès pour les nouvelles missions
-    await syncAllMissions();
-  };
-  
-  // --- Helper pour obtenir les missions complétées ---
-  const getCompletedMissions = () => {
-    try {
-      return JSON.parse(localStorage.getItem('coco_completed_missions') || '[]');
-    } catch {
-      return [];
-    }
-  };
-  
   // --- Quiz quotidien ---
   const [quizState, setQuizState] = useState(() => {
     try {
@@ -1672,6 +1232,36 @@ export default function Progression({ user }) {
     }
   }, [quizState])
 
+  const cardHeroStats = useMemo(() => {
+    const safeOwned = ownedCards.filter(card => card && (card.id || card.originalId))
+    const totalOwned = safeOwned.length
+    const baseIds = safeOwned
+      .map(card => card.originalId || card.id?.split('_')[0] || card.id)
+      .filter(Boolean)
+    const uniqueOwned = new Set(baseIds).size
+    const totalUnique = new Set(
+      TRADING_CARDS
+        .filter(card => card && card.id)
+        .map(card => card.id)
+    ).size
+    const completedCollections = Object.values(cardCollection || {})
+      .filter(stats => stats && stats.total > 0 && stats.owned === stats.total)
+      .length
+    const totalCollections = CARD_COLLECTIONS.length
+    const legendaryCount = safeOwned.filter(card => card.rarity === 'legendary').length
+    const latestCard = safeOwned[safeOwned.length - 1] || null
+
+    return {
+      totalOwned,
+      uniqueOwned,
+      totalUnique,
+      completedCollections,
+      totalCollections,
+      legendaryCount,
+      latestCard
+    }
+  }, [ownedCards, cardCollection])
+
   useEffect(() => {
     let isMounted = true
     async function fetchData() {
@@ -1696,41 +1286,16 @@ export default function Progression({ user }) {
         } catch (e) {}
       }
       if (isMounted) {
-        setStats(userStats)
+        setStats(prev => ({ ...prev, ...userStats }))
         setTrophies(trophyData)
         setXP(xpCalc)
         setLevelInfo(getLevel(xpCalc))
         setLoading(false)
-        
-        // Synchroniser les missions après le chargement des stats
-        if (user?.id) {
-          await syncAllMissions();
-        }
       }
     }
     fetchData()
     return () => { isMounted = false }
   }, [user, quizState])
-
-  // Effet pour synchroniser les missions quand les stats changent
-  useEffect(() => {
-    if (!loading && user?.id && missions.length > 0) {
-      syncAllMissions();
-    }
-  }, [stats, ownedItems, equipped, purchaseHistory])
-
-  // Effet pour synchroniser périodiquement (toutes les 30 secondes)
-  useEffect(() => {
-    if (!user?.id) return;
-    
-    const interval = setInterval(async () => {
-      if (!missionsLoading) {
-        await syncAllMissions();
-      }
-    }, 30000); // 30 secondes
-    
-    return () => clearInterval(interval);
-  }, [user, missionsLoading])
 
   useEffect(() => {
     setLevelInfo(getLevel(xp))
@@ -1751,6 +1316,11 @@ export default function Progression({ user }) {
           setCoins(data.coins);
           setOwnedItems(data.owned_items);
           setEquipped(data.equipped);
+          setStats(prev => ({
+            ...prev,
+            streak: data.streak || 0,
+            lastClaimed: data.last_claimed || null
+          }));
         } else {
           // Si pas de ligne, on la crée
           await supabase.from('user_pass').insert({
@@ -1762,6 +1332,11 @@ export default function Progression({ user }) {
           setCoins(200);
           setOwnedItems(['hat_chef']);
           setEquipped({ ...DEFAULT_CHEF, hat: 'hat_chef' });
+          setStats(prev => ({
+            ...prev,
+            streak: 0,
+            lastClaimed: null
+          }));
         }
 
         // Charger également les cartes
@@ -1809,7 +1384,7 @@ export default function Progression({ user }) {
       localStorage.setItem('coco_wishlist', JSON.stringify(newWishlist));
     }
     
-    // Sauvegarder dans localStorage pour les missions
+    // Sauvegarder dans localStorage
     try {
       localStorage.setItem('coco_purchase_history', JSON.stringify(newPurchaseHistory));
     } catch (error) {
@@ -1847,10 +1422,7 @@ export default function Progression({ user }) {
       purchase_history: newPurchaseHistory 
     });
     
-    // Synchroniser les missions après achat
-    setTimeout(async () => {
-      await syncAllMissions();
-    }, 500);
+    // Synchroniser les données utilisateur côté base
   };
 
   // --- Gestion achat de pack ---
@@ -4744,6 +4316,130 @@ export default function Progression({ user }) {
             ))}
           </div>
 
+          {/* Mise en avant du système de cartes */}
+          <div style={{ marginBottom: 20 }}>
+            <div style={{
+              background: 'linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)',
+              borderRadius: 18,
+              padding: '16px 18px',
+              boxShadow: '0 8px 24px rgba(14, 165, 233, 0.18)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 12
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  fontWeight: 800,
+                  fontSize: '1.05rem',
+                  color: '#0369a1'
+                }}>
+                  <span style={{ fontSize: '1.6rem' }}>🃏</span>
+                  Cartes culinaires
+                </div>
+                <button
+                  onClick={() => {
+                    setActiveTab('boutique')
+                    setCardFilter('collection')
+                  }}
+                  style={{
+                    background: 'linear-gradient(135deg, #0284c7, #0369a1)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 999,
+                    padding: '8px 16px',
+                    fontWeight: 700,
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                    boxShadow: '0 6px 16px rgba(2, 132, 199, 0.25)'
+                  }}
+                >
+                  Voir ma collection
+                </button>
+              </div>
+
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: 10
+              }}>
+                {[{
+                  label: 'Cartes totales',
+                  value: cardHeroStats.totalOwned,
+                  accent: '#0ea5e9'
+                }, {
+                  label: 'Cartes uniques',
+                  value: `${cardHeroStats.uniqueOwned}/${cardHeroStats.totalUnique}`,
+                  accent: '#0369a1'
+                }, {
+                  label: 'Collections',
+                  value: `${cardHeroStats.completedCollections}/${cardHeroStats.totalCollections}`,
+                  accent: '#0f172a'
+                }].map(info => (
+                  <div
+                    key={info.label}
+                    style={{
+                      background: 'rgba(255,255,255,0.75)',
+                      borderRadius: 12,
+                      padding: '10px 12px',
+                      textAlign: 'center',
+                      boxShadow: '0 2px 8px rgba(15, 23, 42, 0.08)'
+                    }}
+                  >
+                    <div style={{ fontWeight: 800, fontSize: '1.1rem', color: info.accent }}>
+                      {info.value}
+                    </div>
+                    <div style={{ fontSize: '0.7rem', fontWeight: 600, color: '#0f172a' }}>
+                      {info.label}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{
+                background: 'rgba(255,255,255,0.7)',
+                borderRadius: 12,
+                padding: '10px 12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                fontSize: '0.8rem',
+                color: '#0f172a',
+                fontWeight: 600
+              }}>
+                <div>
+                  {cardHeroStats.totalOwned === 0
+                    ? '🎁 Ouvrez votre premier booster pour commencer la collection !'
+                    : cardHeroStats.legendaryCount > 0
+                      ? `✨ ${cardHeroStats.legendaryCount} carte${cardHeroStats.legendaryCount > 1 ? 's' : ''} légendaire${cardHeroStats.legendaryCount > 1 ? 's' : ''} trouvée${cardHeroStats.legendaryCount > 1 ? 's' : ''}`
+                      : '💫 Encore une légendaire à découvrir !'}
+                </div>
+                {cardHeroStats.latestCard && (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    background: 'linear-gradient(135deg, #38bdf8, #0ea5e9)',
+                    color: 'white',
+                    padding: '6px 10px',
+                    borderRadius: 999,
+                    fontSize: '0.75rem',
+                    boxShadow: '0 4px 12px rgba(14, 165, 233, 0.3)'
+                  }}>
+                    <span style={{ fontSize: '1.1rem' }}>{cardHeroStats.latestCard.icon || '🎴'}</span>
+                    <span>Dernière: {cardHeroStats.latestCard.name}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* Rituels quotidiens : streak + quiz */}
           <div style={{ marginBottom: 20 }}>
             <div style={{
@@ -5171,230 +4867,6 @@ export default function Progression({ user }) {
             </div>
           </div>
 
-          {/* Missions actives - Version complète */}
-          <div style={{ marginBottom: 20 }}>
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'space-between',
-              marginBottom: 12 
-            }}>
-              <div style={{ fontWeight: 700, fontSize: '1rem', color: '#8b5cf6' }}>
-                Missions actives
-              </div>
-              <div style={{
-                fontSize: '0.8rem',
-                color: '#6b7280',
-                fontWeight: 600
-              }}>
-                {completedMissions.length} terminées
-              </div>
-            </div>
-
-            {/* Grille des missions */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(2, 1fr)',
-              gap: 10,
-              marginBottom: 16
-            }}>
-              {missions.map(mission => {
-                const progressData = missionProgresses[mission.id] || { current: 0, target: mission.target, percent: 0 };
-                const progress = progressData.current;
-                const percent = progressData.percent;
-                const isCompleted = completedMissions.includes(mission.id);
-                
-                return (
-                  <div key={mission.id} style={{
-                    background: isCompleted ? 
-                      'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)' : 
-                      'linear-gradient(135deg, #fff 0%, #f8fafc 100%)',
-                    border: isCompleted ? '2px solid #10b981' : '1px solid #e5e7eb',
-                    borderRadius: 14,
-                    padding: '12px 10px',
-                    textAlign: 'center',
-                    position: 'relative',
-                    boxShadow: isCompleted ? 
-                      '0 4px 12px rgba(16, 185, 129, 0.2)' : 
-                      '0 2px 6px rgba(0, 0, 0, 0.05)',
-                    transition: 'all 0.3s ease'
-                  }}>
-                    {/* Badge de completion */}
-                    {isCompleted && (
-                      <div style={{
-                        position: 'absolute',
-                        top: -6,
-                        right: -6,
-                        background: '#10b981',
-                        color: 'white',
-                        borderRadius: '50%',
-                        width: 20,
-                        height: 20,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: 10,
-                        fontWeight: 700,
-                        animation: 'completionBounce 0.6s ease-out'
-                      }}>✓</div>
-                    )}
-                    
-                    {/* Badge difficulté */}
-                    <div style={{
-                      position: 'absolute',
-                      top: 6,
-                      left: 6,
-                      fontSize: '0.6rem',
-                      fontWeight: 600,
-                      color: mission.difficulty === 'facile' ? '#10b981' : 
-                             mission.difficulty === 'moyen' ? '#f59e0b' : '#ef4444',
-                      background: 'rgba(255,255,255,0.9)',
-                      borderRadius: 6,
-                      padding: '2px 4px'
-                    }}>
-                      {mission.difficulty === 'facile' ? '●' : 
-                       mission.difficulty === 'moyen' ? '●●' : '●●●'}
-                    </div>
-                    
-                    {/* Icône principale */}
-                    <div style={{ 
-                      fontSize: 24, 
-                      marginBottom: 6,
-                      filter: isCompleted ? 'grayscale(0.3)' : 'none'
-                    }}>
-                      {mission.icon}
-                    </div>
-                    
-                    {/* Titre */}
-                    <div style={{ 
-                      fontWeight: 700, 
-                      fontSize: '0.8rem', 
-                      color: isCompleted ? '#16a34a' : '#374151',
-                      marginBottom: 6,
-                      lineHeight: 1.2,
-                      height: '2rem',
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden'
-                    }}>
-                      {mission.title}
-                    </div>
-                    
-                    {/* Description */}
-                    <div style={{
-                      fontSize: '0.7rem',
-                      color: '#6b7280',
-                      marginBottom: 8,
-                      lineHeight: 1.1,
-                      height: '1.4rem',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap'
-                    }}>
-                      {mission.description}
-                    </div>
-                    
-                    {/* Barre de progression avancée */}
-                    <div style={{
-                      background: '#f1f5f9',
-                      borderRadius: 8,
-                      height: 8,
-                      marginBottom: 8,
-                      overflow: 'hidden',
-                      position: 'relative'
-                    }}>
-                      <div style={{
-                        width: `${percent}%`,
-                        height: '100%',
-                        background: isCompleted ? 
-                          'linear-gradient(90deg, #10b981, #16a34a)' :
-                          percent > 75 ? 'linear-gradient(90deg, #10b981, #16a34a)' :
-                          percent > 50 ? 'linear-gradient(90deg, #f59e0b, #ea580c)' :
-                          percent > 25 ? 'linear-gradient(90deg, #8b5cf6, #7c3aed)' :
-                          'linear-gradient(90deg, #64748b, #475569)',
-                        borderRadius: 8,
-                        transition: 'width 0.8s ease-out',
-                        position: 'relative'
-                      }}>
-                        {/* Effet de brillance */}
-                        <div style={{
-                          position: 'absolute',
-                          top: 0,
-                          left: 0,
-                          right: 0,
-                          height: '50%',
-                          background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)',
-                          borderRadius: '8px 8px 0 0'
-                        }} />
-                      </div>
-                    </div>
-                    
-                    {/* Stats et récompenses */}
-                    <div style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center'
-                    }}>
-                      <div style={{
-                        fontSize: '0.7rem',
-                        color: isCompleted ? '#16a34a' : '#6b7280',
-                        fontWeight: 700
-                      }}>
-                        {progress}/{mission.target}
-                        {percent === 100 && !isCompleted && (
-                          <span style={{ color: '#f59e0b', marginLeft: 4 }}>🎯</span>
-                        )}
-                      </div>
-                      
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 4
-                      }}>
-                        <div style={{
-                          fontSize: '0.65rem',
-                          color: '#f59e0b',
-                          fontWeight: 700,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 2
-                        }}>
-                          <span>🪙{mission.reward.coins}</span>
-                        </div>
-                        {mission.reward.item && (
-                          <div style={{
-                            fontSize: '0.7rem',
-                            filter: 'drop-shadow(0 0 4px #f59e0b)'
-                          }}>👑</div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Résumé des missions */}
-            <div style={{
-              background: 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)',
-              borderRadius: 12,
-              padding: '10px 12px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              fontSize: '0.8rem',
-              fontWeight: 600
-            }}>
-              <div style={{ color: '#475569' }}>
-                Missions en cours: {missions.filter(m => !completedMissions.includes(m.id)).length}
-              </div>
-              <div style={{ color: '#10b981' }}>
-                Terminées: {completedMissions.length}
-              </div>
-            </div>
-          </div>
-
           {/* Collection de cartes - Mise en avant majeure */}
           <div style={{ marginBottom: 22 }}>
             <div style={{ 
@@ -5417,7 +4889,7 @@ export default function Progression({ user }) {
               <button
                 onClick={() => {
                   setActiveTab('boutique');
-                  setShopTab('cards');
+                  setCardFilter('collection');
                 }}
                 style={{
                   background: 'linear-gradient(135deg, #0284c7, #0369a1)',
@@ -5592,7 +5064,6 @@ export default function Progression({ user }) {
                       }}
                         onClick={() => {
                           setActiveTab('boutique');
-                          setShopTab('cards');
                           setCardFilter('collection');
                           setCardPreviewOpen(collection.id);
                         }}
@@ -5807,7 +5278,7 @@ export default function Progression({ user }) {
                     }}
                       onClick={() => {
                         setActiveTab('boutique');
-                        setShopTab('cards');
+                        setCardFilter('shop');
                       }}
                     >
                       <div style={{ fontSize: 16, marginBottom: 2 }}>{pack.icon}</div>
