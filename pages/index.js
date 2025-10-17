@@ -8,7 +8,7 @@ import RecipeOfWeek from '../components/RecipeOfWeek'
 import NotificationCenter from '../components/NotificationCenter'
 import DailyStreakReward from '../components/DailyStreakReward'
 import styles from '../styles/Layout.module.css'
-import { supabase } from '../lib/supabaseClient' // Correction du chemin d'import
+import { supabase, getUserCardCollection } from '../lib/supabaseClient' // Correction du chemin d'import
 
 export default function Home({ initialRecipes = [], initialEngagement = {} }) {
   const { user, loading } = useAuth()
@@ -24,6 +24,16 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
   })
   const [leaderboard, setLeaderboard] = useState([])
   const [leaderboardLoading, setLeaderboardLoading] = useState(false)
+  const [cardPreview, setCardPreview] = useState({
+    loading: false,
+    totalOwned: 0,
+    uniqueOwned: 0,
+    totalUnique: 0,
+    legendaryCount: 0,
+    completedCollections: 0,
+    totalCollections: 0,
+    starterAvailable: false
+  })
   const heroRef = useRef(null)
 
   // Détection du scroll
@@ -121,6 +131,97 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
       fetchLeaderboard()
     }
   }, [user])
+
+  useEffect(() => {
+    let isMounted = true
+
+    const readStarterAvailability = () => {
+      if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+        return false
+      }
+      try {
+        return localStorage.getItem('coco_card_starter_claimed') !== 'true'
+      } catch (error) {
+        console.error('Erreur lecture statut starter pack:', error)
+        return false
+      }
+    }
+
+    const loadCardPreview = async () => {
+      const starterAvailable = readStarterAvailability()
+
+      if (!user?.id) {
+        if (isMounted) {
+          setCardPreview(prev => ({
+            ...prev,
+            loading: false,
+            starterAvailable
+          }))
+        }
+        return
+      }
+
+      if (isMounted) {
+        setCardPreview(prev => ({
+          ...prev,
+          loading: true,
+          starterAvailable
+        }))
+      }
+
+      try {
+        const { owned_cards = [], collection_stats = {} } = await getUserCardCollection(user.id)
+        const cardsArray = Array.isArray(owned_cards) ? owned_cards.filter(Boolean) : []
+        const baseIds = cardsArray
+          .map(card => {
+            if (!card) return null
+            if (card.originalId) return card.originalId
+            if (typeof card.id === 'string') {
+              return card.id.split('_')[0]
+            }
+            return card.id || null
+          })
+          .filter(Boolean)
+        const uniqueOwned = new Set(baseIds).size
+        const totalOwned = cardsArray.length
+        const legendaryCount = cardsArray.filter(card => card?.rarity === 'legendary').length
+        const statsValues = Object.values(collection_stats || {})
+        const completedCollections = statsValues.filter(stat => stat && stat.total > 0 && stat.owned === stat.total).length
+        const totalCollections = Object.keys(collection_stats || {}).length
+        const totalUnique = statsValues.reduce((sum, stat) => sum + (stat?.total || 0), 0)
+
+        if (isMounted) {
+          setCardPreview({
+            loading: false,
+            totalOwned,
+            uniqueOwned,
+            totalUnique,
+            legendaryCount,
+            completedCollections,
+            totalCollections,
+            starterAvailable: readStarterAvailability()
+          })
+        }
+      } catch (error) {
+        console.error('Erreur lors du chargement de la collection de cartes:', error)
+        if (isMounted) {
+          setCardPreview(prev => ({
+            ...prev,
+            loading: false,
+            starterAvailable: readStarterAvailability()
+          }))
+        }
+      }
+    }
+
+    if (typeof window !== 'undefined') {
+      loadCardPreview()
+    }
+
+    return () => {
+      isMounted = false
+    }
+  }, [user?.id])
 
   // Fonction pour charger le classement
   const fetchLeaderboard = async () => {
@@ -1600,7 +1701,7 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
               )}
             </div>
 
-            {/* Section Cartes - Nouvelle addition discrète */}
+            {/* Section Cartes - Mise en avant pédagogique */}
             <div style={{
               maxWidth: '100%',
               margin: '0 auto 20px',
@@ -1626,7 +1727,7 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
               }} />
 
               {/* En-tête des cartes */}
-              <div style={{ 
+              <div style={{
                 marginBottom: 12,
                 display: 'flex',
                 alignItems: 'center',
@@ -1655,9 +1756,9 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
                     🃏
                   </div>
                   <div style={{ textAlign: 'left' }}>
-                    <div style={{ 
-                      fontWeight: 800, 
-                      fontSize: '0.9rem', 
+                    <div style={{
+                      fontWeight: 800,
+                      fontSize: '0.9rem',
                       color: '#0284c7',
                       marginBottom: 1,
                       background: 'linear-gradient(135deg, #0284c7, #0369a1)',
@@ -1666,17 +1767,17 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
                     }}>
                       Collection de Cartes
                     </div>
-                    <div style={{ 
-                      fontSize: '0.7rem', 
+                    <div style={{
+                      fontSize: '0.7rem',
                       color: '#64748b',
                       fontWeight: 500
                     }}>
-                      Découvrez les secrets culinaires
+                      Comprenez la progression en un coup d'œil
                     </div>
                   </div>
                 </div>
 
-                {/* Bouton discret pour accéder */}
+                {/* Bouton d'action */}
                 <button
                   onClick={() => router.push('/progression')}
                   style={{
@@ -1691,7 +1792,7 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
                     transition: 'all 0.3s ease',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 3,
+                    gap: 4,
                     boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
                     position: 'relative',
                     overflow: 'hidden'
@@ -1705,9 +1806,100 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
                     e.target.style.boxShadow = '0 2px 6px rgba(2, 132, 199, 0.25)'
                   }}
                 >
-                  <span style={{ fontSize: '0.8rem' }}>✨</span>
-                  <span>Découvrir</span>
+                  <span style={{ fontSize: '0.8rem' }}>{cardPreview.starterAvailable ? '🎁' : '🚀'}</span>
+                  <span>{cardPreview.starterAvailable ? 'Booster offert' : 'Voir mes cartes'}</span>
                 </button>
+              </div>
+
+              {/* Explications rapides */}
+              <div style={{
+                marginBottom: 10,
+                position: 'relative',
+                zIndex: 1,
+                textAlign: 'left',
+                color: '#0c4a6e',
+                fontWeight: 600,
+                fontSize: '0.7rem',
+                lineHeight: 1.35
+              }}>
+                <div style={{ marginBottom: 6 }}>
+                  {cardPreview.loading
+                    ? 'Chargement de ta collection...'
+                    : user
+                      ? cardPreview.uniqueOwned > 0
+                        ? `Tu possèdes ${cardPreview.uniqueOwned} carte${cardPreview.uniqueOwned > 1 ? 's' : ''} unique${cardPreview.uniqueOwned > 1 ? 's' : ''}${cardPreview.totalUnique > 0 ? ` sur ${cardPreview.totalUnique} possibles` : ''}. Continue pour compléter tes séries !`
+                        : cardPreview.starterAvailable
+                          ? 'Ton premier booster est offert : ouvre-le pour découvrir instantanément 3 cartes culinaires.'
+                          : 'Commence ta collection dès maintenant en ouvrant un booster.'
+                      : 'Ouvre un booster quotidien pour débloquer des cartes rares et des récompenses exclusives.'}
+                </div>
+                <div style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: 4,
+                  marginBottom: user && !cardPreview.loading ? 6 : 4
+                }}>
+                  {[
+                    cardPreview.starterAvailable
+                      ? { icon: '🎁', label: 'Booster découverte offert' }
+                      : { icon: '🎲', label: 'Booster du jour' },
+                    { icon: '🃏', label: 'Collectionne & échange' },
+                    { icon: '🏆', label: 'Récompenses de progression' }
+                  ].map((step, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        background: 'rgba(2, 132, 199, 0.12)',
+                        borderRadius: 999,
+                        padding: '4px 8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        fontSize: '0.65rem',
+                        fontWeight: 600,
+                        color: '#075985'
+                      }}
+                    >
+                      <span>{step.icon}</span>
+                      <span>{step.label}</span>
+                    </div>
+                  ))}
+                </div>
+                {user && !cardPreview.loading && (
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                    gap: 4
+                  }}>
+                    {[
+                      { label: 'Cartes uniques', value: cardPreview.uniqueOwned },
+                      { label: 'Collections finies', value: cardPreview.completedCollections },
+                      { label: 'Légendaires', value: cardPreview.legendaryCount }
+                    ].map((stat, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          background: '#fff',
+                          border: '1px solid rgba(2, 132, 199, 0.15)',
+                          borderRadius: 8,
+                          padding: '6px 4px',
+                          textAlign: 'center',
+                          boxShadow: '0 1px 3px rgba(2, 132, 199, 0.05)'
+                        }}
+                      >
+                        <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0369a1' }}>{stat.value}</div>
+                        <div style={{
+                          fontSize: '0.58rem',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.04em',
+                          color: '#0c4a6e'
+                        }}>
+                          {stat.label}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Aperçu des cartes - Version très compacte */}
@@ -1715,28 +1907,29 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
                 display: 'flex',
                 justifyContent: 'center',
                 gap: 6,
-                marginBottom: 10,
+                marginBottom: 8,
                 position: 'relative',
                 zIndex: 1
               }}>
-                {/* Cartes exemple */}
                 {[
                   { icon: '🌸', name: 'Safran', rarity: 'legendary', color: '#f59e0b' },
                   { icon: '🍄', name: 'Truffe', rarity: 'epic', color: '#8b5cf6' },
                   { icon: '🌿', name: 'Vanille', rarity: 'rare', color: '#3b82f6' }
                 ].map((card, idx) => (
-                  <div key={idx} style={{
-                    background: `linear-gradient(135deg, ${card.color}15, ${card.color}08)`,
-                    border: `1px solid ${card.color}30`,
-                    borderRadius: 8,
-                    padding: '6px 8px',
-                    minWidth: 45,
-                    textAlign: 'center',
-                    animation: `cardFloat 3s ease-in-out infinite ${idx * 0.5}s`,
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease',
-                    position: 'relative'
-                  }}
+                  <div
+                    key={idx}
+                    style={{
+                      background: `linear-gradient(135deg, ${card.color}15, ${card.color}08)`,
+                      border: `1px solid ${card.color}30`,
+                      borderRadius: 8,
+                      padding: '6px 8px',
+                      minWidth: 45,
+                      textAlign: 'center',
+                      animation: `cardFloat 3s ease-in-out infinite ${idx * 0.5}s`,
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease',
+                      position: 'relative'
+                    }}
                     onClick={() => router.push('/progression')}
                     onMouseEnter={(e) => {
                       e.target.style.transform = 'scale(1.1) translateY(-2px)'
@@ -1760,7 +1953,6 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
                     }}>
                       {card.name}
                     </div>
-                    {/* Badge rareté */}
                     <div style={{
                       position: 'absolute',
                       top: -2,
@@ -1777,26 +1969,28 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
 
               {/* Message d'encouragement compact */}
               <div style={{
-                background: 'rgba(2, 132, 199, 0.05)',
+                background: 'rgba(2, 132, 199, 0.06)',
                 border: '1px solid rgba(2, 132, 199, 0.1)',
                 borderRadius: 8,
                 padding: '6px 10px',
-                fontSize: '0.7rem',
+                fontSize: '0.68rem',
                 color: '#0369a1',
                 fontWeight: 600,
-                lineHeight: '1.2',
+                lineHeight: '1.25',
                 position: 'relative',
                 zIndex: 1
               }}>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 4
-                }}>
-                  <span style={{ fontSize: '0.8rem' }}>🎁</span>
-                  <span>Collectionnez les ingrédients légendaires</span>
-                </div>
+                {cardPreview.loading
+                  ? 'Synchronisation en cours...'
+                  : user
+                    ? cardPreview.uniqueOwned > 0
+                      ? cardPreview.totalUnique > cardPreview.uniqueOwned
+                        ? `Plus que ${cardPreview.totalUnique - cardPreview.uniqueOwned} carte${cardPreview.totalUnique - cardPreview.uniqueOwned > 1 ? 's' : ''} pour compléter toutes tes séries !`
+                        : 'Tu as déjà une belle avance : continue à ouvrir des boosters pour trouver les cartes rares restantes !'
+                      : cardPreview.starterAvailable
+                        ? 'Ton booster découverte t’attend encore aujourd’hui.'
+                        : 'Ouvre un booster pour débloquer ta première carte.'
+                    : 'Connecte-toi pour conserver tes cartes et suivre ta progression.'}
               </div>
             </div>
           </div>
