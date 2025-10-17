@@ -851,6 +851,479 @@ export default function AddictiveFeed({ initialRecipes = [], initialEngagement =
   }
 
   if (error) {
+        throw error
+      }
+      
+      if (!recipesData || recipesData.length === 0) {
+        setHasMore(false)
+        return
+      }
+
+      const newRecipeIds = recipesData.map(r => r.id)
+      const engagementStats = await getMultipleRecipesEngagementStats(newRecipeIds)
+
+      const formattedRecipes = recipesData.map(recipe =>
+        formatRecipeData(recipe, engagementStats.data?.[recipe.id], {
+          friendIds: activeFriendIds,
+          currentUserId: user.id
+        })
+      )
+      setRecipes(prev => [...prev, ...formattedRecipes])
+      setPage(prev => prev + 1)
+    } catch (err) {
+      logError('Failed to load more recipes', err, {
+        component: 'AddictiveFeed',
+        method: 'loadMoreRecipes',
+        page,
+        userId: user?.id
+      })
+    } finally {
+      setLoadingMore(false)
+    }
+  }
+
+  // Helper to format recipe data from API to feed format - VERSION AVEC VRAIES DONNÉES
+  const formatRecipeData = useCallback((apiRecipe, engagementStats = null, options = {}) => {
+    const { friendIds: friendIdSource = new Set(), currentUserId } = options
+    const friendIdsSet = friendIdSource instanceof Set ? friendIdSource : new Set(friendIdSource || [])
+
+    let imageUrl = '/placeholder-recipe.jpg'
+
+    if (apiRecipe.image) {
+      try {
+        const { processImageData } = require('../utils/imageUtils')
+        const processedUrl = processImageData(apiRecipe.image, '/placeholder-recipe.jpg')
+
+        if (
+          processedUrl &&
+          processedUrl !== '/placeholder-recipe.jpg' &&
+          (processedUrl.startsWith('data:image/') || processedUrl.startsWith('http'))
+        ) {
+          imageUrl = processedUrl
+        }
+      } catch (err) {
+        logError('Error processing image in AddictiveFeed', err, {
+          recipeId: apiRecipe.id,
+          imageDataType: typeof apiRecipe.image,
+          isArray: Array.isArray(apiRecipe.image),
+          hasImageData: !!apiRecipe.image
+        })
+        imageUrl = '/placeholder-recipe.jpg'
+      }
+    }
+
+    let avatar_url = null
+    if (apiRecipe.author_profile?.avatar_url) {
+      avatar_url = apiRecipe.author_profile.avatar_url
+    } else if (apiRecipe.avatar_url) {
+      avatar_url = apiRecipe.avatar_url
+    }
+
+    const authorName = apiRecipe.author || 'Chef Anonyme'
+    const authorEmoji = getAuthorEmoji(apiRecipe.category)
+
+    const realLikes = engagementStats?.likes_count || apiRecipe.likes_count || 0
+    const realComments = engagementStats?.comments_count || 0
+
+    const created = apiRecipe.created_at ? new Date(apiRecipe.created_at) : new Date()
+    const timeAgo = getTimeAgo(created)
+
+    const verified = Boolean(
+      apiRecipe?.author_profile?.is_verified ??
+      apiRecipe?.is_verified ??
+      apiRecipe?.user?.is_verified
+    )
+
+    const isFriend = Boolean(
+      currentUserId &&
+      apiRecipe?.user_id &&
+      apiRecipe.user_id !== currentUserId &&
+      friendIdsSet.has(apiRecipe.user_id)
+    )
+
+    logDebug('Formatting recipe with real engagement data', {
+      recipeId: apiRecipe.id,
+      realLikes,
+      realComments,
+      hasEngagementStats: !!engagementStats,
+      userHasLiked: engagementStats?.user_has_liked || false,
+      isFriend
+    })
+
+    return {
+      id: apiRecipe.id,
+      user: {
+        id: apiRecipe.user_id || `author_${authorName.replace(/\s+/g, '_').toLowerCase()}`,
+        name: authorName,
+        avatar_url,
+        emoji: authorEmoji,
+        verified
+      },
+      recipe: {
+        id: apiRecipe.id,
+        title: apiRecipe.title,
+        description: apiRecipe.description || 'Une délicieuse recette à découvrir !',
+        image: imageUrl,
+        category: apiRecipe.category || 'Autre',
+        createdAt: apiRecipe.created_at || null,
+        likes: realLikes,
+        comments: realComments,
+        user_has_liked: engagementStats?.user_has_liked || false
+      },
+      timeAgo,
+      isFriend,
+      isQuickShare: apiRecipe.form_mode === 'quick' || apiRecipe.category === 'Photo partagée'
+    }
+  }, [])
+
+  // Helper functions for formatting recipe data
+  function getAuthorEmoji(category) {
+    const emojiMap = {
+      'Dessert': '🍰',
+      'Entrée': '🥗',
+      'Plat principal': '🍽️',
+      'Italien': '🍝',
+      'Asiatique': '🍜',
+      'Végétarien': '🥬',
+      'Healthy': '🌱',
+      'BBQ': '🔥',
+      'Photo partagée': '📸',
+      'Autre': '👨‍🍳'
+    }
+    return emojiMap[category] || '👨‍🍳'
+  }
+
+  function getTimeAgo(date) {
+    const now = new Date()
+    const diffMs = now - date
+    const diffSec = Math.floor(diffMs / 1000)
+    const diffMin = Math.floor(diffSec / 60)
+    const diffHour = Math.floor(diffMin / 60)
+    const diffDay = Math.floor(diffHour / 24)
+
+    if (diffDay > 0) return `${diffDay}j`
+    if (diffHour > 0) return `${diffHour}h`
+    if (diffMin > 0) return `${diffMin}min`
+    return 'à l\'instant'
+  }
+
+  const fetchFriendIds = useCallback(async () => {
+    if (!user?.id) {
+      return new Set()
+    }
+
+    const { data, error } = await supabase
+      .from('friendships')
+      .select('user_id, friend_id, status')
+      .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`)
+      .eq('status', 'accepted')
+
+    if (error) {
+      logError('Failed to load friend ids for feed', error, {
+        component: 'AddictiveFeed',
+        userId: user.id
+      })
+      return new Set()
+    }
+
+    const ids = new Set()
+    ;(data || []).forEach(friendship => {
+      if (friendship.user_id === user.id) {
+        ids.add(friendship.friend_id)
+      } else if (friendship.friend_id === user.id) {
+        ids.add(friendship.user_id)
+      }
+    })
+
+    return ids
+  }, [user?.id])
+
+  useEffect(() => {
+    if (hasHydratedInitialData.current) {
+      return
+    }
+
+    if (!initialRecipes || initialRecipes.length === 0) {
+      return
+    }
+
+    const currentFriendIds = new Set(friendIds)
+    const formatted = initialRecipes.map(recipe =>
+      formatRecipeData(recipe, initialEngagement?.[recipe.id], {
+        friendIds: currentFriendIds,
+        currentUserId: user?.id
+      })
+    )
+
+    setRecipes(formatted)
+    setPage(initialPage)
+    setLoading(false)
+    hasHydratedInitialData.current = true
+  }, [initialRecipes, initialEngagement, initialPage, formatRecipeData, friendIds, user?.id])
+
+  // Actions utilisateur - CORRECTION POUR ÉVITER DOUBLE AJOUT
+  const openAuthorProfile = useCallback(
+    (authorId) => {
+      if (!authorId || authorId.startsWith('author_')) {
+        return
+      }
+
+      if (user?.id && authorId === user.id) {
+        router.push('/profil')
+        return
+      }
+
+      logUserInteraction('open_public_profile', {
+        authorId,
+        source: 'addictive_feed'
+      })
+
+      router.push(`/profile/${authorId}`)
+    },
+    [router, user]
+  )
+
+  const handleProfileKeyDown = useCallback(
+    (event, authorId) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault()
+        openAuthorProfile(authorId)
+      }
+    },
+    [openAuthorProfile]
+  )
+
+  const toggleLike = useCallback(async (recipeId) => {
+    if (!user) {
+      const wantsToLogin = window.confirm('Connectez-vous pour aimer cette recette. Aller à la page de connexion?')
+      if (wantsToLogin) {
+        router.push('/login?redirect=' + encodeURIComponent('/'))
+      }
+      return
+    }
+    
+    const recipe = recipes.find(r => r.id === recipeId)
+    const isCurrentlyLiked = recipe?.recipe?.user_has_liked || false
+    
+    // SUPPRESSION DE LA MISE À JOUR OPTIMISTE DES ACTIONS UTILISATEUR
+    // Ne plus gérer userActions.likes ici car c'est redondant avec recipe.user_has_liked
+    
+    // Mise à jour optimiste UNIQUEMENT de l'UI de la recette
+    setRecipes(prev => prev.map(recipe => {
+      if (recipe.id === recipeId) {
+        return {
+          ...recipe,
+          recipe: {
+            ...recipe.recipe,
+            likes: recipe.recipe.likes + (isCurrentlyLiked ? -1 : 1),
+            user_has_liked: !isCurrentlyLiked
+          }
+        }
+      }
+      return recipe
+    }))
+
+    // Animation uniquement si c'est un like (pas un unlike)
+    if (!isCurrentlyLiked) {
+      // Déclencher une notification pour le propriétaire de la recette
+      if (
+        recipe &&
+        recipe.user &&
+        recipe.user.id !== user.id && // Ne pas notifier si l'utilisateur like sa propre recette
+        recipe.user.id // S'assurer que la recette a bien un propriétaire
+      ) {
+        showRecipeLikedNotification(
+          {
+            id: recipe.recipe.id,
+            title: recipe.recipe.title,
+            image: recipe.recipe.image,
+            user_id: recipe.user.id
+          },
+          {
+            user_id: user.id,
+            display_name: user.user_metadata?.display_name || user.email?.split('@')[0] || 'Utilisateur'
+          }
+        )
+      }
+      
+      // Animation de like
+      const heart = document.createElement('div')
+      heart.innerHTML = '❤️'
+      heart.style.cssText = `
+        position: fixed;
+        font-size: 2rem;
+        z-index: 10000;
+        pointer-events: none;
+        animation: heartFloat 1.2s ease-out forwards;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+      `
+      document.body.appendChild(heart)
+      setTimeout(() => heart.remove(), 1200)
+      
+      if (navigator.vibrate) {
+        navigator.vibrate(30)
+      }
+    }
+
+    // Appel à l'API pour synchroniser avec la base de données
+    try {
+      const { toggleRecipeLike } = await import('../utils/likesUtils')
+      const result = await toggleRecipeLike(recipeId, user.id, isCurrentlyLiked)
+      
+      if (!result.success) {
+        // Reverser les changements optimistes si l'API échoue
+        setRecipes(prev => prev.map(recipe => {
+          if (recipe.id === recipeId) {
+            return {
+              ...recipe,
+              recipe: {
+                ...recipe.recipe,
+                likes: recipe.recipe.likes + (isCurrentlyLiked ? 1 : -1),
+                user_has_liked: isCurrentlyLiked
+              }
+            }
+          }
+          return recipe
+        }))
+      } else {
+        // Mettre à jour avec les vraies données de l'API (correction finale)
+        setRecipes(prev => prev.map(recipe => {
+          if (recipe.id === recipeId) {
+            return {
+              ...recipe,
+              recipe: {
+                ...recipe.recipe,
+                likes: result.stats?.likes_count || recipe.recipe.likes,
+                user_has_liked: result.stats?.user_has_liked !== undefined ? result.stats.user_has_liked : !isCurrentlyLiked
+              }
+            }
+          }
+          return recipe
+        }))
+      }
+    } catch (error) {
+      logError('Error syncing like with database', error, { recipeId, userId: user.id })
+      
+      // Reverser les changements optimistes en cas d'erreur
+      setRecipes(prev => prev.map(recipe => {
+        if (recipe.id === recipeId) {
+          return {
+            ...recipe,
+            recipe: {
+              ...recipe.recipe,
+              likes: recipe.recipe.likes + (isCurrentlyLiked ? 1 : -1),
+              user_has_liked: isCurrentlyLiked
+            }
+          }
+        }
+        return recipe
+      }))
+    }
+    
+    logUserInteraction('TOGGLE_LIKE', 'addictive-feed', {
+      recipeId,
+      action: isCurrentlyLiked ? 'unlike' : 'like',
+      userId: user?.id
+    })
+  }, [user, router, recipes])
+
+  const openRecipe = useCallback((recipeId) => {
+    router.push(`/recipe/${recipeId}`)
+    
+    logUserInteraction('OPEN_RECIPE', 'addictive-feed', {
+      recipeId,
+      userId: user?.id
+    })
+  }, [router, user])
+
+  // Load more when scrolling near bottom
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.innerHeight + document.documentElement.scrollTop 
+          >= document.documentElement.offsetHeight - 1000) {
+        loadMoreRecipes()
+      }
+    }
+
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [page, hasMore, loadingMore])
+
+  // Load saved likes from localStorage - VERSION SÉCURISÉE
+  useEffect(() => {
+    if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+      try {
+        const savedLikes = localStorage.getItem('userLikedRecipes')
+        if (savedLikes) {
+          setUserActions(prev => ({
+            ...prev,
+            likes: new Set(JSON.parse(savedLikes))
+          }))
+        }
+      } catch (err) {
+        console.error('Failed to load saved user actions', err)
+      }
+    }
+  }, [])
+
+  // Charger le classement mensuel (top 3)
+  useEffect(() => {
+    fetchLeaderboard()
+  }, [user])
+
+  // Fonction pour charger le classement (extracted for reuse)
+  const fetchLeaderboard = async () => {
+    try {
+      // 1. Récupérer tous les profils utilisateurs
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('user_id,display_name,avatar_url')
+      if (profilesError) {
+        console.error("[Classement] Erreur profiles:", profilesError)
+        setLeaderboard([])
+        return
+      }
+
+      // 2. Récupérer toutes les recettes du dernier mois
+      const oneMonthAgo = new Date()
+      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
+      const { data: recipesData, error: recipesError } = await supabase
+        .from('recipes')
+        .select('user_id,created_at')
+        .gte('created_at', oneMonthAgo.toISOString())
+      if (recipesError) {
+        console.error("[Classement] Erreur recipes:", recipesError)
+      }
+
+      // 3. Compter les recettes par utilisateur sur le dernier mois
+      const recipesCountMap = {}
+      ;(recipesData || []).forEach(r => {
+        recipesCountMap[r.user_id] = (recipesCountMap[r.user_id] || 0) + 1
+      })
+
+      // 4. Mapper les profils avec le nombre de recettes publiées
+      const leaderboardData = (profilesData || []).map(profile => {
+        const count = recipesCountMap[profile.user_id] || 0
+        return {
+          user_id: profile.user_id,
+          display_name: profile.display_name || 'Utilisateur',
+          avatar_url: profile.avatar_url || null,
+          recipesCount: count,
+          isYou: user?.id === profile.user_id
+        }
+      })
+
+      leaderboardData.sort((a, b) => b.recipesCount - a.recipesCount)
+      setLeaderboard(leaderboardData.slice(0, 10)) // Garde les 10 premiers pour affichage complet si besoin
+    } catch (e) {
+      console.error("[Classement] Exception générale:", e)
+      setLeaderboard([])
+    }
+  }
+
+  if (error) {
     return (
       <div className={styles.errorContainer}>
         <div className={styles.errorIcon}>😓</div>
