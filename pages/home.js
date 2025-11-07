@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Footer from '../components/Footer';
 import QuickCommentModal from '../components/QuickCommentModal';
-import NotificationCenter from '../components/NotificationCenter';
 import { useAuth } from '../components/AuthContext';
 
 const HomePage = () => {
@@ -38,8 +37,8 @@ const HomePage = () => {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      
-      {/* Header avec centre de notifications */}
+
+      {/* Header principal */}
       <header style={{
         position: 'sticky',
         top: 0,
@@ -70,7 +69,7 @@ const HomePage = () => {
             🍴 COCO
           </Link>
 
-          {/* Navigation et centre de notifications */}
+            {/* Navigation et actions */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -111,22 +110,12 @@ const HomePage = () => {
               )}
             </nav>
 
-            {/* Section utilisateur avec notifications */}
+            {/* Section utilisateur */}
             <div style={{
               display: 'flex',
               alignItems: 'center',
               gap: '12px'
             }}>
-              {/* Centre de notifications (seulement si connecté) */}
-              {user && (
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center'
-                }}>
-                  <NotificationCenter />
-                </div>
-              )}
-
               {/* Bouton connexion/profil */}
               {user ? (
                 <div style={{
@@ -180,7 +169,7 @@ const HomePage = () => {
               🍴 Bienvenue chez COCO
             </h1>
             
-            {/* Quick Comment CTA - Version améliorée avec intégration notifications */}
+              {/* Quick Comment CTA */}
             <div style={{
               background: 'rgba(255, 255, 255, 0.9)',
               borderRadius: '20px',
@@ -206,7 +195,7 @@ const HomePage = () => {
                 Rejoignez notre communauté et soyez notifié des réactions !
               </p>
               
-              {/* Aperçu des notifications pour non-connectés */}
+                {/* Aperçu des avantages pour non-connectés */}
               {!user && (
                 <div style={{
                   background: 'rgba(59, 130, 246, 0.1)',
@@ -261,11 +250,11 @@ const HomePage = () => {
 
       </main>
 
-      {/* Floating Quick Comment Button - Version avec intégration notifications */}
+      {/* Floating Quick Comment Button */}
       {showFloatingButton && (
-        <div style={{ 
-          position: 'fixed', 
-          bottom: '32px', 
+        <div style={{
+          position: 'fixed',
+          bottom: '32px',
           right: '32px', 
           zIndex: 1000,
           display: 'flex',
@@ -273,15 +262,6 @@ const HomePage = () => {
           alignItems: 'flex-end',
           gap: '12px'
         }}>
-          {/* Mini centre de notifications flottant pour mobile */}
-          {user && (
-            <div style={{
-              display: window.innerWidth <= 768 ? 'block' : 'none'
-            }}>
-              <NotificationCenter />
-            </div>
-          )}
-          
           {/* Bouton principal */}
           <button
             onClick={() => setShowQuickComment(true)}

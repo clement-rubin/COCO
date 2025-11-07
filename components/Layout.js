@@ -5,7 +5,6 @@ import ScrollToTop from './ScrollToTop'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import { useAuth } from './AuthContext'
-import NotificationCenter from './NotificationCenter'
 import styles from '../styles/Layout.module.css'
 
 export default function Layout({ children, title = 'COCO - Communauté Culinaire' }) {
@@ -90,9 +89,6 @@ export default function Layout({ children, title = 'COCO - Communauté Culinaire
               <div className={styles.userActions}>
                 {user ? (
                   <>
-                    {/* Centre de notifications */}
-                    <NotificationCenter />
-                    
                     {/* Menu utilisateur */}
                     <div className={styles.userMenu}>
                       <button
