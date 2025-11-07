@@ -5,7 +5,6 @@ import { useRouter } from 'next/router'
 import { logUserInteraction, logComponentEvent, logInfo } from '../utils/logger'
 import AddictiveFeed from '../components/AddictiveFeed'
 import RecipeOfWeek from '../components/RecipeOfWeek'
-import NotificationCenter from '../components/NotificationCenter'
 import DailyStreakReward from '../components/DailyStreakReward'
 import styles from '../styles/Layout.module.css'
 import { supabase, getUserCardCollection } from '../lib/supabaseClient' // Correction du chemin d'import
@@ -1065,24 +1064,6 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
         <link rel="icon" href="/favicon.ico" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
       </Head>
-      
-      {/* Centre de notifications - Positionné de manière fixe */}
-      {user && (
-        <div style={{
-          position: 'fixed',
-          top: '20px',
-          right: '20px',
-          zIndex: 1000,
-          background: 'rgba(255, 255, 255, 0.95)',
-          backdropFilter: 'blur(10px)',
-          borderRadius: '50px',
-          padding: '8px',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
-          border: '1px solid rgba(255, 255, 255, 0.2)'
-        }}>
-          <NotificationCenter />
-        </div>
-      )}
       
       <main className={styles.main}>
         {/* Message de bienvenue */}
