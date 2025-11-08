@@ -8,7 +8,7 @@ import RecipeOfWeek from '../components/RecipeOfWeek'
 import NotificationCenter from '../components/NotificationCenter'
 import DailyStreakReward from '../components/DailyStreakReward'
 import styles from '../styles/Layout.module.css'
-import { supabase, getUserCardCollection } from '../lib/supabaseClient' // Correction du chemin d'import
+import { supabase } from '../lib/supabaseClient' // Correction du chemin d'import
 
 export default function Home({ initialRecipes = [], initialEngagement = {} }) {
   const { user, loading } = useAuth()
@@ -24,16 +24,6 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
   })
   const [leaderboard, setLeaderboard] = useState([])
   const [leaderboardLoading, setLeaderboardLoading] = useState(false)
-  const [cardPreview, setCardPreview] = useState({
-    loading: false,
-    totalOwned: 0,
-    uniqueOwned: 0,
-    totalUnique: 0,
-    legendaryCount: 0,
-    completedCollections: 0,
-    totalCollections: 0,
-    starterAvailable: false
-  })
   const heroRef = useRef(null)
 
   // Détection du scroll
@@ -132,97 +122,6 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
     }
   }, [user])
 
-  useEffect(() => {
-    let isMounted = true
-
-    const readStarterAvailability = () => {
-      if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
-        return false
-      }
-      try {
-        return localStorage.getItem('coco_card_starter_claimed') !== 'true'
-      } catch (error) {
-        console.error('Erreur lecture statut starter pack:', error)
-        return false
-      }
-    }
-
-    const loadCardPreview = async () => {
-      const starterAvailable = readStarterAvailability()
-
-      if (!user?.id) {
-        if (isMounted) {
-          setCardPreview(prev => ({
-            ...prev,
-            loading: false,
-            starterAvailable
-          }))
-        }
-        return
-      }
-
-      if (isMounted) {
-        setCardPreview(prev => ({
-          ...prev,
-          loading: true,
-          starterAvailable
-        }))
-      }
-
-      try {
-        const { owned_cards = [], collection_stats = {} } = await getUserCardCollection(user.id)
-        const cardsArray = Array.isArray(owned_cards) ? owned_cards.filter(Boolean) : []
-        const baseIds = cardsArray
-          .map(card => {
-            if (!card) return null
-            if (card.originalId) return card.originalId
-            if (typeof card.id === 'string') {
-              return card.id.split('_')[0]
-            }
-            return card.id || null
-          })
-          .filter(Boolean)
-        const uniqueOwned = new Set(baseIds).size
-        const totalOwned = cardsArray.length
-        const legendaryCount = cardsArray.filter(card => card?.rarity === 'legendary').length
-        const statsValues = Object.values(collection_stats || {})
-        const completedCollections = statsValues.filter(stat => stat && stat.total > 0 && stat.owned === stat.total).length
-        const totalCollections = Object.keys(collection_stats || {}).length
-        const totalUnique = statsValues.reduce((sum, stat) => sum + (stat?.total || 0), 0)
-
-        if (isMounted) {
-          setCardPreview({
-            loading: false,
-            totalOwned,
-            uniqueOwned,
-            totalUnique,
-            legendaryCount,
-            completedCollections,
-            totalCollections,
-            starterAvailable: readStarterAvailability()
-          })
-        }
-      } catch (error) {
-        console.error('Erreur lors du chargement de la collection de cartes:', error)
-        if (isMounted) {
-          setCardPreview(prev => ({
-            ...prev,
-            loading: false,
-            starterAvailable: readStarterAvailability()
-          }))
-        }
-      }
-    }
-
-    if (typeof window !== 'undefined') {
-      loadCardPreview()
-    }
-
-    return () => {
-      isMounted = false
-    }
-  }, [user?.id])
-
   // Fonction pour charger le classement
   const fetchLeaderboard = async () => {
     setLeaderboardLoading(true)
@@ -294,11 +193,15 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
   }
 
   const hasAdminAccess = user && (
-    user.email === 'admin@coco.com' || 
+    user.email === 'admin@coco.com' ||
     user.user_metadata?.role === 'admin' ||
     user.user_metadata?.role === 'developer' ||
     user.email?.includes('clement.rubin')
   )
+
+  const topThree = leaderboard.slice(0, 3)
+  const otherLeaders = leaderboard.slice(3)
+  const maxRecipes = (leaderboard.reduce((max, entry) => Math.max(max, entry.recipesCount || 0), 0)) || 1
 
   // Afficher un écran de chargement pendant la vérification
   if (loading) {
@@ -1383,619 +1286,362 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
               </button>
             </div>
 
-            {/* Podium du classement mensuel - VERSION INTÉGRÉE AMÉLIORÉE */}
+            {/* Classement communautaire */}
             <div style={{
               maxWidth: '100%',
-              margin: '0 auto 20px',
-              background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 25%, #f1f5f9 50%, #ffffff 100%)',
-              borderRadius: 18,
-              boxShadow: '0 8px 25px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04)',
-              padding: '18px 14px',
-              textAlign: 'center',
-              border: '1px solid rgba(148, 163, 184, 0.15)',
+              margin: '0 auto 24px',
+              background: 'white',
+              borderRadius: 20,
+              border: '1px solid rgba(226, 232, 240, 0.6)',
+              boxShadow: '0 18px 40px rgba(15, 23, 42, 0.08)',
+              padding: '20px 18px 22px',
               position: 'relative',
               overflow: 'hidden'
             }}>
-              {/* Effet de brillance de fond subtil */}
               <div style={{
                 position: 'absolute',
-                top: '-30%',
-                left: '-30%',
-                width: '160%',
-                height: '160%',
-                background: 'conic-gradient(from 0deg at 50% 50%, transparent 0deg, rgba(59, 130, 246, 0.02) 90deg, transparent 180deg, rgba(99, 102, 241, 0.02) 270deg, transparent 360deg)',
-                animation: 'slowRotate 25s linear infinite',
+                inset: 0,
+                background: 'radial-gradient(circle at top right, rgba(59, 130, 246, 0.12), transparent 55%)',
                 zIndex: 0
               }} />
-
-              {/* En-tête du podium */}
-              <div style={{ 
-                marginBottom: 14,
+              <div style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
+                marginBottom: 16,
                 position: 'relative',
                 zIndex: 1
               }}>
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 10,
-                  flex: 1
+                  gap: 12
                 }}>
                   <div style={{
-                    background: 'linear-gradient(135deg, #fbbf24, #f59e0b)',
-                    width: 32,
-                    height: 32,
+                    width: 44,
+                    height: 44,
                     borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #facc15, #f97316)',
+                    color: 'white',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '1rem',
-                    boxShadow: '0 4px 10px rgba(251, 191, 36, 0.3)',
-                    animation: 'trophyBounce 3s ease-in-out infinite'
+                    fontSize: '1.4rem',
+                    boxShadow: '0 8px 18px rgba(249, 115, 22, 0.3)'
                   }}>
                     🏆
                   </div>
-                  <div style={{ textAlign: 'left' }}>
-                    <div style={{ 
-                      fontWeight: 800, 
-                      fontSize: '1rem', 
-                      color: '#1e293b',
-                      marginBottom: 2,
-                      background: 'linear-gradient(135deg, #1e293b, #475569)',
-                      WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent'
+                  <div>
+                    <div style={{
+                      fontWeight: 800,
+                      fontSize: '1.05rem',
+                      color: '#1f2937'
                     }}>
-                      Top Chefs du Mois
+                      Top Chefs du mois
                     </div>
-                    <div style={{ 
-                      fontSize: '0.75rem', 
-                      color: '#64748b',
-                      fontWeight: 500
+                    <div style={{
+                      fontSize: '0.8rem',
+                      color: '#64748b'
                     }}>
-                      Recettes publiées sur 30 jours
+                      Recettes publiées sur 30 derniers jours
                     </div>
                   </div>
                 </div>
-
-                {/* Bouton d'actualisation compact */}
                 <button
                   onClick={fetchLeaderboard}
                   disabled={leaderboardLoading}
                   style={{
-                    background: leaderboardLoading 
-                      ? 'linear-gradient(135deg, #e2e8f0, #cbd5e1)' 
-                      : 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
-                    color: leaderboardLoading ? '#64748b' : 'white',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    background: leaderboardLoading ? '#e2e8f0' : 'linear-gradient(135deg, #3b82f6, #2563eb)',
+                    color: leaderboardLoading ? '#475569' : '#fff',
                     border: 'none',
-                    padding: '6px 12px',
-                    borderRadius: 10,
-                    fontSize: '0.75rem',
+                    padding: '8px 14px',
+                    borderRadius: 999,
+                    fontSize: '0.8rem',
                     fontWeight: 600,
                     cursor: leaderboardLoading ? 'not-allowed' : 'pointer',
-                    transition: 'all 0.3s ease',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    boxShadow: leaderboardLoading 
-                      ? '0 2px 4px rgba(0,0,0,0.1)' 
-                      : '0 3px 8px rgba(59, 130, 246, 0.25)',
-                    position: 'relative',
-                    overflow: 'hidden'
+                    boxShadow: leaderboardLoading ? 'none' : '0 8px 20px rgba(37, 99, 235, 0.25)',
+                    transition: 'transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease'
                   }}
                   onMouseEnter={(e) => {
                     if (!leaderboardLoading) {
-                      e.target.style.transform = 'translateY(-1px)'
-                      e.target.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.35)'
+                      e.target.style.transform = 'translateY(-2px)'
+                      e.target.style.boxShadow = '0 10px 28px rgba(37, 99, 235, 0.3)'
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (!leaderboardLoading) {
                       e.target.style.transform = 'translateY(0)'
-                      e.target.style.boxShadow = '0 3px 8px rgba(59, 130, 246, 0.25)'
+                      e.target.style.boxShadow = '0 8px 20px rgba(37, 99, 235, 0.25)'
                     }
                   }}
                 >
-                  <div style={{
-                    fontSize: '0.8rem',
-                    animation: leaderboardLoading ? 'spin 1s linear infinite' : 'none'
-                  }}>
-                    {leaderboardLoading ? '⟳' : '🔄'}
-                  </div>
-                  <span style={{ fontSize: '0.7rem' }}>
-                    {leaderboardLoading ? 'Actualisation...' : 'Actualiser'}
-                  </span>
+                  <span style={{ fontSize: '0.9rem' }}>{leaderboardLoading ? '⟳' : '🔄'}</span>
+                  <span>{leaderboardLoading ? 'Actualisation...' : 'Actualiser'}</span>
                 </button>
               </div>
 
-              {/* Contenu du podium */}
               {leaderboardLoading ? (
-                <div style={{ 
-                  color: '#64748b', 
-                  fontWeight: 600, 
-                  margin: '20px 0',
-                  fontSize: '0.85rem',
+                <div style={{
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: 8,
+                  gap: 10,
+                  color: '#64748b',
+                  fontWeight: 600,
+                  padding: '24px 0',
                   position: 'relative',
                   zIndex: 1
                 }}>
-                  <div style={{
-                    display: 'inline-block',
-                    width: 14,
-                    height: 14,
-                    border: '2px solid #e5e7eb',
-                    borderTop: '2px solid #3b82f6',
-                    borderRadius: '50%',
-                    animation: 'spin 1s linear infinite'
-                  }} />
+                  <span style={{ display: 'inline-flex', animation: 'sophisticatedSpin 1.2s linear infinite' }}>⟳</span>
                   Chargement du classement...
                 </div>
               ) : leaderboard.length > 0 ? (
                 <>
-                  {/* Podium visuel en 3D compact */}
                   <div style={{
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'flex-end',
-                    gap: 8,
-                    marginBottom: 12,
-                    height: 100,
-                    perspective: '300px',
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+                    gap: 12,
                     position: 'relative',
-                    zIndex: 1
+                    zIndex: 1,
+                    marginBottom: otherLeaders.length > 0 ? 20 : 12
                   }}>
-                    {/* Places du podium avec animations */}
-                    {leaderboard.slice(0, 3).map((leader, idx) => {
-                      const isFirst = idx === 0
-                      const isSecond = idx === 1
-                      const isThird = idx === 2
-                      
+                    {topThree.map((leader, index) => {
+                      const podiumGradients = [
+                        'linear-gradient(135deg, #facc15, #f97316)',
+                        'linear-gradient(135deg, #a5b4fc, #60a5fa)',
+                        'linear-gradient(135deg, #fb923c, #f97316)'
+                      ]
+                      const shadowColors = [
+                        'rgba(249, 115, 22, 0.28)',
+                        'rgba(59, 130, 246, 0.25)',
+                        'rgba(249, 115, 22, 0.25)'
+                      ]
+                      const trophyEmojis = ['🥇', '🥈', '🥉']
+                      const gradient = podiumGradients[index] || 'linear-gradient(135deg, #fb923c, #f97316)'
+                      const shadow = shadowColors[index] || 'rgba(249, 115, 22, 0.25)'
+
                       return (
-                        <div key={leader.user_id} style={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          order: isFirst ? 2 : isSecond ? 1 : 3,
-                          transform: isFirst 
-                            ? 'scale(1.1) translateZ(20px)' 
-                            : `rotateY(${isSecond ? '-6deg' : '6deg'}) translateZ(10px)`,
-                          animation: `podiumFloat${idx + 1} 4s ease-in-out infinite`,
-                          zIndex: isFirst ? 3 : 2
-                        }}>
-                          <div style={{
-                            background: isFirst 
-                              ? 'linear-gradient(135deg, #fbbf24, #f59e0b, #d97706)'
-                              : isSecond 
-                                ? 'linear-gradient(135deg, #e5e7eb, #d1d5db)'
-                                : 'linear-gradient(135deg, #f59e0b, #d97706)',
-                            width: isFirst ? 60 : isSecond ? 50 : 45,
-                            height: isFirst ? 75 : isSecond ? 65 : 55,
-                            borderRadius: isFirst ? 14 : 12,
+                        <div
+                          key={leader.user_id || index}
+                          style={{
+                            background: gradient,
+                            borderRadius: 16,
+                            padding: '18px 14px',
+                            color: 'white',
                             display: 'flex',
                             flexDirection: 'column',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            marginBottom: 4,
-                            boxShadow: isFirst 
-                              ? '0 8px 20px rgba(245, 158, 11, 0.4), inset 0 2px 4px rgba(255,255,255,0.3)'
-                              : '0 4px 12px rgba(0,0,0,0.15), inset 0 2px 4px rgba(255,255,255,0.2)',
+                            boxShadow: `0 16px 34px ${shadow}`,
                             position: 'relative',
-                            border: `2px solid ${isFirst ? '#f59e0b' : isSecond ? '#9ca3af' : '#d97706'}`,
-                            animation: isFirst ? 'goldenGlow 2s ease-in-out infinite alternate' : 'none'
-                          }}>
-                            <div style={{ 
-                              fontSize: isFirst ? '1.6rem' : isSecond ? '1.4rem' : '1.2rem', 
-                              marginBottom: 2, 
-                              filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))' 
-                            }}>
-                              {isFirst ? '🥇' : isSecond ? '🥈' : '🥉'}
-                            </div>
-                            
-                            {leader.avatar_url ? (
-                              <img 
-                                src={leader.avatar_url} 
-                                alt="" 
-                                style={{
-                                  width: isFirst ? 24 : 20, 
-                                  height: isFirst ? 24 : 20, 
-                                  borderRadius: '50%',
-                                  border: `2px solid ${isFirst ? '#f59e0b' : isSecond ? '#9ca3af' : '#d97706'}`,
-                                  position: 'absolute',
-                                  bottom: isFirst ? -6 : -4,
-                                  boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
-                                }} 
-                              />
-                            ) : (
-                              <div style={{
-                                width: isFirst ? 24 : 20,
-                                height: isFirst ? 24 : 20,
-                                background: `linear-gradient(135deg, ${isFirst ? '#f59e0b' : isSecond ? '#9ca3af' : '#d97706'}, ${isFirst ? '#d97706' : isSecond ? '#6b7280' : '#b45309'})`,
+                            overflow: 'hidden',
+                            minHeight: 150
+                          }}
+                        >
+                          <span style={{ fontSize: '1.6rem', marginBottom: 6 }}>
+                            {trophyEmojis[index] || '⭐'}
+                          </span>
+                          {leader.avatar_url ? (
+                            <img
+                              src={leader.avatar_url}
+                              alt={leader.display_name || ''}
+                              style={{
+                                width: 52,
+                                height: 52,
                                 borderRadius: '50%',
+                                objectFit: 'cover',
+                                border: '3px solid rgba(255,255,255,0.55)',
+                                boxShadow: '0 6px 16px rgba(15, 23, 42, 0.25)'
+                              }}
+                            />
+                          ) : (
+                            <div
+                              style={{
+                                width: 52,
+                                height: 52,
+                                borderRadius: '50%',
+                                background: 'rgba(255, 255, 255, 0.18)',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                fontSize: isFirst ? '0.7rem' : '0.6rem',
-                                color: 'white',
+                                fontSize: '1.1rem',
                                 fontWeight: 700,
-                                position: 'absolute',
-                                bottom: isFirst ? -6 : -4,
-                                boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
-                              }}>
-                                {leader.display_name?.charAt(0)?.toUpperCase() || '?'}
-                              </div>
-                            )}
-                          </div>
-                          
-                          <div style={{ 
-                            fontSize: '0.7rem', 
-                            fontWeight: 700, 
-                            color: isFirst ? '#f59e0b' : '#1e293b',
-                            maxWidth: isFirst ? 70 : 60,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
+                                boxShadow: '0 6px 16px rgba(15, 23, 42, 0.25)'
+                              }}
+                            >
+                              {leader.display_name?.charAt(0)?.toUpperCase() || '?'}
+                            </div>
+                          )}
+                          <div style={{
+                            marginTop: 10,
+                            fontWeight: 700,
+                            fontSize: '0.95rem',
                             textAlign: 'center',
-                            marginBottom: 2,
-                            textShadow: isFirst ? '0 1px 2px rgba(0,0,0,0.1)' : 'none'
+                            lineHeight: 1.2
                           }}>
                             {leader.display_name}
-                            {leader.isYou && <div style={{ color: '#f59e0b', fontSize: '0.55rem', fontWeight: 600 }}>(Vous)</div>}
                           </div>
-                          
-                          <div style={{ 
-                            fontSize: '0.6rem', 
-                            color: isFirst ? '#92400e' : '#64748b',
+                          {leader.isYou && (
+                            <div style={{ fontSize: '0.7rem', marginTop: 2, fontWeight: 600, opacity: 0.85 }}>
+                              (Vous)
+                            </div>
+                          )}
+                          <div style={{
+                            marginTop: 12,
+                            fontSize: '0.8rem',
                             fontWeight: 600,
-                            background: `rgba(${isFirst ? '245, 158, 11' : '100, 116, 139'}, 0.1)`,
-                            padding: '2px 6px',
-                            borderRadius: 6,
-                            border: `1px solid rgba(${isFirst ? '245, 158, 11' : '100, 116, 139'}, 0.2)`
+                            background: 'rgba(255, 255, 255, 0.2)',
+                            padding: '4px 12px',
+                            borderRadius: 999
                           }}>
-                            {leader.recipesCount} recettes
+                            {leader.recipesCount} recette{leader.recipesCount > 1 ? 's' : ''}
                           </div>
                         </div>
                       )
                     })}
                   </div>
 
-                  {/* Message d'encouragement stylisé */}
-                  <div style={{
-                    background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(147, 51, 234, 0.04))',
-                    border: '1px solid rgba(59, 130, 246, 0.15)',
-                    borderRadius: 10,
-                    padding: '10px 12px',
-                    fontSize: '0.75rem',
-                    color: '#1e40af',
-                    fontWeight: 600,
-                    lineHeight: '1.3',
-                    position: 'relative',
-                    zIndex: 1,
-                    backdropFilter: 'blur(5px)'
-                  }}>
+                  {otherLeaders.length > 0 && (
                     <div style={{
                       display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 6
+                      flexDirection: 'column',
+                      gap: 12,
+                      position: 'relative',
+                      zIndex: 1
                     }}>
-                      <span style={{ fontSize: '0.9rem' }}>✨</span>
-                      <span>Publiez plus de recettes pour grimper dans le classement !</span>
+                      {otherLeaders.map((leader, index) => {
+                        const rank = index + 4
+                        const progress = Math.max(8, Math.round(((leader.recipesCount || 0) / maxRecipes) * 100))
+                        return (
+                          <div
+                            key={leader.user_id || `leader-${rank}`}
+                            style={{
+                              background: '#f8fafc',
+                              borderRadius: 12,
+                              padding: '12px 14px',
+                              border: '1px solid rgba(226, 232, 240, 0.8)'
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                              <div style={{
+                                fontWeight: 700,
+                                color: '#1f2937',
+                                fontSize: '0.85rem',
+                                width: 26,
+                                textAlign: 'center'
+                              }}>
+                                {rank}
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
+                                {leader.avatar_url ? (
+                                  <img
+                                    src={leader.avatar_url}
+                                    alt={leader.display_name || ''}
+                                    style={{
+                                      width: 42,
+                                      height: 42,
+                                      borderRadius: '50%',
+                                      objectFit: 'cover',
+                                      border: '2px solid rgba(148, 163, 184, 0.25)'
+                                    }}
+                                  />
+                                ) : (
+                                  <div
+                                    style={{
+                                      width: 42,
+                                      height: 42,
+                                      borderRadius: '50%',
+                                      background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+                                      color: 'white',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      fontWeight: 700,
+                                      fontSize: '0.9rem'
+                                    }}
+                                  >
+                                    {leader.display_name?.charAt(0)?.toUpperCase() || '?'}
+                                  </div>
+                                )}
+                                <div style={{ flex: 1 }}>
+                                  <div style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 6,
+                                    fontWeight: 600,
+                                    color: '#1f2937',
+                                    fontSize: '0.9rem'
+                                  }}>
+                                    {leader.display_name}
+                                    {leader.isYou && (
+                                      <span style={{ fontSize: '0.7rem', color: '#2563eb' }}>(Vous)</span>
+                                    )}
+                                  </div>
+                                  <div style={{
+                                    marginTop: 6,
+                                    height: 6,
+                                    borderRadius: 999,
+                                    background: '#e2e8f0',
+                                    overflow: 'hidden'
+                                  }}>
+                                    <div style={{
+                                      width: `${Math.min(progress, 100)}%`,
+                                      height: '100%',
+                                      background: 'linear-gradient(135deg, #3b82f6, #2563eb)'
+                                    }} />
+                                  </div>
+                                </div>
+                                <div style={{
+                                  fontWeight: 700,
+                                  color: '#0f172a',
+                                  fontSize: '0.85rem'
+                                }}>
+                                  {leader.recipesCount}
+                                  <span style={{ fontSize: '0.7rem', color: '#64748b', marginLeft: 4 }}>rec.</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
+                  )}
+
+                  <div style={{
+                    marginTop: 18,
+                    background: 'rgba(59, 130, 246, 0.08)',
+                    borderRadius: 12,
+                    padding: '10px 12px',
+                    color: '#1d4ed8',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    position: 'relative',
+                    zIndex: 1
+                  }}>
+                    <span>✨</span>
+                    <span>Publiez une nouvelle recette pour progresser dans le classement !</span>
                   </div>
                 </>
               ) : (
                 <div style={{
                   color: '#6b7280',
-                  fontSize: '0.8rem',
+                  fontSize: '0.85rem',
                   fontStyle: 'italic',
-                  padding: '16px',
+                  padding: '20px',
+                  textAlign: 'center',
                   position: 'relative',
                   zIndex: 1
                 }}>
-                  Aucune donnée de classement disponible
+                  Aucune donnée de classement disponible pour le moment.
                 </div>
               )}
             </div>
-
-            {/* Section Cartes - Mise en avant pédagogique */}
-            <div style={{
-              maxWidth: '100%',
-              margin: '0 auto 20px',
-              background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #f8fafc 100%)',
-              borderRadius: 18,
-              boxShadow: '0 6px 20px rgba(2, 132, 199, 0.1), 0 2px 8px rgba(2, 132, 199, 0.05)',
-              padding: '16px 14px',
-              textAlign: 'center',
-              border: '1px solid rgba(2, 132, 199, 0.1)',
-              position: 'relative',
-              overflow: 'hidden'
-            }}>
-              {/* Effet de brillance de fond subtil */}
-              <div style={{
-                position: 'absolute',
-                top: '-30%',
-                left: '-30%',
-                width: '160%',
-                height: '160%',
-                background: 'conic-gradient(from 0deg at 50% 50%, transparent 0deg, rgba(2, 132, 199, 0.02) 90deg, transparent 180deg, rgba(59, 130, 246, 0.02) 270deg, transparent 360deg)',
-                animation: 'slowRotate 30s linear infinite',
-                zIndex: 0
-              }} />
-
-              {/* En-tête des cartes */}
-              <div style={{
-                marginBottom: 12,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                position: 'relative',
-                zIndex: 1
-              }}>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  flex: 1
-                }}>
-                  <div style={{
-                    background: 'linear-gradient(135deg, #0284c7, #0369a1)',
-                    width: 28,
-                    height: 28,
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '0.9rem',
-                    boxShadow: '0 3px 8px rgba(2, 132, 199, 0.3)',
-                    animation: 'cardFloat 3s ease-in-out infinite'
-                  }}>
-                    🃏
-                  </div>
-                  <div style={{ textAlign: 'left' }}>
-                    <div style={{
-                      fontWeight: 800,
-                      fontSize: '0.9rem',
-                      color: '#0284c7',
-                      marginBottom: 1,
-                      background: 'linear-gradient(135deg, #0284c7, #0369a1)',
-                      WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent'
-                    }}>
-                      Collection de Cartes
-                    </div>
-                    <div style={{
-                      fontSize: '0.7rem',
-                      color: '#64748b',
-                      fontWeight: 500
-                    }}>
-                      Comprenez la progression en un coup d'œil
-                    </div>
-                  </div>
-                </div>
-
-                {/* Bouton d'action */}
-                <button
-                  onClick={() => router.push('/progression')}
-                  style={{
-                    background: 'linear-gradient(135deg, #0284c7, #0369a1)',
-                    color: 'white',
-                    border: 'none',
-                    padding: '4px 10px',
-                    borderRadius: 8,
-                    fontSize: '0.7rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
-                    position: 'relative',
-                    overflow: 'hidden'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.transform = 'translateY(-1px)'
-                    e.target.style.boxShadow = '0 3px 8px rgba(2, 132, 199, 0.35)'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.transform = 'translateY(0)'
-                    e.target.style.boxShadow = '0 2px 6px rgba(2, 132, 199, 0.25)'
-                  }}
-                >
-                  <span style={{ fontSize: '0.8rem' }}>{cardPreview.starterAvailable ? '🎁' : '🚀'}</span>
-                  <span>{cardPreview.starterAvailable ? 'Booster offert' : 'Voir mes cartes'}</span>
-                </button>
-              </div>
-
-              {/* Explications rapides */}
-              <div style={{
-                marginBottom: 10,
-                position: 'relative',
-                zIndex: 1,
-                textAlign: 'left',
-                color: '#0c4a6e',
-                fontWeight: 600,
-                fontSize: '0.7rem',
-                lineHeight: 1.35
-              }}>
-                <div style={{ marginBottom: 6 }}>
-                  {cardPreview.loading
-                    ? 'Chargement de ta collection...'
-                    : user
-                      ? cardPreview.uniqueOwned > 0
-                        ? `Tu possèdes ${cardPreview.uniqueOwned} carte${cardPreview.uniqueOwned > 1 ? 's' : ''} unique${cardPreview.uniqueOwned > 1 ? 's' : ''}${cardPreview.totalUnique > 0 ? ` sur ${cardPreview.totalUnique} possibles` : ''}. Continue pour compléter tes séries !`
-                        : cardPreview.starterAvailable
-                          ? 'Ton premier booster est offert : ouvre-le pour découvrir instantanément 3 cartes culinaires.'
-                          : 'Commence ta collection dès maintenant en ouvrant un booster.'
-                      : 'Ouvre un booster quotidien pour débloquer des cartes rares et des récompenses exclusives.'}
-                </div>
-                <div style={{
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  gap: 4,
-                  marginBottom: user && !cardPreview.loading ? 6 : 4
-                }}>
-                  {[
-                    cardPreview.starterAvailable
-                      ? { icon: '🎁', label: 'Booster découverte offert' }
-                      : { icon: '🎲', label: 'Booster du jour' },
-                    { icon: '🃏', label: 'Collectionne & échange' },
-                    { icon: '🏆', label: 'Récompenses de progression' }
-                  ].map((step, idx) => (
-                    <div
-                      key={idx}
-                      style={{
-                        background: 'rgba(2, 132, 199, 0.12)',
-                        borderRadius: 999,
-                        padding: '4px 8px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 4,
-                        fontSize: '0.65rem',
-                        fontWeight: 600,
-                        color: '#075985'
-                      }}
-                    >
-                      <span>{step.icon}</span>
-                      <span>{step.label}</span>
-                    </div>
-                  ))}
-                </div>
-                {user && !cardPreview.loading && (
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-                    gap: 4
-                  }}>
-                    {[
-                      { label: 'Cartes uniques', value: cardPreview.uniqueOwned },
-                      { label: 'Collections finies', value: cardPreview.completedCollections },
-                      { label: 'Légendaires', value: cardPreview.legendaryCount }
-                    ].map((stat, idx) => (
-                      <div
-                        key={idx}
-                        style={{
-                          background: '#fff',
-                          border: '1px solid rgba(2, 132, 199, 0.15)',
-                          borderRadius: 8,
-                          padding: '6px 4px',
-                          textAlign: 'center',
-                          boxShadow: '0 1px 3px rgba(2, 132, 199, 0.05)'
-                        }}
-                      >
-                        <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0369a1' }}>{stat.value}</div>
-                        <div style={{
-                          fontSize: '0.58rem',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.04em',
-                          color: '#0c4a6e'
-                        }}>
-                          {stat.label}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Aperçu des cartes - Version très compacte */}
-              <div style={{
-                display: 'flex',
-                justifyContent: 'center',
-                gap: 6,
-                marginBottom: 8,
-                position: 'relative',
-                zIndex: 1
-              }}>
-                {[
-                  { icon: '🌸', name: 'Safran', rarity: 'legendary', color: '#f59e0b' },
-                  { icon: '🍄', name: 'Truffe', rarity: 'epic', color: '#8b5cf6' },
-                  { icon: '🌿', name: 'Vanille', rarity: 'rare', color: '#3b82f6' }
-                ].map((card, idx) => (
-                  <div
-                    key={idx}
-                    style={{
-                      background: `linear-gradient(135deg, ${card.color}15, ${card.color}08)`,
-                      border: `1px solid ${card.color}30`,
-                      borderRadius: 8,
-                      padding: '6px 8px',
-                      minWidth: 45,
-                      textAlign: 'center',
-                      animation: `cardFloat 3s ease-in-out infinite ${idx * 0.5}s`,
-                      cursor: 'pointer',
-                      transition: 'all 0.3s ease',
-                      position: 'relative'
-                    }}
-                    onClick={() => router.push('/progression')}
-                    onMouseEnter={(e) => {
-                      e.target.style.transform = 'scale(1.1) translateY(-2px)'
-                      e.target.style.boxShadow = `0 4px 12px ${card.color}30`
-                    }}
-                    onMouseLeave={(e) => {
-                      e.target.style.transform = 'scale(1) translateY(0)'
-                      e.target.style.boxShadow = 'none'
-                    }}
-                  >
-                    <div style={{ fontSize: 16, marginBottom: 2 }}>
-                      {card.icon}
-                    </div>
-                    <div style={{
-                      fontSize: '0.6rem',
-                      fontWeight: 700,
-                      color: card.color,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap'
-                    }}>
-                      {card.name}
-                    </div>
-                    <div style={{
-                      position: 'absolute',
-                      top: -2,
-                      right: -2,
-                      width: 8,
-                      height: 8,
-                      borderRadius: '50%',
-                      background: card.color,
-                      animation: `rarityPulse 2s ease-in-out infinite ${idx * 0.3}s`
-                    }} />
-                  </div>
-                ))}
-              </div>
-
-              {/* Message d'encouragement compact */}
-              <div style={{
-                background: 'rgba(2, 132, 199, 0.06)',
-                border: '1px solid rgba(2, 132, 199, 0.1)',
-                borderRadius: 8,
-                padding: '6px 10px',
-                fontSize: '0.68rem',
-                color: '#0369a1',
-                fontWeight: 600,
-                lineHeight: '1.25',
-                position: 'relative',
-                zIndex: 1
-              }}>
-                {cardPreview.loading
-                  ? 'Synchronisation en cours...'
-                  : user
-                    ? cardPreview.uniqueOwned > 0
-                      ? cardPreview.totalUnique > cardPreview.uniqueOwned
-                        ? `Plus que ${cardPreview.totalUnique - cardPreview.uniqueOwned} carte${cardPreview.totalUnique - cardPreview.uniqueOwned > 1 ? 's' : ''} pour compléter toutes tes séries !`
-                        : 'Tu as déjà une belle avance : continue à ouvrir des boosters pour trouver les cartes rares restantes !'
-                      : cardPreview.starterAvailable
-                        ? 'Ton booster découverte t’attend encore aujourd’hui.'
-                        : 'Ouvre un booster pour débloquer ta première carte.'
-                    : 'Connecte-toi pour conserver tes cartes et suivre ta progression.'}
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* Section AddictiveFeed directement sans header communautaire */}
         <div style={{
           maxWidth: '400px',

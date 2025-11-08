@@ -69,7 +69,6 @@ class NotificationManager {
 
     this.isInitialized = true
     this.createFallbackContainer()
-    this.setupNotificationCenterListener()
     
     logInfo('NotificationManager initialisé', {
       hasNativeSupport: 'Notification' in window,
@@ -114,12 +113,19 @@ class NotificationManager {
   }
 
   /**
-   * Configure l'écoute pour le centre de notifications
+   * Abonne un listener aux événements de notification
    */
-  setupNotificationCenterListener() {
-    this.listeners.set('notificationCenter', (callback) => {
-      this.notificationCenter = callback
-    })
+  subscribe(callback) {
+    if (typeof callback !== 'function') {
+      return () => {}
+    }
+
+    const listenerId = `listener_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
+    this.listeners.set(listenerId, callback)
+
+    return () => {
+      this.listeners.delete(listenerId)
+    }
   }
 
   /**
@@ -616,8 +622,7 @@ class NotificationManager {
    */
   onNotificationAdded(callback) {
     this.notificationCenter = callback
-    // Ajouter aussi dans les listeners pour compatibilité
-    this.listeners.set('notificationCenter', callback)
+    return this.subscribe(callback)
   }
 
   // Charger les notifications depuis localStorage - VERSION SÉCURISÉE
@@ -709,6 +714,8 @@ class NotificationManager {
   // Notifier tous les listeners
   notifyListeners(notification) {
     this.listeners.forEach(listener => {
+      if (typeof listener !== 'function') return
+
       try {
         listener(notification)
       } catch (error) {

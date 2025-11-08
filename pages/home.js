@@ -10,6 +10,7 @@ const HomePage = () => {
   const [showQuickComment, setShowQuickComment] = useState(false);
   const [featuredRecipe, setFeaturedRecipe] = useState(null);
   const [showFloatingButton, setShowFloatingButton] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   // Show floating button after user scrolls
   useEffect(() => {
@@ -29,6 +30,23 @@ const HomePage = () => {
       image: '/placeholder-recipe.jpg',
       user_id: 'chef-123'
     });
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
   }, []);
 
   const handleQuickCommentAdded = (comment) => {
@@ -276,7 +294,7 @@ const HomePage = () => {
           {/* Mini centre de notifications flottant pour mobile */}
           {user && (
             <div style={{
-              display: window.innerWidth <= 768 ? 'block' : 'none'
+              display: isMobile ? 'block' : 'none'
             }}>
               <NotificationCenter />
             </div>

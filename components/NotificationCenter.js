@@ -10,112 +10,132 @@ const NotificationCenter = () => {
   const [filter, setFilter] = useState('all') // all, likes, comments, system
   const [loading, setLoading] = useState(true)
   const [isInitialized, setIsInitialized] = useState(false)
+  const [permissionStatus, setPermissionStatus] = useState(null)
+  const [isRequestingPermission, setIsRequestingPermission] = useState(false)
   const panelRef = useRef(null)
   const bellRef = useRef(null)
 
+  const triggerBellAnimation = () => {
+    if (!bellRef.current) return
+
+    bellRef.current.classList.add(styles.newNotification)
+    setTimeout(() => {
+      bellRef.current?.classList.remove(styles.newNotification)
+    }, 2000)
+  }
+
   useEffect(() => {
-    // S'assurer que le gestionnaire est initialisé
-    if (typeof window !== 'undefined') {
-      notificationManager.init()
-      setIsInitialized(true)
+    if (typeof window === 'undefined') {
+      return
     }
 
-    // Charger les notifications existantes
+    notificationManager.init()
+    setIsInitialized(true)
     loadNotifications()
+    setPermissionStatus(notificationManager.getPermissionStatus())
 
-    // Écouter les nouvelles notifications
-    const handleNewNotification = (newNotification) => {
-      setNotifications(prev => [newNotification, ...prev])
-      setUnreadCount(prev => prev + 1)
-      
-      // Animation de la cloche pour nouvelle notification
-      if (bellRef.current) {
-        bellRef.current.classList.add(styles.newNotification)
-        setTimeout(() => {
-          bellRef.current?.classList.remove(styles.newNotification)
-        }, 2000)
+    const unsubscribe = notificationManager.subscribe((event) => {
+      if (!event) return
+
+      if (typeof event === 'object' && 'title' in event) {
+        setNotifications(prev => {
+          const filtered = prev.filter(notification => notification.id !== event.id)
+          return [event, ...filtered].slice(0, 50)
+        })
+
+        if (!event.read) {
+          triggerBellAnimation()
+        }
+      } else {
+        setNotifications(notificationManager.getStoredNotifications())
       }
-    }
 
-    notificationManager.onNotificationAdded(handleNewNotification)
+      setUnreadCount(notificationManager.getUnreadCount())
+    })
 
-    // Mettre à jour le compteur non lu
-    updateUnreadCount()
-
-    // Fermer le panneau en cliquant à l'extérieur
     const handleClickOutside = (event) => {
-      if (panelRef.current && !panelRef.current.contains(event.target) && 
+      if (panelRef.current && !panelRef.current.contains(event.target) &&
           bellRef.current && !bellRef.current.contains(event.target)) {
         setIsOpen(false)
       }
     }
 
+    const handleVisibilityChange = () => {
+      if (document.hidden) return
+      loadNotifications(false)
+      setPermissionStatus(notificationManager.getPermissionStatus())
+    }
+
     document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      if (typeof unsubscribe === 'function') {
+        unsubscribe()
+      }
     }
   }, [])
 
-  // Debug: ajouter des notifications de test en développement
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development' && isInitialized) {
-      // Forcer le rechargement des notifications toutes les 2 secondes en dev
-      const interval = setInterval(() => {
-        const currentNotifications = notificationManager.getStoredNotifications()
-        if (currentNotifications.length !== notifications.length) {
-          console.log('🔔 NotificationCenter: Rechargement des notifications', {
-            stored: currentNotifications.length,
-            displayed: notifications.length
-          })
-          setNotifications(currentNotifications)
-          updateUnreadCount()
-        }
-      }, 2000)
-      
-      return () => clearInterval(interval)
+  const loadNotifications = (withSpinner = true) => {
+    if (withSpinner) {
+      setLoading(true)
     }
-  }, [isInitialized, notifications.length])
 
-  const loadNotifications = () => {
-    setLoading(true)
     const stored = notificationManager.getStoredNotifications()
     setNotifications(stored)
+    setUnreadCount(notificationManager.getUnreadCount())
     setLoading(false)
   }
 
   const updateUnreadCount = () => {
-    const count = notificationManager.getUnreadCount()
-    setUnreadCount(count)
+    setUnreadCount(notificationManager.getUnreadCount())
   }
 
   const handleToggle = () => {
-    setIsOpen(!isOpen)
+    const willOpen = !isOpen
+    setIsOpen(willOpen)
     logUserInteraction('TOGGLE_NOTIFICATION_CENTER', 'notification-bell', {
       wasOpen: isOpen,
       unreadCount
     })
 
-    if (!isOpen) {
-      // Marquer toutes comme lues quand on ouvre (après un délai)
+    setPermissionStatus(notificationManager.getPermissionStatus())
+
+    if (willOpen) {
+      // Marquer toutes comme lues quand on ouvre (après un léger délai pour l'accessibilité)
       setTimeout(() => {
         notificationManager.markAllAsRead()
-        setUnreadCount(0)
-        loadNotifications()
-      }, 1500)
+        loadNotifications(false)
+      }, 800)
     }
   }
 
   const handleDeleteNotification = (notificationId) => {
     notificationManager.deleteNotification(notificationId)
-    loadNotifications()
-    updateUnreadCount()
+    loadNotifications(false)
   }
 
   const handleClearAll = () => {
     if (window.confirm('Supprimer toutes les notifications ?')) {
       notificationManager.clearAll()
-      setNotifications([])
-      setUnreadCount(0)
+      loadNotifications(false)
+    }
+  }
+
+  const handleRequestPermission = async () => {
+    if (permissionStatus && !permissionStatus.canRequest) {
+      return
+    }
+
+    try {
+      setIsRequestingPermission(true)
+      await notificationManager.requestPermission()
+    } finally {
+      setPermissionStatus(notificationManager.getPermissionStatus())
+      setIsRequestingPermission(false)
+      updateUnreadCount()
     }
   }
 
@@ -174,7 +194,7 @@ const NotificationCenter = () => {
 
   const formatNotificationBody = (notification) => {
     const { data, body } = notification
-    
+
     // Notification de like enrichie
     if (data?.type === 'like_with_stats' && data?.recentLikers) {
       return (
@@ -200,6 +220,9 @@ const NotificationCenter = () => {
     
     return body
   }
+
+  const isPermissionWarningVisible = permissionStatus?.supported && !permissionStatus.isGranted
+  const isPermissionUnsupported = permissionStatus?.supported === false
 
   const filteredNotifications = getFilteredNotifications()
 
@@ -230,6 +253,15 @@ const NotificationCenter = () => {
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
+        {isPermissionWarningVisible && unreadCount === 0 && (
+          <span
+            className={styles.permissionBadge}
+            aria-hidden="true"
+            title="Activez les notifications"
+          >
+            !
+          </span>
+        )}
       </button>
 
       {/* Panel des notifications */}
@@ -252,6 +284,42 @@ const NotificationCenter = () => {
               </button>
             </div>
           </div>
+
+          {isPermissionUnsupported && (
+            <div className={`${styles.permissionBanner} ${styles.permissionBannerWarning}`}>
+              <div className={styles.permissionInfo}>
+                <strong>Notifications indisponibles</strong>
+                <span>Votre navigateur ne supporte pas l'affichage des notifications.</span>
+              </div>
+            </div>
+          )}
+
+          {!isPermissionUnsupported && isPermissionWarningVisible && (
+            <div className={styles.permissionBanner}>
+              <div className={styles.permissionInfo}>
+                <strong>Activez les notifications</strong>
+                <span>
+                  {permissionStatus?.permission === 'denied'
+                    ? "Autorisez les notifications COCO dans les réglages de votre navigateur."
+                    : 'Recevez vos alertes de likes et commentaires en temps réel.'}
+                </span>
+                {permissionStatus?.permission === 'denied' && !permissionStatus?.canRequest && (
+                  <span className={styles.permissionHint}>
+                    Ouvrez les préférences du navigateur puis autorisez COCO à envoyer des notifications.
+                  </span>
+                )}
+              </div>
+              {permissionStatus?.canRequest && (
+                <button
+                  onClick={handleRequestPermission}
+                  className={styles.permissionAction}
+                  disabled={isRequestingPermission}
+                >
+                  {isRequestingPermission ? 'Patientez…' : 'Activer'}
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Filtres */}
           <div className={styles.filterTabs}>
