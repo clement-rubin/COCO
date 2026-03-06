@@ -756,7 +756,7 @@ export default async function handler(req, res) {
             // Data URL: upload to Supabase Storage
             try {
               // Import dynamique pour éviter les problèmes de dépendances circulaires
-              const { uploadImageToSupabase } = require('../utils/imageUtils');
+              const { uploadImageToSupabase } = require('../../utils/imageUtils');
               imageUrl = await uploadImageToSupabase(val);
             } catch (uploadErr) {
               logWarning('Erreur lors de l\'upload de l\'image base64, fallback sur la data URL', uploadErr);

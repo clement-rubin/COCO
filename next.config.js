@@ -1,4 +1,6 @@
 /** @type {import('next').NextConfig} */
+const isLocalWindows = process.platform === 'win32' && process.env.CI !== 'true'
+
 const nextConfig = {
   reactStrictMode: true,
   images: {
@@ -32,8 +34,8 @@ const nextConfig = {
     // !! WARN !!
     ignoreBuildErrors: true,
   },
-  // Optimiser pour Netlify serverless
-  output: 'standalone',
+  // Optimiser pour Netlify serverless sans casser les builds locaux Windows/OneDrive
+  output: isLocalWindows ? undefined : 'standalone',
   // Exclusions pour réduire la taille
   experimental: {
     serverMinification: true,

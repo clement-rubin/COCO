@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { uploadImageAsBytes, createRecipesTableIfNotExists } from '../lib/supabase';
+import { createRecipesTableIfNotExists } from '../lib/supabase';
+import { uploadImageAsBytes } from '../utils/imageUtils';
 import { logInfo, logError, logDebug } from '../utils/logger';
 
 export default function TestUpload() {
