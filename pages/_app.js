@@ -8,6 +8,7 @@ import { useRouter } from 'next/router'
 import { AuthProvider, useAuth } from '../components/AuthContext'
 import { logFrontendError, logComponentEvent, logUserInteraction, logInfo, logDebug } from '../utils/logger'
 import HuggingFaceBot from '../components/HuggingFaceBot'
+import NotificationCenter from '../components/NotificationCenter'
 
 function AuthenticatedNav({ user, signOut }) {
   const [showUserMenu, setShowUserMenu] = useState(false)
@@ -361,6 +362,8 @@ function AppContent({ Component, pageProps }) {
     return router.pathname === path ? 'nav-item active' : 'nav-item';
   };
 
+  const isHomePage = router.pathname === '/'
+
   const handleShare = async () => {
     if (!user) {
       router.push('/login?redirect=' + encodeURIComponent('/share-photo'))
@@ -419,8 +422,14 @@ function AppContent({ Component, pageProps }) {
           <Component {...pageProps} />
         </main>
         
-        {/* Chatbot IA Hugging Face */}
-        <HuggingFaceBot />
+        {/* Accueil: centre de notifications à la place de l'icône chatbot */}
+        {isHomePage ? (
+          <div className="home-notification-dock">
+            <NotificationCenter />
+          </div>
+        ) : (
+          <HuggingFaceBot />
+        )}
         
         {/* Bottom Navigation */}
         <nav className="bottom-nav" role="navigation" aria-label="Navigation principale">
@@ -694,6 +703,26 @@ function AppContent({ Component, pageProps }) {
         .add-button .nav-icon {
           font-size: 1.8rem !important;
           color: white !important;
+        }
+
+        .home-notification-dock {
+          position: fixed;
+          right: max(16px, calc((100vw - 430px) / 2 + 16px));
+          bottom: 92px;
+          z-index: 999;
+          border-radius: 999px;
+          padding: 4px;
+          border: 1px solid rgba(255, 107, 53, 0.25);
+          background: rgba(255, 255, 255, 0.92);
+          backdrop-filter: blur(10px);
+          box-shadow: 0 10px 24px rgba(15, 23, 42, 0.18);
+        }
+
+        @media (max-width: 480px) {
+          .home-notification-dock {
+            right: 12px;
+            bottom: 86px;
+          }
         }
       `}</style>
     </>

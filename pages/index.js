@@ -102,6 +102,11 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
   }, [loading, user, router])
 
   const topThree = leaderboard.slice(0, 3)
+  const podiumLayout = [
+    { chef: topThree[1], place: 2, medal: '🥈', className: 'place2' },
+    { chef: topThree[0], place: 1, medal: '🥇', className: 'place1' },
+    { chef: topThree[2], place: 3, medal: '🥉', className: 'place3' }
+  ].filter(entry => entry.chef)
   const remainingLeaders = leaderboard.slice(3)
   const maxRecipesCount =
     leaderboard.reduce((maxValue, chef) => Math.max(maxValue, chef.recipesCount || 0), 0) || 1
@@ -173,27 +178,14 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
   return (
     <div className={styles.container}>
       <Head>
-        <title>COCO - Accueil Communaute</title>
-        <meta name="description" content="Classement mensuel et feed recettes de la communaute COCO." />
+        <title>COCO - Classement et Recettes</title>
+        <meta name="description" content="Classement mensuel des chefs et feed recettes COCO." />
         <link rel="icon" href="/favicon.ico" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
       </Head>
 
       <main className={styles.main}>
         <div className={styles.content} style={{ maxWidth: 420, margin: '0 auto', paddingBottom: 20 }}>
-          <section className="panel heroPanel">
-            <h1>Accueil Communaute</h1>
-            <p>Une page simple avec le classement mensuel et le feed recettes.</p>
-            <div className="actions">
-              <button className="primaryBtn" onClick={() => router.push('/share-photo')}>
-                Partager une recette
-              </button>
-              <button className="ghostBtn" onClick={() => router.push('/amis')}>
-                Gerer mes amis
-              </button>
-            </div>
-          </section>
-
           <section className="panel leaderboardPanel">
             <div className="sectionHeader leaderboardHeader">
               <div>
@@ -218,31 +210,42 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
               <p className="infoText cookingEmpty">Aucune recette publiee ce mois-ci.</p>
             ) : (
               <>
-                <div className="podiumGrid">
-                  {topThree.map((chef, index) => (
-                    <article
-                      key={chef.user_id}
-                      className={`topChefCard place${index + 1} ${chef.isYou ? 'you' : ''}`}
-                    >
-                      <span className="topChefRank">
-                        {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}
-                      </span>
-                      {chef.avatar_url ? (
-                        <img className="topChefAvatar" src={chef.avatar_url} alt="" />
-                      ) : (
-                        <span className="topChefAvatar avatarFallback">
-                          {chef.display_name.charAt(0).toUpperCase()}
-                        </span>
-                      )}
-                      <h3 className="topChefName">
-                        {chef.display_name}
-                        {chef.isYou ? ' (vous)' : ''}
-                      </h3>
-                      <p className="topChefRecipes">
-                        {chef.recipesCount} recette{chef.recipesCount > 1 ? 's' : ''}
-                      </p>
-                    </article>
-                  ))}
+                <div className="podiumStage">
+                  {podiumLayout.map(entry => {
+                    const chef = entry.chef
+                    return (
+                      <article
+                        key={chef.user_id}
+                        className={`podiumSpot ${entry.className} ${chef.isYou ? 'you' : ''}`}
+                      >
+                        <div className="topChefCard">
+                          <span className="topChefRank">{entry.medal}</span>
+                          {chef.avatar_url ? (
+                            <img className="topChefAvatar" src={chef.avatar_url} alt="" />
+                          ) : (
+                            <span className="topChefAvatar avatarFallback">
+                              {chef.display_name.charAt(0).toUpperCase()}
+                            </span>
+                          )}
+                          <h3 className="topChefName">
+                            <span className="chefHat" aria-hidden="true">
+                              👨‍🍳
+                            </span>
+                            <span>
+                              {chef.display_name}
+                              {chef.isYou ? ' (vous)' : ''}
+                            </span>
+                          </h3>
+                          <p className="topChefRecipes">
+                            {chef.recipesCount} recette{chef.recipesCount > 1 ? 's' : ''}
+                          </p>
+                        </div>
+                        <div className="podiumStep">
+                          <span className="podiumPlace">#{entry.place}</span>
+                        </div>
+                      </article>
+                    )
+                  })}
                 </div>
 
                 {remainingLeaders.length > 0 && (
@@ -264,8 +267,15 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
                               <span className="avatarFallback">{chef.display_name.charAt(0).toUpperCase()}</span>
                             )}
                             <span className="chefName">
-                              {chef.display_name}
-                              {chef.isYou ? ' (vous)' : ''}
+                              <span className="chefNameMain">
+                                <span className="chefHat" aria-hidden="true">
+                                  👨‍🍳
+                                </span>
+                                <span>
+                                  {chef.display_name}
+                                  {chef.isYou ? ' (vous)' : ''}
+                                </span>
+                              </span>
                               <span className="chefRole">Chef en service</span>
                             </span>
                           </div>
@@ -311,11 +321,6 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
           box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
         }
 
-        .heroPanel {
-          background: linear-gradient(135deg, #fff7ed 0%, #ffffff 70%);
-          border-color: #fed7aa;
-        }
-
         .leaderboardPanel {
           background: linear-gradient(150deg, #fff8ef 0%, #fff1de 55%, #fff9f3 100%);
           border-color: #f7c59b;
@@ -332,12 +337,6 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
           border-radius: 999px;
           background: radial-gradient(circle, rgba(249, 115, 22, 0.17) 0%, rgba(249, 115, 22, 0) 70%);
           pointer-events: none;
-        }
-
-        h1 {
-          margin: 0;
-          font-size: 1.5rem;
-          color: #9a3412;
         }
 
         h2 {
@@ -357,33 +356,12 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
           line-height: 1.4;
         }
 
-        .actions {
-          display: flex;
-          gap: 10px;
-          margin-top: 14px;
-          flex-wrap: wrap;
-        }
-
-        .primaryBtn,
-        .ghostBtn,
         .refreshBtn {
           border-radius: 10px;
           padding: 9px 12px;
           font-size: 0.85rem;
           font-weight: 700;
           cursor: pointer;
-        }
-
-        .primaryBtn {
-          border: none;
-          background: #ea580c;
-          color: white;
-        }
-
-        .ghostBtn {
-          border: 1px solid #fdba74;
-          background: #fff7ed;
-          color: #9a3412;
         }
 
         .refreshBtn {
@@ -457,18 +435,27 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
           z-index: 1;
         }
 
-        .podiumGrid {
+        .podiumStage {
           display: grid;
           grid-template-columns: repeat(3, minmax(0, 1fr));
           gap: 10px;
           margin-bottom: 12px;
           position: relative;
           z-index: 1;
+          align-items: end;
+        }
+
+        .podiumSpot {
+          display: flex;
+          flex-direction: column;
+          align-items: stretch;
+          justify-content: flex-end;
+          gap: 6px;
         }
 
         .topChefCard {
           border-radius: 14px;
-          padding: 12px 8px;
+          padding: 10px 8px;
           color: white;
           display: flex;
           flex-direction: column;
@@ -476,7 +463,7 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
           text-align: center;
           border: 1px solid rgba(255, 255, 255, 0.35);
           box-shadow: 0 10px 22px rgba(15, 23, 42, 0.18);
-          min-height: 138px;
+          min-height: 120px;
           position: relative;
           overflow: hidden;
         }
@@ -490,19 +477,54 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
           pointer-events: none;
         }
 
+        .podiumStep {
+          width: 100%;
+          border-radius: 12px 12px 8px 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: 1px solid rgba(255, 255, 255, 0.35);
+          box-shadow: 0 8px 16px rgba(15, 23, 42, 0.16);
+        }
+
+        .podiumPlace {
+          font-size: 1rem;
+          font-weight: 800;
+          color: rgba(255, 255, 255, 0.95);
+        }
+
         .place1 {
+          transform: translateY(-8px);
+        }
+
+        .place1 .topChefCard,
+        .place1 .podiumStep {
           background: linear-gradient(160deg, #f59e0b, #f97316);
         }
 
-        .place2 {
+        .place1 .podiumStep {
+          min-height: 92px;
+        }
+
+        .place2 .topChefCard,
+        .place2 .podiumStep {
           background: linear-gradient(160deg, #64748b, #334155);
         }
 
-        .place3 {
+        .place2 .podiumStep {
+          min-height: 68px;
+        }
+
+        .place3 .topChefCard,
+        .place3 .podiumStep {
           background: linear-gradient(160deg, #b45309, #92400e);
         }
 
-        .topChefCard.you {
+        .place3 .podiumStep {
+          min-height: 54px;
+        }
+
+        .podiumSpot.you .topChefCard {
           outline: 2px solid rgba(255, 255, 255, 0.62);
           outline-offset: -2px;
         }
@@ -530,11 +552,12 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
           margin-top: 8px;
           font-size: 0.8rem;
           font-weight: 700;
-          line-height: 1.2;
+          line-height: 1.25;
           max-width: 100%;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 4px;
         }
 
         .topChefRecipes {
@@ -542,6 +565,11 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
           font-size: 0.72rem;
           font-weight: 700;
           color: rgba(255, 255, 255, 0.92);
+        }
+
+        .chefHat {
+          font-size: 0.78rem;
+          flex-shrink: 0;
         }
 
         .leaderboardList {
@@ -615,6 +643,14 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
           display: flex;
           flex-direction: column;
           min-width: 0;
+          gap: 1px;
+        }
+
+        .chefNameMain {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          min-width: 0;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -663,8 +699,25 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
         }
 
         @media (max-width: 420px) {
-          .podiumGrid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+          .podiumStage {
+            gap: 6px;
+          }
+
+          .topChefCard {
+            min-height: 108px;
+            padding: 8px 6px;
+          }
+
+          .place1 .podiumStep {
+            min-height: 74px;
+          }
+
+          .place2 .podiumStep {
+            min-height: 58px;
+          }
+
+          .place3 .podiumStep {
+            min-height: 48px;
           }
         }
       `}</style>
