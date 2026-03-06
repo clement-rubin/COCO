@@ -66,7 +66,7 @@ export default function SocialFeed() {
 
       // Charger les statistiques de likes pour tous les posts
       const recipeIds = formattedPosts.map(post => post.recipe.id)
-      const likesResult = await getMultipleRecipesLikesStats(recipeIds)
+      const likesResult = await getMultipleRecipesLikesStats(recipeIds, user?.id)
       
       if (likesResult.success) {
         setLikesData(likesResult.data)

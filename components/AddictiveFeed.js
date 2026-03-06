@@ -95,7 +95,7 @@ export default function AddictiveFeed({ initialRecipes = [], initialEngagement =
         if (recipesData && recipesData.length > 0) {
           // Charger les vraies statistiques d'engagement
           const recipeIds = recipesData.map(r => r.id)
-          const engagementStats = await getMultipleRecipesEngagementStats(recipeIds)
+          const engagementStats = await getMultipleRecipesEngagementStats(recipeIds, user?.id)
           
           logInfo('Public recipes loaded successfully', {
             userId: user.id,
@@ -137,7 +137,7 @@ export default function AddictiveFeed({ initialRecipes = [], initialEngagement =
         
         // Charger les statistiques même pour les utilisateurs non connectés
         const recipeIds = recipesData.map(r => r.id)
-        const engagementStats = await getMultipleRecipesEngagementStats(recipeIds)
+        const engagementStats = await getMultipleRecipesEngagementStats(recipeIds, user?.id)
         
         const formattedRecipes = recipesData.map(recipe => {
           const formatted = formatRecipeData(recipe, engagementStats.data[recipe.id])
@@ -219,7 +219,7 @@ export default function AddictiveFeed({ initialRecipes = [], initialEngagement =
       
       // Charger les vraies statistiques d'engagement pour les nouvelles recettes
       const newRecipeIds = recipesData.map(r => r.id)
-      const engagementStats = await getMultipleRecipesEngagementStats(newRecipeIds)
+      const engagementStats = await getMultipleRecipesEngagementStats(newRecipeIds, user?.id)
       
       const formattedRecipes = recipesData.map(recipe => formatRecipeData(recipe, engagementStats.data[recipe.id]))
       setRecipes(prev => [...prev, ...formattedRecipes])

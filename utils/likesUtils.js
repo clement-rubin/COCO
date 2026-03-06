@@ -10,28 +10,33 @@ import { safeGetRecipeLikesWithDetails } from './safeLikesUtils'
 /**
  * Obtenir les statistiques de likes pour une recette
  */
-export async function getRecipeLikesStats(recipeId) {
+export async function getRecipeLikesStats(recipeId, userId = null) {
   try {
-    // Récupérer directement depuis la table recipes avec le compteur automatique
-    const [recipeResponse, userLikeResponse] = await Promise.all([
-      fetch(`/api/recipes/${recipeId}/stats`),
-      fetch(`/api/recipe-likes/user-status?recipe_id=${recipeId}`)
-    ])
-    
-    if (!recipeResponse.ok) {
-      throw new Error(`HTTP ${recipeResponse.status}: ${recipeResponse.statusText}`)
+    if (!recipeId) {
+      throw new Error('recipeId is required')
     }
-    
-    const recipeData = await recipeResponse.json()
-    const userLikeData = userLikeResponse.ok ? await userLikeResponse.json() : { user_has_liked: false }
-    
+
+    const params = new URLSearchParams({ recipe_id: recipeId })
+    if (userId) {
+      params.set('user_id', userId)
+    }
+
+    const response = await fetch(`/api/recipe-likes?${params.toString()}`)
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(`HTTP ${response.status}: ${errorText || response.statusText}`)
+    }
+
+    const data = await response.json()
+
     return {
       success: true,
-      likes_count: recipeData.likes_count || 0,
-      user_has_liked: userLikeData.user_has_liked || false
+      likes_count: data.likes_count || 0,
+      user_has_liked: data.user_has_liked || false
     }
   } catch (error) {
-    logError('Error getting recipe likes stats', error, { recipeId })
+    logError('Error getting recipe likes stats', error, { recipeId, userId })
     return {
       success: false,
       likes_count: 0,
@@ -44,9 +49,18 @@ export async function getRecipeLikesStats(recipeId) {
 /**
  * Obtenir les statistiques de likes pour plusieurs recettes
  */
-export const getMultipleRecipesLikesStats = async (recipeIds) => {
+export const getMultipleRecipesLikesStats = async (recipeIds, userId = null) => {
   try {
-    const response = await fetch(`/api/recipe-likes?recipe_ids=${recipeIds.join(',')}`)
+    if (!Array.isArray(recipeIds) || recipeIds.length === 0) {
+      return { success: true, data: {} }
+    }
+
+    const params = new URLSearchParams({ recipe_ids: recipeIds.join(',') })
+    if (userId) {
+      params.set('user_id', userId)
+    }
+
+    const response = await fetch(`/api/recipe-likes?${params.toString()}`)
 
     if (!response.ok) {
       const errorText = await response.text()
@@ -99,39 +113,6 @@ export async function addRecipeLike(recipeId, userId, recipe = null, user = null
       hasUserData: !!user,
       currentLikesCount: recipe?.likes_count || 0
     })
-
-    // Vérifier d'abord si le like existe déjà - CORRECTION ICI
-    const { data: existingLike, error: checkError } = await supabase
-      .from('recipe_likes')
-      .select('id')
-      .eq('recipe_id', recipeId)
-      .eq('user_id', userId)
-      .maybeSingle() // Utiliser maybeSingle au lieu de single
-
-    if (checkError && checkError.code !== 'PGRST116') {
-      logError('Error checking existing like', checkError, { requestId })
-      throw checkError
-    }
-
-    if (existingLike) {
-      logInfo('Like already exists', {
-        requestId,
-        recipeId,
-        userId: userId.substring(0, 8) + '...'
-      })
-      
-      // Retourner les stats actuelles au lieu d'une erreur
-      const currentStats = await getRecipeLikesStats(recipeId)
-      return {
-        success: true,
-        like: existingLike,
-        stats: {
-          likes_count: currentStats.likes_count,
-          user_has_liked: true
-        },
-        message: 'Like déjà existant'
-      }
-    }
 
     const response = await fetch('/api/recipe-likes', {
       method: 'POST',
@@ -212,51 +193,11 @@ export async function addRecipeLike(recipeId, userId, recipe = null, user = null
       throw error
     }
 
-    // NOUVEAU: Déclencher une notification si c'est la recette de quelqu'un d'autre
-    if (response.ok && recipe && user && recipe.user_id && recipe.user_id !== userId) {
-      try {
-        // Obtenir l'utilisateur actuel pour éviter l'auto-notification
-        const { supabase } = await import('../lib/supabase')
-        const { data: currentUser } = await supabase.auth.getUser()
-        
-        // Importer la fonction de notification
-        const { showRecipeLikeNotification } = await import('./notificationUtils')
-        
-        // Déclencher la notification
-        showRecipeLikeNotification(
-          {
-            id: recipe.id,
-            title: recipe.title,
-            image: recipe.image,
-            user_id: recipe.user_id,
-            likes_count: data.stats?.likes_count || recipe.likes_count || 0
-          },
-          {
-            user_id: userId,
-            display_name: user.display_name || user.user_metadata?.display_name || 'Un utilisateur'
-          },
-          currentUser?.user || null
-        )
-        
-        logInfo('Like notification sent', {
-          recipeId: recipe.id,
-          recipeOwnerId: recipe.user_id,
-          likerId: userId
-        })
-      } catch (notificationError) {
-        logError('Error sending like notification', notificationError, {
-          recipeId,
-          userId: userId?.substring(0, 8) + '...'
-        })
-        // Ne pas faire échouer le like à cause d'une erreur de notification
-      }
-    }
-
     // Déclencher une notification enrichie si les données sont disponibles
     if (response.ok && recipe && user && recipe.user_id && recipe.user_id !== userId) {
       try {
         // Obtenir les statistiques détaillées pour la notification
-        const detailedStats = await safeGetRecipeLikesWithDetails(recipeId)
+        const detailedStats = await safeGetRecipeLikesWithDetails(recipeId, userId)
         
         if (detailedStats.total_likers > 1) {
           // Notification avec statistiques si plusieurs likes
@@ -566,10 +507,10 @@ export async function toggleRecipeLike(recipeId, userId, currentlyLiked, recipeD
 /**
  * Obtenir les statistiques complètes de likes et commentaires pour une recette
  */
-export async function getRecipeEngagementStats(recipeId) {
+export async function getRecipeEngagementStats(recipeId, userId = null) {
   try {
     const [likesResult, commentsResult] = await Promise.all([
-      getRecipeLikesStats(recipeId),
+      getRecipeLikesStats(recipeId, userId),
       getRecipeCommentsStats(recipeId)
     ])
     
@@ -623,9 +564,9 @@ export async function getRecipeCommentsStats(recipeId) {
 /**
  * Obtenir les statistiques d'engagement pour plusieurs recettes
  */
-async function legacyMultipleRecipesEngagementStats(recipeIds) {
+async function legacyMultipleRecipesEngagementStats(recipeIds, userId = null) {
   try {
-    const likesResult = await getMultipleRecipesLikesStats(recipeIds)
+    const likesResult = await getMultipleRecipesLikesStats(recipeIds, userId)
 
     const commentsPromises = recipeIds.map(async (recipeId) => {
       const commentsResult = await getRecipeCommentsStats(recipeId)
@@ -668,12 +609,15 @@ async function legacyMultipleRecipesEngagementStats(recipeIds) {
   }
 }
 
-export async function getMultipleRecipesEngagementStats(recipeIds) {
+export async function getMultipleRecipesEngagementStats(recipeIds, userId = null) {
   if (!recipeIds || recipeIds.length === 0) {
     return { success: true, data: {} }
   }
 
   const params = new URLSearchParams({ recipe_ids: recipeIds.join(',') })
+  if (userId) {
+    params.set('user_id', userId)
+  }
 
   try {
     const response = await fetch(`/api/recipes/engagement?${params.toString()}`)
@@ -705,7 +649,7 @@ export async function getMultipleRecipesEngagementStats(recipeIds) {
       recipeIdsCount: recipeIds.length
     })
 
-    return legacyMultipleRecipesEngagementStats(recipeIds)
+    return legacyMultipleRecipesEngagementStats(recipeIds, userId)
   }
 }
 
@@ -1039,7 +983,7 @@ export async function verifyAndFixLikesCounts() {
 /**
  * Hook React pour gérer les statistiques d'engagement d'une recette
  */
-export function useRecipeEngagementStats(recipeId) {
+export function useRecipeEngagementStats(recipeId, userId = null) {
   const [loading, setLoading] = useState(false)
   const [stats, setStats] = useState({
     likes_count: 0,
@@ -1053,12 +997,12 @@ export function useRecipeEngagementStats(recipeId) {
     if (recipeId) {
       loadEngagementStats()
     }
-  }, [recipeId])
+  }, [recipeId, userId])
 
   const loadEngagementStats = async () => {
     setLoading(true)
     try {
-      const result = await getRecipeEngagementStats(recipeId)
+      const result = await getRecipeEngagementStats(recipeId, userId)
       if (result.success) {
         setStats(result)
         setError(null)
@@ -1109,10 +1053,10 @@ export async function getRecipeSharesStats(recipeId) {
 /**
  * Obtenir les statistiques d'engagement complètes pour une recette
  */
-export async function getRecipeFullEngagementStats(recipeId) {
+export async function getRecipeFullEngagementStats(recipeId, userId = null) {
   try {
     const [likesStats, commentsStats, sharesStats] = await Promise.all([
-      getRecipeLikesStats(recipeId),
+      getRecipeLikesStats(recipeId, userId),
       getRecipeCommentsStats(recipeId),
       getRecipeSharesStats(recipeId)
     ])

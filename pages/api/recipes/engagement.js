@@ -2,6 +2,11 @@ import { logInfo, logError, logDebug } from '../../../utils/logger'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+function isUuid(value) {
+  return typeof value === 'string' && UUID_REGEX.test(value)
+}
 
 async function getAdminClient() {
   if (!SUPABASE_URL || !SERVICE_KEY) {
@@ -37,6 +42,9 @@ export default async function handler(req, res) {
 
   try {
     const rawIds = req.query.recipe_ids || req.query.ids || ''
+    const rawUserId = Array.isArray(req.query.user_id) ? req.query.user_id[0] : req.query.user_id
+    const userId = typeof rawUserId === 'string' ? rawUserId.trim() : ''
+    const hasValidUserId = isUuid(userId)
     const recipeIds = Array.isArray(rawIds)
       ? rawIds.flatMap(value => String(value).split(',')).map(id => id.trim()).filter(Boolean)
       : String(rawIds)
@@ -47,7 +55,8 @@ export default async function handler(req, res) {
     logDebug('Aggregated engagement requested', {
       requestId,
       rawIds,
-      recipeIdsCount: recipeIds.length
+      recipeIdsCount: recipeIds.length,
+      hasUserId: hasValidUserId
     })
 
     if (recipeIds.length === 0) {
@@ -86,6 +95,23 @@ export default async function handler(req, res) {
           comments_count: 0,
           user_has_liked: false
         }
+      }
+    }
+
+    if (hasValidUserId) {
+      const { data: userLikesRows, error: userLikesError } = await supabaseAdmin
+        .from('recipe_likes')
+        .select('recipe_id')
+        .eq('user_id', userId)
+        .in('recipe_id', recipeIds)
+
+      if (userLikesError) {
+        throw userLikesError
+      }
+
+      for (const row of userLikesRows || []) {
+        if (!aggregated[row.recipe_id]) continue
+        aggregated[row.recipe_id].user_has_liked = true
       }
     }
 

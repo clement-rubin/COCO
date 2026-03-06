@@ -8,7 +8,7 @@ import { processImageData } from '../utils/imageUtils'
 import { getRecipeIllustration } from '../utils/recipeIllustrations'
 import { logDebug, logInfo, logError, logUserInteraction } from '../utils/logger'
 import { canUserEditRecipe, deleteUserRecipe } from '../utils/profileUtils'
-import { toggleRecipeLike, getRecipeLikesStats } from '../utils/likesUtils'
+import { toggleRecipeLike } from '../utils/likesUtils'
 import { showRecipeLikeWithStatsNotification } from '../utils/notificationUtils'
 import { safeGetRecipeLikesWithDetails } from '../utils/safeLikesUtils'
 import styles from '../styles/RecipeCard.module.css'
@@ -50,12 +50,12 @@ const RecipeCard = ({
     if (recipe.id && (showLikes || showComments)) {
       loadEngagementStats()
     }
-  }, [recipe.id, showLikes, showComments])
+  }, [recipe.id, showLikes, showComments, user?.id])
 
   const loadEngagementStats = async () => {
     try {
       const { getRecipeEngagementStats } = await import('../utils/likesUtils')
-      const result = await getRecipeEngagementStats(recipe.id)
+      const result = await getRecipeEngagementStats(recipe.id, user?.id)
       if (result.success) {
         setEngagementStats({
           likes_count: result.likes_count,

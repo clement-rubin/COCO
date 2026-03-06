@@ -140,9 +140,11 @@ const NotificationCenter = () => {
   }
 
   const getFilteredNotifications = () => {
-    switch (filter) {
+      switch (filter) {
       case 'likes':
-        return notifications.filter(n => n.type === 'recipe_liked')
+        return notifications.filter(
+          n => n.type === 'recipe_liked' || n.type === 'recipe_liked_stats'
+        )
       case 'comments':
         return notifications.filter(n => n.data?.type === 'comment')
       case 'system':
@@ -170,6 +172,7 @@ const NotificationCenter = () => {
       friend_accepted: '🤝',
       recipe_shared: '🍽️',
       recipe_liked: '❤️',
+      recipe_liked_stats: '❤️',
       cooking_reminder: '⏰',
       system: '🔔',
       error: '⚠️',
@@ -333,7 +336,7 @@ const NotificationCenter = () => {
               onClick={() => setFilter('likes')}
               className={`${styles.filterTab} ${filter === 'likes' ? styles.active : ''}`}
             >
-              ❤️ Likes ({notifications.filter(n => n.type === 'recipe_liked').length})
+              ❤️ Likes ({notifications.filter(n => n.type === 'recipe_liked' || n.type === 'recipe_liked_stats').length})
             </button>
             <button
               onClick={() => setFilter('comments')}

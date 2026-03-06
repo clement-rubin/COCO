@@ -12,6 +12,7 @@ export const NOTIFICATION_TYPES = {
   FRIEND_ACCEPTED: 'friend_accepted',
   RECIPE_SHARED: 'recipe_shared',
   RECIPE_LIKED: 'recipe_liked',
+  RECIPE_LIKED_STATS: 'recipe_liked_stats',
   COOKING_REMINDER: 'cooking_reminder',
   ERROR: 'error',
   SUCCESS: 'success',
@@ -27,6 +28,7 @@ const DEFAULT_DURATIONS = {
   [NOTIFICATION_TYPES.FRIEND_ACCEPTED]: 6000,
   [NOTIFICATION_TYPES.RECIPE_SHARED]: 7000,
   [NOTIFICATION_TYPES.RECIPE_LIKED]: 4000,
+  [NOTIFICATION_TYPES.RECIPE_LIKED_STATS]: 7000,
   [NOTIFICATION_TYPES.COOKING_REMINDER]: 15000,
   [NOTIFICATION_TYPES.ERROR]: 8000,
   [NOTIFICATION_TYPES.SUCCESS]: 4000
@@ -567,6 +569,7 @@ class NotificationManager {
       [NOTIFICATION_TYPES.FRIEND_ACCEPTED]: '🤝',
       [NOTIFICATION_TYPES.RECIPE_SHARED]: '🍽️',
       [NOTIFICATION_TYPES.RECIPE_LIKED]: '❤️',
+      [NOTIFICATION_TYPES.RECIPE_LIKED_STATS]: '❤️',
       [NOTIFICATION_TYPES.COOKING_REMINDER]: '⏰',
       [NOTIFICATION_TYPES.ERROR]: '⚠️',
       [NOTIFICATION_TYPES.SUCCESS]: '✅'
@@ -1015,7 +1018,7 @@ export const showRecipeLikeWithStatsNotification = (recipe, fromUser, likeStats)
     }
 
     const notification = {
-      type: 'recipe_liked_stats',
+      type: NOTIFICATION_TYPES.RECIPE_LIKED_STATS,
       title: '❤️ Votre recette fait sensation !',
       body: bodyText,
       icon: '/icons/heart.png',

@@ -87,7 +87,7 @@ export default function FriendsFeed({ feedType = 'featured' }) {
   const loadRealLikesData = async (recipes) => {
     try {
       const recipeIds = recipes.map(recipe => recipe.id)
-      const result = await getMultipleRecipesLikesStats(recipeIds)
+      const result = await getMultipleRecipesLikesStats(recipeIds, user?.id)
       
       if (result.success) {
         setLikesData(result.data)
