@@ -708,8 +708,8 @@ function AppContent({ Component, pageProps }) {
         .home-notification-dock {
           position: fixed;
           right: max(16px, calc((100vw - 430px) / 2 + 16px));
-          bottom: 92px;
-          z-index: 999;
+          top: calc(env(safe-area-inset-top, 0px) + 12px);
+          z-index: 1200;
           border-radius: 999px;
           padding: 4px;
           border: 1px solid rgba(255, 107, 53, 0.25);
@@ -721,7 +721,7 @@ function AppContent({ Component, pageProps }) {
         @media (max-width: 480px) {
           .home-notification-dock {
             right: 12px;
-            bottom: 86px;
+            top: calc(env(safe-area-inset-top, 0px) + 10px);
           }
         }
       `}</style>
