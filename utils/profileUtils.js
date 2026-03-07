@@ -452,7 +452,7 @@ export async function getProfileIdFromUserId(userId) {
 }
 
 /**
- * Vérifie si deux utilisateurs sont amis (version corrigée pour profiles.id)
+ * Vérifie si deux utilisateurs sont amis (version corrigée pour auth.users.id)
  * @param {string} userId1 - Premier utilisateur (auth.users.id)
  * @param {string} userId2 - Deuxième utilisateur (auth.users.id)
  * @returns {Promise<Object>} Statut de l'amitié
@@ -463,25 +463,19 @@ export async function getFriendshipStatusCorrected(userId1, userId2) {
   }
 
   try {
-    // Obtenir les IDs de profil
-    const profileId1 = await getProfileIdFromUserId(userId1)
-    const profileId2 = await getProfileIdFromUserId(userId2)
-
-    if (!profileId1 || !profileId2) {
-      logError('Could not get profile IDs for friendship check', null, { userId1, userId2 })
-      return { status: 'error', canSendRequest: false }
-    }
-
-    const { data: friendship, error } = await supabase
+    const { data: friendships, error } = await supabase
       .from('friendships')
       .select('id, status, user_id, friend_id')
-      .or(`and(user_id.eq.${profileId1},friend_id.eq.${profileId2}),and(user_id.eq.${profileId2},friend_id.eq.${profileId1})`)
-      .maybeSingle()
+      .or(`and(user_id.eq.${userId1},friend_id.eq.${userId2}),and(user_id.eq.${userId2},friend_id.eq.${userId1})`)
+      .order('updated_at', { ascending: false })
+      .limit(1)
 
     if (error) {
       logError('Error checking friendship status', error)
       return { status: 'error', canSendRequest: false }
     }
+
+    const friendship = friendships?.[0]
 
     if (!friendship) {
       return { status: 'none', canSendRequest: true }
@@ -490,7 +484,7 @@ export async function getFriendshipStatusCorrected(userId1, userId2) {
     return {
       status: friendship.status,
       canSendRequest: friendship.status === 'rejected',
-      isRequester: friendship.user_id === profileId1,
+      isRequester: friendship.user_id === userId1,
       friendshipId: friendship.id
     }
 
@@ -512,35 +506,96 @@ export async function sendFriendRequestCorrected(fromUserId, toUserId) {
   }
 
   try {
-    // Obtenir les IDs de profil
-    const fromProfileId = await getProfileIdFromUserId(fromUserId)
-    const toProfileId = await getProfileIdFromUserId(toUserId)
-
-    if (!fromProfileId || !toProfileId) {
-      logError('Could not get profile IDs for friend request', null, { fromUserId, toUserId })
-      return { success: false, error: 'Profile IDs not found' }
-    }
+    // Assurer des profils minimaux pour l'affichage dans l'UI
+    await createProfile(fromUserId).catch(() => null)
+    await createProfile(toUserId).catch(() => null)
 
     // Vérifier s'il existe déjà une relation
     const existingStatus = await getFriendshipStatusCorrected(fromUserId, toUserId)
-    
-    if (existingStatus.status !== 'none') {
-      return { success: false, error: 'Friendship already exists' }
+
+    if (existingStatus.status === 'error') {
+      return { success: false, error: 'Unable to check existing friendship' }
+    }
+
+    if (existingStatus.status === 'accepted') {
+      return { success: false, error: 'Users are already friends' }
+    }
+
+    if (existingStatus.status === 'blocked') {
+      return { success: false, error: 'Friendship is blocked' }
+    }
+
+    if (existingStatus.status === 'pending') {
+      // Si l'autre utilisateur avait déjà envoyé une demande, on l'accepte automatiquement
+      if (!existingStatus.isRequester && existingStatus.friendshipId) {
+        const { data: acceptedFriendship, error: acceptError } = await supabase
+          .from('friendships')
+          .update({
+            status: 'accepted',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingStatus.friendshipId)
+          .select()
+          .single()
+
+        if (acceptError) {
+          logError('Error auto-accepting inverse friend request', acceptError, {
+            fromUserId,
+            toUserId,
+            friendshipId: existingStatus.friendshipId
+          })
+          return { success: false, error: acceptError.message }
+        }
+
+        return { success: true, friendship: acceptedFriendship, autoAccepted: true }
+      }
+
+      return { success: false, error: 'Friend request already sent' }
+    }
+
+    if (existingStatus.status === 'rejected' && existingStatus.friendshipId) {
+      const { data: reopenedFriendship, error: reopenError } = await supabase
+        .from('friendships')
+        .update({
+          user_id: fromUserId,
+          friend_id: toUserId,
+          status: 'pending',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', existingStatus.friendshipId)
+        .select()
+        .single()
+
+      if (!reopenError && reopenedFriendship) {
+        return { success: true, friendship: reopenedFriendship, reopened: true }
+      }
+
+      if (reopenError) {
+        logWarning('Could not reopen rejected friendship, falling back to insert', {
+          fromUserId,
+          toUserId,
+          error: reopenError.message
+        })
+      }
     }
 
     // Créer la demande d'amitié
     const { data: friendship, error } = await supabase
       .from('friendships')
       .insert({
-        user_id: fromProfileId,
-        friend_id: toProfileId,
-        status: 'pending'
+        user_id: fromUserId,
+        friend_id: toUserId,
+        status: 'pending',
+        updated_at: new Date().toISOString()
       })
       .select()
       .single()
 
     if (error) {
-      logError('Error creating friendship', error, { fromProfileId, toProfileId })
+      if (error.code === '23505') {
+        return { success: false, error: 'Friend request already exists' }
+      }
+      logError('Error creating friendship', error, { fromUserId, toUserId })
       return { success: false, error: error.message }
     }
 
@@ -1082,4 +1137,3 @@ export async function getMutualFriendsCount(userId1, userId2) {
     return 0;
   }
 }
-

@@ -1,6 +1,6 @@
-import { supabase, initializeFriendsSystem, getUserFriends, createOrUpdateProfile } from '../../lib/supabase'
+import { supabase, initializeFriendsSystem, getUserFriends } from '../../lib/supabase'
 import { logError, logInfo, logDebug, logApiCall } from '../../utils/logger'
-import { getProfileIdFromUserId, sendFriendRequestCorrected, removeFriend, getFriendshipStats, getUserStats } from '../../utils/profileUtils'
+import { sendFriendRequestCorrected, removeFriend, getFriendshipStats } from '../../utils/profileUtils'
 
 export default async function handler(req, res) {
   const startTime = Date.now()
@@ -73,10 +73,9 @@ async function handleGetRequest(req, res, requestId) {
     
     if (result.error) {
       logError('Erreur récupération données utilisateur', result.error, { requestId, user_id })
-      // Return empty data instead of error for graceful fallback
-      return res.status(200).json({
-        friends: [],
-        pendingRequests: []
+      return res.status(503).json({
+        error: 'friends_fetch_failed',
+        message: 'Unable to load friends data right now'
       })
     }
     
@@ -104,10 +103,9 @@ async function handleGetRequest(req, res, requestId) {
     
   } catch (error) {
     logError('Erreur dans handleGetRequest', error, { requestId, user_id })
-    // Return empty data for graceful fallback
-    return res.status(200).json({
-      friends: [],
-      pendingRequests: []
+    return res.status(500).json({
+      error: 'friends_fetch_exception',
+      message: 'Internal error while loading friends'
     })
   }
 }
