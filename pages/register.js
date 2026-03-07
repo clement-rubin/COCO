@@ -5,7 +5,7 @@ import { useRouter } from 'next/router'
 import { useAuth } from '../components/AuthContext'
 import { handleAuthError } from '../utils/errorHandler'
 import { createOrUpdateProfile } from '../lib/supabase'
-import { supabase } from '../lib/supabaseClient'
+import { supabase } from '../lib/supabase'
 import DevLogs from '../components/DevLogs'
 import { logDebug, logInfo, logSuccess, logWarning, logError, getLogs, clearLogs } from '../utils/logger'
 

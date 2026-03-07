@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/router'
 import AddictiveFeed from '../components/AddictiveFeed'
 import { useAuth } from '../components/AuthContext'
-import { supabase } from '../lib/supabaseClient'
+import { supabase } from '../lib/supabase'
 import styles from '../styles/Layout.module.css'
 
 export default function Home({ initialRecipes = [], initialEngagement = {} }) {
@@ -110,6 +110,10 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
   const remainingLeaders = leaderboard.slice(3)
   const maxRecipesCount =
     leaderboard.reduce((maxValue, chef) => Math.max(maxValue, chef.recipesCount || 0), 0) || 1
+  const totalMonthlyRecipes = leaderboard.reduce((total, chef) => total + (chef.recipesCount || 0), 0)
+  const topChef = leaderboard[0]
+  const userDisplayName =
+    user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'Chef'
 
   if (loading) {
     return (
@@ -185,10 +189,36 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
       </Head>
 
       <main className={styles.main}>
-        <div
-          className={styles.content}
-          style={{ maxWidth: 420, margin: '0 auto', paddingTop: 54, paddingBottom: 20 }}
-        >
+        <div className={`${styles.content} homeShell`}>
+          <section className="panel heroPanel">
+            <div className="heroTop">
+              <div className="heroText">
+                <p className="heroEyebrow">Menu du jour</p>
+                <h1 className="heroTitle">Service en cuisine, {userDisplayName}</h1>
+                <p className="heroSubtitle">
+                  Suivez le podium du mois et les nouvelles recettes qui sortent du four.
+                </p>
+              </div>
+              <div className="heroBadge" aria-hidden="true">
+                CHEF
+              </div>
+            </div>
+            <div className="heroStats">
+              <article className="heroStat">
+                <span className="heroStatLabel">Chefs classes</span>
+                <strong className="heroStatValue">{leaderboard.length}</strong>
+              </article>
+              <article className="heroStat">
+                <span className="heroStatLabel">Leader du mois</span>
+                <strong className="heroStatValue">{topChef?.recipesCount || 0}</strong>
+              </article>
+              <article className="heroStat">
+                <span className="heroStatLabel">Recettes du mois</span>
+                <strong className="heroStatValue">{totalMonthlyRecipes}</strong>
+              </article>
+            </div>
+          </section>
+
           <section className="panel leaderboardPanel">
             <div className="sectionHeader leaderboardHeader">
               <div>
@@ -309,6 +339,7 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
               <div>
                 <h2>Feed recettes communaute</h2>
                 <p>Les recettes publiees par vos amis et la communaute.</p>
+                <span className="feedBadge">Sorties du four</span>
               </div>
             </div>
 
@@ -322,13 +353,128 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
       </main>
 
       <style jsx>{`
+        .homeShell {
+          max-width: 420px;
+          margin: 0 auto;
+          padding-top: 54px;
+          padding-bottom: 20px;
+          position: relative;
+        }
+
+        .homeShell::before {
+          content: '';
+          position: absolute;
+          inset: 0 0 auto 0;
+          height: 180px;
+          background: radial-gradient(circle at 10% 30%, rgba(249, 115, 22, 0.26), rgba(249, 115, 22, 0) 55%),
+            radial-gradient(circle at 88% 18%, rgba(251, 191, 36, 0.2), rgba(251, 191, 36, 0) 58%);
+          filter: blur(10px);
+          opacity: 0.8;
+          pointer-events: none;
+        }
+
         .panel {
+          position: relative;
+          z-index: 1;
           background: #ffffff;
           border: 1px solid #e5e7eb;
           border-radius: 16px;
           padding: 16px;
           margin-top: 14px;
           box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+        }
+
+        .heroPanel {
+          margin-top: 0;
+          overflow: hidden;
+          border-color: #fdba74;
+          background: linear-gradient(145deg, #fff7ed 0%, #ffedd5 55%, #ffe8cf 100%);
+        }
+
+        .heroPanel::before {
+          content: '';
+          position: absolute;
+          inset: auto -20% -45% -20%;
+          height: 120px;
+          background: radial-gradient(circle, rgba(249, 115, 22, 0.28), rgba(249, 115, 22, 0) 70%);
+          pointer-events: none;
+        }
+
+        .heroTop {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 12px;
+        }
+
+        .heroText {
+          min-width: 0;
+        }
+
+        .heroEyebrow {
+          margin: 0;
+          font-size: 0.7rem;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          font-weight: 800;
+          color: #b45309;
+        }
+
+        .heroTitle {
+          margin: 6px 0 0;
+          font-size: 1rem;
+          line-height: 1.3;
+          font-weight: 800;
+          color: #7c2d12;
+        }
+
+        .heroSubtitle {
+          margin: 6px 0 0;
+          font-size: 0.82rem;
+          color: #9a3412;
+        }
+
+        .heroBadge {
+          border-radius: 999px;
+          border: 1px solid #f59e0b;
+          background: linear-gradient(145deg, #f59e0b, #ea580c);
+          color: #fff;
+          font-size: 0.68rem;
+          font-weight: 800;
+          letter-spacing: 0.05em;
+          padding: 8px 10px;
+          box-shadow: 0 8px 14px rgba(249, 115, 22, 0.25);
+          flex-shrink: 0;
+        }
+
+        .heroStats {
+          margin-top: 12px;
+          display: grid;
+          gap: 8px;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .heroStat {
+          border-radius: 12px;
+          border: 1px solid #fdba74;
+          background: rgba(255, 255, 255, 0.72);
+          padding: 8px;
+          display: grid;
+          gap: 3px;
+        }
+
+        .heroStatLabel {
+          font-size: 0.66rem;
+          color: #9a3412;
+          font-weight: 700;
+          line-height: 1.2;
+        }
+
+        .heroStatValue {
+          font-size: 1rem;
+          color: #7c2d12;
+          font-weight: 800;
+          line-height: 1;
         }
 
         .leaderboardPanel {
@@ -782,9 +928,32 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
 
         .feedPanel {
           padding-bottom: 8px;
+          background: linear-gradient(180deg, #ffffff 0%, #fffaf3 100%);
+          border-color: #f7d7b5;
+        }
+
+        .feedBadge {
+          margin-top: 7px;
+          display: inline-flex;
+          align-items: center;
+          padding: 4px 8px;
+          border-radius: 999px;
+          border: 1px solid #fed7aa;
+          background: #fff7ed;
+          color: #9a3412;
+          font-size: 0.68rem;
+          font-weight: 700;
         }
 
         @media (max-width: 420px) {
+          .heroTitle {
+            font-size: 0.94rem;
+          }
+
+          .heroStats {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+
           .leaderboardRibbon {
             font-size: 0.66rem;
             padding: 7px 8px;
