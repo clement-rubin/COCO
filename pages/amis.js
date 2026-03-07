@@ -362,45 +362,89 @@ export default function Amis() {
     setActionState((prev) => ({ ...prev, [key]: 'loading' }))
     let nextState
     try {
-      const response = await fetch('/api/friends', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          action: 'send_request',
-          user_id: user.id,
-          friend_id: targetUserId
-        })
-      })
+      await ensureProfileExists(user.id)
+      await ensureProfileExists(targetUserId)
 
-      const payload = await response.json().catch(() => ({}))
-      const apiError = payload?.error || null
-      const normalizedError = typeof apiError === 'string' ? apiError.toLowerCase() : ''
+      const { data: existingRows, error: existingError } = await supabase
+        .from('friendships')
+        .select('id, status, user_id, friend_id')
+        .or(
+          `and(user_id.eq.${user.id},friend_id.eq.${targetUserId}),and(user_id.eq.${targetUserId},friend_id.eq.${user.id})`
+        )
+        .limit(1)
 
-      if (!response.ok || !payload?.success) {
-        if (
-          normalizedError.includes('already') ||
-          normalizedError.includes('exists') ||
-          normalizedError.includes('duplicate')
-        ) {
-          showFeedback('Une demande est deja en cours.', 'error')
-          nextState = 'pending'
-        } else if (normalizedError.includes('users are already friends')) {
-          showFeedback('Vous etes deja amis.', 'success')
-          nextState = 'pending'
-        } else if (normalizedError.includes('blocked')) {
-          showFeedback('Impossible d envoyer la demande.', 'error')
-        } else {
-          throw new Error(apiError || `HTTP ${response.status}`)
-        }
-      } else {
-        if (payload?.status === 'accepted') {
+      if (existingError) {
+        throw existingError
+      }
+
+      const existing = existingRows?.[0] || null
+
+      if (existing?.status === 'accepted') {
+        showFeedback('Vous etes deja amis.', 'success')
+        nextState = 'pending'
+        await refreshLists()
+      } else if (existing?.status === 'blocked') {
+        showFeedback('Impossible d envoyer la demande.', 'error')
+      } else if (existing?.status === 'pending') {
+        if (existing.friend_id === user.id) {
+          const { error: acceptError } = await supabase
+            .from('friendships')
+            .update({
+              status: 'accepted',
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', existing.id)
+
+          if (acceptError) {
+            throw acceptError
+          }
+
           showFeedback('Demande acceptee automatiquement.', 'success')
         } else {
-          showFeedback('Demande envoyee.', 'success')
+          showFeedback('Une demande est deja en cours.', 'error')
         }
-        logInfo('Friend request sent', { from: user.id, to: targetUserId, status: payload?.status })
+
+        nextState = 'pending'
+        await refreshLists()
+      } else if (existing?.status === 'rejected') {
+        const { error: reopenError } = await supabase
+          .from('friendships')
+          .update({
+            user_id: user.id,
+            friend_id: targetUserId,
+            status: 'pending',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existing.id)
+
+        if (reopenError) {
+          throw reopenError
+        }
+
+        showFeedback('Demande renvoyee.', 'success')
+        nextState = 'pending'
+        await refreshLists()
+      } else {
+        const { error: insertError } = await supabase.from('friendships').insert({
+          user_id: user.id,
+          friend_id: targetUserId,
+          status: 'pending',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+
+        if (insertError) {
+          if (insertError.code === '23505') {
+            showFeedback('Une demande est deja en cours.', 'error')
+            nextState = 'pending'
+            await refreshLists()
+            return
+          }
+          throw insertError
+        }
+
+        showFeedback('Demande envoyee.', 'success')
+        logInfo('Friend request sent', { from: user.id, to: targetUserId, status: 'pending' })
         nextState = 'pending'
         await refreshLists()
       }
