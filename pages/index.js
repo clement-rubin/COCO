@@ -193,7 +193,6 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
           <section className="panel heroPanel">
             <div className="heroTop">
               <div className="heroText">
-                <p className="heroEyebrow">Menu du jour</p>
                 <h1 className="heroTitle">Service en cuisine, {userDisplayName}</h1>
                 <p className="heroSubtitle">
                   Suivez le podium du mois et les nouvelles recettes qui sortent du four.
@@ -249,15 +248,31 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
               <>
                 <div className="podiumArena">
                   <div className="podiumGlow" aria-hidden="true" />
-                  <div className="podiumStage">
+                  <div className="pyramidConnection" aria-hidden="true">
+                    <svg viewBox="0 0 300 200" preserveAspectRatio="none">
+                      <line x1="150" y1="20" x2="80" y2="150" stroke="url(#pyramidGradient1)" strokeWidth="3" opacity="0.6"/>
+                      <line x1="150" y1="20" x2="220" y2="150" stroke="url(#pyramidGradient2)" strokeWidth="3" opacity="0.6"/>
+                      <defs>
+                        <linearGradient id="pyramidGradient1" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stopColor="#fbbf24" stopOpacity="0.8"/>
+                          <stop offset="100%" stopColor="#60a5fa" stopOpacity="0.6"/>
+                        </linearGradient>
+                        <linearGradient id="pyramidGradient2" x1="100%" y1="0%" x2="0%" y2="100%">
+                          <stop offset="0%" stopColor="#fbbf24" stopOpacity="0.8"/>
+                          <stop offset="100%" stopColor="#cd853f" stopOpacity="0.6"/>
+                        </linearGradient>
+                      </defs>
+                    </svg>
+                  </div>
+                  <div className="podiumStage pyramidStage">
                     {podiumLayout.map(entry => {
                       const chef = entry.chef
                       return (
                         <article
                           key={chef.user_id}
-                          className={`podiumSpot ${entry.className} ${chef.isYou ? 'you' : ''}`}
+                          className={`podiumSpot pyramidSpot ${entry.className} ${chef.isYou ? 'you' : ''}`}
                         >
-                          <div className="topChefCard">
+                          <div className="topChefCard pyramidCard">
                             <span className="topChefRank">{entry.medal}</span>
                             {chef.avatar_url ? (
                               <img className="topChefAvatar" src={chef.avatar_url} alt="" />
@@ -278,9 +293,7 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
                             <p className="topChefRecipes">
                               {chef.recipesCount} recette{chef.recipesCount > 1 ? 's' : ''}
                             </p>
-                          </div>
-                          <div className="podiumStep">
-                            <span className="podiumPlace">#{entry.place}</span>
+                            <div className="pyramidRank">#{entry.place}</div>
                           </div>
                         </article>
                       )
@@ -296,10 +309,11 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
                         10,
                         Math.round(((chef.recipesCount || 0) / maxRecipesCount) * 100)
                       )
+                      const isTopChef = rank === 4
 
                       return (
-                        <li key={chef.user_id} className={`leaderRow cookingRow ${chef.isYou ? 'you' : ''}`}>
-                          <span className="rankBadge">#{rank}</span>
+                        <li key={chef.user_id} className={`leaderRow cookingRow ${chef.isYou ? 'you' : ''} ${isTopChef ? 'topChef' : ''}`} style={{ '--row-index': index }}>
+                          <span className="rankBadge">{isTopChef ? '⭐' : `#${rank}`}</span>
                           <div className="chefInfo">
                             {chef.avatar_url ? (
                               <img src={chef.avatar_url} alt="" />
@@ -315,6 +329,7 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
                                   {chef.display_name}
                                   {chef.isYou ? ' (vous)' : ''}
                                 </span>
+                                {isTopChef && <span className="topChefBadge" aria-hidden="true">🔥</span>}
                               </span>
                               <span className="chefRole">Chef en service</span>
                             </span>
@@ -411,15 +426,6 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
           min-width: 0;
         }
 
-        .heroEyebrow {
-          margin: 0;
-          font-size: 0.7rem;
-          text-transform: uppercase;
-          letter-spacing: 0.08em;
-          font-weight: 800;
-          color: #b45309;
-        }
-
         .heroTitle {
           margin: 6px 0 0;
           font-size: 1rem;
@@ -461,6 +467,38 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
           padding: 8px;
           display: grid;
           gap: 3px;
+          animation: heroStatSlideUp 0.6s ease-out backwards;
+          transition: all 0.2s ease;
+        }
+
+        .heroStats > .heroStat:nth-child(1) {
+          animation-delay: 0.1s;
+        }
+
+        .heroStats > .heroStat:nth-child(2) {
+          animation-delay: 0.2s;
+        }
+
+        .heroStats > .heroStat:nth-child(3) {
+          animation-delay: 0.3s;
+        }
+
+        @keyframes heroStatSlideUp {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .heroStat:hover {
+          background: rgba(255, 255, 255, 0.9);
+          border-color: #f97316;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(249, 115, 22, 0.15);
         }
 
         .heroStatLabel {
@@ -633,6 +671,41 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
           position: relative;
           z-index: 1;
           align-items: end;
+          perspective: 1200px;
+        }
+
+        .pyramidStage {
+          display: grid;
+          grid-template-columns: 1fr 2fr 1fr;
+          grid-template-rows: auto auto;
+          gap: 12px;
+          margin-bottom: 12px;
+          position: relative;
+          z-index: 1;
+          perspective: 1200px;
+          padding: 12px 0;
+          align-items: center;
+        }
+
+        .pyramidSpot.place1 {
+          grid-column: 2;
+          grid-row: 1;
+          transform: translateY(0) scale(1.15);
+          z-index: 10;
+        }
+
+        .pyramidSpot.place2 {
+          grid-column: 1;
+          grid-row: 2;
+          transform: translateX(-8px) translateY(0) scale(0.92);
+          justify-self: center;
+        }
+
+        .pyramidSpot.place3 {
+          grid-column: 3;
+          grid-row: 2;
+          transform: translateX(8px) translateY(0) scale(0.92);
+          justify-self: center;
         }
 
         .podiumArena {
@@ -642,7 +715,18 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
           border-radius: 14px;
           border: 1px solid rgba(251, 146, 60, 0.25);
           background: linear-gradient(180deg, rgba(255, 247, 237, 0.9), rgba(255, 236, 213, 0.65));
-          padding: 10px 8px 8px;
+          padding: 20px 8px 8px;
+          animation: podiumAreaGlow 3s ease-in-out infinite;
+          overflow: visible;
+        }
+
+        @keyframes podiumAreaGlow {
+          0%, 100% {
+            box-shadow: 0 0 20px rgba(251, 146, 60, 0.1);
+          }
+          50% {
+            box-shadow: 0 0 30px rgba(251, 146, 60, 0.2);
+          }
         }
 
         .podiumGlow {
@@ -651,6 +735,34 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
           border-radius: 14px;
           background: radial-gradient(circle at 50% 0%, rgba(250, 204, 21, 0.28), rgba(250, 204, 21, 0) 58%);
           pointer-events: none;
+          animation: podiumGlowPulse 4s ease-in-out infinite;
+        }
+
+        @keyframes podiumGlowPulse {
+          0%, 100% {
+            opacity: 0.8;
+          }
+          50% {
+            opacity: 1.2;
+          }
+        }
+
+        .pyramidConnection {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          width: 100%;
+          height: 100%;
+          pointer-events: none;
+          z-index: 0;
+        }
+
+        .pyramidConnection svg {
+          width: 100%;
+          height: 100%;
+          filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
         }
 
         .podiumSpot {
@@ -659,6 +771,78 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
           align-items: stretch;
           justify-content: flex-end;
           gap: 6px;
+          animation: podiumEntrance 0.6s ease-out backwards;
+        }
+
+        .place1 {
+          animation-delay: 0.2s;
+        }
+
+        .place2 {
+          animation-delay: 0.0s;
+        }
+
+        .place3 {
+          animation-delay: 0.4s;
+        }
+
+        @keyframes podiumEntrance {
+          from {
+            opacity: 0;
+            transform: translateY(20px) scale(0.95);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+
+        .pyramidSpot.place1 {
+          animation: pyramidPop 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+          animation-delay: 0.3s;
+        }
+
+        .pyramidSpot.place2 {
+          animation: pyramidSlideLeft 0.7s ease-out backwards;
+          animation-delay: 0.1s;
+        }
+
+        .pyramidSpot.place3 {
+          animation: pyramidSlideRight 0.7s ease-out backwards;
+          animation-delay: 0.1s;
+        }
+
+        @keyframes pyramidPop {
+          from {
+            opacity: 0;
+            transform: translateY(30px) scale(0.8);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1.15);
+          }
+        }
+
+        @keyframes pyramidSlideLeft {
+          from {
+            opacity: 0;
+            transform: translateX(-40px) translateY(30px) scale(0.8);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(-8px) translateY(0) scale(0.92);
+          }
+        }
+
+        @keyframes pyramidSlideRight {
+          from {
+            opacity: 0;
+            transform: translateX(40px) translateY(30px) scale(0.8);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(8px) translateY(0) scale(0.92);
+          }
         }
 
         .topChefCard {
@@ -674,6 +858,24 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
           min-height: 120px;
           position: relative;
           overflow: hidden;
+          transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+          transform-style: preserve-3d;
+        }
+
+        .pyramidCard {
+          min-height: 140px;
+          padding: 12px 10px;
+        }
+
+        .pyramidSpot.place2 .pyramidCard,
+        .pyramidSpot.place3 .pyramidCard {
+          min-height: 110px;
+          padding: 8px 6px;
+        }
+
+        .podiumSpot:hover .topChefCard {
+          transform: translateY(-3px) rotateY(-1deg) scale(1.02);
+          box-shadow: 0 16px 32px rgba(15, 23, 42, 0.25);
         }
 
         .topChefCard::after {
@@ -701,6 +903,23 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
           justify-content: center;
           border: 1px solid rgba(255, 255, 255, 0.35);
           box-shadow: 0 8px 16px rgba(15, 23, 42, 0.16);
+          transition: all 0.3s ease;
+        }
+
+        .pyramidRank {
+          margin-top: 6px;
+          padding: 4px 10px;
+          border-radius: 999px;
+          background: rgba(0, 0, 0, 0.25);
+          font-size: 0.7rem;
+          font-weight: 800;
+          color: rgba(255, 255, 255, 0.95);
+          border: 1px solid rgba(255, 255, 255, 0.3);
+          backdrop-filter: blur(4px);
+        }
+
+        .podiumSpot:hover .podiumStep {
+          box-shadow: 0 12px 24px rgba(15, 23, 42, 0.22);
         }
 
         .podiumPlace {
@@ -709,35 +928,62 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
           color: rgba(255, 255, 255, 0.95);
         }
 
-        .place1 {
-          transform: translateY(-8px);
+        .place1 .topChefCard,
+        .place1 .pyramidCard {
+          background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 25%, #ea580c 50%, #d97706 75%, #f59e0b 100%);
+          background-size: 400% 400%;
+          animation: goldenGradientShift 6s ease infinite;
+          position: relative;
+        }
+
+        .place1 .topChefCard::before,
+        .place1 .pyramidCard::before {
+          box-shadow: inset 0 -2px 8px rgba(139, 90, 20, 0.25), inset 0 2px 4px rgba(255, 200, 100, 0.4), inset 0 0 20px rgba(251, 191, 36, 0.2);
+          background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.15) 50%, transparent 70%);
+          animation: shimmer 3s infinite;
         }
 
         .place1 .topChefCard,
-        .place1 .podiumStep {
-          background: linear-gradient(160deg, #f59e0b, #f97316);
-        }
-
-        .place1 .podiumStep {
-          min-height: 92px;
+        .place1 .pyramidCard {
+          box-shadow: 0 16px 40px rgba(251, 146, 60, 0.5), 0 0 30px rgba(251, 191, 36, 0.3);
         }
 
         .place2 .topChefCard,
-        .place2 .podiumStep {
-          background: linear-gradient(160deg, #64748b, #334155);
+        .place2 .pyramidCard {
+          background: linear-gradient(135deg, #60a5fa 0%, #06b6d4 25%, #14b8a6 50%, #06b6d4 75%, #60a5fa 100%);
+          background-size: 400% 400%;
+          animation: blueGradientShift 6s ease infinite;
+          position: relative;
         }
 
-        .place2 .podiumStep {
-          min-height: 68px;
+        .place2 .topChefCard::before,
+        .place2 .pyramidCard::before {
+          box-shadow: inset 0 -2px 8px rgba(20, 80, 120, 0.25), inset 0 2px 4px rgba(100, 200, 255, 0.3), inset 0 0 20px rgba(96, 165, 250, 0.15);
+          background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.12) 50%, transparent 70%);
+        }
+
+        .place2 .topChefCard,
+        .place2 .pyramidCard {
+          box-shadow: 0 12px 32px rgba(96, 165, 250, 0.4), 0 0 25px rgba(96, 165, 250, 0.25);
         }
 
         .place3 .topChefCard,
-        .place3 .podiumStep {
-          background: linear-gradient(160deg, #b45309, #92400e);
+        .place3 .pyramidCard {
+          background: linear-gradient(135deg, #d4663f 0%, #8b5a2b 25%, #6b4423 50%, #a0522d 75%, #cd853f 100%);
+          background-size: 400% 400%;
+          animation: bronzeGradientShift 6s ease infinite;
+          position: relative;
         }
 
-        .place3 .podiumStep {
-          min-height: 54px;
+        .place3 .topChefCard::before,
+        .place3 .pyramidCard::before {
+          box-shadow: inset 0 -2px 8px rgba(60, 30, 10, 0.3), inset 0 2px 4px rgba(205, 133, 63, 0.3), inset 0 0 20px rgba(169, 82, 45, 0.15);
+          background: linear-gradient(45deg, transparent 30%, rgba(255, 200, 100, 0.1) 50%, transparent 70%);
+        }
+
+        .place3 .topChefCard,
+        .place3 .pyramidCard {
+          box-shadow: 0 10px 28px rgba(212, 102, 63, 0.35), 0 0 20px rgba(205, 133, 63, 0.2);
         }
 
         .podiumSpot.you .topChefCard {
@@ -752,6 +998,20 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
         .topChefRank {
           font-size: 1.2rem;
           margin-bottom: 6px;
+          display: inline-block;
+          animation: medalFloat 3s ease-in-out infinite;
+        }
+
+        @keyframes medalFloat {
+          0%, 100% {
+            transform: translateY(0px) rotateZ(0deg);
+          }
+          25% {
+            transform: translateY(-4px) rotateZ(-2deg);
+          }
+          75% {
+            transform: translateY(-2px) rotateZ(2deg);
+          }
         }
 
         .topChefAvatar {
@@ -766,6 +1026,20 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
           justify-content: center;
           font-size: 0.85rem;
           font-weight: 700;
+          animation: avatarPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes avatarPulse {
+          0%, 100% {
+            box-shadow: 0 0 0 0px rgba(255, 255, 255, 0.6);
+            transform: scale(1);
+          }
+          50% {
+            transform: scale(1.05);
+          }
+          70% {
+            box-shadow: 0 0 0 6px rgba(255, 255, 255, 0);
+          }
         }
 
         .topChefName {
@@ -815,7 +1089,35 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
           border: 1px solid #f5d0ae;
           background: rgba(255, 255, 255, 0.85);
           box-shadow: 0 6px 16px rgba(154, 52, 18, 0.08);
-          transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+          transition: all 0.2s ease;
+          animation: leaderRowEntrance 0.5s ease-out backwards;
+        }
+
+        .leaderRow:nth-child(1) {
+          animation-delay: 0.05s;
+        }
+
+        .leaderRow:nth-child(2) {
+          animation-delay: 0.1s;
+        }
+
+        .leaderRow:nth-child(3) {
+          animation-delay: 0.15s;
+        }
+
+        .leaderRow:nth-child(n+4) {
+          animation-delay: calc(0.15s + (var(--row-index) * 0.05s));
+        }
+
+        @keyframes leaderRowEntrance {
+          from {
+            opacity: 0;
+            transform: translateX(-15px) translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0) translateY(0);
+          }
         }
 
         .leaderRow:hover {
@@ -829,6 +1131,17 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
           border-color: #fb923c;
         }
 
+        .leaderRow.topChef {
+          border-color: #f97316;
+          background: linear-gradient(135deg, rgba(255, 247, 237, 0.95), rgba(255, 243, 224, 0.85));
+          box-shadow: 0 8px 20px rgba(249, 115, 22, 0.15);
+        }
+
+        .leaderRow.topChef:hover {
+          background: linear-gradient(135deg, rgba(255, 247, 237, 1), rgba(255, 243, 224, 0.95));
+          box-shadow: 0 12px 28px rgba(249, 115, 22, 0.22);
+        }
+
         .rankBadge {
           font-size: 0.75rem;
           font-weight: 800;
@@ -836,9 +1149,26 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
           min-width: 34px;
           padding: 4px 6px;
           border-radius: 999px;
-          background: linear-gradient(180deg, #fff7ed, #ffedd5);
-          border: 1px solid #fb923c;
+          background: linear-gradient(135deg, #fff7ed, #ffedd5);
+          border: 2px solid #fb923c;
           text-align: center;
+          transition: all 0.2s ease;
+          box-shadow: 0 2px 8px rgba(249, 115, 22, 0.15);
+          animation: rankBadgePulse 2s ease-in-out infinite;
+        }
+
+        .leaderRow:hover .rankBadge {
+          box-shadow: 0 4px 12px rgba(249, 115, 22, 0.25);
+          transform: scale(1.1);
+        }
+
+        @keyframes rankBadgePulse {
+          0%, 100% {
+            box-shadow: 0 2px 8px rgba(249, 115, 22, 0.15);
+          }
+          50% {
+            box-shadow: 0 4px 12px rgba(249, 115, 22, 0.25);
+          }
         }
 
         .chefInfo {
@@ -862,6 +1192,14 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
           font-weight: 700;
           color: #334155;
           flex-shrink: 0;
+          transition: all 0.2s ease;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .leaderRow:hover .chefInfo img,
+        .leaderRow:hover .avatarFallback {
+          transform: scale(1.15) rotateY(10deg);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }
 
         .chefName {
@@ -882,6 +1220,96 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
+          transition: all 0.2s ease;
+        }
+
+        .leaderRow:hover .chefNameMain {
+          font-weight: 800;
+        }
+
+        .chefHat {
+          font-size: 0.78rem;
+          flex-shrink: 0;
+          display: inline-block;
+          animation: chefHatWave 2s ease-in-out infinite;
+        }
+
+        @keyframes chefHatWave {
+          0%, 100% {
+            transform: rotateZ(0deg);
+          }
+          25% {
+            transform: rotateZ(-2deg);
+          }
+          75% {
+            transform: rotateZ(2deg);
+          }
+        }
+
+        .topChefBadge {
+          font-size: 0.7rem;
+          display: inline-flex;
+          animation: topChefFlame 1.5s ease-in-out infinite;
+          margin-left: 2px;
+        }
+
+        @keyframes topChefFlame {
+          0%, 100% {
+            transform: scale(1) translateY(0);
+          }
+          50% {
+            transform: scale(1.2) translateY(-2px);
+          }
+        }
+
+        @keyframes goldenGradientShift {
+          0% {
+            background-position: 0% 50%;
+            filter: brightness(1);
+          }
+          50% {
+            background-position: 100% 50%;
+            filter: brightness(1.1);
+          }
+          100% {
+            background-position: 0% 50%;
+            filter: brightness(1);
+          }
+        }
+
+        @keyframes blueGradientShift {
+          0% {
+            background-position: 0% 50%;
+          }
+          50% {
+            background-position: 100% 50%;
+            filter: brightness(1.05);
+          }
+          100% {
+            background-position: 0% 50%;
+          }
+        }
+
+        @keyframes bronzeGradientShift {
+          0% {
+            background-position: 0% 50%;
+          }
+          50% {
+            background-position: 100% 50%;
+            filter: brightness(1.08);
+          }
+          100% {
+            background-position: 0% 50%;
+          }
+        }
+
+        @keyframes shimmer {
+          0% {
+            background-position: -1000px;
+          }
+          100% {
+            background-position: 1000px;
+          }
         }
 
         .chefRole {
@@ -917,6 +1345,7 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
           border-radius: 999px;
           background: #fed7aa;
           overflow: hidden;
+          position: relative;
         }
 
         .heatFill {
@@ -924,6 +1353,43 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
           height: 100%;
           border-radius: 999px;
           background: linear-gradient(90deg, #fb923c, #ea580c);
+          animation: heatGlow 2s ease-in-out infinite, heatExpand 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+          box-shadow: 0 0 6px rgba(249, 115, 22, 0.4);
+        }
+
+        .leaderRow:nth-child(1) .heatFill {
+          animation-delay: 0.05s;
+        }
+
+        .leaderRow:nth-child(2) .heatFill {
+          animation-delay: 0.1s;
+        }
+
+        .leaderRow:nth-child(3) .heatFill {
+          animation-delay: 0.15s;
+        }
+
+        .leaderRow:nth-child(n+4) .heatFill {
+          animation-delay: calc(0.15s + (var(--row-index) * 0.05s));
+        }
+
+        @keyframes heatGlow {
+          0%, 100% {
+            box-shadow: 0 0 6px rgba(249, 115, 22, 0.4);
+          }
+          50% {
+            box-shadow: 0 0 12px rgba(249, 115, 22, 0.6);
+          }
+        }
+
+        @keyframes heatExpand {
+          from {
+            width: 0%;
+            box-shadow: 0 0 4px rgba(249, 115, 22, 0.2);
+          }
+          to {
+            width: 100%;
+          }
         }
 
         .feedPanel {
