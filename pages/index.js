@@ -112,6 +112,15 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
     leaderboard.reduce((maxValue, chef) => Math.max(maxValue, chef.recipesCount || 0), 0) || 1
   const totalMonthlyRecipes = leaderboard.reduce((total, chef) => total + (chef.recipesCount || 0), 0)
   const topChef = leaderboard[0]
+  const userRankIndex = leaderboard.findIndex(chef => chef.isYou)
+  const userRankLabel = userRankIndex >= 0 ? `#${userRankIndex + 1}` : 'Hors top 10'
+  const averageRecipesLabel =
+    leaderboard.length > 0
+      ? (totalMonthlyRecipes / leaderboard.length).toLocaleString('fr-FR', {
+          minimumFractionDigits: 1,
+          maximumFractionDigits: 1
+        })
+      : '0,0'
   const userDisplayName =
     user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'Chef'
 
@@ -220,13 +229,16 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
 
           <section className="panel leaderboardPanel">
             <div className="sectionHeader leaderboardHeader">
-              <div>
-                <h2>Classement mensuel</h2>
-                <p>{monthLabel}</p>
+              <div className="leaderboardHeading">
+                <div className="leaderboardTitleRow">
+                  <h2>Classement mensuel</h2>
+                  <span className="monthPill">{monthLabel}</span>
+                </div>
+                <p>Tableau de match du mois: rythme, podium et intensite.</p>
                 <div className="ingredientChips">
-                  <span>🔥 Fourneaux actifs</span>
-                  <span>🍲 Recettes maison</span>
-                  <span>👨‍🍳 Top chefs</span>
+                  <span>⚡ Sprint actif</span>
+                  <span>🏁 Recettes en course</span>
+                  <span>🥇 Podium ouvert</span>
                 </div>
               </div>
               <button className="refreshBtn refreshCookingBtn" onClick={fetchLeaderboard} disabled={leaderboardLoading}>
@@ -234,8 +246,34 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
               </button>
             </div>
             <div className="leaderboardRibbon">
-              <span>🏆 Podium du mois</span>
-              <span>{leaderboard.length} chefs en lice</span>
+              <span>🏟️ Tableau de competition</span>
+              <span className="leaderboardRibbonMeta">
+                <span className="liveDot" aria-hidden="true" />
+                {leaderboard.length} chefs en lice
+              </span>
+            </div>
+            <div className="leaderboardMetaGrid">
+              <article className="leaderMetric">
+                <span className="leaderMetricIcon" aria-hidden="true">🥇</span>
+                <div>
+                  <span className="leaderMetricLabel">MVP du mois</span>
+                  <strong className="leaderMetricValue">{topChef?.display_name || 'Aucun leader'}</strong>
+                </div>
+              </article>
+              <article className="leaderMetric">
+                <span className="leaderMetricIcon" aria-hidden="true">⏱️</span>
+                <div>
+                  <span className="leaderMetricLabel">Cadence</span>
+                  <strong className="leaderMetricValue">{averageRecipesLabel} recette/chef</strong>
+                </div>
+              </article>
+              <article className="leaderMetric">
+                <span className="leaderMetricIcon" aria-hidden="true">🎯</span>
+                <div>
+                  <span className="leaderMetricLabel">Votre rang</span>
+                  <strong className="leaderMetricValue">{userRankLabel}</strong>
+                </div>
+              </article>
             </div>
 
             {leaderboardError && <p className="infoError">{leaderboardError}</p>}
@@ -254,12 +292,12 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
                       <line x1="150" y1="20" x2="220" y2="150" stroke="url(#pyramidGradient2)" strokeWidth="3" opacity="0.6"/>
                       <defs>
                         <linearGradient id="pyramidGradient1" x1="0%" y1="0%" x2="100%" y2="100%">
-                          <stop offset="0%" stopColor="#fbbf24" stopOpacity="0.8"/>
-                          <stop offset="100%" stopColor="#60a5fa" stopOpacity="0.6"/>
+                          <stop offset="0%" stopColor="#10b981" stopOpacity="0.78"/>
+                          <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.62"/>
                         </linearGradient>
                         <linearGradient id="pyramidGradient2" x1="100%" y1="0%" x2="0%" y2="100%">
-                          <stop offset="0%" stopColor="#fbbf24" stopOpacity="0.8"/>
-                          <stop offset="100%" stopColor="#cd853f" stopOpacity="0.6"/>
+                          <stop offset="0%" stopColor="#ef4444" stopOpacity="0.78"/>
+                          <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.62"/>
                         </linearGradient>
                       </defs>
                     </svg>
@@ -285,13 +323,12 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
                               <span className="chefHat" aria-hidden="true">
                                 👨‍🍳
                               </span>
-                              <span>
-                                {chef.display_name}
-                                {chef.isYou ? ' (vous)' : ''}
-                              </span>
+                              <span>{chef.display_name}</span>
+                              {chef.isYou && <span className="youPill">vous</span>}
                             </h3>
                             <p className="topChefRecipes">
-                              {chef.recipesCount} recette{chef.recipesCount > 1 ? 's' : ''}
+                              <span aria-hidden="true">🏁</span>
+                              <span>{chef.recipesCount} recette{chef.recipesCount > 1 ? 's' : ''}</span>
                             </p>
                             <div className="pyramidRank">#{entry.place}</div>
                           </div>
@@ -325,13 +362,11 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
                                 <span className="chefHat" aria-hidden="true">
                                   👨‍🍳
                                 </span>
-                                <span>
-                                  {chef.display_name}
-                                  {chef.isYou ? ' (vous)' : ''}
-                                </span>
-                                {isTopChef && <span className="topChefBadge" aria-hidden="true">🔥</span>}
+                                <span>{chef.display_name}</span>
+                                {chef.isYou && <span className="youBadge">vous</span>}
+                                {isTopChef && <span className="topChefBadge" aria-hidden="true">⚡</span>}
                               </span>
-                              <span className="chefRole">Chef en service</span>
+                              <span className="chefRole">En competition</span>
                             </span>
                           </div>
                           <div className="countWrap">
@@ -516,8 +551,14 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
         }
 
         .leaderboardPanel {
-          background: linear-gradient(150deg, #fff8ef 0%, #fff1de 55%, #fff9f3 100%);
-          border-color: #f7c59b;
+          --leader-primary: #0f4c81;
+          --leader-accent: #ef4444;
+          --leader-energy: #10b981;
+          --leader-ink: #10253f;
+          --leader-soft: #eef6ff;
+          background: linear-gradient(145deg, #f4f9ff 0%, #e5f1ff 58%, #f7fbff 100%);
+          border-color: #b7d4f2;
+          box-shadow: 0 14px 32px rgba(15, 76, 129, 0.14);
           position: relative;
           overflow: hidden;
         }
@@ -529,7 +570,7 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
           width: 230px;
           height: 230px;
           border-radius: 999px;
-          background: radial-gradient(circle, rgba(249, 115, 22, 0.17) 0%, rgba(249, 115, 22, 0) 70%);
+          background: radial-gradient(circle, rgba(14, 116, 216, 0.2) 0%, rgba(14, 116, 216, 0) 72%);
           pointer-events: none;
         }
 
@@ -537,16 +578,23 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
           content: '';
           position: absolute;
           inset: 0;
-          background-image: linear-gradient(
-            135deg,
-            rgba(255, 255, 255, 0) 0%,
-            rgba(255, 255, 255, 0) 46%,
-            rgba(255, 255, 255, 0.2) 50%,
-            rgba(255, 255, 255, 0) 54%,
-            rgba(255, 255, 255, 0) 100%
-          );
+          background-image:
+            linear-gradient(
+              120deg,
+              rgba(255, 255, 255, 0) 0%,
+              rgba(255, 255, 255, 0.35) 48%,
+              rgba(255, 255, 255, 0.08) 52%,
+              rgba(255, 255, 255, 0) 100%
+            ),
+            repeating-linear-gradient(
+              90deg,
+              rgba(14, 116, 216, 0.08) 0,
+              rgba(14, 116, 216, 0.08) 1px,
+              rgba(14, 116, 216, 0) 1px,
+              rgba(14, 116, 216, 0) 22px
+            );
           pointer-events: none;
-          opacity: 0.55;
+          opacity: 0.48;
         }
 
         h2 {
@@ -581,10 +629,10 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
         }
 
         .refreshCookingBtn {
-          border: 1px solid #f7c59b;
-          background: linear-gradient(135deg, #f97316, #ea580c);
+          border: 1px solid #3b82f6;
+          background: linear-gradient(135deg, #2563eb, #0f4c81);
           color: #fff;
-          box-shadow: 0 8px 16px rgba(249, 115, 22, 0.25);
+          box-shadow: 0 8px 16px rgba(37, 99, 235, 0.28);
         }
 
         .refreshBtn:disabled {
@@ -606,6 +654,39 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
           z-index: 1;
         }
 
+        .leaderboardHeading {
+          min-width: 0;
+          display: grid;
+          gap: 6px;
+        }
+
+        .leaderboardTitleRow {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .monthPill {
+          display: inline-flex;
+          align-items: center;
+          border-radius: 999px;
+          padding: 4px 10px;
+          border: 1px solid #93c5fd;
+          background: linear-gradient(135deg, #eff6ff, #dbeafe);
+          color: #0f4c81;
+          font-size: 0.66rem;
+          font-weight: 800;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+        }
+
+        .leaderboardHeader p {
+          margin: 0;
+          font-size: 0.78rem;
+          color: #1e3a5f;
+        }
+
         .leaderboardRibbon {
           position: relative;
           z-index: 1;
@@ -613,15 +694,129 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
           align-items: center;
           justify-content: space-between;
           gap: 10px;
-          margin: 4px 0 12px;
-          padding: 8px 10px;
-          border-radius: 10px;
-          border: 1px solid rgba(251, 146, 60, 0.35);
-          background: rgba(255, 255, 255, 0.65);
-          color: #9a3412;
+          margin: 4px 0 10px;
+          padding: 9px 12px;
+          border-radius: 12px;
+          border: 1px solid rgba(59, 130, 246, 0.34);
+          background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(239, 246, 255, 0.97));
+          color: #123b62;
           font-size: 0.72rem;
           font-weight: 800;
-          letter-spacing: 0.01em;
+          letter-spacing: 0.015em;
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72), 0 4px 12px rgba(37, 99, 235, 0.1);
+        }
+
+        .leaderboardRibbonMeta {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .liveDot {
+          width: 7px;
+          height: 7px;
+          border-radius: 999px;
+          background: #10b981;
+          box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5);
+          animation: liveDotBeat 1.6s ease-in-out infinite;
+        }
+
+        @keyframes liveDotBeat {
+          0%,
+          100% {
+            transform: scale(1);
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.45);
+          }
+          50% {
+            transform: scale(1.18);
+            box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+          }
+        }
+
+        .leaderboardMetaGrid {
+          position: relative;
+          z-index: 1;
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 8px;
+          margin-bottom: 12px;
+        }
+
+        .leaderMetric {
+          position: relative;
+          overflow: hidden;
+          border-radius: 12px;
+          border: 1px solid #bfdbfe;
+          background: rgba(255, 255, 255, 0.86);
+          padding: 8px;
+          display: grid;
+          grid-template-columns: auto 1fr;
+          align-items: center;
+          gap: 8px;
+          animation: metricRise 0.55s ease-out backwards;
+        }
+
+        .leaderMetric:nth-child(1) {
+          animation-delay: 0.06s;
+        }
+
+        .leaderMetric:nth-child(2) {
+          animation-delay: 0.12s;
+        }
+
+        .leaderMetric:nth-child(3) {
+          animation-delay: 0.18s;
+        }
+
+        @keyframes metricRise {
+          from {
+            opacity: 0;
+            transform: translateY(8px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .leaderMetric::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(140deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0));
+          pointer-events: none;
+        }
+
+        .leaderMetricIcon {
+          width: 24px;
+          height: 24px;
+          border-radius: 999px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          border: 1px solid rgba(37, 99, 235, 0.35);
+          background: #eff6ff;
+          font-size: 0.82rem;
+        }
+
+        .leaderMetricLabel {
+          display: block;
+          font-size: 0.62rem;
+          font-weight: 700;
+          letter-spacing: 0.04em;
+          color: #1d4e89;
+          text-transform: uppercase;
+        }
+
+        .leaderMetricValue {
+          display: block;
+          margin-top: 1px;
+          font-size: 0.76rem;
+          font-weight: 800;
+          color: #0f2f53;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .ingredientChips {
@@ -634,9 +829,9 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
         .ingredientChips span {
           font-size: 0.68rem;
           font-weight: 700;
-          color: #9a3412;
-          background: rgba(255, 255, 255, 0.78);
-          border: 1px solid #fed7aa;
+          color: #174a78;
+          background: rgba(255, 255, 255, 0.82);
+          border: 1px solid #bfdbfe;
           border-radius: 999px;
           padding: 4px 8px;
         }
@@ -648,9 +843,9 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
         }
 
         .cookingEmpty {
-          color: #9a3412;
-          background: rgba(255, 255, 255, 0.76);
-          border: 1px dashed #fdba74;
+          color: #0f4c81;
+          background: rgba(239, 246, 255, 0.85);
+          border: 1px dashed #93c5fd;
           border-radius: 12px;
           padding: 10px 12px;
         }
@@ -713,8 +908,8 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
           z-index: 1;
           margin-bottom: 12px;
           border-radius: 14px;
-          border: 1px solid rgba(251, 146, 60, 0.25);
-          background: linear-gradient(180deg, rgba(255, 247, 237, 0.9), rgba(255, 236, 213, 0.65));
+          border: 1px solid rgba(59, 130, 246, 0.24);
+          background: linear-gradient(180deg, rgba(239, 246, 255, 0.94), rgba(224, 239, 255, 0.82));
           padding: 20px 8px 8px;
           animation: podiumAreaGlow 3s ease-in-out infinite;
           overflow: visible;
@@ -722,10 +917,10 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
 
         @keyframes podiumAreaGlow {
           0%, 100% {
-            box-shadow: 0 0 20px rgba(251, 146, 60, 0.1);
+            box-shadow: 0 0 20px rgba(37, 99, 235, 0.1);
           }
           50% {
-            box-shadow: 0 0 30px rgba(251, 146, 60, 0.2);
+            box-shadow: 0 0 30px rgba(37, 99, 235, 0.18);
           }
         }
 
@@ -733,7 +928,7 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
           position: absolute;
           inset: 0;
           border-radius: 14px;
-          background: radial-gradient(circle at 50% 0%, rgba(250, 204, 21, 0.28), rgba(250, 204, 21, 0) 58%);
+          background: radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.24), rgba(16, 185, 129, 0) 58%);
           pointer-events: none;
           animation: podiumGlowPulse 4s ease-in-out infinite;
         }
@@ -1051,7 +1246,20 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
           display: flex;
           align-items: center;
           justify-content: center;
+          flex-wrap: wrap;
           gap: 4px;
+        }
+
+        .youPill {
+          font-size: 0.62rem;
+          font-weight: 800;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          padding: 2px 6px;
+          border-radius: 999px;
+          border: 1px solid rgba(255, 255, 255, 0.6);
+          background: rgba(255, 255, 255, 0.24);
+          color: #fff;
         }
 
         .topChefRecipes {
@@ -1059,6 +1267,9 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
           font-size: 0.72rem;
           font-weight: 700;
           color: rgba(255, 255, 255, 0.92);
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
         }
 
         .chefHat {
@@ -1086,9 +1297,9 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
           align-items: center;
           padding: 10px;
           border-radius: 12px;
-          border: 1px solid #f5d0ae;
-          background: rgba(255, 255, 255, 0.85);
-          box-shadow: 0 6px 16px rgba(154, 52, 18, 0.08);
+          border: 1px solid #bfdbfe;
+          background: rgba(255, 255, 255, 0.9);
+          box-shadow: 0 6px 16px rgba(37, 99, 235, 0.1);
           transition: all 0.2s ease;
           animation: leaderRowEntrance 0.5s ease-out backwards;
         }
@@ -1122,52 +1333,52 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
 
         .leaderRow:hover {
           transform: translateY(-1px);
-          box-shadow: 0 10px 18px rgba(154, 52, 18, 0.12);
-          background: rgba(255, 255, 255, 0.95);
+          box-shadow: 0 10px 18px rgba(37, 99, 235, 0.16);
+          background: rgba(255, 255, 255, 0.98);
         }
 
         .cookingRow.you {
-          background: #fff7ed;
-          border-color: #fb923c;
+          background: #eff6ff;
+          border-color: #60a5fa;
         }
 
         .leaderRow.topChef {
-          border-color: #f97316;
-          background: linear-gradient(135deg, rgba(255, 247, 237, 0.95), rgba(255, 243, 224, 0.85));
-          box-shadow: 0 8px 20px rgba(249, 115, 22, 0.15);
+          border-color: #2563eb;
+          background: linear-gradient(135deg, rgba(239, 246, 255, 0.95), rgba(224, 242, 254, 0.86));
+          box-shadow: 0 8px 20px rgba(37, 99, 235, 0.16);
         }
 
         .leaderRow.topChef:hover {
-          background: linear-gradient(135deg, rgba(255, 247, 237, 1), rgba(255, 243, 224, 0.95));
-          box-shadow: 0 12px 28px rgba(249, 115, 22, 0.22);
+          background: linear-gradient(135deg, rgba(239, 246, 255, 1), rgba(224, 242, 254, 0.95));
+          box-shadow: 0 12px 28px rgba(37, 99, 235, 0.22);
         }
 
         .rankBadge {
           font-size: 0.75rem;
           font-weight: 800;
-          color: #7c2d12;
+          color: #0f3f6d;
           min-width: 34px;
           padding: 4px 6px;
           border-radius: 999px;
-          background: linear-gradient(135deg, #fff7ed, #ffedd5);
-          border: 2px solid #fb923c;
+          background: linear-gradient(135deg, #eff6ff, #dbeafe);
+          border: 2px solid #60a5fa;
           text-align: center;
           transition: all 0.2s ease;
-          box-shadow: 0 2px 8px rgba(249, 115, 22, 0.15);
+          box-shadow: 0 2px 8px rgba(37, 99, 235, 0.18);
           animation: rankBadgePulse 2s ease-in-out infinite;
         }
 
         .leaderRow:hover .rankBadge {
-          box-shadow: 0 4px 12px rgba(249, 115, 22, 0.25);
+          box-shadow: 0 4px 12px rgba(37, 99, 235, 0.28);
           transform: scale(1.1);
         }
 
         @keyframes rankBadgePulse {
           0%, 100% {
-            box-shadow: 0 2px 8px rgba(249, 115, 22, 0.15);
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.18);
           }
           50% {
-            box-shadow: 0 4px 12px rgba(249, 115, 22, 0.25);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.28);
           }
         }
 
@@ -1253,6 +1464,19 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
           margin-left: 2px;
         }
 
+        .youBadge {
+          font-size: 0.56rem;
+          font-weight: 800;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          color: #0f4c81;
+          background: #eff6ff;
+          border: 1px solid #93c5fd;
+          border-radius: 999px;
+          padding: 1px 6px;
+          line-height: 1.4;
+        }
+
         @keyframes topChefFlame {
           0%, 100% {
             transform: scale(1) translateY(0);
@@ -1315,7 +1539,7 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
         .chefRole {
           font-size: 0.66rem;
           font-weight: 600;
-          color: #9a3412;
+          color: #2563eb;
           margin-top: 1px;
         }
 
@@ -1327,14 +1551,14 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
           min-width: 52px;
           padding: 4px 6px;
           border-radius: 10px;
-          border: 1px solid #fed7aa;
-          background: rgba(255, 247, 237, 0.75);
+          border: 1px solid #bfdbfe;
+          background: rgba(239, 246, 255, 0.85);
         }
 
         .count {
           font-size: 0.88rem;
           font-weight: 800;
-          color: #9a3412;
+          color: #0f4c81;
           min-width: 22px;
           text-align: right;
         }
@@ -1343,7 +1567,7 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
           width: 48px;
           height: 5px;
           border-radius: 999px;
-          background: #fed7aa;
+          background: #bfdbfe;
           overflow: hidden;
           position: relative;
         }
@@ -1352,9 +1576,9 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
           display: block;
           height: 100%;
           border-radius: 999px;
-          background: linear-gradient(90deg, #fb923c, #ea580c);
+          background: linear-gradient(90deg, #10b981, #2563eb);
           animation: heatGlow 2s ease-in-out infinite, heatExpand 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
-          box-shadow: 0 0 6px rgba(249, 115, 22, 0.4);
+          box-shadow: 0 0 6px rgba(37, 99, 235, 0.36);
         }
 
         .leaderRow:nth-child(1) .heatFill {
@@ -1375,17 +1599,17 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
 
         @keyframes heatGlow {
           0%, 100% {
-            box-shadow: 0 0 6px rgba(249, 115, 22, 0.4);
+            box-shadow: 0 0 6px rgba(37, 99, 235, 0.36);
           }
           50% {
-            box-shadow: 0 0 12px rgba(249, 115, 22, 0.6);
+            box-shadow: 0 0 12px rgba(37, 99, 235, 0.55);
           }
         }
 
         @keyframes heatExpand {
           from {
             width: 0%;
-            box-shadow: 0 0 4px rgba(249, 115, 22, 0.2);
+            box-shadow: 0 0 4px rgba(37, 99, 235, 0.2);
           }
           to {
             width: 100%;
@@ -1423,6 +1647,24 @@ export default function Home({ initialRecipes = [], initialEngagement = {} }) {
           .leaderboardRibbon {
             font-size: 0.66rem;
             padding: 7px 8px;
+          }
+
+          .leaderboardMetaGrid {
+            grid-template-columns: 1fr;
+            gap: 6px;
+          }
+
+          .leaderMetric {
+            padding: 7px 8px;
+          }
+
+          .leaderMetricValue {
+            font-size: 0.72rem;
+          }
+
+          .monthPill {
+            font-size: 0.62rem;
+            padding: 3px 8px;
           }
 
           .podiumArena {
