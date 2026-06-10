@@ -310,7 +310,7 @@ export default async function handler(req, res) {
 
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return res.status(503).json({
-      error: 'Service non configuré',
+      error: 'Service non configure',
       message: "Variables d'environnement Supabase manquantes"
     })
   }
