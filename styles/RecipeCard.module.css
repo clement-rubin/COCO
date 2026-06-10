@@ -488,10 +488,6 @@
   }
 }
 
-/* Reduced motion keyframes */
-@media (prefers-reduced-motion: reduce) {
-}
-
 @keyframes cardPulse {
   0%, 100% {
     opacity: 1;
@@ -541,33 +537,25 @@
   .imageContainer {
     height: 120px !important;
   }
-}
   .recipeTitle {
     font-size: 1.05rem;
-    color : white;
   }
-  
   .recipeDescription {
     font-size: 0.9rem;
   }
-  
   .recipeDetails {
     font-size: 0.85rem;
   }
-  
   .recipeFooter {
     font-size: 0.8rem;
   }
-  
   .ownerActions {
     gap: 4px;
   }
-  
   .editBtn,
   .deleteBtn {
     width: 28px;
     height: 28px;
     font-size: 0.9rem;
   }
-
-  
+}
