@@ -7,7 +7,7 @@ export default function Social() {
   const [activeTab, setActiveTab] = useState('community')
 
   return (
-    <div style={{ paddingTop: '80px', minHeight: '100vh', background: 'var(--background-light)' }}>
+    <div style={{ paddingTop: '64px', minHeight: '100vh', background: 'var(--background-light)' }}>
       <Head>
         <title>Communauté - COCO</title>
         <meta name="description" content="Découvrez les dernières créations culinaires de la communauté COCO" />

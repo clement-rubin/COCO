@@ -1,6 +1,5 @@
 import Head from 'next/head'
 import Footer from './Footer'
-import Navbar from './Navbar'
 import ScrollToTop from './ScrollToTop'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
@@ -10,7 +9,7 @@ import styles from '../styles/Layout.module.css'
 
 export default function Layout({ children, title = 'COCO - Communauté Culinaire' }) {
   const router = useRouter()
-  const { user, logout } = useAuth()
+  const { user, signOut: logout } = useAuth()
 
   const isAuthPage = ['/login', '/signup', '/presentation'].includes(router.pathname)
 

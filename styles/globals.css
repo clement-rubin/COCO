@@ -78,9 +78,83 @@
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
-  
+
   /* Gradients */
   --gradient-brand: linear-gradient(135deg, #FF6B6B 0%, #4ECDC4 100%);
+  --gradient-warm: linear-gradient(135deg, #FFE0E0 0%, #FFF5F5 100%);
+
+  /* Sémantiques supplémentaires */
+  --success: #10b981;
+  --success-light: rgba(16, 185, 129, 0.1);
+  --warning: #f59e0b;
+  --warning-light: rgba(245, 158, 11, 0.1);
+  --secondary-green: #10b981;
+  --secondary-green-light: rgba(16, 185, 129, 0.1);
+
+  /* Aliases de compatibilité — spacing */
+  --spacing-xs: var(--space-1);
+  --spacing-sm: var(--space-2);
+  --spacing-md: var(--space-4);
+  --spacing-lg: var(--space-6);
+  --spacing-xl: var(--space-8);
+  --spacing-2xl: var(--space-12);
+
+  /* Aliases de compatibilité — couleurs */
+  --primary-color: var(--primary);
+  --primary-color-dark: var(--primary-hover);
+  --primary-color-rgb: 255, 107, 107;
+  --accent-color: var(--accent);
+  --primary-coral: var(--primary);
+  --primary-coral-light: var(--primary-light);
+  --primary-orange: #FF6B35;
+  --primary-orange-dark: #CC5026;
+  --primary-peach: rgba(255, 107, 53, 0.1);
+  --primary-dark: var(--primary-hover);
+  --warm-cream: #FFF8F0;
+  --text-color: var(--text-primary);
+  --text-dark: var(--text-primary);
+  --text-medium: var(--text-secondary);
+  --text-muted: var(--text-tertiary);
+  --text-light: var(--text-tertiary);
+  --border-color: var(--border-medium);
+  --border-radius-small: var(--radius-sm);
+  --border-radius-medium: var(--radius-md);
+  --border-radius-large: var(--radius-xl);
+
+  /* Aliases de compatibilité — fonds */
+  --bg: var(--bg-primary);
+  --bg-subtle: var(--bg-secondary);
+  --bg-muted: var(--bg-tertiary);
+  --bg-glass: rgba(255, 255, 255, 0.88);
+  --bg-card: var(--bg-surface);
+  --background-card: var(--bg-surface);
+  --card-color: var(--bg-surface);
+  --card-gradient: linear-gradient(135deg, #fff, #fafafa);
+  --bg-color: var(--bg-primary);
+  --bg-light: var(--bg-secondary);
+  --background-light: var(--bg-secondary);
+  --bg-gradient: var(--gradient-brand);
+  --warm-beige: #FEF3E2;
+
+  /* Aliases de compatibilité — bordures */
+  --border: var(--border-medium);
+  --border-emphasis: var(--border-strong);
+
+  /* Aliases de compatibilité — effets */
+  --blur-backdrop: blur(20px);
+  --glow-accent: 0 0 0 3px rgba(255, 107, 107, 0.2);
+  --error-color: #ef4444;
+  --transition-smooth-out: cubic-bezier(0.33, 1, 0.68, 1);
+  --transition-bounce-elastic: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+  /* Aliases de compatibilité — ombres */
+  --shadow: var(--shadow-md);
+  --shadow-light: var(--shadow-xs);
+  --shadow-medium: var(--shadow-md);
+  --shadow-heavy: var(--shadow-xl);
+
+  /* Aliases de compatibilité — transitions */
+  --transition: var(--transition-normal);
   --gradient-warm: linear-gradient(135deg, #FFE0E0 0%, #FFF5F5 100%);
   --gradient-cool: linear-gradient(135deg, #E0F7F7 0%, #F0FDFD 100%);
 }
