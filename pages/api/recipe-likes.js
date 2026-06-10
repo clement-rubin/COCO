@@ -308,6 +308,13 @@ export default async function handler(req, res) {
     return res.status(204).end()
   }
 
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return res.status(503).json({
+      error: 'Service non configuré',
+      message: "Variables d'environnement Supabase manquantes"
+    })
+  }
+
   const requestId = `like-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`
   const startTime = Date.now()
 
