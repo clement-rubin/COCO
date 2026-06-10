@@ -6,6 +6,7 @@ import { logUserInteraction, logError, logInfo, logDebug } from '../utils/logger
 import { showRecipeLikedNotification } from '../utils/notificationUtils'
 import { getMultipleRecipesEngagementStats } from '../utils/likesUtils'
 import styles from '../styles/AddictiveFeed.module.css'
+import FeedCard from './FeedCard'
 import { supabase } from '../lib/supabase'
 
 // Ajout d'un tableau de messages d'accueil dynamiques
@@ -1324,167 +1325,33 @@ export default function AddictiveFeed({ initialRecipes = [], initialEngagement =
 
   return (
     <div className={styles.feedContainer} ref={containerRef}>
+
+      {/* Bandeau leaderboard compact */}
+      {leaderboard.length > 0 && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          padding: '8px 16px',
+          background: 'linear-gradient(90deg, #fff7ed, #fef3c7)',
+          borderBottom: '1px solid #fed7aa',
+          fontSize: '0.82rem', fontWeight: 600, color: '#92400e', flexWrap: 'wrap'
+        }}>
+          <span>🏆 {new Intl.DateTimeFormat('fr-FR', { month: 'long' }).format(new Date())} —</span>
+          {leaderboard[0] && <span>🥇 {leaderboard[0].display_name}</span>}
+          {leaderboard[1] && <><span style={{ color: '#cbd5e1' }}>·</span><span>🥈 {leaderboard[1].display_name}</span></>}
+          {leaderboard[2] && <><span style={{ color: '#cbd5e1' }}>·</span><span>🥉 {leaderboard[2].display_name}</span></>}
+        </div>
+      )}
       {/* Suppression du podium du classement mensuel - gardé seulement dans index.js */}
       
       <div className={styles.recipesGrid}>
         {recipes.map((post, index) => (
-          <div 
-            key={post.id} 
-            className={styles.recipeCard}
-            style={{
-              '--animation-delay': `${index * 0.1}s`
-            }}
-          >
-            {/* Badge ami amélioré */}
-            <div className={styles.friendBadge}>
-              <span className={styles.friendIcon}>🤝</span>
-              <span className={styles.friendLabel}>Votre ami</span>
-            </div>
-            
-            {/* Image avec overlay amélioré */}
-            <div className={styles.recipeImageContainer} onClick={() => openRecipe(post.recipe.id)}>
-              <Image
-                src={post.recipe.image}
-                alt={post.recipe.title}
-                fill
-                className={styles.recipeImage}
-                sizes="(max-width: 768px) 100vw, 500px"
-                unoptimized={post.recipe.image.startsWith('data:')}
-                priority={index < 2}
-                onLoad={() => {
-                  logDebug('AddictiveFeed: Image loaded successfully', {
-                    recipeId: post.recipe.id,
-                    imageUrl: post.recipe.image?.substring(0, 50) + '...'
-                  })
-                }}
-                onError={(e) => {
-                  logError('AddictiveFeed: Image load error', new Error('Image failed to load'), {
-                    recipeId: post.recipe.id,
-                    imageUrl: post.recipe.image?.substring(0, 50) + '...'
-                  })
-                  e.target.src = '/placeholder-recipe.jpg'
-                }}
-              />
-              <div className={styles.imageOverlay}>
-                <div className={styles.categoryBadge}>
-                  {post.recipe.category}
-                </div>
-                {post.isQuickShare && (
-                  <div style={{
-                    background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.95), rgba(245, 158, 11, 0.95))',
-                    color: 'white',
-                    padding: '4px 10px',
-                    borderRadius: '10px',
-                    fontSize: '0.75rem',
-                    fontWeight: '700'
-                  }}>
-                    📸 Express
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Contenu avec design amélioré */}
-            <div className={styles.recipeContent}>
-              {/* Info utilisateur redessinée */}
-              <div
-                className={styles.userInfo}
-                role={post.user?.id && !post.user.id.startsWith('author_') ? 'button' : undefined}
-                tabIndex={post.user?.id && !post.user.id.startsWith('author_') ? 0 : undefined}
-                onClick={
-                  post.user?.id && !post.user.id.startsWith('author_')
-                    ? () => openAuthorProfile(post.user.id)
-                    : undefined
-                }
-                onKeyDown={
-                  post.user?.id && !post.user.id.startsWith('author_')
-                    ? (event) => handleProfileKeyDown(event, post.user.id)
-                    : undefined
-                }
-                aria-label={
-                  post.user?.id && !post.user.id.startsWith('author_')
-                    ? `Voir le profil de ${post.user.name}`
-                    : undefined
-                }
-              >
-                {/* Avatar utilisateur */}
-                <span className={styles.userAvatar}>
-                  {post.user.avatar_url ? (
-                    <img
-                      src={post.user.avatar_url}
-                      alt={post.user.name}
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: '50%',
-                        objectFit: 'cover',
-                        border: '2px solid #f3f4f6',
-                        background: '#fffbe6'
-                      }}
-                    />
-                  ) : (
-                    post.user.name?.charAt(0)?.toUpperCase() || post.user.emoji || '👤'
-                  )}
-                </span>
-                <div className={styles.userDetails}>
-                  <span className={styles.userName}>
-                    {post.user.name}
-                    {post.user.verified && <span className={styles.verified}>✅</span>}
-                    <span className={styles.friendIndicator} title="Votre ami">🤝</span>
-                  </span>
-                  <span className={styles.timeAgo}>{post.timeAgo}</span>
-                </div>
-              </div>
-
-              {/* Titre et description améliorés */}
-              <h3 className={styles.recipeTitle} onClick={() => openRecipe(post.recipe.id)}>
-                {post.recipe.title}
-              </h3>
-              
-              <p className={styles.recipeDescription}>
-                {post.recipe.description}
-              </p>
-
-              {/* Meta informations */}
-              <div className={styles.recipeMeta}>
-                <span className={styles.metaItem}>
-                  📂 {post.recipe.category}
-                </span>
-                {post.isQuickShare && (
-                  <span className={styles.metaItem}>
-                    📸 Partage express
-                  </span>
-                )}
-                <span className={styles.metaItem}>
-                  ⏱️ {post.timeAgo}
-                </span>
-              </div>
-
-              {/* Actions avec animations améliorées */}
-              <div className={styles.recipeActions}>
-                <button
-                  onClick={() => toggleLike(post.id)}
-                  className={`${styles.actionBtn} ${post.recipe.user_has_liked ? styles.liked : ''}`}
-                >
-                  {post.recipe.user_has_liked ? '❤️' : '🤍'} {post.recipe.likes}
-                </button>
-                
-                <button 
-                  className={styles.actionBtn}
-                  onClick={() => openRecipe(post.recipe.id)}
-                >
-                  💬 {post.recipe.comments}
-                </button>
-                
-                <button
-                  onClick={() => openRecipe(post.recipe.id)}
-                  className={styles.viewRecipeBtn}
-                >
-                  Voir la recette →
-                </button>
-              </div>
-            </div>
-          </div>
+          <FeedCard
+            key={post.id}
+            post={post}
+            rank={index + 1}
+            onLike={toggleLike}
+            onView={(recipeId) => router.push(`/recipe/${recipeId}`)}
+          />
         ))}
       </div>
       
@@ -1513,173 +1380,7 @@ export default function AddictiveFeed({ initialRecipes = [], initialEngagement =
         </div>
       )}
 
-      {/* Message d'encouragement - VERSION COMPACTE */}
-      {user && (
-        <div style={{
-          textAlign: 'center',
-          padding: '16px', // Réduction
-          background: 'linear-gradient(135deg, #fef3c7, #fde68a)',
-          margin: '16px', // Réduction
-          borderRadius: '14px', // Réduction
-          border: '1px solid #f59e0b'
-        }}>
-          <div style={{ fontSize: '1.2rem', marginBottom: '6px' }}>🍳</div>
-          <p style={{
-            margin: '0 0 8px 0', // Réduction
-            fontSize: '0.85rem', // Réduction
-            fontWeight: '600',
-            color: '#92400e'
-          }}>
-            Invitez vos amis à rejoindre COCO !
-          </p>
-          <p style={{
-            margin: '0 0 12px 0', // Réduction
-            fontSize: '0.75rem', // Réduction
-            color: '#b45309',
-            lineHeight: '1.4'
-          }}>
-            Plus vous avez d'amis, plus vous découvrirez de recettes
-          </p>
-          <button
-            onClick={() => router.push('/amis')}
-            style={{
-              background: '#f59e0b',
-              color: 'white',
-              border: 'none',
-              padding: '6px 14px', // Réduction
-              borderRadius: '8px',
-              fontSize: '0.75rem', // Réduction
-              fontWeight: '600',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.background = '#d97706'
-              e.target.style.transform = 'translateY(-1px)'
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.background = '#f59e0b'
-              e.target.style.transform = 'translateY(0)'
-            }}
-          >
-            👥 Gérer mes amis
-          </button>
-        </div>
-      )}
 
-      {/* Nouvelle section : Aperçu Collection de Cartes - Discrète */}
-      {user && (
-        <div style={{
-          textAlign: 'center',
-          padding: '12px',
-          background: 'linear-gradient(135deg, #f0f9ff, #e0f2fe)',
-          margin: '12px',
-          borderRadius: '12px',
-          border: '1px solid rgba(2, 132, 199, 0.2)',
-          position: 'relative',
-          overflow: 'hidden'
-        }}>
-          {/* Effet de brillance subtil */}
-          <div style={{
-            position: 'absolute',
-            top: -20,
-            right: -20,
-            width: 40,
-            height: 40,
-            background: 'radial-gradient(circle, rgba(2, 132, 199, 0.1) 0%, transparent 70%)',
-            borderRadius: '50%',
-            animation: 'floatingGlow 4s ease-in-out infinite'
-          }} />
-
-          <div style={{ 
-            fontSize: '1rem', 
-            marginBottom: '6px',
-            position: 'relative',
-            zIndex: 1
-          }}>🃏</div>
-          <p style={{
-            margin: '0 0 6px 0',
-            fontSize: '0.8rem',
-            fontWeight: '600',
-            color: '#0284c7',
-            position: 'relative',
-            zIndex: 1
-          }}>
-            Collection de Cartes Culinaires
-          </p>
-          <p style={{
-            margin: '0 0 10px 0',
-            fontSize: '0.7rem',
-            color: '#0369a1',
-            lineHeight: '1.3',
-            position: 'relative',
-            zIndex: 1
-          }}>
-            Découvrez les secrets des grands chefs
-          </p>
-
-          {/* Mini aperçu des cartes */}
-          <div style={{
-            display: 'flex',
-            justifyContent: 'center',
-            gap: 4,
-            marginBottom: 8,
-            position: 'relative',
-            zIndex: 1
-          }}>
-            {[
-              { icon: '🌸', color: '#f59e0b' },
-              { icon: '🍄', color: '#8b5cf6' },
-              { icon: '👑', color: '#ef4444' }
-            ].map((card, idx) => (
-              <div key={idx} style={{
-                width: 20,
-                height: 20,
-                background: `${card.color}20`,
-                border: `1px solid ${card.color}40`,
-                borderRadius: 4,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '0.7rem',
-                animation: `miniCardFloat 2s ease-in-out infinite ${idx * 0.3}s`
-              }}>
-                {card.icon}
-              </div>
-            ))}
-          </div>
-
-          <button
-            onClick={() => router.push('/progression')}
-            style={{
-              background: 'linear-gradient(135deg, #0284c7, #0369a1)',
-              color: 'white',
-              border: 'none',
-              padding: '5px 12px',
-              borderRadius: '6px',
-              fontSize: '0.7rem',
-              fontWeight: '600',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              position: 'relative',
-              zIndex: 1,
-              boxShadow: '0 2px 6px rgba(2, 132, 199, 0.2)'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.background = 'linear-gradient(135deg, #0369a1, #1e40af)'
-              e.target.style.transform = 'translateY(-1px)'
-              e.target.style.boxShadow = '0 3px 8px rgba(2, 132, 199, 0.3)'
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.background = 'linear-gradient(135deg, #0284c7, #0369a1)'
-              e.target.style.transform = 'translateY(0)'
-              e.target.style.boxShadow = '0 2px 6px rgba(2, 132, 199, 0.2)'
-            }}
-          >
-            🎯 Découvrir les cartes
-          </button>
-        </div>
-      )}
 
       {/* Animations CSS intégrées */}
       <style jsx>{`
