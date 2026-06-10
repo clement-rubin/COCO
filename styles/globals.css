@@ -714,14 +714,13 @@ a:hover {
   background: var(--gray-400);
 }
 
-/* Focus states pour l'accessibilité */
+/* Focus states pour l'accessibilité — seulement clavier, pas souris */
 *:focus {
-  outline: 2px solid var(--primary);
-  outline-offset: 2px;
+  outline: none;
 }
 
-button:focus,
-a:focus {
+*:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
+  border-radius: 4px;
 }
