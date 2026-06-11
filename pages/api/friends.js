@@ -61,7 +61,7 @@ async function handleGetRequest(req, res, requestId) {
   try {
     const result = await getUserFriends(user_id)
     
-    if (result.error) {
+    if (result.error && (!result.friends || result.friends.length === 0)) {
       logError('Erreur récupération données utilisateur', result.error, { requestId, user_id })
       return res.status(503).json({
         error: 'friends_fetch_failed',

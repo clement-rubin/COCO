@@ -202,39 +202,74 @@ export default function Amis() {
 
   const loadFriendsOverview = useCallback(async (userId) => {
     if (!userId) return { friendsList: [], requestsList: [] }
-    try {
-      const response = await fetch(`/api/friends?user_id=${encodeURIComponent(userId)}`)
-      if (!response.ok) throw new Error(`HTTP ${response.status}`)
-      const payload = await response.json()
 
-      const normFriend = (f) => ({
-        friendshipId: f.friendshipId ?? f.id ?? f.friendship_id ?? null,
-        userId: f.friend_id ?? f.friend_user_id ?? f.user_id ?? f.friend_profile?.user_id ?? null,
-        name: f.friend_profile?.display_name ?? f.friend_display_name ?? f.name ?? 'Utilisateur',
-        bio: f.friend_profile?.bio ?? f.friend_bio ?? '',
-        avatar: f.friend_profile?.avatar_url ?? f.friend_avatar_url ?? null
-      })
-      const normRequest = (r) => ({
-        id: r.id ?? r.friendship_id ?? null,
-        userId: r.user_id ?? r.requester_user_id ?? r.requester_profile?.user_id ?? r.profiles?.user_id ?? null,
-        name: r.requester_profile?.display_name ?? r.requester_display_name ?? r.name ?? 'Utilisateur',
-        bio: r.requester_profile?.bio ?? r.requester_bio ?? '',
-        avatar: r.requester_profile?.avatar_url ?? r.requester_avatar_url ?? null
-      })
+    // Query friendships table directly — same client as getFriendshipStats (which works)
+    const { data: rows, error: rowsErr } = await supabase
+      .from('friendships')
+      .select('id, user_id, friend_id, status, created_at')
+      .or(`user_id.eq.${userId},friend_id.eq.${userId}`)
+      .in('status', ['accepted', 'pending'])
+      .order('created_at', { ascending: false })
 
-      const friendsList = (payload?.friends || []).map(normFriend).filter(f => f.userId)
-      const requestsList = (payload?.pendingRequests || []).map(normRequest).filter(r => r.userId)
-      setFriends(friendsList)
-      setFriendRequests(requestsList)
-      return { friendsList, requestsList }
-    } catch (error) {
-      logError('API friends failed, using fallback', error)
+    if (rowsErr) {
+      logError('Failed to query friendships', rowsErr)
+      // Try RPC fallback
       const [friendsList, requestsList] = await Promise.all([
         loadFriendsFallback(userId),
         loadFriendRequestsFallback(userId)
       ])
       return { friendsList, requestsList }
     }
+
+    const accepted = (rows || []).filter(r => r.status === 'accepted')
+    const pendingIncoming = (rows || []).filter(r => r.status === 'pending' && r.friend_id === userId)
+
+    // Collect all user IDs we need profiles for
+    const profileIds = new Set()
+    accepted.forEach(r => {
+      const otherId = r.user_id === userId ? r.friend_id : r.user_id
+      if (otherId) profileIds.add(otherId)
+    })
+    pendingIncoming.forEach(r => {
+      if (r.user_id) profileIds.add(r.user_id)
+    })
+
+    // Batch-load profiles
+    let profileMap = {}
+    if (profileIds.size > 0) {
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('user_id, display_name, bio, avatar_url')
+        .in('user_id', Array.from(profileIds))
+      profileMap = Object.fromEntries((profiles || []).map(p => [p.user_id, p]))
+    }
+
+    const friendsList = accepted.map(r => {
+      const otherId = r.user_id === userId ? r.friend_id : r.user_id
+      const p = profileMap[otherId] || {}
+      return {
+        friendshipId: r.id,
+        userId: otherId,
+        name: p.display_name || 'Utilisateur',
+        bio: p.bio || '',
+        avatar: p.avatar_url || null
+      }
+    }).filter(f => f.userId)
+
+    const requestsList = pendingIncoming.map(r => {
+      const p = profileMap[r.user_id] || {}
+      return {
+        id: r.id,
+        userId: r.user_id,
+        name: p.display_name || 'Utilisateur',
+        bio: p.bio || '',
+        avatar: p.avatar_url || null
+      }
+    }).filter(r => r.userId)
+
+    setFriends(friendsList)
+    setFriendRequests(requestsList)
+    return { friendsList, requestsList }
   }, [loadFriendsFallback, loadFriendRequestsFallback])
 
   const loadStats = useCallback(async (userId) => {
