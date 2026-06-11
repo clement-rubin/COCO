@@ -39,6 +39,7 @@ export default function Amis() {
   const [activeTab, setActiveTab] = useState(TABS[0].id)
   const [friends, setFriends] = useState([])
   const [friendRequests, setFriendRequests] = useState([])
+  const [sentRequests, setSentRequests] = useState([])
   const [suggestions, setSuggestions] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
   const [searchResults, setSearchResults] = useState([])
@@ -163,6 +164,42 @@ export default function Amis() {
     }
   }, [])
 
+  const loadSentRequests = useCallback(async (userId) => {
+    try {
+      const { data: rows, error } = await supabase
+        .from('friendships')
+        .select('id, friend_id, created_at')
+        .eq('user_id', userId)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      if (!rows || rows.length === 0) { setSentRequests([]); return [] }
+      const ids = rows.map(r => r.friend_id).filter(Boolean)
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('user_id, display_name, bio, avatar_url')
+        .in('user_id', ids)
+      const byId = Object.fromEntries((profiles || []).map(p => [p.user_id, p]))
+      const formatted = rows.map(r => {
+        const p = byId[r.friend_id] || {}
+        return {
+          id: r.id,
+          userId: r.friend_id,
+          name: p.display_name || 'Utilisateur',
+          bio: p.bio || '',
+          avatar: p.avatar_url || null,
+          createdAt: r.created_at
+        }
+      })
+      setSentRequests(formatted)
+      return formatted
+    } catch (error) {
+      logError('Failed to load sent requests', error)
+      setSentRequests([])
+      return []
+    }
+  }, [])
+
   const loadFriendsOverview = useCallback(async (userId) => {
     if (!userId) return { friendsList: [], requestsList: [] }
     try {
@@ -248,7 +285,7 @@ export default function Amis() {
       }
       setUser(u)
       const { friendsList, requestsList } = await loadFriendsOverview(u.id)
-      await loadStats(u.id)
+      await Promise.all([loadStats(u.id), loadSentRequests(u.id)])
       const excl = computeExcludedIds(u.id, friendsList, requestsList)
       await loadSuggestions(u.id, excl)
     } catch (error) {
@@ -257,17 +294,17 @@ export default function Amis() {
     } finally {
       setLoading(false)
     }
-  }, [computeExcludedIds, loadFriendsOverview, loadStats, loadSuggestions, router, showFeedback])
+  }, [computeExcludedIds, loadFriendsOverview, loadSentRequests, loadStats, loadSuggestions, router, showFeedback])
 
   useEffect(() => { checkUser() }, [checkUser])
 
   const refreshLists = useCallback(async () => {
     if (!user) return
     const { friendsList, requestsList } = await loadFriendsOverview(user.id)
-    await loadStats(user.id)
+    await Promise.all([loadStats(user.id), loadSentRequests(user.id)])
     const excl = computeExcludedIds(user.id, friendsList, requestsList)
     await loadSuggestions(user.id, excl)
-  }, [computeExcludedIds, loadFriendsOverview, loadStats, loadSuggestions, user])
+  }, [computeExcludedIds, loadFriendsOverview, loadSentRequests, loadStats, loadSuggestions, user])
 
   const handleSearch = async (event) => {
     event.preventDefault()
@@ -423,6 +460,23 @@ export default function Amis() {
     }
   }
 
+  const cancelSentRequest = async (friendshipId, targetUserId) => {
+    if (!user) return
+    const key = `cancel-${friendshipId}`
+    setActionState(prev => ({ ...prev, [key]: 'loading' }))
+    try {
+      const { error } = await supabase.from('friendships').delete().eq('id', friendshipId)
+      if (error) throw error
+      showFeedback('Demande annulée.', 'success')
+      await refreshLists()
+    } catch (error) {
+      logError('Failed to cancel sent request', error)
+      showFeedback('Impossible d\'annuler la demande.', 'error')
+    } finally {
+      setActionState(prev => ({ ...prev, [key]: undefined, [`send-${targetUserId}`]: undefined }))
+    }
+  }
+
   const activeDiscoverList = useMemo(() => {
     if (searchTerm.trim().length >= MIN_SEARCH_LENGTH && searchResults.length > 0) return searchResults
     return suggestions
@@ -499,6 +553,35 @@ export default function Amis() {
             disabled={state === 'loading'}
           >
             Refuser
+          </button>
+        </div>
+      </motion.article>
+    )
+  }
+
+  const renderSentCard = (req) => {
+    const key = `cancel-${req.id}`
+    const state = actionState[key]
+    return (
+      <motion.article
+        key={`sent-${req.id}`}
+        variants={cardVariants}
+        className={`${styles.card} ${styles.cardSent}`}
+        layout
+      >
+        {renderAvatar(req.avatar, req.name)}
+        <div className={styles.cardContent}>
+          <strong>{req.name || 'Utilisateur'}</strong>
+          <span>Demande envoyée</span>
+        </div>
+        <div className={styles.cardActions}>
+          <button
+            type="button"
+            className={styles.secondaryButton}
+            onClick={() => cancelSentRequest(req.id, req.userId)}
+            disabled={state === 'loading'}
+          >
+            {state === 'loading' ? '…' : 'Annuler'}
           </button>
         </div>
       </motion.article>
@@ -592,8 +675,8 @@ export default function Amis() {
             <div className={styles.statsRow}>
               {[
                 { value: stats.friends, label: 'Amis', color: '#ff6b35' },
-                { value: stats.pending, label: 'En attente', color: '#f59e0b' },
-                { value: stats.blocked, label: 'Bloqués', color: '#94a3b8' }
+                { value: friendRequests.length, label: 'Reçues', color: '#f59e0b' },
+                { value: sentRequests.length, label: 'Envoyées', color: '#94a3b8' }
               ].map(s => (
                 <motion.div
                   key={s.label}
@@ -639,7 +722,7 @@ export default function Amis() {
           <nav className={styles.tabs}>
             {TABS.map(tab => {
               const count = tab.id === 'friends' ? friends.length
-                : tab.id === 'requests' ? friendRequests.length
+                : tab.id === 'requests' ? (friendRequests.length + sentRequests.length)
                 : null
               return (
                 <button
@@ -685,12 +768,27 @@ export default function Amis() {
               )}
 
               {activeTab === 'requests' && (
-                friendRequests.length === 0 ? (
+                (friendRequests.length === 0 && sentRequests.length === 0) ? (
                   <EmptyState icon="📬" message="Aucune demande en attente." styles={styles} />
                 ) : (
-                  <motion.div className={styles.list} variants={listVariants} initial="hidden" animate="visible">
-                    {friendRequests.map(renderRequestCard)}
-                  </motion.div>
+                  <>
+                    {friendRequests.length > 0 && (
+                      <>
+                        <p className={styles.sectionLabel}>Reçues</p>
+                        <motion.div className={styles.list} variants={listVariants} initial="hidden" animate="visible">
+                          {friendRequests.map(renderRequestCard)}
+                        </motion.div>
+                      </>
+                    )}
+                    {sentRequests.length > 0 && (
+                      <>
+                        <p className={styles.sectionLabel} style={friendRequests.length > 0 ? { marginTop: 24 } : undefined}>Envoyées</p>
+                        <motion.div className={styles.list} variants={listVariants} initial="hidden" animate="visible">
+                          {sentRequests.map(renderSentCard)}
+                        </motion.div>
+                      </>
+                    )}
+                  </>
                 )
               )}
 
