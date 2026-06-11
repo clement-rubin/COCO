@@ -10,7 +10,7 @@ import { uploadImageToSupabaseAndGetUrl } from '../utils/imageUtils'
 
 export default function SubmitRecipe() {
   const router = useRouter()
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const [isLoading, setIsLoading] = useState(true)
   const fileInputRef = useRef(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -338,13 +338,14 @@ export default function SubmitRecipe() {
   )
 
   useEffect(() => {
+    if (authLoading) return
     if (!user) {
       router.push('/login?redirect=' + encodeURIComponent('/submit-recipe'))
       return
     }
     setIsLoading(false)
     addLog('info', 'Page de partage de photo chargée', { userId: user?.id })
-  }, [user, router])
+  }, [user, authLoading, router])
 
   // Message de confirmation de soumission
   if (showSuccessMessage) {

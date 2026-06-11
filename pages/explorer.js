@@ -248,11 +248,6 @@ export default function Explorer() {
     { path: '/progression', label: 'Progression' }
   ];
 
-  useEffect(() => {
-    // Redirection automatique vers la nouvelle page Collections
-    router.replace('/collections')
-  }, [router])
-
   if (loading) {
     return (
       <div className={styles.container}>

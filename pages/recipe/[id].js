@@ -28,12 +28,15 @@ export default function RecipeDetail() {
   const [editingComment, setEditingComment] = useState(null)
   const [editCommentText, setEditCommentText] = useState('')
   const [savingComment, setSavingComment] = useState(false)
+  const [likesCount, setLikesCount] = useState(0)
+  const [isLoadingLike, setIsLoadingLike] = useState(false)
 
   useEffect(() => {
     if (id) {
       loadRecipe()
       loadUserPreferences()
       loadComments()
+      loadLikes()
     }
   }, [id])
 
@@ -251,44 +254,80 @@ export default function RecipeDetail() {
     }
   }
 
+  const loadLikes = async () => {
+    if (!id) return
+    try {
+      const params = new URLSearchParams({ recipe_id: id })
+      if (user?.id) params.set('user_id', user.id)
+      const res = await fetch(`/api/recipe-likes?${params}`)
+      if (!res.ok) return
+      const data = await res.json()
+      setLikesCount(data.likes_count || 0)
+      setIsLiked(data.user_has_liked || false)
+    } catch {
+      // non-critical, keep defaults
+    }
+  }
+
   const loadUserPreferences = () => {
     // Simplified user preferences without favorites system
     console.log('User preferences loaded')
   }
 
-  const toggleLike = () => {
+  const toggleLike = async () => {
     if (!user) {
       router.push('/login?redirect=' + encodeURIComponent(`/recipe/${id}`))
       return
     }
+    if (isLoadingLike) return
 
-    setIsLiked(!isLiked)
-    
-    // Simple like animation
-    if (!isLiked) {
-      const hearts = ['❤️', '💖', '💕']
-      for (let i = 0; i < 5; i++) {
-        setTimeout(() => {
-          const heart = document.createElement('div')
-          heart.innerHTML = hearts[Math.floor(Math.random() * hearts.length)]
-          heart.style.cssText = `
-            position: fixed;
-            font-size: 1.5rem;
-            z-index: 10000;
-            pointer-events: none;
-            animation: heartFloat 2s ease-out forwards;
-            left: ${Math.random() * 100}vw;
-            top: 50vh;
-          `
-          document.body.appendChild(heart)
-          setTimeout(() => heart.remove(), 2000)
-        }, i * 100)
+    const wasLiked = isLiked
+    // Optimistic update
+    setIsLiked(!wasLiked)
+    setLikesCount(prev => prev + (wasLiked ? -1 : 1))
+    setIsLoadingLike(true)
+
+    try {
+      const method = wasLiked ? 'DELETE' : 'POST'
+      const url = wasLiked
+        ? `/api/recipe-likes?recipe_id=${id}&user_id=${user.id}`
+        : '/api/recipe-likes'
+      const body = wasLiked ? undefined : JSON.stringify({ recipe_id: id, user_id: user.id })
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body
+      })
+
+      if (!res.ok) throw new Error('API error')
+
+      const data = await res.json()
+      setLikesCount(data.stats?.likes_count ?? (wasLiked ? likesCount - 1 : likesCount + 1))
+
+      if (!wasLiked) {
+        const hearts = ['❤️', '💖', '💕']
+        for (let i = 0; i < 5; i++) {
+          setTimeout(() => {
+            const heart = document.createElement('div')
+            heart.innerHTML = hearts[Math.floor(Math.random() * hearts.length)]
+            heart.style.cssText = `position:fixed;font-size:1.5rem;z-index:10000;pointer-events:none;animation:heartFloat 2s ease-out forwards;left:${Math.random() * 100}vw;top:50vh;`
+            document.body.appendChild(heart)
+            setTimeout(() => heart.remove(), 2000)
+          }, i * 100)
+        }
       }
+    } catch {
+      // Revert optimistic update on error
+      setIsLiked(wasLiked)
+      setLikesCount(prev => prev + (wasLiked ? 1 : -1))
+    } finally {
+      setIsLoadingLike(false)
     }
-    
+
     logUserInteraction('TOGGLE_LIKE_RECIPE', 'recipe-detail', {
       recipeId: id,
-      action: isLiked ? 'unlike' : 'like',
+      action: wasLiked ? 'unlike' : 'like',
       userId: user.id
     })
   }
@@ -672,11 +711,12 @@ export default function RecipeDetail() {
 
       {/* Actions rapides */}
       <div className={styles.quickActions}>
-        <button 
-          onClick={toggleLike}
+        <button
           className={`${styles.actionBtn} ${isLiked ? styles.liked : ''}`}
+          onClick={toggleLike}
+          disabled={isLoadingLike}
         >
-          {isLiked ? '❤️' : '🤍'} {recipe.likes || 0}
+          {isLiked ? '❤️' : '🤍'} {likesCount}
         </button>
         
         <button onClick={shareRecipe} className={styles.actionBtn}>

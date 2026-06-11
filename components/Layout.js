@@ -15,7 +15,7 @@ export default function Layout({ children, title = 'COCO - Communauté Culinaire
   const isAuthPage = ['/login', '/signup', '/presentation'].includes(router.pathname)
 
   // Masquer le header sur certaines pages
-  const hideHeader = isAuthPage || router.pathname === '/social-logs'
+  const hideHeader = isAuthPage || ['/social-logs', '/amis', '/profil', '/profile/[id]'].includes(router.pathname)
   const hideFooter = ['/amis', '/profil', '/profile/[id]'].includes(router.pathname)
 
   // Effet pour les animations fluides lors du chargement des pages

@@ -161,6 +161,17 @@ export default function Progression({ user }) {
     )
   }
 
+  if (!stats) {
+    return (
+      <section className={styles.container}>
+        <div className={styles.emptyState}>
+          <h1>Progression</h1>
+          <p>Impossible de charger votre progression. Rechargez la page.</p>
+        </div>
+      </section>
+    )
+  }
+
   return (
     <section className={styles.container}>
       <header className={styles.header}>

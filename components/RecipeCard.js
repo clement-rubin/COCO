@@ -9,8 +9,6 @@ import { getRecipeIllustration } from '../utils/recipeIllustrations'
 import { logDebug, logInfo, logError, logUserInteraction } from '../utils/logger'
 import { canUserEditRecipe, deleteUserRecipe } from '../utils/profileUtils'
 import { toggleRecipeLike } from '../utils/likesUtils'
-import { showRecipeLikeWithStatsNotification } from '../utils/notificationUtils'
-import { safeGetRecipeLikesWithDetails } from '../utils/safeLikesUtils'
 import styles from '../styles/RecipeCard.module.css'
 
 const RecipeCard = ({ 
@@ -208,32 +206,6 @@ const RecipeCard = ({
           `
           document.body.appendChild(heart)
           setTimeout(() => heart.remove(), 1500)
-
-          // Notification enrichie si c'est la recette de quelqu'un d'autre
-          if (
-            recipe.user_id &&
-            recipe.user_id !== user.id // Ne pas notifier si l'utilisateur like sa propre recette
-          ) {
-            try {
-              // Obtenir les statistiques détaillées pour la notification
-              const detailedStats = await safeGetRecipeLikesWithDetails(recipe.id)
-              
-              if (detailedStats.total_likers > 1) {
-                showRecipeLikeWithStatsNotification({
-                  id: recipe.id,
-                  title: recipe.title,
-                  image: recipe.image,
-                  user_id: recipe.user_id,
-                  likes_count: result.stats.likes_count
-                }, {
-                  user_id: user.id,
-                  display_name: user.user_metadata?.display_name || user.email?.split('@')[0] || 'Utilisateur'
-                }, detailedStats)
-              }
-            } catch (notifError) {
-              logError('Error showing enhanced notification from RecipeCard', notifError)
-            }
-          }
 
           // Ajouter une animation de pulsation sur le bouton
           const likeButton = e.target.closest(`.${styles.likeBtn}`)
