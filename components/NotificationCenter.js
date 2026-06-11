@@ -1,13 +1,16 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { notificationManager } from '../utils/notificationUtils'
 import { logUserInteraction } from '../utils/logger'
+import { useAuth } from './AuthContext'
+import { supabase } from '../lib/supabase'
 import styles from '../styles/NotificationCenter.module.css'
 
 const NotificationCenter = () => {
+  const { user } = useAuth()
   const [isOpen, setIsOpen] = useState(false)
   const [notifications, setNotifications] = useState([])
   const [unreadCount, setUnreadCount] = useState(0)
-  const [filter, setFilter] = useState('all') // all, likes, comments, system
+  const [filter, setFilter] = useState('all')
   const [loading, setLoading] = useState(true)
   const [isInitialized, setIsInitialized] = useState(false)
   const [permissionStatus, setPermissionStatus] = useState(null)
@@ -69,28 +72,63 @@ const NotificationCenter = () => {
     document.addEventListener('mousedown', handleClickOutside)
     document.addEventListener('visibilitychange', handleVisibilityChange)
 
+    const pollInterval = setInterval(() => {
+      if (!document.hidden) loadNotifications(false)
+    }, 30000)
+
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
+      clearInterval(pollInterval)
       if (typeof unsubscribe === 'function') {
         unsubscribe()
       }
     }
   }, [])
 
-  const loadNotifications = (withSpinner = true) => {
-    if (withSpinner) {
-      setLoading(true)
-    }
+  const fetchSupabaseNotifications = useCallback(async () => {
+    if (!user?.id) return []
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('target_user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(50)
 
-    const stored = notificationManager.getStoredNotifications()
-    setNotifications(stored)
-    setUnreadCount(notificationManager.getUnreadCount())
+      if (error) return []
+      return (data || []).map(n => ({
+        id: `sb_${n.id}`,
+        sbId: n.id,
+        type: n.type,
+        title: n.title,
+        body: n.body,
+        data: n.data || {},
+        read: n.read || false,
+        timestamp: new Date(n.created_at).getTime()
+      }))
+    } catch {
+      return []
+    }
+  }, [user?.id])
+
+  const loadNotifications = useCallback(async (withSpinner = true) => {
+    if (withSpinner) setLoading(true)
+
+    const local = notificationManager.getStoredNotifications()
+    const remote = await fetchSupabaseNotifications()
+
+    const merged = [...remote, ...local]
+      .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
+      .slice(0, 50)
+
+    setNotifications(merged)
+    setUnreadCount(merged.filter(n => !n.read).length)
     setLoading(false)
-  }
+  }, [fetchSupabaseNotifications])
 
   const updateUnreadCount = () => {
-    setUnreadCount(notificationManager.getUnreadCount())
+    setUnreadCount(notifications.filter(n => !n.read).length)
   }
 
   const handleToggle = () => {
@@ -104,22 +142,38 @@ const NotificationCenter = () => {
     setPermissionStatus(notificationManager.getPermissionStatus())
 
     if (willOpen) {
-      // Marquer toutes comme lues quand on ouvre (après un léger délai pour l'accessibilité)
-      setTimeout(() => {
+      setTimeout(async () => {
         notificationManager.markAllAsRead()
+        if (user?.id) {
+          try {
+            await supabase
+              .from('notifications')
+              .update({ read: true })
+              .eq('target_user_id', user.id)
+              .eq('read', false)
+          } catch {}
+        }
         loadNotifications(false)
       }, 800)
     }
   }
 
-  const handleDeleteNotification = (notificationId) => {
-    notificationManager.deleteNotification(notificationId)
+  const handleDeleteNotification = async (notificationId) => {
+    if (String(notificationId).startsWith('sb_')) {
+      const sbId = String(notificationId).replace('sb_', '')
+      try { await supabase.from('notifications').delete().eq('id', sbId) } catch {}
+    } else {
+      notificationManager.deleteNotification(notificationId)
+    }
     loadNotifications(false)
   }
 
-  const handleClearAll = () => {
+  const handleClearAll = async () => {
     if (window.confirm('Supprimer toutes les notifications ?')) {
       notificationManager.clearAll()
+      if (user?.id) {
+        try { await supabase.from('notifications').delete().eq('target_user_id', user.id) } catch {}
+      }
       loadNotifications(false)
     }
   }
