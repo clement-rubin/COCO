@@ -79,7 +79,7 @@
 
 /* --- Contenu mobile simplifié --- */
 .mobileContent {
-  max-width: 430px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 0 0 40px 0;
   background: #fff;

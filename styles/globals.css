@@ -211,7 +211,7 @@ a:hover {
 
 /* Layout */
 .container {
-  max-width: 430px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 0 var(--space-4);
 }
@@ -241,9 +241,9 @@ a:hover {
   min-height: 100vh;
   background: var(--bg-primary);
   position: relative;
-  max-width: 430px;
+  max-width: 100%;
   margin: 0 auto;
-  box-shadow: var(--shadow-lg);
+  /* box-shadow removed for responsive layout */;
 }
 
 .app-content {
@@ -257,7 +257,7 @@ a:hover {
   left: 50%;
   transform: translateX(-50%);
   width: calc(100% - 24px);
-  max-width: 440px;
+  max-width: 680px;
   z-index: 1000;
   pointer-events: none;
 }
