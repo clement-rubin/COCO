@@ -193,38 +193,8 @@ export async function addRecipeLike(recipeId, userId, recipe = null, user = null
       throw error
     }
 
-    // Déclencher une notification enrichie si les données sont disponibles
-    if (response.ok && recipe && user && recipe.user_id && recipe.user_id !== userId) {
-      try {
-        // Obtenir les statistiques détaillées pour la notification
-        const detailedStats = await safeGetRecipeLikesWithDetails(recipeId, userId)
-        
-        if (detailedStats.total_likers > 1) {
-          // Notification avec statistiques si plusieurs likes
-          showRecipeLikeWithStatsNotification({
-            ...recipe,
-            likes_count: data.stats?.likes_count || recipe.likes_count || 0
-          }, user, detailedStats)
-        } else {
-          // Notification simple pour le premier like
-          showRecipeLikeInteractionNotification({
-            ...recipe,
-            likes_count: data.stats?.likes_count || recipe.likes_count || 0
-          }, user)
-        }
-      } catch (notificationError) {
-        logError('Error showing enhanced like notification', notificationError, {
-          recipeId,
-          userId: userId?.substring(0, 8) + '...'
-        })
-        
-        // Fallback vers notification simple
-        showRecipeLikeInteractionNotification({
-          ...recipe,
-          likes_count: data.stats?.likes_count || recipe.likes_count || 0
-        }, user)
-      }
-    }
+    // Notifications are handled server-side in the API (stored in Supabase notifications table)
+    // Only the recipe author receives the notification, not the liker
 
     logInfo('Like added successfully', {
       recipeId,

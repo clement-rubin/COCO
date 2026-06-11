@@ -219,6 +219,42 @@ async function handleGet(req, res, admin, requestId) {
   })
 }
 
+async function notifyRecipeAuthor(admin, recipeId, likerId) {
+  try {
+    const { data: recipe, error: recipeError } = await admin
+      .from('recipes')
+      .select('user_id, title')
+      .eq('id', recipeId)
+      .maybeSingle()
+
+    if (recipeError || !recipe) return
+
+    if (recipe.user_id === likerId) return
+
+    const { data: likerProfile } = await admin
+      .from('profiles')
+      .select('display_name')
+      .eq('user_id', likerId)
+      .maybeSingle()
+
+    const likerName = likerProfile?.display_name || 'Quelqu\'un'
+
+    await admin
+      .from('notifications')
+      .insert([{
+        target_user_id: recipe.user_id,
+        type: 'recipe_liked',
+        title: `${likerName} aime votre recette`,
+        body: recipe.title || 'Votre recette',
+        data: { recipeId, likerId, likerName },
+        read: false,
+        created_at: new Date().toISOString()
+      }])
+  } catch (err) {
+    logDebug('Notification insert skipped (table may not exist)', { error: err?.message })
+  }
+}
+
 async function handlePost(req, res, admin, requestId) {
   const { recipe_id, user_id } = req.body || {}
 
@@ -255,6 +291,8 @@ async function handlePost(req, res, admin, requestId) {
     if (insertError && insertError.code !== '23505') {
       throw insertError
     }
+
+    notifyRecipeAuthor(admin, recipe_id, user_id)
   }
 
   const stats = await getRecipeLikeStats(admin, recipe_id, user_id)
@@ -306,13 +344,6 @@ export default async function handler(req, res) {
 
   if (req.method === 'OPTIONS') {
     return res.status(204).end()
-  }
-
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return res.status(503).json({
-      error: 'Service non configure',
-      message: "Variables d'environnement Supabase manquantes"
-    })
   }
 
   const requestId = `like-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`
