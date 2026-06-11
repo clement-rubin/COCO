@@ -2,9 +2,9 @@
   min-height: 100vh;
   background: linear-gradient(135deg, #fafafa 0%, #ffffff 100%);
   position: relative;
-  max-width: 430px;
+
   margin: 0 auto;
-  box-shadow: var(--shadow-lg);
+
   display: flex;
   flex-direction: column;
 }
@@ -599,7 +599,7 @@
   color: #8b5a00;
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
+
   z-index: 1000;
   animation: slideDown 0.5s ease;
   max-width: 90%;

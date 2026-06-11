@@ -1,4 +1,4 @@
-import { supabase, initializeFriendsSystem, getUserFriends } from '../../lib/supabase'
+import { supabase, getUserFriends } from '../../lib/supabase'
 import { logError, logInfo, logDebug, logApiCall } from '../../utils/logger'
 import { sendFriendRequestCorrected, removeFriend, getFriendshipStats } from '../../utils/profileUtils'
 
@@ -8,16 +8,6 @@ export default async function handler(req, res) {
   
   try {
     logApiCall(req.method, '/api/friends', req.body || req.query, null)
-    
-    // Initialize friends system if needed
-    const initResult = await initializeFriendsSystem()
-    if (!initResult) {
-      logError('Failed to initialize friends system', null, { requestId })
-      return res.status(503).json({ 
-        error: 'Service temporairement indisponible',
-        message: 'Le système d\'amis est en cours d\'initialisation'
-      })
-    }
     
     if (req.method === 'GET') {
       return await handleGetRequest(req, res, requestId)
@@ -71,7 +61,7 @@ async function handleGetRequest(req, res, requestId) {
   try {
     const result = await getUserFriends(user_id)
     
-    if (result.error) {
+    if (result.error && (!result.friends || result.friends.length === 0)) {
       logError('Erreur récupération données utilisateur', result.error, { requestId, user_id })
       return res.status(503).json({
         error: 'friends_fetch_failed',

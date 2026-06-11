@@ -110,7 +110,7 @@ export default function Navbar({ user: userProp }) {
         backdropFilter: 'blur(18px) saturate(160%)'
       }}>
         <div style={{
-          maxWidth: 430,
+          maxWidth: 1200,
           margin: '0 auto',
           display: 'flex',
           alignItems: 'center',
